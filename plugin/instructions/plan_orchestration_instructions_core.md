@@ -649,7 +649,7 @@ commit_prefix: chore
 <committer_push>
 ```
 
-**The existence guard on `meta_findings_folder` is yours**, exactly as in B.3: include the key **only if** `<test_fix_review_folder>` exists and is non-empty — a gate that passed on iteration 0 created none, and a `fixable: 0` plan may never have reached the gate. The fixed subject `chore: add code review for <branch>` is reused as-is, as in E.2. In answer mode the index is a **modified** tracked file, staged with any new per-finding files by the same block; its `Park answer consumed:` line guarantees it differs from its commit, so this path cannot yield `error: nothing to commit`. Then run **G.4** when the index has `[ ]` entries; `<escalate>` on a `fixable: 0` returned without the `Park answer:` clause; or go to **G.5** on a `fixable: 0` returned under it.
+**The existence guard on `meta_findings_folder` is yours**, exactly as in B.3: include the key **only if** `<test_fix_review_folder>` exists and is non-empty — a gate that passed on iteration 0 with no finding at all created none, and a `fixable: 0` plan may never have reached the gate. The fixed subject `chore: add code review for <branch>` is reused as-is, as in E.2. In answer mode the index is a **modified** tracked file, staged with any new per-finding files by the same block; its `Park answer consumed:` line guarantees it differs from its commit, so this path cannot yield `error: nothing to commit`. Then run **G.4** when the index has `[ ]` entries; `<escalate>` on a `fixable: 0` returned without the `Park answer:` clause; or go to **G.5** on a `fixable: 0` returned under it.
 
 ### G.4 Fix loop
 

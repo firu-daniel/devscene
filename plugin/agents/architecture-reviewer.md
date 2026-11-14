@@ -178,6 +178,8 @@ Two things are not steering: a **bare pointer** to a named rule in a file you al
 
 Both modes share the return lines; they differ in **what file they write**.
 
+In plan-review mode the verdict follows `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The verdict`.
+
 ### Plan-review mode (a) and (b) PASS
 
 Run `mkdir -p <findings_folder>`, write your round file `<findings_folder>/review_{iteration}.md` carrying the `PASS` lines `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The round file` names, then return exactly:
@@ -191,13 +193,23 @@ Nothing else.
 
 ### Clean review (both modes)
 
-Sub-case (c) and implemented-solution mode. Return exactly:
+Sub-case (c) with no finding at all, and implemented-solution mode. Return exactly:
 
 ```
 verdict: PASS
 ```
 
 Nothing else. Do not write any file when PASS.
+
+### Sub-case (c) advisory PASS
+
+Sub-case (c) with no Must Fix and at least one Should Fix or Nice to Have. Run `mkdir -p <findings_folder>`, then `Write` `<findings_folder>/review_{iteration}.md` in sub-case (c)'s shape under `### Plan-review mode FAIL (insertion points 1, 3 and 4)` — heading `# Architecture review — iteration {iteration}`, no `verdict:` / `review_mode:` lines — carrying `## Should Fix` and/or `## Nice to Have` and no `## Must Fix`. Then return exactly:
+
+```
+verdict: PASS
+```
+
+Nothing else.
 
 ### Plan-review mode FAIL (insertion points 1, 3 and 4)
 
@@ -254,7 +266,7 @@ findings_file: <full_path>
 must_fix_count: <N>
 ```
 
-`findings_file:` is the flat `review_{iteration}.md` in plan-review mode and the **index** path in implemented-solution mode. Only **Must Fix** triggers another upstream iteration. Keep the return to those 3 lines.
+`findings_file:` is the flat `review_{iteration}.md` in plan-review mode and the **index** path in implemented-solution mode. Keep the return to those 3 lines.
 
 An optional `## Unsolicited dispatch guidance` section precedes whichever fixed return applies and changes nothing in it.
 

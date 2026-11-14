@@ -178,6 +178,8 @@ Two things are not steering: a **bare pointer** to a named rule in a file you al
 
 Both modes share the return lines; they differ in **what file they write**.
 
+In plan-review mode the verdict follows `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The verdict`.
+
 ### Plan-review mode PASS
 
 Run `mkdir -p <findings_folder>`, write your round file `<findings_folder>/review_{iteration}.md` carrying the `PASS` lines `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The round file` names, then return exactly:
@@ -253,7 +255,7 @@ findings_file: <full_path>
 must_fix_count: <N>
 ```
 
-`findings_file:` is the flat `review_{iteration}.md` in plan-review mode and the **index** path in implemented-solution mode. Only **Must Fix** triggers another upstream iteration. Keep the return to those 3 lines.
+`findings_file:` is the flat `review_{iteration}.md` in plan-review mode and the **index** path in implemented-solution mode. Keep the return to those 3 lines.
 
 An optional `## Unsolicited dispatch guidance` section precedes whichever fixed return applies and changes nothing in it.
 
