@@ -113,7 +113,8 @@
 #      written (a graph entering at a round's gate included), the round
 #      evidence cannot be read, lib/harness-run-lib.sh predates this walker,
 #      or the lock was held for over 120 s — once no flow-walker.sh call is
-#      running, remove the lock directory with `rmdir`, then run `current`
+#      running, remove the lock directory (and its `.break` sibling, if
+#      present) with `rmdir`, then run `current`
 #   Every non-zero exit prints one `flow-walker: <cause>` line on stderr and
 #   leaves the state file byte-identical.
 #
@@ -154,10 +155,12 @@
 # `<state_dir>/.flow_walker_state.lock` from before the state is read to after
 # it is replaced, so a set's gates may be recorded by simultaneous calls and
 # exactly one of them prints the round's result. It is taken with `mkdir`,
-# retried every 0.1 s, removed once as stale when older than a minute, given
-# up after 120 s (exit 2), always left empty, and released on every exit path
-# by the call that took it. `current` takes none: the state is replaced by
-# `mv`, so a read is never torn.
+# retried every 0.1 s, removed as stale when older than a minute, by one
+# waiting call at a time under the sibling directory
+# `<state_dir>/.flow_walker_state.lock.break`, which it re-checks the age
+# under, given up after 120 s (exit 2), always left empty, and released on
+# every exit path by the call that took it. `current` takes none: the state
+# is replaced by `mv`, so a read is never torn.
 #
 # BASH 3.2 AND JQ 1.5 ARE THE FLOORS: no associative array and no array-reading
 # builtin. The graph is flattened by one `jq` per call.
@@ -477,8 +480,13 @@ EOF
 
 LOCK="$STATE_FILE.lock"
 LOCK_HELD=0
+BREAK_HELD=0
 
 lock_release() {
+  if [ "$BREAK_HELD" -eq 1 ]; then
+    rmdir "$LOCK.break" 2>/dev/null
+    BREAK_HELD=0
+  fi
   if [ "$LOCK_HELD" -eq 1 ]; then
     rmdir "$LOCK" 2>/dev/null
     LOCK_HELD=0
@@ -486,7 +494,7 @@ lock_release() {
 }
 
 # `mkdir` is the atomic test-and-set; the directory stays empty so `git status`
-# never lists it. A lock older than a minute is removed once per call.
+# never lists it. A lock older than a minute is broken at most once per call.
 lock_take() {
   local dir="${STATE_FILE%/*}" tries=0 stale=0
   [ -d "$dir" ] || mkdir -p "$dir" 2>/dev/null || fault "cannot create $dir"
@@ -504,13 +512,21 @@ lock_take() {
       mkdir "$LOCK" 2>/dev/null && { LOCK_HELD=1; return 0; }
       [ -d "$LOCK" ] || fault "cannot create $LOCK"
     fi
-    if [ "$stale" -eq 0 ] && [ -n "$(find "$LOCK" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then
+    if [ "$stale" -eq 0 ] && [ -n "$(find "$LOCK" -maxdepth 0 -mmin +1 2>/dev/null)" ] \
+      && mkdir "$LOCK.break" 2>/dev/null; then
+      # Only the holder of the break lock re-checks and removes, so a lock
+      # another waiter has just taken is never removed.
+      BREAK_HELD=1
       stale=1
-      rmdir "$LOCK" 2>/dev/null
+      if [ -n "$(find "$LOCK" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then
+        rmdir "$LOCK" 2>/dev/null
+      fi
+      rmdir "$LOCK.break" 2>/dev/null
+      BREAK_HELD=0
       continue
     fi
     [ "$tries" -lt 1200 ] \
-      || fault "cannot lock $LOCK: held for over 120 s; once no flow-walker.sh call is running, remove $LOCK with rmdir, then run flow-walker.sh current"
+      || fault "cannot lock $LOCK: held for over 120 s; once no flow-walker.sh call is running, remove $LOCK (and $LOCK.break, if present) with rmdir, then run flow-walker.sh current"
     sleep 0.1
     tries=$((tries + 1))
   done

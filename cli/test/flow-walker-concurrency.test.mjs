@@ -10,7 +10,9 @@
  * observe it: the outcomes, the single result, and the lock directory's absence afterwards.
  *
  * The mutation that turns case (1) red, applied to the template alone and reverted after: `next`
- * no longer calls `lock_take` — run red once on feat_parallel_plan_reviews.
+ * no longer calls `lock_take` — run red once on feat_parallel_plan_reviews. The mutation that
+ * turns case (4) red: `lock_take`'s stale branch without the `mkdir "$LOCK.break"` guard, so two
+ * waiters that both saw the stale lock each remove a lock in turn and both take it.
  *
  * Every fixture repository is built under the system temp directory and torn down in process; no
  * case is ever aimed at this checkout (`.claude/context/conventions.md` → `## The testing bar`).
@@ -24,6 +26,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { INIT_SCRIPTS_DIR, runBash } from './helpers/fixture.mjs';
 import {
+  blocksOf,
   plantReview,
   run,
   runConcurrently,
@@ -107,14 +110,18 @@ const PLAN_WAIT = [
 
 const PLAN_PASS = gate('plan_review', 'task_plan_reviews', 'PASS');
 
+/** A killed call's leftover: `# CONCURRENCY`, "removed as stale when older than a minute". */
+async function plantStaleLock(dir) {
+  await mkdir(lockPath(dir));
+  const twoMinutesAgo = new Date(Date.now() - 120_000);
+  await utimes(lockPath(dir), twoMinutesAgo, twoMinutesAgo);
+}
+
 test('(2) a lock older than a minute is broken, and the call proceeds', { skip: SKIP }, async (t) => {
   const dir = await fixture(t);
   await run(dir, OPEN);
 
-  // A killed call's leftover: `# CONCURRENCY`, "removed once as stale when older than a minute".
-  await mkdir(lockPath(dir));
-  const twoMinutesAgo = new Date(Date.now() - 120_000);
-  await utimes(lockPath(dir), twoMinutesAgo, twoMinutesAgo);
+  await plantStaleLock(dir);
 
   const [recorded] = await run(dir, [PLAN_PASS]);
   assert.deepEqual(recorded, PLAN_WAIT);
@@ -149,4 +156,36 @@ test('(3) a fresh lock held by another call is waited for, never broken', { skip
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   assert.equal(result.stdout, `${PLAN_WAIT.map(([k, v]) => `${k}: ${v}`).join('\n')}\n`);
   assert.equal(existsSync(lockPath(dir)), false, 'the call left the lock directory behind');
+});
+
+test('(4) two calls waiting on a stale lock both record their gate, and neither lock is left behind', { skip: SKIP }, async (t) => {
+  for (let i = 0; i < REPETITIONS; i += 1) {
+    await t.test(`repetition ${i + 1} of ${REPETITIONS}`, async (st) => {
+      const dir = await fixture(st);
+      await run(dir, OPEN);
+      await plantStaleLock(dir);
+
+      const results = await runConcurrently(dir, [
+        gate('business_parity_review', 'business_parity_reviews', 'PASS'),
+        gate('architecture_review', 'architecture_reviews', 'PASS'),
+      ]);
+
+      for (const r of results) {
+        assert.equal(r.status, 0, `a waiting next exited ${r.status}\n${r.stdout}\n${r.stderr}`);
+        assert.deepEqual(r.action[0], ['action', 'wait']);
+      }
+      // A second breaker removing the first breaker's fresh lock loses one of these two records.
+      const recorded = results.map((r) => r.action.find(([k]) => k === 'recorded')[1].split(' ')[0]);
+      assert.equal(new Set(recorded).size, 2, `the waits recorded ${recorded.join(', ')}`);
+
+      const current = await walk(dir, ['current', '--flow', WALKER_FLOW, '--branch', BRANCH]);
+      assert.equal(current.status, 0, current.stderr);
+      const dispatches = blocksOf(current.action).filter((b) => b[0][1] === 'dispatch');
+      assert.equal(dispatches.length, 1, `current printed ${dispatches.length} dispatch blocks\n${current.stdout}`);
+      assert.deepEqual(dispatches[0].find(([k]) => k === 'node'), ['node', 'plan_review']);
+
+      assert.equal(existsSync(lockPath(dir)), false, 'a call left the lock directory behind');
+      assert.equal(existsSync(`${lockPath(dir)}.break`), false, 'a call left the break lock behind');
+    });
+  }
 });
