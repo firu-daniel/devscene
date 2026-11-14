@@ -27,7 +27,7 @@ This review ran no suite; whether the tests pass is the Run gates phase's to est
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 2** — Restate the semi-autonomous plan command's sentence that orders the architecture gate ahead of the plan review _(layer: plugin)_
+1. [x] **Finding 2** — Restate the semi-autonomous plan command's sentence that orders the architecture gate ahead of the plan review _(layer: plugin)_
 2. [ ] **Finding 1** — Guard the walker's stale-lock break with a break lock so two waiters can never both hold the lock _(layer: cli, general)_
 
 ---
