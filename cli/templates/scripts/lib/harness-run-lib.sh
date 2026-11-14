@@ -4,6 +4,8 @@
 # `devscene.config.json` at run time, answers "is this branch protected?",
 # routes an inbox filename to its engine and branch (`hr_inbox_route_var`) and
 # judges whether that branch may be taken in (`hr_inbox_branch_refusal_var`),
+# answers the clarification channel's highest question index and its top-level
+# answered pairs (`hr_max_question_index`, `hr_top_level_answered_pairs`),
 # derives a branch name from a title (`hr_derive_branch`), judges whether a
 # path lies strictly inside the state directory's scratch directory
 # (`hr_scratch_path_var`), answers whether the progress comment is on
@@ -3034,6 +3036,62 @@ hr_inbox_branch_refusal_var() {
     *) HR_INBOX_REFUSAL="whether '$branch' is protected cannot be judged: the protected set in '$root/devscene.config.json' cannot be resolved" ;;
   esac
   return 1
+}
+
+# ---------------------------------------------------------------------------
+# The clarification channel's index answers — one definition each.
+# ---------------------------------------------------------------------------
+
+# hr_max_question_index <clar_dir>
+#
+# The highest numbered question_<n>.md index under <clar_dir>, top level and
+# answered/ together, or 0 when there is none. Numeric-only names, as the
+# resume and the exit classification accept. Prints the integer and nothing else,
+# because every caller captures it: the watcher's park-loop guard, park resume
+# and exit classification, and the planning record library.
+hr_max_question_index() {
+  local clar_dir="$1" q n max=0
+  for q in "$clar_dir"/question_*.md "$clar_dir"/answered/question_*.md; do
+    [ -e "$q" ] || continue
+    n="${q##*/}"
+    n="${n#question_}"
+    n="${n%.md}"
+    case "$n" in
+      '' | *[!0-9]*) continue ;;
+    esac
+    # Base 10 forced, so a zero-padded index is not read as octal.
+    if [ "$((10#$n))" -gt "$max" ]; then
+      max="$((10#$n))"
+    fi
+  done
+  printf '%s\n' "$max"
+}
+
+# hr_top_level_answered_pairs <clar_dir>
+#
+# Every top-level index with both files, space-separated and numerically sorted,
+# whether or not another top-level question is still unanswered; prints nothing
+# when there is none. The watcher's spawn_engine records it at every launch, and
+# the planning driver filters it. Each
+# index is printed as its file name spells it, because archive_answered_pair
+# rebuilds the file names from it; `sort -n` orders a zero-padded one in base 10.
+hr_top_level_answered_pairs() {
+  local clar_dir="$1" q n answered_list="" answered_set
+  for q in "$clar_dir"/question_*.md; do
+    [ -e "$q" ] || continue
+    n="${q##*/}"
+    n="${n#question_}"
+    n="${n%.md}"
+    case "$n" in
+      '' | *[!0-9]*) continue ;;
+    esac
+    [ -f "$clar_dir/answer_${n}.md" ] || continue
+    answered_list="${answered_list}${n}
+"
+  done
+  [ -n "$answered_list" ] || return 0
+  answered_set="$(printf '%s' "$answered_list" | sort -n | tr '\n' ' ')"
+  printf '%s\n' "${answered_set% }"
 }
 
 # ---------------------------------------------------------------------------

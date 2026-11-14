@@ -3583,7 +3583,7 @@ EOF
   # The answered pairs this session will consume, re-derived from disk at every
   # launch so no job boundary can lose them; classify_run_exit archives them.
   registry_set "$branch" launch_answered_set \
-    "$(top_level_answered_pairs "$worktree/$state_rel/clarifications/$branch")"
+    "$(hr_top_level_answered_pairs "$worktree/$state_rel/clarifications/$branch")"
 
   # Spawn ONE detached subshell that runs the agent IN THE FOREGROUND and then
   # classifies the exit from its REAL exit code. The agent must be a CHILD of
@@ -3822,30 +3822,6 @@ archive_answered_pair() {
   mkdir -p "$clar_dir/answered" || return 0
   mv "$clar_dir/question_${n}.md" "$clar_dir/answered/question_${n}.md" 2>/dev/null || true
   mv "$clar_dir/answer_${n}.md" "$clar_dir/answered/answer_${n}.md" 2>/dev/null || true
-}
-
-# max_question_index <clar_dir>
-#
-# The highest numbered question_<n>.md index under <clar_dir>, top level and
-# answered/ together, or 0 when there is none. Numeric-only names, as the
-# resume and the exit classification accept. Prints the integer and nothing else,
-# because both callers capture it.
-max_question_index() {
-  local clar_dir="$1" q n max=0
-  for q in "$clar_dir"/question_*.md "$clar_dir"/answered/question_*.md; do
-    [ -e "$q" ] || continue
-    n="${q##*/}"
-    n="${n#question_}"
-    n="${n%.md}"
-    case "$n" in
-      '' | *[!0-9]*) continue ;;
-    esac
-    # Base 10 forced, so a zero-padded index is not read as octal.
-    if [ "$((10#$n))" -gt "$max" ]; then
-      max="$((10#$n))"
-    fi
-  done
-  printf '%s\n' "$max"
 }
 
 # log_stopped_background_tasks <branch> <log_path> <offset>
@@ -4154,7 +4130,7 @@ classify_run_exit() {
     local base_max now_max cycles loop_reason=""
     base_max="$(registry_get "$branch" resume_max_question_index)"
     case "$base_max" in '' | *[!0-9]*) base_max=0 ;; esac
-    now_max="$(max_question_index "$clar_dir")"
+    now_max="$(hr_max_question_index "$clar_dir")"
     if [ "$now_max" -le "$((10#$base_max))" ]; then
       loop_reason="no question above index $((10#$base_max))"
     fi
@@ -4210,7 +4186,7 @@ classify_run_exit() {
         case "$restarts" in '' | *[!0-9]*) restarts=0 ;; esac
         if [ "$((10#$restarts))" -gt 0 ]; then
           why="a stall restart"
-        elif [ -n "$clar_dir" ] && [ "$(max_question_index "$clar_dir")" -gt 0 ]; then
+        elif [ -n "$clar_dir" ] && [ "$(hr_max_question_index "$clar_dir")" -gt 0 ]; then
           why="an earlier park"
         fi
       fi
@@ -4325,32 +4301,6 @@ park_answered_set() {
   printf '%s\n' "${answered_set% }"
 }
 
-# top_level_answered_pairs <clar_dir>
-#
-# Every top-level index with both files, space-separated and numerically sorted,
-# whether or not another top-level question is still unanswered; prints nothing
-# when there is none. spawn_engine records it at every launch. Each
-# index is printed as its file name spells it, because archive_answered_pair
-# rebuilds the file names from it; `sort -n` orders a zero-padded one in base 10.
-top_level_answered_pairs() {
-  local clar_dir="$1" q n answered_list="" answered_set
-  for q in "$clar_dir"/question_*.md; do
-    [ -e "$q" ] || continue
-    n="${q##*/}"
-    n="${n#question_}"
-    n="${n%.md}"
-    case "$n" in
-      '' | *[!0-9]*) continue ;;
-    esac
-    [ -f "$clar_dir/answer_${n}.md" ] || continue
-    answered_list="${answered_list}${n}
-"
-  done
-  [ -n "$answered_list" ] || return 0
-  answered_set="$(printf '%s' "$answered_list" | sort -n | tr '\n' ' ')"
-  printf '%s\n' "${answered_set% }"
-}
-
 # begin_park_resume <branch> <clar_dir> <answered_set>
 #
 # The registry half of a park resume, shared by resume_parked_run and job mode.
@@ -4362,7 +4312,7 @@ begin_park_resume() {
   registry_set "$branch" resumed_at "$(date '+%Y-%m-%dT%H:%M:%S')"
   registry_set "$branch" resumed_for_index "$answered_set"
   registry_set "$branch" resume_kind answer
-  registry_set "$branch" resume_max_question_index "$(max_question_index "$clar_dir")"
+  registry_set "$branch" resume_max_question_index "$(hr_max_question_index "$clar_dir")"
 }
 
 # resume_parked_run <branch>
