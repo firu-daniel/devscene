@@ -29,7 +29,7 @@
 ## Phase 2 Readiness — Ordered Fix List
 
 1. [x] **Finding 3** — Make the revision-note template's `Unrequested changes:` line say "no Must Fix" _(layer: plugin)_
-2. [ ] **Finding 2** — Align the two writers' paraphrase of `## The writer's revision` item 1 with its Must Fix wording _(layer: plugin)_
+2. [x] **Finding 2** — Align the two writers' paraphrase of `## The writer's revision` item 1 with its Must Fix wording _(layer: plugin)_
 3. [ ] **Finding 1** — State in `test-fix-plan-writer` and `ui-tests-plan-writer` that a Should Fix or Nice to Have is never applied or recorded under `## Rejected findings` _(layer: plugin)_
 
 ---
