@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/fix_reviewers_should_fix_only_pass_task_prompt
   - screened: harness-runs/task_prompts/fix_reviewers_should_fix_only_pass_task_prompt.md sha256=48c5deeb913341bed5cde31e927fc4b6c4526631358523207d315530327f981c
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
