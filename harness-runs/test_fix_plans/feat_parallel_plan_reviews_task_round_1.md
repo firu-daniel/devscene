@@ -12,7 +12,7 @@ The log also reports 13a, 13b and 13c as `BLOCKED`, and 13d and 14d as `SKIPPED`
 
 The fix loop walks this list, and it is the **single source of truth** for that loop. A `[ ]` marker anywhere else in this plan or its finding files is informational only.
 
-1. [ ] **Finding 1** — Rename the `fo` local in `record_in_set()` so typos stops flagging it. _(layer: cli, general)_
+1. [x] **Finding 1** — Rename the `fo` local in `record_in_set()` so typos stops flagging it. _(layer: cli, general)_
 
 ## Must Fix
 

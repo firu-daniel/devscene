@@ -868,7 +868,7 @@ open_round() {
 # Record <outcome> for gate <g> of the set pending at round <rn>, then print
 # `wait`, or at the set's last outcome, the join.
 record_in_set() {
-  local rn="$1" g="$A_NODE" n edge i=0 h first="" fo="" held=""
+  local rn="$1" g="$A_NODE" n edge i=0 h first="" first_outcome="" held=""
   [ -n "$g" ] || refuse "a round's set is pending at '$rn': name the gate with --node"
   st_num round.number
   n="$SV"
@@ -902,16 +902,16 @@ record_in_set() {
     st_get "round.held.$GV"
     [ -n "$SV" ] || continue
     held="${held}held: $GV $SV$NL"
-    if [ -z "$first" ]; then first="$GV"; fo="$SV"; fi
+    if [ -z "$first" ]; then first="$GV"; first_outcome="$SV"; fi
   done
   if [ -z "$first" ]; then
     close_round "$rn"
     return 0
   fi
-  g_need "nodes.$first.outcomes.$fo.binding"
+  g_need "nodes.$first.outcomes.$first_outcome.binding"
   h="$GV"
   g_need "nodes.$first.agent"
-  OUT="action: binding${NL}binding: $h${NL}node: $first${NL}agent: $GV${NL}reason: $fo$NL$held"
+  OUT="action: binding${NL}binding: $h${NL}node: $first${NL}agent: $GV${NL}reason: $first_outcome$NL$held"
   st_set node "$first"
   st_set awaiting done
 }
