@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/feat_script_driven_planning_pilot_task_prompt.
   - screened: harness-runs/task_prompts/feat_script_driven_planning_pilot_task_prompt.md sha256=7970141078b662730b877aa7c75e75f4f87e3d2909cc1dfe05fc3bae25dee77a
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
