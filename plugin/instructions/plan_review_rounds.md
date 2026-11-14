@@ -28,6 +28,7 @@ These documents point at a section of this file:
 - `${CLAUDE_PLUGIN_ROOT}/agents/task-plan-reviewer.md`
 - `${CLAUDE_PLUGIN_ROOT}/agents/architecture-reviewer.md`
 - `${CLAUDE_PLUGIN_ROOT}/agents/business-parity-reviewer.md`
+- `${CLAUDE_PLUGIN_ROOT}/agents/ui-tests-plan-reviewer.md`
 - `${CLAUDE_PLUGIN_ROOT}/agents/task-plan-writer.md`
 - `${CLAUDE_PLUGIN_ROOT}/agents/user-review-fix-plan-writer.md`
 - `${CLAUDE_PLUGIN_ROOT}/agents/branch-reviewer.md`
@@ -53,6 +54,12 @@ findings_file: <full_path>
 ```
 
 Return on `FAIL`: the reviewer's existing three lines — `verdict: FAIL`, `findings_file: <full_path>`, `must_fix_count: <N>`.
+
+## The verdict
+
+A plan review returns `verdict: FAIL` only when it raises at least one Must Fix. A review with none returns `verdict: PASS`, whatever Should Fix, Nice to Have or incidental findings it carries.
+
+Those Should Fix and Nice to Have items stay in the review file as a record for a human. No loop reads them, and no writer acts on them (`## The writer's revision`).
 
 ## The Must Fix entry
 
@@ -98,9 +105,9 @@ This is the one exception to *"`call stands` is unavailable for a Must Fix"*. Th
 
 The round's prompt names every findings file of the round and the revision note path.
 
-1. Group the round's Must Fix items by target file across every findings file. Read every finding on a file against that file's **unchanged** text before the first edit to it.
+1. Group the round's Must Fix items by target file across every findings file. Read every Must Fix on a file against that file's **unchanged** text before the first edit to it.
 2. Resolve incompatible findings by `## A rejection recorded under precedence`.
-3. Each Should Fix of the round is applied, or recorded under `## Rejected findings` with its reason; none is held for a go-ahead the loop does not relay.
+3. Act on the round's Must Fix items only. Never apply, record under `## Rejected findings` or name in the revision note a Should Fix or Nice to Have item, whichever gate's file it sits in.
 4. Never act on an `## Incidental findings (not gating)` entry.
 5. Write the revision note **last**, at the path the prompt names:
 
@@ -110,4 +117,4 @@ The round's prompt names every findings file of the round and the revision note 
 Unrequested changes: <every file changed that no finding asked for, or none>
 ```
 
-One line per finding. A user-feedback revision writes one line per feedback item, its reviewer field `user`.
+One line per Must Fix. A user-feedback revision writes one line per feedback item, its reviewer field `user`.
