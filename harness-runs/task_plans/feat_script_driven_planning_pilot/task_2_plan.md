@@ -82,3 +82,10 @@ This task adds no `OUTER_LOOP_SCRIPTS` row; Task 4 does.
 - `cli/test/planning-record-lib.test.mjs` passes, and its commits carry no attribution trailer, because the wrapper builds the message from the subject alone.
 - `grep -n 'question_' cli/templates/scripts/lib/planning-record-lib.sh` shows the file name only where `prl_park` builds the path it writes: no loop over the channel directory.
 - Every subject in the new library matches, byte for byte, the subject the cited override spells. `chore: Add task plan for <branch>`, `chore: Add UI-test plan for <branch>`, `chore: Plan round <n> for <branch>`, `chore: Plan round <n> partial for <branch>`, `chore: Flow progress <id> for <branch>` and `chore: Log improvement observations for <branch>` each appear once.
+
+**Deviations from plan:**
+- The `question_` grep also matches the two places the library names `hr_max_question_index` (the header sentence and `prl_park`'s call), beside the one `file="$dir/question_$n.md"` line that builds the path; neither is a scan of the channel directory, so the bullet's intent holds.
+- The home directory is rewritten to `~` in the observations file: `## The entry format` names no repo-relative form for a path outside every checkout, and `~` keeps the remainder of the path readable while disclosing no machine layout.
+- `prl_observe` folds newlines to spaces in the problem statement and the cost as well as the evidence, so each block's `##` heading and bullets stay one line each.
+- An exit 1 that leaves the path staged (the branch moved under the wrapper) is logged by `prl_observe_flush` but not re-staged by a second wrapper call; a later write's edit is reverted from a backup on any non-landed failure. Recorded as a residual in the library header.
+- A direct `/bin/bash` probe of the helpers was refused by the tool layer; bash 3.2 compatibility rests on `bash scripts/typecheck.sh`'s parse step (`/bin/bash`, 3.2.57) and on the suite, which runs the `bash` on `PATH`.
