@@ -67,7 +67,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_script_driven_planning_
 2. [x] **Task 1** — Add `lib/planning-node-lib.sh`: one node session's prompt, schema, launch and validated result _(layer: cli)_ _(points: 20)_
 3. [x] **Task 2** — Add `lib/planning-record-lib.sh`: the planning commits, ledger flips, park and pause files and improvement observations _(layer: cli)_ _(points: 20)_
 4. [x] **Task 3** — Add `lib/planning-driver-lib.sh`: `pd_drive` walks the planning graph, runs each set concurrently and applies the safety contract per set _(layer: cli)_ _(points: 20)_
-5. [ ] **Task 4** — Ship the three planning libraries through `OUTER_LOOP_SCRIPTS`, name them in the two CLI READMEs, and name the driver as an intake writer in the two state-directory templates _(layer: cli)_ _(points: 15)_
+5. [x] **Task 4** — Ship the three planning libraries through `OUTER_LOOP_SCRIPTS`, name them in the two CLI READMEs, and name the driver as an intake writer in the two state-directory templates _(layer: cli)_ _(points: 15)_
 6. [ ] **Task 5** — Test the driver end to end with a stub agent CLI: walk, sets, held binding, park, STOP, PAUSE, cap and observations _(layer: cli)_ _(points: 20)_
 7. [ ] **Task 6** — Wire the pilot into `autonomous-watcher.sh`: `PLANNING_DRIVER_PLUGIN_DIR`, `session_exec`, and the setup → driver → engine sequence _(layer: cli)_ _(points: 20)_
 8. [ ] **Task 7** — Plugin side: the setup-only clause in the task engine command, the core's one-place note, and the observation intake's second writer _(layer: plugin)_ _(points: 15)_
