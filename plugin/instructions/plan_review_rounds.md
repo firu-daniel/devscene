@@ -114,7 +114,7 @@ The round's prompt names every findings file of the round and the revision note 
 ```
 # Revision note — round <iteration>
 - <reviewer> <n> (<findings file path>) — files: <files changed> — <resolved | resolved by <reviewer> <m> | rejected — see ## Rejected findings>
-Unrequested changes: <every file changed that no finding asked for, or none>
+Unrequested changes: <every file changed that no Must Fix asked for, or none>
 ```
 
 One line per Must Fix. A user-feedback revision writes one line per feedback item, its reviewer field `user`.
