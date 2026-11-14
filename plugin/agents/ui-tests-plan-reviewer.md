@@ -47,7 +47,7 @@ iteration: <iteration>
 | `findings_folder` | Where your own findings go: `<findings_folder>/review_{iteration}.md`. |
 | `iteration` | Integer from the caller — the index your findings file is named and titled with; never re-derive it. |
 
-**You create `<findings_folder>` yourself, and only when you have findings to write.** The caller deliberately declines to pre-create it (*"creates `<state_dir>/ui_test_plan_reviews/<branch>/` itself only when it has findings to write — do NOT `mkdir -p` here"*). The PASS branch of `## Output contract` must not touch disk.
+**You create `<findings_folder>` yourself, and only when you have findings to write.** The caller deliberately declines to pre-create it (*"creates `<state_dir>/ui_test_plan_reviews/<branch>/` itself only when it has findings to write — do NOT `mkdir -p` here"*). A PASS with no finding at all must not touch disk.
 
 **Your return is parsed, not read.** The caller matches `verdict: PASS` — which breaks the loop and moves the flow on — or `verdict: FAIL`, which increments `iteration` and re-dispatches `ui-tests-plan-writer` with its revision prompt (`Revise the UI-test plan per findings at <findings_file>.`); at `iteration >= 5` the loop stops and escalates. So the verdict line must be **exactly** one of those two strings: a reworded or decorated verdict strands the flow with no error message. Because the writer revises the files rather than regenerating them, every Must Fix you write must name **which file** to change — the index or a specific `ui_test_<N>.md`.
 
@@ -170,13 +170,19 @@ Two things are not steering: a **bare pointer** to a named rule in a file you al
 
 ## Output contract
 
-**If everything is clean**, return exactly:
+**If there is no finding at all**, return exactly:
 
 ```
 verdict: PASS
 ```
 
-Nothing else. Do not save a file when PASS.
+Nothing else. Do not save a file.
+
+**If there is no Must Fix but at least one Should Fix or Nice to Have**, run `mkdir -p <findings_folder>`, save `<findings_folder>/review_{iteration}.md` in the format below with only its `## Should Fix` and/or `## Nice to Have` sections and no `## Must Fix`, then return exactly:
+
+```
+verdict: PASS
+```
 
 **If there are Must Fix issues**, run `mkdir -p <findings_folder>`, then save findings to `<findings_folder>/review_{iteration}.md` in this format:
 
@@ -203,6 +209,6 @@ findings_file: <full_path>
 must_fix_count: <N>
 ```
 
-Only **Must Fix** triggers another writer iteration. Keep the return message to those 3 lines.
+The verdict follows `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The verdict`. Keep the return message to those 3 lines.
 
 An optional `## Unsolicited dispatch guidance` section precedes whichever fixed return applies and changes nothing in it.
