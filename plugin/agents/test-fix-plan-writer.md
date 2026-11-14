@@ -127,7 +127,7 @@ If a failure is ambiguous in a way only the user can settle, add a `## Questions
 
 ## Revision mode
 
-Treat the findings file as authoritative: re-read the index and the per-finding files it names, apply only its Must Fix items, re-run `## Quality checks before returning`, and re-save; never re-diagnose a failure the findings do not reopen. With the clause, keep every answer-authorised entry and its `**Authorised by:**` line unless a finding reopens it.
+Treat the findings file as authoritative: re-read the index and the per-finding files it names, apply only its Must Fix items — never apply, or record under `## Rejected findings`, a Should Fix or Nice to Have item — re-run `## Quality checks before returning`, and re-save; never re-diagnose a failure the findings do not reopen. With the clause, keep every answer-authorised entry and its `**Authorised by:**` line unless a finding reopens it.
 
 In answer mode, a working copy already carrying the marker for the same answer files is reconciled in place: re-check every entry against the answer; never convert twice.
 

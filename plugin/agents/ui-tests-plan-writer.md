@@ -64,7 +64,7 @@ Index: <state_dir>/ui_test_plans/<branch>_ui_test_plan.md
 Per-test files: <state_dir>/ui_test_plans/<branch>/
 ```
 
-Read the existing index and/or per-test file(s) the findings target AND the findings file; apply only the Must Fix items to the relevant file(s). Same shape as the `task-plan-writer`'s revision mode.
+Read the existing index and/or per-test file(s) the findings target AND the findings file; apply only the Must Fix items to the relevant file(s), and never apply, or record under `## Rejected findings`, a Should Fix or Nice to Have item. Same shape as the `task-plan-writer`'s revision mode.
 
 **A reviewer finding you judge wrong is resolved or recorded — never only answered in your return.** Record it as one line of a `## Rejected findings` section at the END of the index: `- **<finding number or title>** (rejected round <i>) — <reason>`. When a later round re-raises it, update that same line to `- **<finding number or title>** (rejected round <i>; rebutted round <j> — call stands) — <reason>`. A user's own observation is authoritative: never record it here. **`call stands` is unavailable for a Must Fix:** record the rejection and its reason only; a Must Fix you do not resolve stays open into the next round.
 
