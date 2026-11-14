@@ -58,8 +58,6 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 
 - **A recovery for an unattended run's failure covers every execution mode the failure reaches, the local watcher and the remote job alike. Leaving a mode out is a question to the user before the plan ships, never a documented residual.** _(taught by: fix_linux_sandbox_deny_placeholders)_
 
-- **In a revision round, a reviewer's Should Fix is applied or recorded under `## Rejected findings` with its reason. It is never held for a go-ahead the loop does not relay.** _(taught by: fix_linux_detached_gate_run)_
-
 ## Trust checks
 
 - **When a trust check meets a file an actor outside your control creates on every run, accept only its provably inert shape (regular, empty, not a link, its enabling setting off) and keep refusing every other shape; never widen to "present is fine".** _(taught by: fix_linux_sandbox_sibling_glob_trio)_
