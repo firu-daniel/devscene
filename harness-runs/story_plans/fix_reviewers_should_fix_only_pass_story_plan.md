@@ -40,7 +40,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/fix_reviewers_should_fix_onl
 3. [x] **Task 3** — Drop the Should Fix / Nice to Have revision duties from the three plan writers _(layer: plugin)_ _(points: 10)_
 4. [x] **Task 4** — Point `architecture-reviewer` and `business-parity-reviewer` at `## The verdict`, and define sub-case (c)'s advisory PASS _(layer: plugin)_ _(points: 15)_
 5. [x] **Task 5** — Define `ui-tests-plan-reviewer`'s advisory PASS and point it at `## The verdict` _(layer: plugin)_ _(points: 10)_
-6. [ ] **Task 6** — Bring this repository's live run-artifact README copies byte-identical to Task 1's templates _(layer: general)_ _(points: 5)_
+6. [x] **Task 6** — Bring this repository's live run-artifact README copies byte-identical to Task 1's templates _(layer: general)_ _(points: 5)_
 
 ## Scope register
 
