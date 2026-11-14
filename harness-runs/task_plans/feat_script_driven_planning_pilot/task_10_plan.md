@@ -33,7 +33,7 @@ This task ships first. It changes no behaviour: the watcher calls the same logic
   - a non-numeric name (`question_x.md`) is ignored by both;
   - a zero-padded `question_08.md` reads as 8, not as an octal error, and is printed by `hr_top_level_answered_pairs` as `08`;
   - a top-level question without its answer is left out of the pairs, and the pairs are numerically sorted.
-- [ ] **Source guard.** One case asserts on the source: `cli/templates/scripts/autonomous-watcher.sh` defines neither function under either name, and no file under `cli/templates/scripts/` other than `lib/harness-run-lib.sh` defines `hr_max_question_index()` or `hr_top_level_answered_pairs()`.
+- [ ] **Source guard — two fixed files, no tree read.** One case reads exactly two named files as text and asserts: `cli/templates/scripts/autonomous-watcher.sh` defines neither function under either name (`max_question_index()`, `top_level_answered_pairs()`, `hr_max_question_index()`, `hr_top_level_answered_pairs()`), and `cli/templates/scripts/lib/harness-run-lib.sh` defines both `hr_` names. It lists no directory and globs nothing, so it is not a tree-reading test under `plugin/instructions/unit_loop_core.md` → `## The test-run rule` point 8 and owes no `treeGuards` entry. The suite's opening comment states this: *"reads two fixed files only — the watcher template and the run library — never a directory"*. The planning libraries do not exist yet when this task ships; that they define no copy is checked by their own tasks' Verification greps (Task 2's `prl_park`, Task 3's `pd_entry`).
 
 **Verification:**
 

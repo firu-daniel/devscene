@@ -20,7 +20,7 @@
 - the decision whether the driver runs at all;
 - the setup session before it and the engine session after it.
 
-Task 5 writes its end-to-end suite, and Task 4 adds the `OUTER_LOOP_SCRIPTS` row.
+Task 5 writes its end-to-end suite, and Task 4 adds the `OUTER_LOOP_SCRIPTS` row. Task 5 is this library's test task: this task writes and runs no test file.
 
 **The contract Task 6 calls:** `pd_drive <branch> <worktree> <log_path>`, run with the working directory at `<worktree>` and with five globals set:
 - `PD_PLUGIN_DIR`;
@@ -112,4 +112,3 @@ The driver's narration goes to `<log_path>`, prefixed `[plan-drive]`.
 - Read `pd_run_set` against the parallel-round contract: no code path launches part of a set, a halt sends none of the set, an `error`, `blocker` or stall kill never signals a sibling, and every outcome is recorded with `--node`.
 - Read `pd_act`: a `round:` line's commit runs before the `ledger: P1` flip and before the next dispatch, which is Override 6's trigger order.
 - `grep -n 'question_\*\|answer_' cli/templates/scripts/lib/planning-driver-lib.sh` shows no loop over the channel directory: the answered pairs come only from `hr_top_level_answered_pairs`, and the per-index reads are the two origin filters and the prompt append.
-- Task 5's suite (`cli/test/planning-driver-walk.test.mjs`, `cli/test/planning-driver-control.test.mjs`) is the behavioural evidence for this library. This task names it as its test task and writes no test file of its own.
