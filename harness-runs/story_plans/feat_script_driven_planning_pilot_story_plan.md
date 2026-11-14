@@ -13,6 +13,10 @@ This branch moves the autonomous planning walk out of the orchestrator session. 
 - `planning-record-lib.sh` (`prl_*`, Task 2): every durable write the orchestrator's autonomous fork makes today. That covers the commits of Overrides 3, 4 and 6, the ledger flips, the park question file, the pause files and the improvement observations.
 - `planning-driver-lib.sh` (`pd_*`, Task 3): the walk itself, plus the safety contract applied per set.
 
+The clarification channel's two index answers, the highest question index and the top-level answered pairs, keep one definition each. Task 10 ships first and moves them out of `autonomous-watcher.sh` into `lib/harness-run-lib.sh` as `hr_max_question_index` and `hr_top_level_answered_pairs`. `prl_park`, `pd_entry` and the watcher all call those, and the watcher archives at hand-off only the pairs the driver consumed (`PD_CONSUMED_SET`).
+
+The driver's improvement-observation blocks are bracketed: an opening `# Script-driven planning — <time>` label and a closing `# Task run (Phase D)` label. So the task run's unlabelled Phase D entries, appended later, land under the closing label and never read as the driver's (Tasks 2, 4 and 7).
+
 There are three reasons for this shape:
 1. **One producer of the launch vector.** A node session must carry the watcher's own binary seam, `--settings` per-run profile, `--permission-mode`, `--model`, `--effort`, `--add-dir` list, scrubbed environment and main-checkout anchor. A watcher function, `session_exec` (Task 6), is the one producer of those flags for the engine session and every node session alike. A separate script would need all of them passed in and would become a second producer.
 2. **No new reach for an agent.** The watcher is already withheld by the script-allowlist guard. A sourced library run directly only defines functions, as `lib/harness-run-lib.sh` does, so no new `DENY_SCRIPT_BASENAMES` entry is needed.
@@ -57,17 +61,18 @@ So the four-place configuration contract is not touched.
 
 **This section is the single source of truth for the implementation loop.** The orchestrator walks the `[ ]` entries below top to bottom. **Only the committing role flips a marker to `[x]`**: the `committer` agent in every flow that dispatches one, and the orchestrator itself in the supervised flow, which dispatches none. No implementer changes a marker here, or edits any other line of this section, in an index a run is iterating. `[ ]` markers anywhere else, such as the sub-step bullets inside the per-task files, are informational progress markers for the implementer. They are never the iteration source, and the committer never touches them.
 
-Each entry resolves 1:1 to `harness-runs/task_plans/feat_script_driven_planning_pilot/task_<K>_plan.md`. The list is ordered bottom-up by ship sequence in the configured layer order (`cli`, `plugin`, then the catch-all `general`).
+Each entry resolves 1:1 to `harness-runs/task_plans/feat_script_driven_planning_pilot/task_<K>_plan.md`, keyed by its **Task K**, not by its position: Task 10 was added in revision round 1 and ships first. The list is ordered bottom-up by ship sequence in the configured layer order (`cli`, `plugin`, then the catch-all `general`).
 
-1. [ ] **Task 1** — Add `lib/planning-node-lib.sh`: one node session's prompt, schema, launch and validated result _(layer: cli)_ _(points: 20)_
-2. [ ] **Task 2** — Add `lib/planning-record-lib.sh`: the planning commits, ledger flips, park and pause files and improvement observations _(layer: cli)_ _(points: 20)_
-3. [ ] **Task 3** — Add `lib/planning-driver-lib.sh`: `pd_drive` walks the planning graph, runs each set concurrently and applies the safety contract per set _(layer: cli)_ _(points: 20)_
-4. [ ] **Task 4** — Ship the three planning libraries through `OUTER_LOOP_SCRIPTS` and name them in the two CLI READMEs _(layer: cli)_ _(points: 10)_
-5. [ ] **Task 5** — Test the driver end to end with a stub agent CLI: walk, sets, held binding, park, STOP, PAUSE, cap and observations _(layer: cli)_ _(points: 20)_
-6. [ ] **Task 6** — Wire the pilot into `autonomous-watcher.sh`: `PLANNING_DRIVER_PLUGIN_DIR`, `session_exec`, and the setup → driver → engine sequence _(layer: cli)_ _(points: 20)_
-7. [ ] **Task 7** — Plugin side: the setup-only clause in the task engine command, the core's one-place note, and the observation intake's second writer _(layer: plugin)_ _(points: 15)_
-8. [ ] **Task 8** — Document the two drivers in `docs/flow-graph-walker.md` and the pilot in `docs/watcher.md` _(layer: general)_ _(points: 15)_
-9. [ ] **Task 9** — Add the node-session launch site to `ARCHITECTURE.md` §5 and the libraries to `docs/cli.md`'s outer-loop list _(layer: general)_ _(points: 10)_
+1. [ ] **Task 10** — Move the clarification channel's two index scans into `lib/harness-run-lib.sh` as `hr_max_question_index` and `hr_top_level_answered_pairs` _(layer: cli)_ _(points: 15)_
+2. [ ] **Task 1** — Add `lib/planning-node-lib.sh`: one node session's prompt, schema, launch and validated result _(layer: cli)_ _(points: 20)_
+3. [ ] **Task 2** — Add `lib/planning-record-lib.sh`: the planning commits, ledger flips, park and pause files and improvement observations _(layer: cli)_ _(points: 20)_
+4. [ ] **Task 3** — Add `lib/planning-driver-lib.sh`: `pd_drive` walks the planning graph, runs each set concurrently and applies the safety contract per set _(layer: cli)_ _(points: 20)_
+5. [ ] **Task 4** — Ship the three planning libraries through `OUTER_LOOP_SCRIPTS`, name them in the two CLI READMEs, and name the driver as an intake writer in the two state-directory templates _(layer: cli)_ _(points: 15)_
+6. [ ] **Task 5** — Test the driver end to end with a stub agent CLI: walk, sets, held binding, park, STOP, PAUSE, cap and observations _(layer: cli)_ _(points: 20)_
+7. [ ] **Task 6** — Wire the pilot into `autonomous-watcher.sh`: `PLANNING_DRIVER_PLUGIN_DIR`, `session_exec`, and the setup → driver → engine sequence _(layer: cli)_ _(points: 20)_
+8. [ ] **Task 7** — Plugin side: the setup-only clause in the task engine command, the core's one-place note, and the observation intake's second writer _(layer: plugin)_ _(points: 15)_
+9. [ ] **Task 8** — Document the two drivers in `docs/flow-graph-walker.md` and the pilot in `docs/watcher.md` _(layer: general)_ _(points: 15)_
+10. [ ] **Task 9** — Add the node-session launch site to `ARCHITECTURE.md` §5 and the libraries to `docs/cli.md`'s outer-loop list _(layer: general)_ _(points: 10)_
 
 ## Scope register
 
@@ -77,7 +82,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_script_driven_planning_
 
 **Derivation entry 2 — the outer-loop file set (command).** Re-run verbatim: `git grep -lE 'lib/flow-walker-gates\.sh|flow walker with its gate library' -- plugin docs ARCHITECTURE.md README.md cli/README.md cli/templates/scripts/README.md`
 
-**Derivation entry 3 — who writes the observations intake (command).** Re-run verbatim: `git grep -lE 'improvement_observations/<branch>\.md' -- plugin docs ARCHITECTURE.md README.md`
+**Derivation entry 3 — who writes the observations intake (command).** Re-run verbatim: `git grep -lE 'improvement_observations/<branch>' -- plugin docs ARCHITECTURE.md README.md cli/README.md cli/templates/state-dir`
 
 **Derivation entry 4 — the watcher's tunables (command).** Re-run verbatim: `git grep -lE 'PARK_LOOP_MAX_CYCLES' -- plugin docs ARCHITECTURE.md README.md cli/README.md`
 
@@ -98,7 +103,7 @@ No standing tracked artifact under `harness-runs/` carries rows that these targe
 | 7 | `plugin/instructions/task_plan_writing_instructions_core.md` → its opening paragraphs | — | entry 1 | `change` | Task 7 |
 | 8 | `plugin/commands/branch-start-plan-autonomous.md` → `## Steps` | — | entry 1 | `change` | Task 7 |
 | 9 | `plugin/docs/AUTONOMOUS_FLOW.md` → the *"Routing of the planning loop"* table row, and *"Per-branch intake, human triage."* | — | entries 1, 3 | `change` | Task 7 |
-| 10 | `plugin/instructions/improvement_observations_instructions.md` → `## Where it is written` (*"the file's first, unlabelled block is always the task run's"*) | — | entry 3 | `change` | Task 7 |
+| 10 | `plugin/instructions/improvement_observations_instructions.md` → `## Where it is written` (*"the file's first, unlabelled block is always the task run's"*) and `## Where it runs & the non-blocking rule` (*"When the branch's intake file **is** already tracked"*) | — | entry 3 | `change` | Task 7 |
 | 11 | `plugin/instructions/task_plan_writing_instructions_autonomous.md` → Overrides 2–6 | — | entry 1 | `no-change` | It stays the orchestrated path's text. The driver carries out the same overrides as code, and the engine command cites Override 5's two creation paragraphs by name without changing them. |
 | 12 | `plugin/commands/branch-start-plan-semi-autonomous.md` → its `<scripts_dir>` row and step 3 | — | entry 1 | `no-change` | The semi-autonomous flow never takes the driver: the watcher launches only the autonomous task engine. |
 | 13 | `plugin/instructions/plan_orchestration_instructions_autonomous.md` → `Override I` | — | entry 3 | `no-change` | The orchestrator's own Phase D write is unchanged, as the task prompt requires. |
@@ -115,3 +120,5 @@ No standing tracked artifact under `harness-runs/` carries rows that these targe
 | 24 | `docs/work-report-research/reviews/ui-tests-plan-reviewer.md` | — | entry 2 | `no-change` | A research record, as row 19. |
 | 25 | `docs/work-report-research/task-plan-writer.md` | — | entry 2 | `no-change` | A research record, as row 19. |
 | 26 | `docs/work-report-research/ui-tests-plan-reviewer.md` | — | entry 2 | `no-change` | A research record, as row 19. |
+| 27 | `cli/templates/state-dir/improvement_observations/README.md` → *"The first, unlabelled block is always the delivery run's."*, and the paragraphs opening *"Each block is written by the run's own orchestrator"* and *"The file is committed and pushed by the run itself"* | — | entry 3 | `change` | Task 4 |
+| 28 | `cli/templates/state-dir/improvement_suggestions.md` → **How entries arrive.** (*"Each run writes exactly one intake file at `improvement_observations/<branch>.md`, once, at the end of the run"*) | — | entry 3 | `change` | Task 4 |

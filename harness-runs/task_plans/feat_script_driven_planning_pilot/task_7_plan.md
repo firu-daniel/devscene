@@ -5,7 +5,7 @@
 - the planning core says, once, that the script-driven path does not read it and takes its dispatch blocks as prompts;
 - the flow's own map and the improvement-observations contract name the planning driver as a second writer and router.
 
-**Depends on:** Task 6, which produces the clause. When the pilot is ready, `autonomous-watcher.sh` → `spawn_engine` adds this sentence, verbatim, to the task engine's launch prompt, whatever resume or pause clause the prompt also carries:
+**Depends on:** Task 2, which produces the intake layout this task documents (the bullet on `improvement_observations_instructions.md` restates it), and Task 6, which produces the clause. When the pilot is ready, `autonomous-watcher.sh` → `spawn_engine` adds this sentence, verbatim, to the task engine's launch prompt, whatever resume or pause clause the prompt also carries:
 
 > *"PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH: run only the task engine command's steps 1–4 and its script-driven setup step, then end the session; a script runs the planning loop."*
 
@@ -15,7 +15,7 @@ The wire literal both sides match is `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH`.
 
 - `plugin/commands/branch-start-plan-autonomous.md`: `## Steps`.
 - `plugin/instructions/task_plan_writing_instructions_core.md`: its opening paragraphs.
-- `plugin/instructions/improvement_observations_instructions.md`: `## Where it is written`.
+- `plugin/instructions/improvement_observations_instructions.md`: `## Where it is written`, and `## Where it runs & the non-blocking rule`'s skip bullet.
 - `plugin/docs/AUTONOMOUS_FLOW.md`: the *"Routing of the planning loop"* table row, and the *"Per-branch intake, human triage."* paragraph.
 
 **Work:**
@@ -38,11 +38,9 @@ The wire literal both sides match is `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH`.
   - so those headings, the fence count under each and that line are wire text that `<scripts_dir>/lib/planning-node-lib.sh` keys on.
 
   Write it with the core's own `<scripts_dir>` token, which `## Resolved values` already declares. Add no slash-command name, binding or machine path, because the core is literal-free (`plugin/instructions/mode_contract.md` rule (4)).
-- [ ] **`improvement_observations_instructions.md`.** In `## Where it is written`, after the sentence *"The task flow has no round concept and its single write carries **no** label, so the file's first, unlabelled block is always the task run's."*, add one sentence:
-  - on the script-driven planning path, the watcher's planning driver appends its own labelled `# Script-driven planning — <time>` blocks during planning, each with one or more entries in `## The entry format`'s shape, and commits them under `chore: Log improvement observations for <branch>`;
-  - the task run's Phase D block, appended after them, stays the one unlabelled block.
-
-  Reword the quoted sentence's *"first, unlabelled block"* to *"one unlabelled block"*. The Phase D duty itself is unchanged.
+- [ ] **`improvement_observations_instructions.md`.** Describe the file as Task 2's `prl_observe_flush` actually lays it out. Task 2 produces this layout: each driver flush appends an opening label `# Script-driven planning — <UTC ISO-8601 time>`, its `##` entries in `## The entry format`'s shape, and a closing label `# Task run (Phase D)`, and commits under `chore: Log improvement observations for <branch>`; a flush that finds the file already ending on a bare `# Task run (Phase D)` drops that one line first, so the file ends on exactly one closing label.
+  - **In `## Where it is written`**, replace the sentence *"The task flow has no round concept and its single write carries **no** label, so the file's first, unlabelled block is always the task run's."* with: the task flow has no round concept and its single write carries **no** label of its own, so the task run's entries are the file's leading unlabelled block, or, on the opt-in script-driven planning path, the entries under the `# Task run (Phase D)` label the watcher's planning driver closes its own `# Script-driven planning — <time>` blocks with. A `#` label runs until the next one, so Phase D, appending at the end of the file, always lands under that closing label and never under a driver block. The Phase D duty itself is unchanged.
+  - **In `## Where it runs & the non-blocking rule`**, in the skip bullet's sentence *"When the branch's intake file **is** already tracked (a resumed session, or a later round)"*, add a third case to the parenthesis, *"or a script-driven planning run, whose driver committed the file before Phase D"*, and one sentence after it: such a fresh run's Phase D treats the file exactly as that bullet states for a tracked file. It enters the step, appends only what this session observed beneath the closing label, writes no label of its own, and, having observed nothing, calls the wrapper on the unchanged file, which exits 3. The driver's blocks are an earlier block that Phase D leaves untouched, except for the machine-path rewrite.
 - [ ] **`plugin/docs/AUTONOMOUS_FLOW.md`.**
   - In the *"Routing of the planning loop"* row, after *"run by the orchestrating session"*, add *"or, on the opt-in script-driven path, by the watcher's planning driver, which runs each node as its own headless session (`docs/flow-graph-walker.md`)"*.
   - In *"Per-branch intake, human triage."*, add that the script-driven planning path's driver writes labelled planning blocks before Phase D's write.
@@ -50,6 +48,6 @@ The wire literal both sides match is `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH`.
 **Verification:**
 
 - `grep -rn "PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH" plugin cli/templates/scripts/autonomous-watcher.sh` finds the literal in the engine command and in the watcher, spelled identically.
-- `grep -rn "first, unlabelled block" plugin` finds nothing, and `grep -rn "one unlabelled block" plugin` finds the reworded sentence once.
+- `grep -rn "first, unlabelled block" plugin` finds nothing, and `grep -rn "Task run (Phase D)" plugin cli/templates/scripts/lib/planning-record-lib.sh` finds the closing label spelled identically in `improvement_observations_instructions.md` and in Task 2's library.
 - The core gains exactly one paragraph and no change to any heading, fence or binding table: `git diff --stat` on the core shows only added lines in its opening.
 - Every citation added is `${CLAUDE_PLUGIN_ROOT}`-rooted inside the plugin, or a repo-relative path for `docs/flow-graph-walker.md` (`.claude/context/plugin.md` → `## Citation`).
