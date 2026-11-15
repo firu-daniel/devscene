@@ -42,6 +42,8 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 
 - **A measurement script stores and reports every reading in full; truncation belongs to a display, never to the record a verdict is read from.** _(taught by: fix_linux_sandbox_sibling_glob_trio)_
 
+- **When a change makes one run's sessions overlap, the run's headline time is the union of their intervals, never their sum; cost and tokens stay summed, and any summed time is labelled as such beside it.** _(taught by: feat_script_driven_planning_pilot)_
+
 - **Grade a write probe on what reached the disk, never on the call's exit status. "Call succeeded, nothing on disk" is an outcome of its own and never reads as "refused".** _(taught by: fix_linux_sandbox_sibling_glob_trio)_
 
 - **When a check moves to reading a field one producer writes, the same change makes every path that stands in for that producer (a probe's setup, a fixture helper) write the field too.** _(taught by: fix_linux_detached_gate_run)_
@@ -57,6 +59,10 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 - **A new execution environment must state, for every configurable phase, whether that phase runs there. A phase switched off in this repository is not thereby unsupported for every adopter.** _(taught by: feat_remote_execution_github_actions)_
 
 - **A recovery for an unattended run's failure covers every execution mode the failure reaches, the local watcher and the remote job alike. Leaving a mode out is a question to the user before the plan ships, never a documented residual.** _(taught by: fix_linux_sandbox_deny_placeholders)_
+
+- **An opt-in switch for a run behaviour whose benefit holds in every execution mode is one every mode reads, such as a committed configuration key, and any machine-specific path it needs is derived at run time from where the run already loads it, never configured.** _(taught by: feat_script_driven_planning_pilot)_
+
+- **An unattended driver retries a unit's infrastructure-class failure (a stall, a crashed or unresolved session) alone and a bounded number of times before parking; only a failure the agent itself reported parks at once.** _(taught by: feat_script_driven_planning_pilot)_
 
 ## Trust checks
 
