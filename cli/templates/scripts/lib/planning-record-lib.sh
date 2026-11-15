@@ -329,13 +329,13 @@ PRL_REWRITE_AWK='
   }
   BEGIN {
     n = 0
-    if (ENVIRON["PRL_N_WT"] != "") { n++; nd[n] = ENVIRON["PRL_N_WT"]; kd[n] = "worktree" }
-    if (ENVIRON["PRL_N_MAIN"] != "") { n++; nd[n] = ENVIRON["PRL_N_MAIN"]; kd[n] = "main" }
-    if (ENVIRON["PRL_N_HOME"] != "") { n++; nd[n] = ENVIRON["PRL_N_HOME"]; kd[n] = "home" }
+    if (ENVIRON["PRL_N_WT"] != "") { n++; needles[n] = ENVIRON["PRL_N_WT"]; kinds[n] = "worktree" }
+    if (ENVIRON["PRL_N_MAIN"] != "") { n++; needles[n] = ENVIRON["PRL_N_MAIN"]; kinds[n] = "main" }
+    if (ENVIRON["PRL_N_HOME"] != "") { n++; needles[n] = ENVIRON["PRL_N_HOME"]; kinds[n] = "home" }
     for (i = 1; i <= n; i++) for (j = i + 1; j <= n; j++)
-      if (length(nd[j]) > length(nd[i])) { t = nd[i]; nd[i] = nd[j]; nd[j] = t; t = kd[i]; kd[i] = kd[j]; kd[j] = t }
+      if (length(needles[j]) > length(needles[i])) { t = needles[i]; needles[i] = needles[j]; needles[j] = t; t = kinds[i]; kinds[i] = kinds[j]; kinds[j] = t }
   }
-  { for (i = 1; i <= n; i++) $0 = rewrite($0, nd[i], kd[i]); print }'
+  { for (i = 1; i <= n; i++) $0 = rewrite($0, needles[i], kinds[i]); print }'
 
 # prl_needle <source> <path> — the needle, or empty when it cannot be one.
 prl_needle() {

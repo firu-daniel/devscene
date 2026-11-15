@@ -13,7 +13,7 @@
 **This section is the single source of truth for the per-item fix loop.** The loop walks the `[ ]` entries below top to bottom, and only the committing role flips a marker to `[x]`. `[ ]` markers anywhere else, such as sub-step bullets inside the per-finding files, are informational only. Each entry resolves to one self-contained `finding_<K>.md` in `feat_script_driven_planning_pilot_task_round_1/`.
 
 1. [x] **Finding 1** — Replace the home-directory paths in three plan-round artifacts with machine-neutral forms. _(layer: general)_
-2. [ ] **Finding 2** — Rename the awk arrays `nd` / `kd` in `PRL_REWRITE_AWK` so `typos` no longer flags them. _(layer: cli)_
+2. [x] **Finding 2** — Rename the awk arrays `nd` / `kd` in `PRL_REWRITE_AWK` so `typos` no longer flags them. _(layer: cli)_
 
 ---
 
