@@ -17,7 +17,9 @@
 # when a set is launched, STOP, PAUSE, the dispatch cap, recording with
 # `flow-walker.sh next`, retries and the stall kill are
 # `lib/planning-driver-lib.sh`'s. Every durable write is
-# `lib/planning-record-lib.sh`'s. The shared flag vector — the binary, the
+# `lib/planning-record-lib.sh`'s, except the two run-log-side writes `pnl_reap`
+# makes — the node's stream appended to the run's `.stream.jsonl` and the
+# node-session manifest under `${log_path%.log}.planning/`. The shared flag vector — the binary, the
 # per-run settings, the permission mode, the model, the effort, the added
 # directories, the environment scrub and the main-checkout anchor's export — is
 # the watcher function the caller names in `PD_SESSION_EXEC`; this library
@@ -454,14 +456,17 @@ PNL_REAP_JQ='
     end'
 
 # pnl_reap <handle> — after the session's pid has exited. Appends the node's
-# stream to the run's `${log_path%.log}.stream.jsonl` once, then prints
+# stream to the run's `${log_path%.log}.stream.jsonl` once and, when the stream
+# carries an `init` event, one `{"session_id", "seq", "node"}` line — that
+# event's session_id — to `${log_path%.log}.planning/node-sessions.jsonl`, the
+# manifest `run-analytics.sh` classes node sessions by. Then it prints
 # `kind=`, `class=`, `outcome=`, `findings=`, `return_file=`, `friction_file=`,
 # `cost=`, `duration_secs=`, `denials=` and `reason=`, one per line. `class=` is
 # `infra` or `agent` and set only for `kind=error`; `outcome=` only for
 # `kind=returned`; `return_file=` and `friction_file=` only once the outcome
 # was read as declared.
 pnl_reap() {
-  local handle="${1-}" pid seq node agent stream log_path start now verdict ret_file="" fr_file="" tools=""
+  local handle="${1-}" pid seq node agent stream log_path start now verdict ret_file="" fr_file="" tools="" sid
   IFS='	' read -r pid seq node agent stream log_path start <<EOF
 $handle
 EOF
@@ -470,6 +475,13 @@ EOF
   [ -n "${PNL_TMP-}" ] && [ -d "$PNL_TMP" ] || { pnl_fail "no temporary directory; call pnl_init first"; return 2; }
   [ -f "$stream" ] || : >"$stream"
   cat "$stream" >>"${log_path%.log}.stream.jsonl" || { pnl_fail "cannot append to '${log_path%.log}.stream.jsonl'"; return 2; }
+  sid=$(jq -n -R -r '[inputs | fromjson? | objects | select(.type == "system" and .subtype == "init") | .session_id | strings] | if length == 0 then "" else .[0] end' <"$stream" 2>/dev/null) \
+    || { pnl_fail "pnl_reap: the stream '$stream' could not be read for its session id"; return 2; }
+  if [ -n "$sid" ]; then
+    jq -n -c --arg s "$sid" --arg q "$seq" --arg n "$node" '{session_id: $s, seq: $q, node: $n}' \
+      >>"${log_path%.log}.planning/node-sessions.jsonl" \
+      || { pnl_fail "cannot append to '${log_path%.log}.planning/node-sessions.jsonl'"; return 2; }
+  fi
   now=$(date +%s)
 
   if pnl_agent_tools_var "$agent"; then tools="$PNL_TOOLS"; fi

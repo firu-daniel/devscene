@@ -142,7 +142,8 @@ pnl_cleanup
   const argv = (await readFile(f.env.STUB_ARGV, 'utf8')).split('\n');
   const runStream = await readFile(join(f.root, 'run.stream.jsonl'), 'utf8');
   const nodeStream = await readFile(join(f.root, 'run.planning', `1-${node}.stream.jsonl`), 'utf8');
-  return { keys, returnText, frictionText, argv, runStream, nodeStream };
+  const manifest = await readFile(join(f.root, 'run.planning', 'node-sessions.jsonl'), 'utf8').catch(() => null);
+  return { keys, returnText, frictionText, argv, runStream, nodeStream, manifest };
 }
 
 test('pnl_init reads the plugin name, the dispatch cap and every block', { skip: SKIP }, async (t) => {
@@ -284,6 +285,7 @@ test('pnl_launch runs the session through PD_SESSION_EXEC with the per-node flag
   const lines = events.map((e) => JSON.stringify(e)).join('\n') + '\n';
   assert.equal(r.nodeStream, lines);
   assert.equal(r.runStream, lines);
+  assert.equal(r.manifest, '{"session_id":"s1","seq":"1","node":"plan_review"}\n');
   assert.match(r.keys.duration_secs, /^\d+$/);
   assert.equal(r.keys.cost, '0.25');
   assert.equal(r.keys.denials, '0');
@@ -297,6 +299,7 @@ test('rule 1: a stub that exits 0 with empty stdout is error, no init event', { 
   assert.equal(r.keys.reason, 'the agent did not resolve: no init event');
   assert.equal(r.keys.class, 'infra');
   assert.equal(r.keys.return_file, '');
+  assert.equal(r.manifest, null, 'a session with no init event has no session id to record');
 });
 
 test('rule 2: init tools that miss an agent tool, or add one, are error', { skip: SKIP }, async (t) => {

@@ -125,7 +125,8 @@ test('metrics: each value equals the one computed by hand from the fixture', asy
   const f = await adopted(t);
   await recorded(f, 2);
   const doc = f.doc();
-  assert.equal(doc.schema, 1);
+  assert.equal(doc.schema, 4);
+  assert.deepEqual(doc.sessions.map((s) => [s.kind, s.node]), [['engine', null], ['engine', null]]);
   assert.equal(doc.branch, BRANCH);
   assert.deepEqual(doc.sessions.map((s) => s.session_id), ['sess-one', 'sess-two']);
   const [one, two] = doc.sessions;
@@ -209,7 +210,10 @@ test('metrics: each value equals the one computed by hand from the fixture', asy
 
   await t.test('the roll-up sums both sessions', () => {
     assert.equal(doc.run.sessions, 2);
+    assert.equal(doc.run.engine_sessions, 2);
+    assert.equal(doc.run.node_sessions, 0);
     assert.equal(doc.run.wall_ms, 1220000);
+    assert.equal(doc.run.session_wall_sum_ms, 1220000);
     assert.equal(doc.run.host_suspended_ms, 600000);
     assert.equal(doc.run.idle_ms, 1178000);
     assert.equal(doc.run.active_ms, 42000);

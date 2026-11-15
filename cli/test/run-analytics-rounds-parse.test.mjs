@@ -47,6 +47,7 @@ function args(knownFile, redact) {
     '--arg', 'mode', 'rounds',
     '--argjson', 'idle_threshold_s', '1',
     '--slurpfile', 'known', knownFile,
+    '--argjson', 'nodes', '[]',
     '--argjson', 'redact', JSON.stringify(redact),
     '--argjson', 'suspend', '[]',
     '--arg', 'suspend_source', 'none',
