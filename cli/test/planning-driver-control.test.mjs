@@ -1,15 +1,17 @@
 /**
  * `pd_drive`'s control paths, end to end, from the libraries `init` ships, with a stub agent CLI
  * standing in for every node session (`cli/test/helpers/planning-driver.mjs`): the `<ask>` park and
- * its resume, STOP, PAUSE, three undelivered sessions, the infrastructure retry, the dispatch cap
- * and the observations.
+ * its resume, STOP, PAUSE, three undelivered sessions, the infrastructure retry, the dispatch cap,
+ * the observations, and which gates a resume after an escalation park re-dispatches.
  *
  * **The rule this suite enforces: every stop is clean and checked per set — STOP and the dispatch
  * cap send nothing of the set, a STOP or PAUSE raised while a set runs lets the set finish and its
  * round commit land, and every stop returns 3 with its files written — and the next `pd_drive`
  * continues the saved walk where it stopped rather than starting a fresh one. A node failing for an
  * infrastructure reason is re-dispatched alone, up to three attempts, and parks once only when all
- * three failed; an agent-reported `blocker` parks with no retry.** Each case is graded
+ * three failed; an agent-reported `blocker` parks with no retry. A resume after an escalation
+ * park re-dispatches a gate that passed in the escalated round only after a writer revision, or
+ * when the escalated gate's own file completed the round.** Each case is graded
  * on the return, `git log`, the run log, the clarification and pause files and the calls log.
  *
  * Every expected literal — a subject, a `Raised by:` line, a halt message — is written here, never
@@ -235,4 +237,64 @@ test('observations after a hand-off name every session and the reported friction
     ],
     { agent: 'architecture-reviewer', node: 'architecture_review', text: friction },
   );
+});
+
+/**
+ * Drive round 0 to an escalation park on `architecture-reviewer`'s `blocker` (no retry intervenes),
+ * optionally answer the park's question, and drive again. Returns the second drive and the calls
+ * it added.
+ */
+async function escalateAndResume(t, { entry, answer }) {
+  const f = await driverFixture(t, { script: { 'architecture-reviewer': [entry] } });
+  const first = await drive(t, f);
+  assert.equal(first.status, 3, show(first));
+  assert.ok(first.clarifications['question_1.md'].split('\n').includes('held: architecture_review blocker'), show(first));
+  // The held round's files are committed before the park, so a resume's round evidence is consistent.
+  assert.ok(first.subjects.includes(`chore: Plan round 0 partial for ${BRANCH}`), show(first));
+  if (answer) await f.write(`${f.sd}/clarifications/${BRANCH}/answer_1.md`, 'Carry on with the plan as written.\n');
+  const second = await drive(t, f);
+  assert.equal(second.status, 0, show(second));
+  assert.ok(second.log.includes('[plan-drive] saved walk finished (<escalate>): never continued'), second.log);
+  return { second, added: second.calls.slice(first.calls.length) };
+}
+
+test('escalation resume (a): an answered park enters at the writer, which runs before the whole set', { skip: SKIP }, async (t) => {
+  const { second, added } = await escalateAndResume(t, { entry: { outcome: 'blocker' }, answer: true });
+  assert.ok(second.log.includes('[plan-drive] entry: extend at plan_writer with answered pairs 1'), second.log);
+  assert.equal(added[0].agent, WRITER, JSON.stringify(added.map((c) => c.agent)));
+  for (const gate of GATES) {
+    const calls = added.filter((c) => c.agent === gate);
+    assert.equal(calls.length, 1, `${gate}: re-run once, after the writer revision`);
+    assert.ok(calls[0].start > added[0].end, `${gate} ran only after the writer`);
+    assert.ok(calls[0].prompt.includes('iteration: 1'), calls[0].prompt);
+  }
+});
+
+test('escalation resume (b): with no answered pair and no file from the escalated gate, only that gate runs', { skip: SKIP }, async (t) => {
+  const { second, added } = await escalateAndResume(t, { entry: { outcome: 'blocker' }, answer: false });
+  assert.ok(second.log.includes('[plan-drive] entry: review the existing draft at plan_round'), second.log);
+  assert.deepEqual(added.map((c) => c.agent), ['architecture-reviewer'], 'the gates that passed in round 0 are not re-dispatched');
+  assert.ok(added[0].prompt.includes('iteration: 0'), added[0].prompt);
+});
+
+test('escalation resume (c): a PASS file left by the escalated gate completes the round, so the whole set re-runs', { skip: SKIP }, async (t) => {
+  const { second, added } = await escalateAndResume(t, { entry: { outcome: 'blocker', findings: 'PASS' }, answer: false });
+  assert.ok(second.log.includes('[plan-drive] entry: review the existing draft at plan_round'), second.log);
+  // walker STATE: "A complete all-PASS round is reviewed again" — the files cannot say the
+  // escalated gate's PASS came from a session that then failed.
+  assert.equal(added.filter((c) => c.agent === WRITER).length, 0, 'no writer revision');
+  assert.deepEqual(added.map((c) => c.agent).sort(), [...GATES].sort(), 'every gate of round 0 is re-dispatched');
+  for (const call of added) assert.ok(call.prompt.includes('iteration: 0'), call.prompt);
+});
+
+test('escalation resume (d): an answered park behaves as (a) even when the escalated gate left a PASS file', { skip: SKIP }, async (t) => {
+  const { second, added } = await escalateAndResume(t, { entry: { outcome: 'blocker', findings: 'PASS' }, answer: true });
+  assert.ok(second.log.includes('[plan-drive] entry: extend at plan_writer with answered pairs 1'), second.log);
+  assert.equal(added[0].agent, WRITER, JSON.stringify(added.map((c) => c.agent)));
+  for (const gate of GATES) {
+    const calls = added.filter((c) => c.agent === gate);
+    assert.equal(calls.length, 1, `${gate}: re-run once, after the writer revision`);
+    assert.ok(calls[0].start > added[0].end, `${gate} ran only after the writer`);
+    assert.ok(calls[0].prompt.includes('iteration: 1'), calls[0].prompt);
+  }
 });

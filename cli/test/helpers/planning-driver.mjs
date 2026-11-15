@@ -17,9 +17,13 @@
  * The stub reads `--agent`, `-p`, `--plugin-dir` and `--json-schema` from its argv and acts on the
  * entry the case's script holds for that agent at that call index — the index counts the agent's
  * calls across every `pd_drive` of one fixture. An entry is
- * `{ outcome?, sleepMs?, mode?, friction?, touch?, return? }`: `mode` is `no-init`, `no-result`,
+ * `{ outcome?, findings?, sleepMs?, mode?, friction?, touch?, return? }`: `mode` is `no-init`, `no-result`,
  * `undeclared` (outcome `SHIP`), `not-success` (a `result` of subtype `error_max_turns` with
- * `is_error`) or `no-decision` (a `success` result whose text is no JSON object); `touch` names a
+ * `is_error`) or `no-decision` (a `success` result whose text is no JSON object); `findings`, on a
+ * gate, is the verdict (`PASS` or `FAIL`) of the findings file it writes whatever its outcome, so
+ * `{ outcome: 'blocker', findings: 'PASS' }` leaves a PASS file and then fails; with `outcome`
+ * `PASS` or `FAIL` and a different `findings`, the decision carries no `findings_file`, which the
+ * driver records as `error`; `touch` names a
  * file it creates under `<stateDir>/` before its sleep, such as `STOP` or `PAUSE`. A `sleepMs` past
  * `drive`'s `stallSecs` is a stall the driver kills. With no entry a gate returns `PASS` and a
  * writer `returned`.
@@ -89,10 +93,11 @@ const decision = {};
 const folder = value('findings_folder: ');
 if (folder !== '') {
   decision.outcome = entry.outcome ?? 'PASS';
-  if (decision.outcome === 'PASS' || decision.outcome === 'FAIL') {
+  const verdict = entry.findings ?? decision.outcome;
+  if (verdict === 'PASS' || verdict === 'FAIL') {
     const findings = folder + 'review_' + value('iteration: ') + '.md';
-    put(findings, '# review\nverdict: ' + decision.outcome + '\nreview_mode: ' + value('review_mode: ') + '\n');
-    decision.findings_file = findings;
+    put(findings, '# review\nverdict: ' + verdict + '\nreview_mode: ' + value('review_mode: ') + '\n');
+    if (verdict === decision.outcome) decision.findings_file = findings;
   }
   decision.return = entry.return ?? 'verdict: ' + decision.outcome;
 } else {

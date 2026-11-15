@@ -21,6 +21,12 @@
 # commits, are the autonomous planning fork's
 # (`plugin/instructions/task_plan_writing_instructions_autonomous.md` →
 # `## Override 2 — resumability`, `## Override 5 …` and `## Override 6 …`).
+# One commit is the driver's, not the fork's: at an `<escalate>` carrying
+# `held:` lines, `pd_escalate_park` makes the `chore: Plan round <n> partial for
+# <branch>` commit of Override 6's path set before the park, so a resume
+# entering at `plan_round` reads the passed gates' evidence as committed and,
+# when the escalated gate left no findings file, re-dispatches only that gate.
+# The orchestrated path makes no such commit.
 #
 # OUTSIDE `PNL_TMP` IT WRITES ONE FILE, `<state_dir>/.dispatch_counter`. Every commit,
 # flip, park, pause and observation is `lib/planning-record-lib.sh`'s; every
@@ -579,6 +585,12 @@ EOF
     esac
     printf '\n## Q1 — How should planning continue?\n\nThe walker ended this walk at the escalation above and routes nowhere past it.\n'
   } >"$body" || { pd_fail "cannot write '$body'"; return 2; }
+  # A held round prints no `round:` line, so nothing committed its files. Commit
+  # them now: a resume's `start --entry plan_round` reads uncommitted plan or
+  # round files as `plan: unknown` and re-opens the gates that passed.
+  if [ "$held" = yes ]; then
+    pd_partial "${S_ITER[0]-}" || return 2
+  fi
   raised="${agent:-plan_round}"
   prl_park "$raised" "Planning escalated at $node ($reason)" "$body" || return 2
   pd_observe flow-efficiency "A walker escalation parked script-driven planning" "binding <escalate> at $node, reason ${reason:-none}" "planning parked"
