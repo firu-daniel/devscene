@@ -45,3 +45,11 @@
 
 - `cli/test/planning-driver-walk.test.mjs` and `cli/test/planning-driver-control.test.mjs` pass, each run on its own through the single-file test command.
 - Every expected literal in the two suites is written in the suite, never read from the graph, the walker or the library under test: subjects, prompt first lines, `Raised by:` lines and halt messages.
+
+**Deviations from plan:**
+- The fixture repository is both the main checkout and the worktree (`PD_MAIN_REPO` = `<worktree>` = the fixture, on `feat_x`); `commit-on-branch.sh` accepts the main checkout as its target, so no linked worktree is added.
+- Calls-log lines read `<agent> <call index> start|end <ms>`, not `<agent> <ms>`: the index pairs a start with its end and names the prompt file the stub saves. The stub also reads `--plugin-dir`, to take the `init` event's `tools` from the copied agent file.
+- Walk case 1: the four subjects are asserted as an in-order subsequence of `git log`, because the observations flush adds `chore: Log improvement observations for feat_x` after `P3`.
+- Control case 1: "no second fresh `start`" is asserted as exactly one `walker: flow-walker.sh start` line in the run log across both drives, since the resumed writer's prompt is the same initial block.
+- Control case 3: "no gate again" is asserted as each gate running exactly twice — round 0, then round 1 after the revision writer ended.
+- Control case 6 is two tests: the observations after the cap halt (friction on the writer) and after a hand-off (friction on `architecture_review`).
