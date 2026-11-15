@@ -46,3 +46,5 @@
 
 - Re-run the §5 derivation command above, and read every file it reaches against the table: each is a row or is named in the dispositioning paragraph, `lib/planning-node-lib.sh` and `session_exec` among them.
 - `grep -n "planning driver" docs/cli.md ARCHITECTURE.md` finds the new list entry, the allow-list clause and the new row.
+
+**Deviations from plan:** The §5 derivation command also reaches `cli/templates/scripts/lib/harness-run-lib.sh` (the `--add-dir` mention in the comment on `hr_job_absent_file`, from `1a41540c`), which no row or disposition covered; to hold the covering invariant it is now dispositioned in the paragraph, whose "Six of the files" count was reworded to "The remaining files" so it carries no count. The new row is placed last, so the mention-session sentence now says "the last row but one below".
