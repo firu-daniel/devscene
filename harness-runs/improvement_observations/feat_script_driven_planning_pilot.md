@@ -38,3 +38,31 @@
 - **category:** tooling-gap
 - **evidence:** Run gates round 1 log `harness-runs/test_run_logs/feat_script_driven_planning_pilot/task_round_1.log`: gates 13a, 13b and 13c BLOCKED. The test fix plan `harness-runs/test_fix_plans/feat_script_driven_planning_pilot_task_round_1.md` lists them under `## Not fixable on this branch`: the Python docs-retrieval service's environment had not been set up on this machine (remedy: `bash scripts/python-service.sh sync`). Round 2 printed `pass`.
 - **cost this run:** The docs-retrieval gates did not run on this branch.
+
+# User-review fix round 1 — retry for infra-failed planning nodes, resume-gate re-runs, union-based run analytics time, config key for script-driven planning
+
+## Finding 4 needed 3 per-unit review rounds
+- **category:** optimization
+- **evidence:** `harness-runs/user_review_fix_plan_point_reviews/feat_script_driven_planning_pilot_fix_plan/item_4/` holds `review_0.md`, `review_1.md` and `review_2.md`, so the round count is 3. Split by layer: cli has 2 rounds. Round 0 (FAIL) had 2 findings; round 1 had 1 finding, net-new, with none re-raised. general has 1 round, `review_2.md` (FAIL), all net-new. The final general PASS (dispatch #13) wrote no file.
+- **cost this run:** 4 extra dispatches on Finding 4: 2 fix iterations, each an implementer and a reviewer.
+
+## Per-unit layer reviewers could not run the unit's tests, so their verdicts rest on reading the code only
+- **category:** tooling-gap
+- **evidence:** Three `layer-reviewer` returns said they could not run the tests: Finding 3 cli (dispatch #2) said "the permission mode refused the build-and-test command"; Finding 4 cli (dispatch #7) said "this session's permission mode blocked `node --test`"; Finding 1 cli (dispatch #23) said the command to build and run `plugin-runtime-root-lib`, `config-command` and `watcher-planning-driver` "was denied in this session". The implementers ran the same files through `npm test --workspace cli -- test/<name>.test.mjs` and they passed.
+- **cost this run:** Three of four cli-layer review verdicts were made with no test run by the reviewer.
+
+## Refused `rm` left stray scratch files in the run copy
+- **category:** tooling-gap
+- **evidence:** The Finding 4 cli implementer (dispatch #6) reported that its `rm` of `harness-runs/scratch/escalation_resume_cases.txt` was refused. The Finding 4 general reviewer (dispatch #11) reported that its `rm` of `harness-runs/scratch/escalation-answered-pass.mjs` was refused. Both files remain, untracked.
+- **cost this run:** Two untracked scratch files to remove by hand.
+
+## Layer reviewers returned `verdict: PASS` while reporting Should Fix findings
+- **category:** agent-contract
+- **evidence:** Four reviews reported a Should Fix and still returned `verdict: PASS`: Finding 3 cli (`item_3/review_0.md`), Finding 3 general (`item_3/review_1.md`), Finding 1 cli (`item_1/review_0.md`) and Finding 1 general (`item_1/review_1.md`); the last two each list one Should Fix. `user_review_fixes_instructions_core.md` → `### D.2 Done summary` says a review file left after PASS holds Nice to Have only ("Must Fix / Should Fix would have triggered FAIL").
+- **cost this run:** At least five Should Fix items across Findings 3 and 1 were committed without a fix iteration.
+- **hypothesis:** The reviewer contract fails only on Must Fix, while the core's D.2 wording assumes Should Fix fails too.
+
+## A general-layer implementer edited files under `cli/`
+- **category:** agent-contract
+- **evidence:** The Finding 4 general fix iteration (dispatch #12, `layer: general`) listed `cli/test/planning-driver-control.test.mjs` and `cli/templates/scripts/lib/planning-driver-lib.sh` among its modified files. Both are under the `cli` layer's `path`, whose own review had already passed (dispatch #9). Those edits were never put through a cli-layer review before commit `ed77a69e`.
+- **cost this run:** The cli-side edits to Finding 4 were reviewed only by the general-layer reviewer (dispatch #13).
