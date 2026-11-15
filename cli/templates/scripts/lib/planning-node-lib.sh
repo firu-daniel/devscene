@@ -8,7 +8,10 @@
 # The rule this library exists to enforce: a node's result is a declared
 # outcome, `error` or `undelivered`, never a guess. `pnl_reap` decides it from
 # the stream alone, in one fixed order, and an outcome the node's graph entry
-# does not declare is `error`, whatever else the session printed.
+# does not declare is `error`, whatever else the session printed. Every `error`
+# carries its class, decided here and nowhere else: `infra` for no `init`
+# event, a session that ended not `success` or with `is_error`, and a result
+# with no decision object; `agent` for every other `error`.
 #
 # IT LAUNCHES NOTHING ON ITS OWN AND DECIDES NO ROUTING. Which node runs next,
 # when a set is launched, STOP, PAUSE, the dispatch cap, recording with
@@ -414,37 +417,37 @@ PNL_REAP_JQ='
   | [split("\n")[] | select(length > 0) | fromjson? | objects] as $ev
   | ([$ev[] | select(.type == "system" and .subtype == "init")] | first) as $init
   | ([$ev[] | select(.type == "result")] | last) as $res
-  | { outcome: "", findings: "", ret: "", friction: [], read: false,
+  | { outcome: "", findings: "", ret: "", friction: [], read: false, class: "",
       cost: (if ($res | type) == "object" and ($res.total_cost_usd | type) == "number" then ($res.total_cost_usd | tostring) else "" end),
       denials: (if ($res | type) == "object" and ($res.permission_denials | type) == "array" then ($res.permission_denials | length) else 0 end) } as $m
-  | if ($init | type) != "object" then $m + { kind: "error", reason: "the agent did not resolve: no init event" }
+  | if ($init | type) != "object" then $m + { kind: "error", class: "infra", reason: "the agent did not resolve: no init event" }
     else
       (if ($init.tools | type) == "array" then $init.tools else [] end) as $it
       | [$agent[] | select(startswith("mcp__") | not) | select(. as $t | any($it[]; . == $t) | not)] as $missing
       | [$it[] | select(. as $t | any($agent[]; . == $t) | not)] as $extra
       | if ($missing | length) > 0 or ($extra | length) > 0
-        then $m + { kind: "error", reason: ("the agent tools do not match its init event: missing [" + ($missing | join(", ")) + "], extra [" + ($extra | join(", ")) + "]") }
+        then $m + { kind: "error", class: "agent", reason: ("the agent tools do not match its init event: missing [" + ($missing | join(", ")) + "], extra [" + ($extra | join(", ")) + "]") }
         elif ($res | type) != "object" then $m + { kind: "undelivered", reason: "no result event" }
         elif $res.is_error == true
           and (($res.result // "") | tostring | (contains("API Error: 500") or contains("API Error: 503") or contains("API Error: 529") or contains("Overloaded")))
         then $m + { kind: "undelivered", reason: ("API error: " + (($res.result // "") | oneline | .[0:200])) }
         elif $res.is_error == true or ($res.subtype // "") != "success"
-        then $m + { kind: "error", reason: ("the session ended as " + (($res.subtype // "no subtype") | oneline) + (if $res.is_error == true then " with is_error" else "" end)) }
+        then $m + { kind: "error", class: "infra", reason: ("the session ended as " + (($res.subtype // "no subtype") | oneline) + (if $res.is_error == true then " with is_error" else "" end)) }
         else
           (if ($res.structured_output | type) == "object" then $res.structured_output
            else ([$res.result | strings | fromjson? | objects] | first) end) as $d
-          | if ($d | type) != "object" then $m + { kind: "error", reason: "the result carries no decision object" }
+          | if ($d | type) != "object" then $m + { kind: "error", class: "infra", reason: "the result carries no decision object" }
             elif ($d.outcome | type) != "string" or (any($declared[]; . == $d.outcome) | not)
-            then $m + { kind: "error", reason: ("undeclared outcome " + (if ($d.outcome | type) == "string" then $d.outcome else ($d.outcome | tojson) end | oneline)) }
+            then $m + { kind: "error", class: "agent", reason: ("undeclared outcome " + (if ($d.outcome | type) == "string" then $d.outcome else ($d.outcome | tojson) end | oneline)) }
             else
               ($m + { read: true,
                   findings: (if ($d.findings_file | type) == "string" then $d.findings_file else "" end),
                   ret: (if ($d.return | type) == "string" then $d.return else "" end),
                   friction: (if ($d.harness_friction | type) == "array" then [$d.harness_friction[] | strings | oneline] else [] end) }) as $r
               | if ($r.findings | blank) and ($d.outcome == "FAIL" or ($d.outcome == "PASS" and any($gates[]; . == $node)))
-                then $r + { kind: "error", reason: ($d.outcome + " carries no findings_file") }
+                then $r + { kind: "error", class: "agent", reason: ($d.outcome + " carries no findings_file") }
                 elif $d.outcome == "questions" and ($r.ret | blank)
-                then $r + { kind: "error", reason: "questions with a blank return" }
+                then $r + { kind: "error", class: "agent", reason: "questions with a blank return" }
                 else $r + { kind: "returned", outcome: $d.outcome, reason: "" } end
             end
         end
@@ -452,10 +455,11 @@ PNL_REAP_JQ='
 
 # pnl_reap <handle> — after the session's pid has exited. Appends the node's
 # stream to the run's `${log_path%.log}.stream.jsonl` once, then prints
-# `kind=`, `outcome=`, `findings=`, `return_file=`, `friction_file=`, `cost=`,
-# `duration_secs=`, `denials=` and `reason=`, one per line. `outcome=` is set
-# only for `kind=returned`; `return_file=` and `friction_file=` only once the
-# outcome was read as declared.
+# `kind=`, `class=`, `outcome=`, `findings=`, `return_file=`, `friction_file=`,
+# `cost=`, `duration_secs=`, `denials=` and `reason=`, one per line. `class=` is
+# `infra` or `agent` and set only for `kind=error`; `outcome=` only for
+# `kind=returned`; `return_file=` and `friction_file=` only once the outcome
+# was read as declared.
 pnl_reap() {
   local handle="${1-}" pid seq node agent stream log_path start now verdict ret_file="" fr_file="" tools=""
   IFS='	' read -r pid seq node agent stream log_path start <<EOF
@@ -481,6 +485,7 @@ EOF
   jq -r --arg ret "$ret_file" --arg fr "$fr_file" --arg dur "$((now - start))" '
     def oneline: tostring | split("\r") | join(" ") | split("\n") | join(" ");
     "kind=" + .kind,
+    "class=" + .class,
     "outcome=" + (.outcome | oneline),
     "findings=" + (.findings | oneline),
     "return_file=" + $ret,

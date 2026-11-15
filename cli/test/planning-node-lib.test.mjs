@@ -6,7 +6,8 @@
  * `undelivered`, never a guess.** `pnl_reap` decides in one fixed order — no `init` event, a tools
  * mismatch, no `result` (or an API overload), a failed session, no decision object, an undeclared
  * outcome, a missing `findings_file`, `questions` with a blank `return` — and one case pins each
- * rule, beside the declared outcomes that pass.
+ * rule, beside the declared outcomes that pass. Each `error` case also pins its `class=`: `infra`
+ * for rules 1, 4 and 5, `agent` for the rest.
  *
  * Each case copies `lib/harness-run-lib.sh`, the library and the shipped planning graph from
  * `cli/templates/scripts/` into its own fixture under the system temp directory, beside a plugin
@@ -294,6 +295,7 @@ test('rule 1: a stub that exits 0 with empty stdout is error, no init event', { 
   assert.equal(r.keys.kind, 'error');
   assert.equal(r.keys.outcome, '');
   assert.equal(r.keys.reason, 'the agent did not resolve: no init event');
+  assert.equal(r.keys.class, 'infra');
   assert.equal(r.keys.return_file, '');
 });
 
@@ -303,6 +305,7 @@ test('rule 2: init tools that miss an agent tool, or add one, are error', { skip
   const missing = await reap(f, 'plan_review', 'task-plan-reviewer', [init(['Read', 'Bash']), result(ok)]);
   assert.equal(missing.keys.kind, 'error');
   assert.equal(missing.keys.reason, 'the agent tools do not match its init event: missing [Grep], extra []');
+  assert.equal(missing.keys.class, 'agent');
 
   const extra = await reap(f, 'plan_review', 'task-plan-reviewer', [init([...REVIEWER_TOOLS, 'Edit']), result(ok)]);
   assert.equal(extra.keys.kind, 'error');
@@ -317,6 +320,7 @@ test('rule 3: no result event, or an API overload, is undelivered', { skip: SKIP
   const none = await reap(f, 'plan_review', 'task-plan-reviewer', [init(REVIEWER_TOOLS)]);
   assert.equal(none.keys.kind, 'undelivered');
   assert.equal(none.keys.reason, 'no result event');
+  assert.equal(none.keys.class, '');
 
   for (const text of ['API Error: 529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}', 'API Error: 500 Internal server error', 'API Error: 503 Service Unavailable']) {
     const r = await reap(f, 'plan_review', 'task-plan-reviewer', [
@@ -333,6 +337,7 @@ test('rule 4: is_error, or a subtype other than success, is error', { skip: SKIP
   const failed = await reap(f, 'plan_review', 'task-plan-reviewer', [init(REVIEWER_TOOLS), result({ is_error: true, result: 'Prompt is too long' })]);
   assert.equal(failed.keys.kind, 'error');
   assert.equal(failed.keys.reason, 'the session ended as success with is_error');
+  assert.equal(failed.keys.class, 'infra');
 
   const turns = await reap(f, 'plan_review', 'task-plan-reviewer', [
     init(REVIEWER_TOOLS),
@@ -340,6 +345,7 @@ test('rule 4: is_error, or a subtype other than success, is error', { skip: SKIP
   ]);
   assert.equal(turns.keys.kind, 'error');
   assert.equal(turns.keys.reason, 'the session ended as error_max_turns');
+  assert.equal(turns.keys.class, 'infra');
 });
 
 test('rule 5: the decision is structured_output, else result parsed as JSON, else error', { skip: SKIP }, async (t) => {
@@ -355,6 +361,7 @@ test('rule 5: the decision is structured_output, else result parsed as JSON, els
   const none = await reap(f, 'plan_review', 'task-plan-reviewer', [init(REVIEWER_TOOLS), result({ result: 'verdict: PASS' })]);
   assert.equal(none.keys.kind, 'error');
   assert.equal(none.keys.reason, 'the result carries no decision object');
+  assert.equal(none.keys.class, 'infra');
 });
 
 test('rule 6: an undeclared outcome is error, and the rest of the decision is left unread', { skip: SKIP }, async (t) => {
@@ -366,6 +373,7 @@ test('rule 6: an undeclared outcome is error, and the rest of the decision is le
   assert.equal(r.keys.kind, 'error');
   assert.equal(r.keys.outcome, '');
   assert.equal(r.keys.reason, 'undeclared outcome SHIP');
+  assert.equal(r.keys.class, 'agent');
   assert.equal(r.keys.findings, '');
   assert.equal(r.keys.return_file, '');
   assert.equal(r.keys.friction_file, '');
@@ -376,6 +384,7 @@ test('rule 7: FAIL anywhere, or PASS at a round gate, without findings_file is e
   const fail = await reap(f, 'plan_review', 'task-plan-reviewer', [init(REVIEWER_TOOLS), result({ structured_output: { outcome: 'FAIL', return: 'verdict: FAIL' } })]);
   assert.equal(fail.keys.kind, 'error');
   assert.equal(fail.keys.reason, 'FAIL carries no findings_file');
+  assert.equal(fail.keys.class, 'agent');
 
   const pass = await reap(f, 'plan_review', 'task-plan-reviewer', [init(REVIEWER_TOOLS), result({ structured_output: { outcome: 'PASS', findings_file: ' ' } })]);
   assert.equal(pass.keys.kind, 'error');
@@ -394,6 +403,7 @@ test('rule 8: questions with a blank return is error', { skip: SKIP }, async (t)
   const r = await reap(f, 'plan_writer', 'task-plan-writer', [init(WRITER_TOOLS), result({ structured_output: { outcome: 'questions', return: ' \n\t' } })]);
   assert.equal(r.keys.kind, 'error');
   assert.equal(r.keys.reason, 'questions with a blank return');
+  assert.equal(r.keys.class, 'agent');
 });
 
 test('declared outcomes are returned: PASS, FAIL, returned and questions', { skip: SKIP }, async (t) => {
@@ -403,8 +413,8 @@ test('declared outcomes are returned: PASS, FAIL, returned and questions', { ski
     result({ permission_denials: [{}, {}], structured_output: { outcome: 'PASS', findings_file: 'devscene/r/review_0.md', return: 'verdict: PASS' } }),
   ]);
   assert.deepEqual(
-    { kind: pass.keys.kind, outcome: pass.keys.outcome, findings: pass.keys.findings, denials: pass.keys.denials, reason: pass.keys.reason },
-    { kind: 'returned', outcome: 'PASS', findings: 'devscene/r/review_0.md', denials: '2', reason: '' },
+    { kind: pass.keys.kind, class: pass.keys.class, outcome: pass.keys.outcome, findings: pass.keys.findings, denials: pass.keys.denials, reason: pass.keys.reason },
+    { kind: 'returned', class: '', outcome: 'PASS', findings: 'devscene/r/review_0.md', denials: '2', reason: '' },
   );
   assert.equal(pass.returnText, 'verdict: PASS');
 

@@ -57,3 +57,10 @@ The orchestrated path's `Agent` tool would often have recovered from these. `PNL
    - an agent-reported `blocker` (`outcome: 'blocker'`) still parks with no retry: one dispatch of that gate.
 
    The existing case `a session with no init event is held as error and parks` in `cli/test/planning-driver-walk.test.mjs` scripts `no-init` on call 0 only, so under this fix it retries and passes. Change it to `no-init` on all three attempts, asserting the single park after three dispatches, or replace it with the all-attempts case above. Keep `one error in a set is held while its siblings finish, then parks once` (agent-reported `error`) and `an undeclared outcome is held as error and parks` as they are. Set the backoff to 0 in every case so no case sleeps.
+
+- **Deviations from plan:** (cli layer dispatch)
+  - Item 6's `docs/flow-graph-walker.md` and `docs/watcher.md` edits lie outside the `cli` path and are left to this unit's `general` layer dispatch. What they must describe: `pnl_reap` prints `class=infra|agent` for every `kind=error`; a stall kill or a `class=infra` error is held unrecorded and its node alone is re-dispatched after `PD_BACKOFF_SECS` (shared with the undelivered backoff, default and ceiling 60), up to `PD_MAX_ATTEMPTS` (3) attempts; only the third is recorded as `error`; the park's per-node detail then carries `- agent:` and an `- attempts:` list; the session table header is `seq node agent attempt result duration cost`.
+  - Backoff: no separate `PD_RETRY_BACKOFF_SECS`; the retry reuses `PD_BACKOFF_SECS` through a new `pd_backoff` helper that `pd_undelivered` also calls, and the `GLOBALS` header says so.
+  - Where one set has both an undelivered session and an infra-held one, `undelivered` takes precedence as the set result (it carries the strike count and self-pause); the infra-held node rides that re-dispatch, because `current` re-prints every unrecorded gate, and its attempt is already counted.
+  - `cli/test/planning-node-lib.test.mjs` was also edited, to pin `class=` on each `pnl_reap` rule case.
+  - Stall test: `drive` takes a new `{ stallSecs }` option; the case uses `stallSecs: 3` against a 10 s stub sleep.

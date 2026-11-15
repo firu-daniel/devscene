@@ -4,8 +4,8 @@
  *
  * **The rule this suite enforces: the driver walks the planning graph the walker routes, launching
  * a round's three gates as one concurrent set that closes once, and a session it cannot read as a
- * declared outcome — an `error`, an undeclared outcome, no `init` event — is held as `error` while
- * its siblings run to their end, then parks.** Each case is graded on `git log`, the ledger, the
+ * declared outcome — an `error`, an undeclared outcome, no `init` event on each of its three
+ * attempts — is held as `error` while its siblings run to their end, then parks.** Each case is graded on `git log`, the ledger, the
  * clarification files, the calls log the stub keeps and the prompts it was handed.
  *
  * Every expected literal — a subject, a prompt's first line, a `held:` line — is written here,
@@ -73,15 +73,18 @@ test('a round\'s three gates run concurrently, and the round closes once', { ski
 
 /**
  * Round 0 with one gate's session unreadable at once and its two siblings `PASS` after a delay:
- * neither sibling is killed, and the one park names the held gate.
+ * neither sibling is killed, and the one park names the held gate. `entries` is the held gate's
+ * script, one entry per dispatch it is expected to get.
  */
-async function heldCase(t, agent, entry, held, reason) {
+async function heldCase(t, agent, entries, held, reason) {
   const others = GATES.filter((g) => g !== agent);
   const f = await driverFixture(t, {
-    script: { [agent]: [entry], [others[0]]: [{ sleepMs: 2000 }], [others[1]]: [{ sleepMs: 2000 }] },
+    script: { [agent]: entries, [others[0]]: [{ sleepMs: 2000 }], [others[1]]: [{ sleepMs: 2000 }] },
   });
   const r = await drive(t, f);
   assert.equal(r.status, 3, show(r));
+  assert.equal(r.calls.filter((c) => c.agent === agent).length, entries.length, show(r));
+  for (const other of others) assert.equal(r.calls.filter((c) => c.agent === other).length, 1, `${other} dispatched once`);
   const held0 = r.calls.find((c) => c.agent === agent);
   for (const other of others) {
     const call = r.calls.find((c) => c.agent === other);
@@ -98,15 +101,16 @@ async function heldCase(t, agent, entry, held, reason) {
 }
 
 test('one error in a set is held while its siblings finish, then parks once', { skip: SKIP }, async (t) => {
-  await heldCase(t, 'architecture-reviewer', { outcome: 'error' }, 'architecture_review error');
+  await heldCase(t, 'architecture-reviewer', [{ outcome: 'error' }], 'architecture_review error');
 });
 
 test('an undeclared outcome is held as error and parks', { skip: SKIP }, async (t) => {
-  await heldCase(t, 'task-plan-reviewer', { mode: 'undeclared' }, 'plan_review error', 'undeclared outcome SHIP');
+  await heldCase(t, 'task-plan-reviewer', [{ mode: 'undeclared' }], 'plan_review error', 'undeclared outcome SHIP');
 });
 
-test('a session with no init event is held as error and parks', { skip: SKIP }, async (t) => {
-  await heldCase(t, 'business-parity-reviewer', { mode: 'no-init' }, 'business_parity_review error', 'the agent did not resolve: no init event');
+test('a session with no init event on all three attempts is held as error and parks', { skip: SKIP }, async (t) => {
+  const noInit = { mode: 'no-init' };
+  await heldCase(t, 'business-parity-reviewer', [noInit, noInit, noInit], 'business_parity_review error', 'the agent did not resolve: no init event');
 });
 
 test('every prompt is the copied core\'s dispatch block', { skip: SKIP }, async (t) => {

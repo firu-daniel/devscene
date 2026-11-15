@@ -17,9 +17,12 @@
  * The stub reads `--agent`, `-p`, `--plugin-dir` and `--json-schema` from its argv and acts on the
  * entry the case's script holds for that agent at that call index — the index counts the agent's
  * calls across every `pd_drive` of one fixture. An entry is
- * `{ outcome?, sleepMs?, mode?, friction?, touch?, return? }`: `mode` is `no-init`, `no-result` or
- * `undeclared` (outcome `SHIP`); `touch` names a file it creates under `<stateDir>/` before its
- * sleep, such as `STOP` or `PAUSE`. With no entry a gate returns `PASS` and a writer `returned`.
+ * `{ outcome?, sleepMs?, mode?, friction?, touch?, return? }`: `mode` is `no-init`, `no-result`,
+ * `undeclared` (outcome `SHIP`), `not-success` (a `result` of subtype `error_max_turns` with
+ * `is_error`) or `no-decision` (a `success` result whose text is no JSON object); `touch` names a
+ * file it creates under `<stateDir>/` before its sleep, such as `STOP` or `PAUSE`. A `sleepMs` past
+ * `drive`'s `stallSecs` is a stall the driver kills. With no entry a gate returns `PASS` and a
+ * writer `returned`.
  */
 
 import assert from 'node:assert/strict';
@@ -120,7 +123,11 @@ const tools = (() => {
 appendFileSync(join(dir, 'calls.log'), agent + ' ' + index + ' end ' + Date.now() + '\n');
 const events = [];
 if (entry.mode !== 'no-init') events.push({ type: 'system', subtype: 'init', session_id: 'stub', tools });
-if (entry.mode !== 'no-result') {
+if (entry.mode === 'not-success') {
+  events.push({ type: 'result', subtype: 'error_max_turns', is_error: true, total_cost_usd: 0.01, permission_denials: [] });
+} else if (entry.mode === 'no-decision') {
+  events.push({ type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0.01, permission_denials: [], result: 'verdict: PASS' });
+} else if (entry.mode !== 'no-result') {
   events.push({ type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0.01, permission_denials: [], structured_output: decision });
 }
 process.stdout.write(events.map((e) => JSON.stringify(e)).join('\n') + (events.length ? '\n' : ''));
@@ -247,19 +254,20 @@ async function readCalls(f) {
 
 /**
  * Run `pd_drive feat_x <dir> <log>` once, from the shipped libraries, with the stub as every
- * session.
+ * session, `PD_BACKOFF_SECS` 0 and `PD_NODE_STALL_SECS` `stallSecs` (0, off, by default).
  *
+ * @param {{ stallSecs?: number }} [options]
  * @returns {Promise<{ status: number, stderr: string, log: string, calls: Array<{ agent: string,
  *   index: number, start: number, end: number, prompt: string }>, subjects: string[],
  *   clarifications: Record<string, string> }>} `subjects` oldest first.
  */
-export async function drive(t, f) {
+export async function drive(t, f, { stallSecs = 0 } = {}) {
   const body = [
     'cd "$W" || exit 90',
     ...LIBRARIES.map((lib) => `. "$W/${INIT_SCRIPTS_DIR}/lib/${lib}.sh" || exit 91`),
     'session_exec() { exec "$STUB" -p "$1" "${@:2}"; }',
     'PD_PLUGIN_DIR=$P PD_MAIN_REPO=$W PD_SESSION_EXEC=session_exec PD_FORMATTER=cat',
-    'PD_NODE_STALL_SECS=0 PD_BACKOFF_SECS=0',
+    `PD_NODE_STALL_SECS=${Number(stallSecs)} PD_BACKOFF_SECS=0`,
     `pd_drive ${BRANCH} "$W" "$LOG"`,
   ].join('\n');
   const r = await runBash(f.dir, ['-c', body], f.env, { timeoutMs: DRIVE_TIMEOUT_MS, signal: t.signal });

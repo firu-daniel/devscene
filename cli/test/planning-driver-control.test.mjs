@@ -1,12 +1,15 @@
 /**
  * `pd_drive`'s control paths, end to end, from the libraries `init` ships, with a stub agent CLI
  * standing in for every node session (`cli/test/helpers/planning-driver.mjs`): the `<ask>` park and
- * its resume, STOP, PAUSE, three undelivered sessions, the dispatch cap and the observations.
+ * its resume, STOP, PAUSE, three undelivered sessions, the infrastructure retry, the dispatch cap
+ * and the observations.
  *
  * **The rule this suite enforces: every stop is clean and checked per set — STOP and the dispatch
  * cap send nothing of the set, a STOP or PAUSE raised while a set runs lets the set finish and its
  * round commit land, and every stop returns 3 with its files written — and the next `pd_drive`
- * continues the saved walk where it stopped rather than starting a fresh one.** Each case is graded
+ * continues the saved walk where it stopped rather than starting a fresh one. A node failing for an
+ * infrastructure reason is re-dispatched alone, up to three attempts, and parks once only when all
+ * three failed; an agent-reported `blocker` parks with no retry.** Each case is graded
  * on the return, `git log`, the run log, the clarification and pause files and the calls log.
  *
  * Every expected literal — a subject, a `Raised by:` line, a halt message — is written here, never
@@ -128,6 +131,59 @@ test('one gate undelivered three times running commits the partial round and sel
   const resumed = second.calls.slice(count);
   assert.equal(resumed[0].agent, 'task-plan-reviewer', JSON.stringify(resumed.map((c) => c.agent)));
   assert.equal(resumed.length, 1, 'only that gate is dispatched; round 0 then passes and planning hands off');
+});
+
+test('a gate stalled once is re-dispatched alone and passes; its siblings run once and planning hands off', { skip: SKIP }, async (t) => {
+  const f = await driverFixture(t, { script: { 'task-plan-reviewer': [{ sleepMs: 10_000 }] } });
+  const r = await drive(t, f, { stallSecs: 3 });
+  assert.equal(r.status, 0, show(r));
+  assert.deepEqual(Object.keys(r.clarifications), [], show(r));
+  assert.ok(!f.exists(`${f.sd}/PAUSE_ACK`), show(r));
+  assert.equal(r.calls.filter((c) => c.agent === 'task-plan-reviewer').length, 2, show(r));
+  assert.equal(r.calls.filter((c) => c.agent === 'business-parity-reviewer').length, 1, show(r));
+  assert.equal(r.calls.filter((c) => c.agent === 'architecture-reviewer').length, 1, show(r));
+  assert.ok(r.log.includes('plan_review (task-plan-reviewer): attempt 1 of 3 failed for an infrastructure reason (stalled)'), r.log);
+  const text = await f.read(`${f.sd}/improvement_observations/${BRANCH}.md`);
+  const retry = text.split('\n## ').find((b) => b.startsWith('A planning node session failed for an infrastructure reason and was re-dispatched'));
+  assert.ok(retry !== undefined && retry.includes('plan_review (task-plan-reviewer), round 0: attempt 1 of 3: stalled'), text);
+  const sessions = text.split('\n## ').find((b) => b.startsWith('Script-driven planning node sessions'));
+  assert.ok(sessions.includes('seq node agent attempt result duration cost: '), sessions);
+  assert.ok(sessions.includes('plan_review task-plan-reviewer 1/3 error'), sessions);
+  assert.ok(sessions.includes('plan_review task-plan-reviewer 2/3 PASS'), sessions);
+});
+
+test('a gate failing all three attempts parks once, after its siblings, naming every attempt', { skip: SKIP }, async (t) => {
+  const f = await driverFixture(t, {
+    script: {
+      'task-plan-reviewer': [{ mode: 'not-success' }, { mode: 'no-decision' }, { mode: 'no-init' }],
+      'business-parity-reviewer': [{ sleepMs: 1500 }],
+      'architecture-reviewer': [{ sleepMs: 1500 }],
+    },
+  });
+  const r = await drive(t, f);
+  assert.equal(r.status, 3, show(r));
+  const held = r.calls.filter((c) => c.agent === 'task-plan-reviewer');
+  assert.equal(held.length, 3, show(r));
+  const siblings = r.calls.filter((c) => c.agent === 'business-parity-reviewer' || c.agent === 'architecture-reviewer');
+  assert.equal(siblings.length, 2, show(r));
+  assert.ok(held[1].start > Math.max(...siblings.map((c) => c.end)), 'the retry went out only after the siblings finished');
+  assert.deepEqual(Object.keys(r.clarifications), ['question_1.md'], show(r));
+  const question = r.clarifications['question_1.md'];
+  assert.ok(question.split('\n').includes('held: plan_review error'), question);
+  assert.ok(question.includes('- agent: `task-plan-reviewer`\n'), question);
+  assert.match(question, /\n {2}- attempt 1 of 3 \(#\d+\): the session ended as error_max_turns with is_error\n/);
+  assert.match(question, /\n {2}- attempt 2 of 3 \(#\d+\): the result carries no decision object\n/);
+  assert.match(question, /\n {2}- attempt 3 of 3 \(#\d+\): the agent did not resolve: no init event\n/);
+  assert.ok(question.includes('## Q1 — How should planning continue?'), question);
+});
+
+test('an agent-reported blocker parks with no retry', { skip: SKIP }, async (t) => {
+  const f = await driverFixture(t, { script: { 'architecture-reviewer': [{ outcome: 'blocker' }] } });
+  const r = await drive(t, f);
+  assert.equal(r.status, 3, show(r));
+  assert.equal(r.calls.filter((c) => c.agent === 'architecture-reviewer').length, 1, show(r));
+  assert.deepEqual(Object.keys(r.clarifications), ['question_1.md'], show(r));
+  assert.ok(r.clarifications['question_1.md'].split('\n').includes('held: architecture_review blocker'), r.clarifications['question_1.md']);
 });
 
 /**

@@ -8,7 +8,11 @@
 # before anything of the set goes out — STOP per block, PAUSE once, the
 # dispatch cap against the whole set — so a halt sends none of the set; and a
 # set that went out is never cut short: an `error`, a `blocker` or a stall kill
-# ends that one session, never a sibling.
+# ends that one session, never a sibling. An infrastructure failure — a stall
+# kill, or `pnl_reap`'s `class=infra` — is held unrecorded and its node alone is
+# re-dispatched, up to `PD_MAX_ATTEMPTS` attempts in all; only the last is
+# recorded as `error`. Every other `error`, and every `blocker`, is recorded at
+# once.
 #
 # THE CONTRACT IT FOLLOWS is `docs/flow-graph-walker.md` → `### Item 8 — a
 # round's gates fan out, and the round node joins` → **What a second driver
@@ -35,8 +39,9 @@
 #
 # GLOBALS. In: `PD_PLUGIN_DIR`, `PD_MAIN_REPO`, `PD_SESSION_EXEC` (a function
 # name), `PD_FORMATTER` (a path, or `cat`), `PD_NODE_STALL_SECS` (an integer, 0
-# off), and the optional `PD_BACKOFF_SECS`, the undelivered re-dispatch backoff,
-# default and ceiling 60. Out: `PD_CONSUMED_SET`, the indices, as
+# off), and the optional `PD_BACKOFF_SECS`, the backoff before an undelivered
+# set's second re-dispatch and before every infrastructure retry, default and
+# ceiling 60. Out: `PD_CONSUMED_SET`, the indices, as
 # `hr_top_level_answered_pairs` spells them, of the answered pairs appended to a
 # writer's prompt on this call, or empty; cleared at preflight.
 #
@@ -67,6 +72,9 @@
 PD_FLOW='task_plan_writing'
 PD_REENTRY_COMMAND='/devscene:branch-start-plan-autonomous'
 PD_SCREEN_RAISED='prompt-injection-reviewer (prompt-injection screen)'
+PD_MAX_ATTEMPTS=3
+PD_NL='
+'
 
 pd_log() {
   [ -n "${PD_LOG-}" ] || return 0
@@ -111,6 +119,8 @@ pd_drive() {
   PD_PAIR_SET=""
   PD_PAIR_TEXT=""
   PD_STRIKES=0
+  PD_RETRY_NODES=""
+  unset ${!PD_ATTEMPTS_@} ${!PD_ATTEMPT_LOG_@} ${!PD_EXHAUSTED_@} ${!PD_AGENT_@}
 
   pnl_init "$PD_PLUGIN_DIR" "$PD_WORKTREE" || { pnl_cleanup; return 2; }
   prl_init "$PD_BRANCH" "$PD_WORKTREE" "$PD_MAIN_REPO" "$PD_LOG" || { pnl_cleanup; return 2; }
@@ -124,7 +134,7 @@ pd_finish() {
   local rc="$1"
   if [ "$PD_SESSION_COUNT" -gt 0 ]; then
     pd_observe flow-efficiency "Script-driven planning node sessions (pd_drive returned $rc)" \
-      "seq node agent result duration cost: $PD_SESSIONS" "$PD_SESSION_COUNT node session(s)"
+      "seq node agent attempt result duration cost: $PD_SESSIONS" "$PD_SESSION_COUNT node session(s)"
   fi
   prl_observe_flush
   pnl_cleanup
@@ -181,6 +191,11 @@ pd_main() {
             pd_undelivered
             rc=$?
             [ "$rc" -eq 0 ] || return "$rc"
+            ;;
+          retry)
+            pd_backoff
+            pd_log "infrastructure retry: backing off ${PD_V}s before re-dispatching $PD_RETRY_NODES alone"
+            [ "$PD_V" -eq 0 ] || sleep "$PD_V"
             ;;
           *)
             PD_STRIKES=0
@@ -504,12 +519,24 @@ pd_ask_park() {
 
 # Append one session's captured `reason=` and `return` text to stdout.
 pd_session_detail() {
-  local node="$1" outcome="$2" reason file
+  local node="$1" outcome="$2" reason file line
   pd_node_var "$node" REASON
   reason="${PD_V:-not captured in this session}"
   pd_node_var "$node" RET
   file="$PD_V"
-  printf '\n### `%s` — %s\n\n- reason: %s\n' "$node" "$outcome" "$reason"
+  printf '\n### `%s` — %s\n\n' "$node" "$outcome"
+  pd_node_var "$node" AGENT
+  [ -z "$PD_V" ] || printf -- '- agent: `%s`\n' "$PD_V"
+  printf -- '- reason: %s\n' "$reason"
+  pd_node_var "$node" EXHAUSTED
+  if [ -n "$PD_V" ]; then
+    printf -- '- attempts: all %s ended for an infrastructure reason, each re-dispatched alone while attempts remained:\n' "$PD_MAX_ATTEMPTS"
+    while IFS= read -r line; do
+      [ -z "$line" ] || printf -- '  - %s\n' "$line"
+    done <<EOF
+$PD_V
+EOF
+  fi
   if [ -n "$file" ] && [ -s "$file" ]; then
     printf -- '- return text:\n\n~~~~text\n'
     cat "$file"
@@ -691,8 +718,15 @@ pd_partial() {
   prl_partial_commit "$PD_V"
 }
 
+# PD_V the backoff in seconds: `PD_BACKOFF_SECS`, default and ceiling 60.
+pd_backoff() {
+  PD_V="${PD_BACKOFF_SECS:-60}"
+  case "$PD_V" in '' | *[!0-9]*) PD_V=60 ;; esac
+  [ "$PD_V" -le 60 ] || PD_V=60
+}
+
 pd_undelivered() {
-  local backoff="${PD_BACKOFF_SECS:-60}"
+  local backoff
   PD_STRIKES=$((PD_STRIKES + 1))
   if [ "$PD_STRIKES" -ge 3 ]; then
     pd_partial "$PD_UNDELIV_ITER" || return 2
@@ -703,8 +737,8 @@ pd_undelivered() {
   pd_observe flow-efficiency "An undelivered planning dispatch was re-dispatched" \
     "nodes: $PD_UNDELIV_NODES; consecutive undelivered sets: $PD_STRIKES; reason: $PD_UNDELIV_REASON" "one re-dispatch per node"
   if [ "$PD_STRIKES" -eq 2 ]; then
-    case "$backoff" in '' | *[!0-9]*) backoff=60 ;; esac
-    [ "$backoff" -le 60 ] || backoff=60
+    pd_backoff
+    backoff="$PD_V"
     pd_log "undelivered again: backing off ${backoff}s before the re-dispatch"
     sleep "$backoff"
   else
@@ -800,8 +834,8 @@ pd_kill_tree() {
 
 # pd_run_set <output> — apply the safety contract to every block, launch them
 # all, and record each as it ends. PD_SET_RESULT `out` (PD_SET_OUT the round's
-# result or the next action), `undelivered` or `recover`; 3 a halt or park; 2 a
-# fault.
+# result or the next action), `undelivered`, `retry` (PD_RETRY_NODES the nodes
+# held for an infrastructure retry) or `recover`; 3 a halt or park; 2 a fault.
 pd_run_set() {
   local out="$1" line i=-1 n count max rest f p pid now age done_count stalled
   local -a fargs
@@ -812,6 +846,7 @@ pd_run_set() {
   PD_UNDELIV_NODES=""
   PD_UNDELIV_ITER=""
   PD_UNDELIV_REASON=""
+  PD_RETRY_NODES=""
   while IFS= read -r line; do
     case "$line" in
       'action: dispatch')
@@ -953,6 +988,8 @@ $PD_PAIR_TEXT"
   fi
   if [ -n "$PD_UNDELIV_NODES" ]; then
     PD_SET_RESULT=undelivered
+  elif [ -n "$PD_RETRY_NODES" ]; then
+    PD_SET_RESULT=retry
   elif [ -n "$PD_SET_OUT" ]; then
     PD_SET_RESULT=out
   else
@@ -963,8 +1000,8 @@ $PD_PAIR_TEXT"
 
 # pd_reap_one <index> <stalled yes|no> — read the session, observe it, record it.
 pd_reap_one() {
-  local i="$1" stalled="$2" res line kind="" outcome="" findings="" ret="" fr="" cost="" dur="" denials=0 reason=""
-  local node="${S_NODE[$i]}" agent="${S_AGENT[$i]}" seq round item rc
+  local i="$1" stalled="$2" res line kind="" class="" outcome="" findings="" ret="" fr="" cost="" dur="" denials=0 reason=""
+  local node="${S_NODE[$i]}" agent="${S_AGENT[$i]}" seq round item rc attempt retry=no exhausted=no
   local -a args
   seq="${S_H[$i]#*	}"
   seq="${seq%%	*}"
@@ -972,6 +1009,7 @@ pd_reap_one() {
   while IFS= read -r line; do
     case "$line" in
       kind=*) kind="${line#kind=}" ;;
+      class=*) class="${line#class=}" ;;
       outcome=*) outcome="${line#outcome=}" ;;
       findings=*) findings="${line#findings=}" ;;
       return_file=*) ret="${line#return_file=}" ;;
@@ -986,21 +1024,38 @@ $res
 EOF
   if [ "$stalled" = yes ]; then
     kind=error
+    class=infra
     outcome=""
     reason=stalled
   fi
   printf -v "PD_RET_$node" '%s' "$ret"
   printf -v "PD_REASON_$node" '%s' "${reason:-none}"
+  printf -v "PD_AGENT_$node" '%s' "$agent"
+  pd_node_var "$node" ATTEMPTS
+  attempt=$((${PD_V:-0} + 1))
+  if [ "$kind" = error ] && [ "$class" = infra ]; then
+    printf -v "PD_ATTEMPTS_$node" '%s' "$attempt"
+    pd_node_var "$node" ATTEMPT_LOG
+    printf -v "PD_ATTEMPT_LOG_$node" '%s' "${PD_V:+$PD_V$PD_NL}attempt $attempt of $PD_MAX_ATTEMPTS (#$seq): $reason"
+    if [ "$attempt" -lt "$PD_MAX_ATTEMPTS" ]; then retry=yes; else exhausted=yes; fi
+  fi
   pd_log "#$seq $node: $kind${outcome:+ $outcome}${reason:+ ($reason)}"
 
   PD_SESSION_COUNT=$((PD_SESSION_COUNT + 1))
-  PD_SESSIONS="${PD_SESSIONS:+$PD_SESSIONS; }#$seq $node $agent ${outcome:-$kind} ${dur:-?}s ${cost:-unknown}"
+  PD_SESSIONS="${PD_SESSIONS:+$PD_SESSIONS; }#$seq $node $agent $attempt/$PD_MAX_ATTEMPTS ${outcome:-$kind} ${dur:-?}s ${cost:-unknown}"
   round="${S_ITER[$i]:-n/a}"
   case "$denials" in '' | *[!0-9]*) denials=0 ;; esac
   [ "$denials" -eq 0 ] || pd_observe tooling-gap "A planning node session met permission denials" \
     "#$seq $node ($agent), round $round: $denials denial(s)" "$denials refused tool call(s)"
-  [ "$kind" != error ] && [ "$outcome" != error ] || pd_observe silent-failure "A planning node session ended in error" \
-    "#$seq $node ($agent), round $round: ${reason:-no reason}" "one dispatch recorded as error"
+  if [ "$retry" = yes ]; then
+    pd_log "$node ($agent): attempt $attempt of $PD_MAX_ATTEMPTS failed for an infrastructure reason ($reason); it alone is re-dispatched"
+    pd_observe flow-efficiency "A planning node session failed for an infrastructure reason and was re-dispatched" \
+      "#$seq $node ($agent), round $round: attempt $attempt of $PD_MAX_ATTEMPTS: $reason" "one re-dispatch of $node"
+  else
+    [ "$exhausted" = no ] || pd_log "$node ($agent): attempt $attempt of $PD_MAX_ATTEMPTS failed for an infrastructure reason ($reason); no attempt remains, recorded as error"
+    [ "$kind" != error ] && [ "$outcome" != error ] || pd_observe silent-failure "A planning node session ended in error" \
+      "#$seq $node ($agent), round $round: ${reason:-no reason}" "one dispatch recorded as error"
+  fi
   if [ -n "$fr" ] && [ -s "$fr" ]; then
     while IFS= read -r item || [ -n "$item" ]; do
       [ -n "$item" ] || continue
@@ -1019,7 +1074,13 @@ EOF
         esac
       fi
       ;;
-    error) args=(--node "$node" --outcome error) ;;
+    error)
+      if [ "$retry" = yes ]; then
+        PD_RETRY_NODES="${PD_RETRY_NODES:+$PD_RETRY_NODES }$node"
+        return 0
+      fi
+      args=(--node "$node" --outcome error)
+      ;;
     undelivered)
       PD_UNDELIV_NODES="${PD_UNDELIV_NODES:+$PD_UNDELIV_NODES }$node"
       [ -n "$PD_UNDELIV_ITER" ] || PD_UNDELIV_ITER="${S_ITER[$i]}"
@@ -1029,6 +1090,10 @@ EOF
     *) pd_fail "pnl_reap returned the unknown kind '$kind' for $node"; return 2 ;;
   esac
   [ "$PD_PAIR_NODE" != "$node" ] || PD_PAIR_NODE=""
+  if [ "$exhausted" = yes ]; then pd_node_var "$node" ATTEMPT_LOG; else PD_V=""; fi
+  printf -v "PD_EXHAUSTED_$node" '%s' "$PD_V"
+  printf -v "PD_ATTEMPTS_$node" '%s' 0
+  printf -v "PD_ATTEMPT_LOG_$node" '%s' ""
   pd_walk next "${args[@]}"
   rc=$?
   if [ "$rc" -ne 0 ]; then
