@@ -71,7 +71,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_script_driven_planning_
 6. [x] **Task 5** — Test the driver end to end with a stub agent CLI: walk, sets, held binding, park, STOP, PAUSE, cap and observations _(layer: cli)_ _(points: 20)_
 7. [x] **Task 6** — Wire the pilot into `autonomous-watcher.sh`: `PLANNING_DRIVER_PLUGIN_DIR`, `session_exec`, and the setup → driver → engine sequence _(layer: cli)_ _(points: 20)_
 8. [x] **Task 7** — Plugin side: the setup-only clause in the task engine command, the core's one-place note, and the observation intake's second writer _(layer: plugin)_ _(points: 15)_
-9. [ ] **Task 8** — Document the two drivers in `docs/flow-graph-walker.md` and the pilot in `docs/watcher.md` _(layer: general)_ _(points: 15)_
+9. [x] **Task 8** — Document the two drivers in `docs/flow-graph-walker.md` and the pilot in `docs/watcher.md` _(layer: general)_ _(points: 15)_
 10. [ ] **Task 9** — Add the node-session launch site to `ARCHITECTURE.md` §5 and the libraries to `docs/cli.md`'s outer-loop list _(layer: general)_ _(points: 10)_
 
 ## Scope register

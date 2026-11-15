@@ -60,3 +60,8 @@ Every fact here is cited to the file and symbol that owns it rather than restate
 - `git grep -n "PLANNING_DRIVER_PLUGIN_DIR" -- docs` finds the switch in both files, and `docs/watcher.md` states its local-only scope and the remote job's orchestrated path in one place.
 - Every command an adopter or maintainer is told to run in the two files sits alone on its own line in a fenced block, as `harness-runs/lessons.md` → *Adopter-facing documentation* requires.
 - No line in either file states a saving, a cost or a duration measured by the branch's tests or its own sessions (`harness-runs/lessons.md` → *Evidence and measurement*).
+
+- **Deviations from plan:**
+  - The hand step's first line is a command that appends the `PLANNING_DRIVER_PLUGIN_DIR=` line to `watcher.env` (`printf … >> "${XDG_CONFIG_HOME:-$HOME/.config}/devscene/watcher.env"`), not the bare line, so the block is one command per line as `harness-runs/lessons.md` → *Adopter-facing documentation* requires; `docs/watcher.md`'s new subsection gives the bare line, following §4's `PERMISSION_MODE=acceptEdits` precedent.
+  - Beyond the listed targets, `docs/watcher.md` → `## 2. The scripts` → **Why only the `yes` rows carry a profile entry** now names the three planning libraries beside the walker's two sourced/read rows, since its "the rest are run by … except" sentence would otherwise misdescribe the new `no` rows.
+  - Not run: `scripts/check-command-spelling.sh`, which scans `docs/` — deferred to the Run gates phase (it is a gate `commands.test` runs through `scripts/run-gates.sh`, per `docs/development.md` → `## 5. Verifying a change` gate 6d).

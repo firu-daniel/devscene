@@ -2,7 +2,7 @@
 
 **Who reads this:** a maintainer deciding whether a second orchestrated flow adopts the walker, or debugging a planning run's routing.
 
-**What it owns.** The decisions of record for the pilot that moved the task-plan-writing loop's **routing** out of `plugin/instructions/task_plan_writing_instructions_core.md` and into a declared graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, walked by `cli/templates/scripts/flow-walker.sh`; and the core's measured size before and after. It does not restate how to call the walker (its own header, and the core's `## The walker — routing is its, judgement is yours`), the graph's shape (`schemas/flow-graph.schema.json`), the static checks (`scripts/check-flow-graph.sh` → `THE CONTRACT`) or the outer-loop file table (`docs/watcher.md` → `## 2. The scripts`).
+**What it owns.** The decisions of record for the pilot that moved the task-plan-writing loop's **routing** out of `plugin/instructions/task_plan_writing_instructions_core.md` and into a declared graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, walked by `cli/templates/scripts/flow-walker.sh`; the core's measured size before and after; and the walker's second driver, the watcher's opt-in planning driver (`cli/templates/scripts/lib/planning-driver-lib.sh` and its two sibling libraries), which walks the same graph with one headless session per node and no orchestrator — which driver runs when, how each runs a round, and what of the second is not yet measured (`## 5. The two drivers`). It does not restate how to call the walker (its own header, and the core's `## The walker — routing is its, judgement is yours`), the graph's shape (`schemas/flow-graph.schema.json`), the static checks (`scripts/check-flow-graph.sh` → `THE CONTRACT`) or the outer-loop file table (`docs/watcher.md` → `## 2. The scripts`).
 
 ---
 
@@ -85,6 +85,8 @@ Each one restates an outcome the tasks that built it settled, with its reason an
 
 **Cost.** The "two separate, plain commands exactly as written" rule for the increment stays prose an agent follows, not code.
 
+**On the script-driven path.** There the three are the driver's, per set, exactly as **A set.** words them: before anything of the set goes out, the STOP check runs per block, the PAUSE check once, and the cap against the whole set; the counter is then incremented and the heartbeat logged per block (`cli/templates/scripts/lib/planning-driver-lib.sh` → `pd_run_set`). The halt messages are the core's, with `<reentry_command>` resolved to the autonomous fork's value, `/devscene:branch-start-plan-autonomous` (`planning-driver-lib.sh` → `PD_REENTRY_COMMAND`; `task_plan_writing_instructions_autonomous.md` → its `<reentry_command>` row).
+
 ### Item 6 — the walker and graph ship into `scriptsDir`, and the graph is found beside the walker
 
 **Decision.** `flow-walker.sh`, `lib/flow-walker-gates.sh` and `flows/task_plan_writing.graph.json` ship from `cli/templates/scripts/` into the adopter's `scriptsDir`. The walker's row in `cli/src/generators/outerLoopScripts.ts` → `OUTER_LOOP_SCRIPTS` is `agentInvocable: true`, so the autonomous profile grants it. The walker finds its graph **beside itself** by flow id, at `<this script's dir>/flows/<flow>.graph.json`; no path is passed.
@@ -109,7 +111,7 @@ Each one restates an outcome the tasks that built it settled, with its reason an
 
 **Cost.** A format bump: an adopter's walker and graph are replaced together by `init --force`, as `### Item 7` records for format 2. A gate whose reviewer wrote its file but whose `next` never ran is dispatched again by `current`, at the cost of one review. The dispatch form is stated ahead of probe BG11 (`docs/sandbox-verification.md` → `## 5. Failures and their follow-ups`, row BG11): if the calls do not overlap, a round runs serially with the same result.
 
-**What a second driver must do.** The input for #159 (`ROADMAP.md` → `Script-driven planning pilot`), a script that runs each node as its own headless session. Read a set as the blocks between `action:` lines. Run its own STOP check, counter increment and heartbeat per block, and its PAUSE check once per set. Start one session per block. Record each session's outcome with `next --node <node>` as that session ends, in any order and concurrently. Treat `action: wait` as nothing to do. Act on the one call that prints the round's result or the held binding. Recover a lost session with `current`, which prints only the unrecorded gates. Nothing in this needs the orchestrator's prose: every value it acts on is in the walker's output, and `cli/test/flow-walker-fan-out.test.mjs` drives a round this way, through the walker's CLI alone.
+**What a second driver must do.** The input for #159 (`ROADMAP.md` → `Script-driven planning pilot`), a script that runs each node as its own headless session. Read a set as the blocks between `action:` lines. Run its own STOP check, counter increment and heartbeat per block, and its PAUSE check once per set. Start one session per block. Record each session's outcome with `next --node <node>` as that session ends, in any order and concurrently. Treat `action: wait` as nothing to do. Act on the one call that prints the round's result or the held binding. Recover a lost session with `current`, which prints only the unrecorded gates. Nothing in this needs the orchestrator's prose: every value it acts on is in the walker's output, and `cli/test/flow-walker-fan-out.test.mjs` drives a round this way, through the walker's CLI alone. That driver is built, and `## 5. The two drivers` records it.
 
 ### The iteration cap — the graph owns it, the core keeps two descriptions held by a check
 
@@ -145,3 +147,81 @@ A proposal to the maintainer, not scheduled work. Every other orchestrated loop 
 - **its own ledger template's ids for `ledger-id-known`**, which reads only the task-engine template today;
 - **its own safety-contract decision**, since item 4's reasoning rests on this flow's STOP / PAUSE / increment order;
 - **scenario tests derived from its pre-change prose**, as `cli/test/flow-walker.test.mjs` and `cli/test/flow-walker-ui-and-reentry.test.mjs` were, never from the graph.
+
+---
+
+## 5. The two drivers
+
+The walker has two drivers: the orchestrating session, which reads the core, and the watcher's planning driver, which is the second driver `### Item 8` → **What a second driver must do.** describes. Each subsection below is a decision, its reason and its cost, as in §2. The watcher's side — the switch, the launch sequence and the exit mapping — is `docs/watcher.md` → `### Script-driven planning (opt-in pilot)`.
+
+### Which runs when
+
+**Decision.** The orchestrator is the default, and the driver in every mode: supervised, semi-autonomous, a local autonomous run and a remote job. The script driver runs only when the watcher's switch `PLANNING_DRIVER_PLUGIN_DIR` is set, in a local run of the task engine whose planning is not finished — the run's ledger is absent or its first phase is pending — and with the three libraries and the pinned plugin's manifest and planning core readable (`cli/templates/scripts/autonomous-watcher.sh` → `planning_driver_ready`; the header's `SCRIPT-DRIVEN PLANNING IS AN OPT-IN PILOT.`).
+
+**Reason.** The driver's savings are not yet measured (`### What the follow-up measures`, below), so an adopter who does not opt in gains no new surface: the switch is a watcher tunable rather than a `devscene.config.json` key, empty by default, and its value is a machine-local path.
+
+**Cost.** A launch that is not ready logs one `planning driver off for '<branch>': <reason>` line and takes the orchestrated path, so a mistyped switch costs the pilot's data, not the run.
+
+### How each runs a parallel round
+
+**Decision.** The orchestrator runs a printed set as one message of foreground `Agent` calls (`plugin/instructions/task_plan_writing_instructions_core.md` → `## Safety contract — applies before EVERY Agent dispatch` → **A set.**). The driver runs one headless session per block, all launched at once once the set's safety contract has passed (`### Item 4` → **On the script-driven path.**), and records each with `flow-walker.sh next --node <node>` as its session ends, in finish order (`planning-driver-lib.sh` → `pd_run_set`, `pd_reap_one`). An `action: wait` is nothing to do. A held `error` or `blocker`, and a session the driver killed as stalled, which it records as `error`, come back as one binding after the last outcome, printed by the walker's join. A sibling is never cancelled: an `error`, a `blocker` or a stall kill ends that one session.
+
+**Reason.** That is the contract `### Item 8` → **What a second driver must do.** wrote, followed as written, so the walker needed no change for a second driver: the join, the held binding and the refusal of a second outcome are the walker's (`flow-walker.sh` → `ROUNDS`, `CONCURRENCY`).
+
+**Cost.** The driver polls the set once a second with `kill -0`, because bash 3.2 has no `wait -n` (`planning-driver-lib.sh` → `BASH 3.2 AND JQ 1.5 ARE THE FLOORS`). A session that delivered nothing — no `result` event, or an API overload error — is not recorded but dispatched again, and a third consecutive undelivered set pauses planning (`pd_undelivered`).
+
+### Why the driver is three watcher-sourced libraries
+
+**Decision.** The driver is `lib/planning-node-lib.sh` (one node session), `lib/planning-record-lib.sh` (every durable write) and `lib/planning-driver-lib.sh` (the walk), each sourced by the watcher inside the run's launch subshell (`autonomous-watcher.sh` → `planning_driver_run`), never executed, shipped without an executable bit and with `agentInvocable: false` (`cli/src/generators/outerLoopScripts.ts` → `OUTER_LOOP_SCRIPTS`). It is not a script of its own.
+
+**Reason.** Three properties follow from running inside the watcher. **One producer of the launch vector:** every node session is launched through the watcher's `session_exec`, the same function the engine session goes through, so a node gets the run's per-run settings, permission mode, model, effort, added directories, environment scrub and main-checkout anchor, with only the per-node flags appended (`autonomous-watcher.sh` → `session_exec`; `planning-node-lib.sh` → `pnl_agent_flags`). **No new agent reach:** nothing an agent can invoke starts the driver — a library run rather than sourced only defines functions, and none carries a profile entry (`docs/watcher.md` → `## 2. The scripts`). **The full environment for the wrappers:** the driver's `commit-on-branch.sh` and `push-branch.sh` calls run in the launch subshell, which keeps the watcher's environment; only a session's own launch pipe head is scrubbed (`docs/watcher.md` → `### The session's environment`).
+
+**Cost.** The driver cannot be run on its own; a reproduction by hand sources the libraries into a shell against a throwaway fixture (each library's `REPRO` block). A checkout `init` wrote before the libraries shipped lacks them until `init --force` rewrites the family, and until then every launch logs the switch off.
+
+### Why the prompts come from the pinned plugin's core
+
+**Decision.** At every drive, `pnl_init` reads `<switch>/instructions/task_plan_writing_instructions_core.md`, takes each node's prompt from the fenced blocks under the headings `PNL_CORE_BLOCKS` names and the dispatch cap from `## Setup (once per session)` step 4's `MAX_TOTAL_DISPATCHES` line, and fills them with the walker's values, appending nothing but a resumed writer's answered pairs (`planning-node-lib.sh` → `THE CORE IS WIRE TEXT.`, `pnl_prompt`).
+
+**Reason.** The core stays the one owner of every dispatch block, as `### Item 2` decided for the orchestrator: a copy in the script would be a second owner that drifts. The core's opening note names those headings, their fence counts and that line as wire text the library keys on.
+
+**Cost.** Renaming one of those headings, or changing a fence count under one, faults the driver at `pnl_init` with exit 2, and the run ends `failed`. `cli/test/planning-node-lib.test.mjs` builds its fixture plugin's core from this repository's, so a change of that kind fails the suite.
+
+### The schema-from-graph rule, and the `init` check
+
+**Decision.** Each node session is launched with `--json-schema`, built from the planning graph: `outcome` is an enum of exactly that node's declared outcome keys, beside `findings_file`, `return` and `harness_friction` (`planning-node-lib.sh` → `pnl_schema`). `pnl_reap` decides a node's result from its stream alone, in one fixed order (`PNL_REAP_JQ`): no `system`/`init` event, or an `init` whose tools differ from the agent file's `tools:` line, is `error`; then a missing `result` event or an overload is undelivered; then an outcome the graph does not declare for the node is `error`.
+
+**Reason.** The graph stays the one owner of a node's outcomes, and a session cannot route the walk with an outcome its node does not have. The `init` check and the launch flags answer the three gaps `docs/orchestrator-cost-measurement.md` → `## 4. Does a session's main agent keep its \`tools:\` allowlist?` → **Three things a launcher must handle:** names. **MCP tools not shown to be excluded:** an agent whose `tools:` line names no `mcp__` tool is launched with `--disallowedTools mcp__*`; one that names some, with `--strict-mcp-config` and an MCP configuration cut to those servers (`pnl_agent_flags`). **An unknown agent fails silently with exit 0:** a session with no `init` event, or with tools that do not match, is `error`. **The agent set comes from the environment:** every session pins the plugin with `--plugin-dir <switch>` and names its agent by the scoped name `<plugin name>:<agent>`, the plugin name read from `<switch>/.claude-plugin/plugin.json`.
+
+**Cost.** An agent whose `tools:` line changes is held to the new line at the next node; a session whose `init` tools carry anything that line does not name is refused, whatever the session did after.
+
+### The cost
+
+- **A setup session per launch.** A launch the driver takes runs a setup session first — the engine command through its steps 1–4 and its step 4a, then nothing else — and, on the driver's hand-off, a second engine session for the rest of the run (`plugin/commands/branch-start-plan-autonomous.md` → step 4a). The orchestrated path is one engine session.
+- **Node streams reach the run stream one node late.** Each node's stream is written to its own file and appended to the run's `<branch>.stream.jsonl` only when that node is reaped (`planning-node-lib.sh` → `pnl_reap`), so the usage gate and run analytics, which read the run stream, see a node's events only after it has ended.
+- **No `context_notes:` on this path.** A node's prompt is its dispatch block filled with the walker's values, plus a resumed writer's answered pairs and nothing else, so the orchestrator's one sanctioned addition has no equivalent here.
+
+### What the follow-up measures
+
+`ROADMAP.md` → the `Script-driven planning pilot` row ([#159](https://github.com/firu-daniel/devscene/issues/159)) owns the follow-up: the pilot ends with a cost comparison against the orchestrated path, which decides whether the unit loop follows. The suites that drive the driver (`cli/test/planning-driver-walk.test.mjs`, `cli/test/planning-driver-control.test.mjs`, `cli/test/watcher-planning-driver.test.mjs`) run a stub agent CLI; they are evidence of the driver's behaviour, and no figure taken under them is evidence of a saving.
+
+### Not yet measured, and the hand step that measures it
+
+Three facts the driver depends on are not measured on a real Claude Code session:
+
+- **whether a `stream-json` session's closing `result` event carries `structured_output` under `--json-schema`.** `pnl_reap` reads `structured_output` and, where it is not an object, the `result` text parsed as JSON; a session that carries neither is `error`.
+- **whether the `init` tools under `--json-schema` are the agent's allowlist and nothing more.** A tool the schema flag added to the `init` list would make every node `error`, by the tool check above.
+- **whether an installed plugin copy shadows `--plugin-dir` for a scoped `--agent`.** `docs/orchestrator-cost-measurement.md` → `## 4.` saw an installed copy listed beside the one `--plugin-dir` passed; the tool check catches a shadowing definition only when its `tools:` line differs.
+
+The hand step is one real planning run with the switch set, from a terminal outside any agent session, run from the main checkout with `<scripts_dir>` and `<state_dir>` your configured values. Set the switch to an absolute plugin directory and restart the watcher, then drop a task prompt for a throwaway branch `<branch>` as usual; once its first node has ended, read that node's stream:
+
+```
+printf 'PLANNING_DRIVER_PLUGIN_DIR=%s\n' /absolute/path/to/plugin >> "${XDG_CONFIG_HOME:-$HOME/.config}/devscene/watcher.env"
+bash <scripts_dir>/restart-watcher.sh
+jq -c 'select(.type == "system" and .subtype == "init") | .tools' <state_dir>/autonomous_logs/<branch>.planning/1-plan_writer.stream.jsonl
+jq -c 'select(.type == "system" and .subtype == "init") | .plugins' <state_dir>/autonomous_logs/<branch>.planning/1-plan_writer.stream.jsonl
+jq -c 'select(.type == "result") | .structured_output | if type == "object" then keys else type end' <state_dir>/autonomous_logs/<branch>.planning/1-plan_writer.stream.jsonl
+```
+
+Compare the first read with the `tools:` line of `plugin/agents/task-plan-writer.md` in the pinned plugin; the second names every plugin the session loaded and where from; the third prints the decision object's keys, or the type found in their place.
+
+Each fact is recorded with its command, its exact output, the Claude Code version and the date, as this tree's documents of record require (`.claude/context/conventions.md` → `## Documents of record`).
