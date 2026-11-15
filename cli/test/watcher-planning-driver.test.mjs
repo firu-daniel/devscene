@@ -23,9 +23,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { INIT_SCRIPTS_DIR, WORKSPACE_ROOT, runGit } from './helpers/fixture.mjs';
+import { INIT_SCRIPTS_DIR, WORKSPACE_ROOT, runBash, runGit } from './helpers/fixture.mjs';
 import { scaleBound } from './helpers/timing.mjs';
-import { createWatcherFixture } from './helpers/watcher.mjs';
+import { TICK_TIMEOUT_MS, createWatcherFixture } from './helpers/watcher.mjs';
 
 const BRANCH = 'feat_x';
 const STATE_DIR = 'devscene';
@@ -184,6 +184,11 @@ async function pilotFixture(t, { pluginJson = true } = {}) {
   return {
     ...f,
     plugin,
+    /**
+     * A machine state directory outside `f.dir`: the pilot runs in place, so the default one under
+     * `f.dir` lies under the session-writable worktree and the watcher writes no manifest there.
+     */
+    stateHome: join(root, 'state'),
     setMode: (mode) => writeFile(join(stubDir, 'mode.json'), JSON.stringify(mode), 'utf8'),
     /** Each session the stub saw, in launch order: `{ kind, agent?, prompt?, argv, topLevel?, answered? }`. */
     calls: () =>
@@ -195,7 +200,7 @@ async function pilotFixture(t, { pluginJson = true } = {}) {
         : [],
     /** One pass with the stub as the agent CLI, and the switch set to `plugin` unless `null`. */
     passStderr: '',
-    async pass(plugin = null) {
+    async pass(plugin = null, { env = {}, placeholderHost = false } = {}) {
       const result = await f.tick(
         {
           DEVSCENE_AGENT_CLI: cli,
@@ -206,8 +211,9 @@ async function pilotFixture(t, { pluginJson = true } = {}) {
           HARNESS_PR_TOKEN: '',
           DEVSCENE_GIT_TOKEN: '',
           GITHUB_ACTIONS: '',
+          ...env,
         },
-        { timeoutMs: PASS_TIMEOUT_MS },
+        { timeoutMs: PASS_TIMEOUT_MS, placeholderHost },
       );
       this.passStderr = result.stderr;
       return result;
@@ -216,6 +222,17 @@ async function pilotFixture(t, { pluginJson = true } = {}) {
     async armPauseResume() {
       await f.seedRecord({ status: 'paused' });
       await writeFile(join(f.dir, STATE_DIR, 'RESUME'), '', 'utf8');
+    },
+    /** The `.absent` placeholder manifest the watcher wrote for `BRANCH`'s launch under `env`. */
+    async manifestFile(env = {}) {
+      const printed = await runBash(
+        f.dir,
+        ['-c', '. "$1"; hr_run_profile_absent_file "$(hr_repo_slug "$2")" "$3"', '_', join(f.dir, INIT_SCRIPTS_DIR, 'lib', 'harness-run-lib.sh'), f.dir, BRANCH],
+        f.watcherEnv(env),
+        { timeoutMs: TICK_TIMEOUT_MS, signal: t.signal },
+      );
+      assert.equal(printed.status, 0, printed.stderr);
+      return printed.stdout.trim();
     },
   };
 }
@@ -336,4 +353,26 @@ test('the hand-off archives only what the driver consumed', async (t) => {
   assert.deepEqual(engines[0].topLevel, ['answer_2.md', 'question_2.md'], show(f));
   assert.deepEqual(await f.topLevel(), []);
   assert.deepEqual(await f.archived(), ['answer_1.md', 'answer_2.md', 'question_1.md', 'question_2.md']);
+});
+
+test('on a placeholder host the pilot launch records the plugin directory .mcp.json in the manifest, and a launch with the switch empty records none', async (t) => {
+  const f = await pilotFixture(t);
+  if (f === null) return;
+  await f.armPauseResume();
+  const env = { XDG_STATE_HOME: f.stateHome };
+  await f.pass(f.plugin, { env, placeholderHost: true });
+  const manifest = await f.manifestFile(env);
+  assert.ok(existsSync(manifest), `no manifest at ${manifest}:\n${show(f)}`);
+  const lines = readFileSync(manifest, 'utf8').split('\n');
+  assert.ok(lines.includes(`${f.plugin}/.mcp.json`), `${lines.join('\n')}\n${show(f)}`);
+
+  const g = await pilotFixture(t);
+  if (g === null) return;
+  await g.armPauseResume();
+  const plainEnv = { XDG_STATE_HOME: g.stateHome };
+  await g.pass(null, { env: plainEnv, placeholderHost: true });
+  const plainManifest = await g.manifestFile(plainEnv);
+  assert.ok(existsSync(plainManifest), `no manifest at ${plainManifest}:\n${show(g)}`);
+  const plain = readFileSync(plainManifest, 'utf8').split('\n');
+  assert.equal(plain.some((line) => line.startsWith(`${g.plugin}/`)), false, `${plain.join('\n')}\n${show(g)}`);
 });

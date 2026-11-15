@@ -3610,7 +3610,8 @@ EOF
   # What was absent before this session: every path the --settings file's
   # denyWrite list yields (`hr_profile_deny_paths`: each exact entry, and each
   # path a remaining glob expands to now), where bubblewrap may plant a
-  # placeholder, and `.mcp.json` under each --add-dir root. Both modes. Without
+  # placeholder, and `.mcp.json` under each --add-dir root — with the planning
+  # pilot on, the roots include the plugin directory the node sessions add. Both modes. Without
   # a manifest the next sweep removes nothing, so a failed or refused write does
   # not refuse the launch. A manifest the session could write is never written,
   # so the sweep never reads one.
@@ -3618,7 +3619,7 @@ EOF
     local manifest="" exact_paths line add_root mcp_paths deny_paths
     exact_paths=()
     mcp_paths=()
-    for add_root in "$worktree" "$main_state" ${extra_dirs[@]+"${extra_dirs[@]}"}; do
+    for add_root in "$worktree" "$main_state" ${extra_dirs[@]+"${extra_dirs[@]}"} ${planning_driver:+"$PLANNING_DRIVER_PLUGIN_DIR"}; do
       mcp_paths+=("${add_root%/}/.mcp.json")
     done
     if [ "$JOB_MODE" = "1" ]; then
@@ -3628,7 +3629,7 @@ EOF
     fi
     if [ -z "$manifest" ]; then
       log "placeholder manifest: no path for '$branch' — the next sweep removes nothing for this session"
-    elif add_root="$(placeholder_manifest_writable_root "$manifest" "$worktree" "$main_state" ${extra_dirs[@]+"${extra_dirs[@]}"})"; then
+    elif add_root="$(placeholder_manifest_writable_root "$manifest" "$worktree" "$main_state" ${extra_dirs[@]+"${extra_dirs[@]}"} ${planning_driver:+"$PLANNING_DRIVER_PLUGIN_DIR"})"; then
       log "placeholder manifest: not writing $manifest for '$branch', under the session-writable root $add_root — the next sweep removes nothing for this session"
     elif ! deny_paths="$(hr_profile_deny_paths "$settings_file")"; then
       log "placeholder manifest: could not read the denyWrite list of $settings_file for '$branch' — the next sweep removes nothing for this session"
