@@ -56,7 +56,7 @@ Every task-prompt test case has a suite: the walk, sets, held binding, undeclare
 2. [x] **Finding 5** — Drop the unread `PLANNING HANDED TO SCRIPT` narration line from step 4a _(layer: plugin)_
 3. [x] **Finding 4** — Name every heading, the cap line and the per-heading fence count `planning-node-lib.sh` keys on in the planning core's script-driven note _(layer: plugin)_
 4. [x] **Finding 1** — Record the planning plugin directory's `.mcp.json` in the placeholder manifest when the pilot is on _(layer: cli)_
-5. [ ] **Finding 3** — Name the undelivered-dispatch overload in the planning driver's self-pause notification _(layer: cli)_
+5. [x] **Finding 3** — Name the undelivered-dispatch overload in the planning driver's self-pause notification _(layer: cli)_
 
 ---
 

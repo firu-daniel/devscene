@@ -66,6 +66,13 @@ const qualified = flag('--agent');
 if (qualified !== '') {
   const agent = qualified.slice(qualified.indexOf(':') + 1);
   record({ kind: 'node', agent });
+  const text = readFileSync(join(flag('--plugin-dir'), 'agents', agent + '.md'), 'utf8');
+  const toolsLine = text.split('\n').find((l) => l.startsWith('tools:'));
+  const tools = toolsLine.slice('tools:'.length).split(',').map((t) => t.trim()).filter(Boolean);
+  if (mode.undelivered === true) {
+    process.stdout.write(JSON.stringify({ type: 'system', subtype: 'init', session_id: 'stub', tools }) + '\n');
+    process.exit(0);
+  }
   const lines = prompt.split('\n');
   const value = (key) => { const line = lines.find((l) => l.startsWith(key)); return line === undefined ? '' : line.slice(key.length); };
   const decision = { outcome: '', findings_file: null, return: '', harness_friction: [] };
@@ -94,9 +101,6 @@ if (qualified !== '') {
     decision.outcome = 'returned';
     decision.return = 'story_file: ' + story + '\ntask_files_dir: ' + tasks + '\ntasks_count: 1';
   }
-  const text = readFileSync(join(flag('--plugin-dir'), 'agents', agent + '.md'), 'utf8');
-  const toolsLine = text.split('\n').find((l) => l.startsWith('tools:'));
-  const tools = toolsLine.slice('tools:'.length).split(',').map((t) => t.trim()).filter(Boolean);
   const events = [
     { type: 'system', subtype: 'init', session_id: 'stub', tools },
     { type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0.01, permission_denials: [], structured_output: decision },
@@ -316,6 +320,19 @@ test('switch set, and the driver parks: no engine session follows, and the recor
   assert.ok(calls.some((c) => c.kind === 'node' && c.agent === 'task-plan-writer'), show(f));
   assert.equal(calls.filter((c) => c.kind === 'engine').length, 0, show(f));
   assert.equal(f.record().status, 'parked', show(f));
+});
+
+test('switch set, and every node dispatch is undelivered: the run pauses and its one paused notification names the overload', async (t) => {
+  const f = await pilotFixture(t);
+  if (f === null) return;
+  await f.setMode({ undelivered: true });
+  await f.armPauseResume();
+  await f.pass(f.plugin, { env: { PD_BACKOFF_SECS: '0' } });
+  assert.equal(f.record().status, 'paused', show(f));
+  const paused = f.notifications().filter((n) => n.event === 'paused' && n.branch === BRANCH);
+  assert.equal(paused.length, 1, `${JSON.stringify(f.notifications())}\n${show(f)}`);
+  assert.ok(paused[0].detail.includes('three consecutive planning dispatches undelivered'), `${paused[0].detail}\n${show(f)}`);
+  assert.equal(f.calls().some((c) => c.kind === 'engine'), false, show(f));
 });
 
 test('switch set to a directory with no plugin.json: one session, no clause, and the off line', async (t) => {

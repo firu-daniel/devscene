@@ -3850,10 +3850,14 @@ indices_without() {
 # disk as after an engine session; its 2 is 2. On its 0 the pairs it consumed
 # are archived and dropped from the record's consumed set BEFORE the engine
 # session, so Override 2(a) cannot hand them to a writer again; the pairs it
-# left out stay for that session and classify_run_exit.
+# left out stay for that session and classify_run_exit. A 3 after three
+# consecutive undelivered sets sets PLANNING_DRIVER_PAUSE_DETAIL, which
+# classify_run_exit prefixes to its local `paused` notification so that the one
+# notification names the error.
 planning_driver_run() {
   local setup_rc="$1" state_abs="$worktree/$state_rel" clar q n lib stall pd_rc consumed i
   local ledger="$state_abs/flow_progress/${branch}_progress.md"
+  PLANNING_DRIVER_PAUSE_DETAIL=""
   clar="$state_abs/clarifications/$branch"
   [ "$setup_rc" -eq 0 ] || return "$setup_rc"
   [ ! -f "$state_abs/PAUSE_ACK" ] || return 0
@@ -3911,6 +3915,9 @@ planning_driver_run() {
     0) ;;
     3)
       log "planning driver stopped '$branch' cleanly; classifying from its park, pause or ledger"
+      if [ "${PD_STRIKES:-0}" -ge 3 ]; then
+        PLANNING_DRIVER_PAUSE_DETAIL="paused itself on API overload: three consecutive planning dispatches undelivered — "
+      fi
       return 0
       ;;
     *)
@@ -4318,7 +4325,7 @@ classify_run_exit() {
     fi
     registry_set "$branch" status paused pause_reason "" pause_note_stale ""
     log "run '$branch' paused (PAUSE honored) — rc=$rc"
-    notify paused "$branch" "$log_path" "drop $state_rel/RESUME in $worktree to continue"
+    notify paused "$branch" "$log_path" "${PLANNING_DRIVER_PAUSE_DETAIL:-}drop $state_rel/RESUME in $worktree to continue"
     return 0
   fi
 
