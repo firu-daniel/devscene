@@ -15,6 +15,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { runGit } from './helpers/fixture.mjs';
 import { assertInOrder, BRANCH, drive, driverFixture, driverUnavailable, show } from './helpers/planning-driver.mjs';
 
 const SKIP = driverUnavailable();
@@ -119,4 +120,23 @@ test('every prompt is the copied core\'s dispatch block', { skip: SKIP }, async 
     const call = r.calls.find((c) => c.agent === gate && c.index === 0);
     assert.ok(call.prompt.split('\n').includes(`findings_folder: ${f.sd}/${folders[gate]}/${BRANCH}/`), call.prompt);
   }
+});
+
+test('a resume entering at convergence with P2 [x] and an uncommitted UI-test plan commits that plan before P3', { skip: SKIP }, async (t) => {
+  const f = await driverFixture(t);
+  const ledger = `${f.sd}/flow_progress/${BRANCH}_progress.md`;
+  const seeded = await f.read(ledger);
+  await f.write(ledger, seeded.replace('- [ ] P1.', '- [x] P1.').replace('- [ ] P2.', '- [x] P2.'));
+  await f.write(`${f.sd}/story_plans/${BRANCH}_story_plan.md`, '# Story plan\n');
+  const uiIndex = `${f.sd}/ui_test_plans/${BRANCH}_ui_test_plan.md`;
+  const uiTest = `${f.sd}/ui_test_plans/${BRANCH}/ui_test_1.md`;
+  await f.write(uiIndex, '# UI-test plan\n');
+  await f.write(uiTest, '# UI test 1\n');
+  const r = await drive(t, f);
+  assert.equal(r.status, 0, show(r));
+  assert.equal(r.calls.length, 0, show(r));
+  assertInOrder(r.subjects, [`chore: Add UI-test plan for ${BRANCH}`, `chore: Flow progress P3 for ${BRANCH}`], show(r));
+  const tracked = (await runGit(f.dir, ['ls-files'])).stdout.split('\n');
+  assert.ok(tracked.includes(uiIndex), tracked.join('\n'));
+  assert.ok(tracked.includes(uiTest), tracked.join('\n'));
 });

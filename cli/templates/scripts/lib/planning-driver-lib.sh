@@ -617,11 +617,8 @@ pd_handoff() {
   done <<EOF
 $out
 EOF
-  [ "$ui" != passed ] || ui_yes=yes
-  prl_convergence_commits "$ui_yes" || return 2
-  prl_ledger_flip P3 || return 2
-
-  if pd_ret_value plan_writer tasks_count; then tasks="$PD_V"; else tasks="not reported in this session"; fi
+  # Before the commits: a `--entry convergence` walk prints no `report: ui_test`, and Override 3
+  # still owes the UI-test commit on that resume.
   pd_ledger_read
   if [ -z "$ui" ]; then
     case "$PD_P2" in
@@ -629,6 +626,11 @@ EOF
       x) if [ -e "$PD_STATE/ui_test_plans/${b}_ui_test_plan.md" ]; then ui=passed; else ui=no_ui; fi ;;
     esac
   fi
+  [ "$ui" != passed ] || ui_yes=yes
+  prl_convergence_commits "$ui_yes" || return 2
+  prl_ledger_flip P3 || return 2
+
+  if pd_ret_value plan_writer tasks_count; then tasks="$PD_V"; else tasks="not reported in this session"; fi
   case "$ui" in
     passed)
       if pd_ret_value ui_writer tests_count; then tests="$PD_V"; else tests="not reported in this session"; fi

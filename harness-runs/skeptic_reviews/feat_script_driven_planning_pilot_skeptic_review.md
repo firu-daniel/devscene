@@ -31,7 +31,7 @@ No parity review exists, because `phases.parity` is `false`, so check 2's parity
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Work out the UI-test variant before Override 3's commit decision in `pd_handoff`, so a convergence-entry resume commits a written UI-test plan _(layer: cli)_
+1. [x] **Finding 1** — Work out the UI-test variant before Override 3's commit decision in `pd_handoff`, so a convergence-entry resume commits a written UI-test plan _(layer: cli)_
 
 ---
 
