@@ -1,17 +1,24 @@
 /**
  * The script-driven planning pilot, end to end through the `autonomous-watcher.sh` that `init`
- * writes: `PLANNING_DRIVER_PLUGIN_DIR`, `planning_driver_ready`, `session_exec` and the
- * setup → driver → engine sequence in `spawn_engine`'s launch subshell.
+ * writes: the `execution.scriptDrivenPlanning` key, the plugin runtime root derived by
+ * `hr_plugin_runtime_root_var`, `planning_driver_ready`, `session_exec` and the
+ * setup → driver → engine sequence in `spawn_engine`'s launch subshell, locally and in job mode.
  *
- * **The rule this suite enforces: with the switch empty a launch is one engine session, as today;
- * with it set to a usable plugin directory a task launch is a setup session carrying the
- * `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH` clause, then node sessions on the setup session's own
- * flag vector plus their per-node flags, then — only on the driver's hand-off — one engine session
- * without the clause; and the hand-off archives exactly the answered pairs the driver consumed,
- * leaving every other pair to the engine session and `classify_run_exit`.**
+ * **The rule this suite enforces: with the key off or absent a launch is one engine session, as
+ * today; with it on and a runtime root that resolves to a usable plugin directory a task launch is a
+ * setup session carrying the `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH` clause, then node sessions
+ * on the setup session's own flag vector plus `--plugin-dir <derived root>` and their other per-node
+ * flags, then — only on the driver's hand-off — one engine session without the clause; a job launch
+ * runs the same three steps; and the hand-off archives exactly the answered pairs the driver
+ * consumed, leaving every other pair to the engine session and `classify_run_exit`.**
  *
- * Every pass is one `tick` of `cli/test/helpers/watcher.mjs`, launched through the pause-resume or
- * park-resume pass. The stub agent CLI is written here and imports nothing from
+ * The runtime root is planted in the agent runner's records under a `CLAUDE_CONFIG_DIR` each case
+ * creates under the system temp directory, never the real account home: an `installed_plugins.json`
+ * `user` row by default, and a `directory`-sourced marketplace — the job's own install shape — for
+ * the job case.
+ *
+ * Every local pass is one `tick` of `cli/test/helpers/watcher.mjs`, launched through the
+ * pause-resume or park-resume pass. The stub agent CLI is written here and imports nothing from
  * `cli/test/helpers/planning-driver.mjs`: it tells the three session kinds apart, records each argv
  * to a calls log, and every literal this suite asserts on is spelled in this file.
  */
@@ -147,16 +154,30 @@ function graphAgents(dir) {
 }
 
 /**
- * A watcher fixture on `feat_x`, a plugin directory under the system temp directory and the stub.
+ * A watcher fixture on `feat_x`, a plugin directory under the system temp directory, the agent
+ * runner's records naming it under a temp `CLAUDE_CONFIG_DIR`, and the stub.
+ *
+ * `key` is `execution.scriptDrivenPlanning`, committed with the fixture; `null` leaves it out.
+ * `layout` is how the records name the plugin: `installed`, an `installed_plugins.json` `user` row
+ * whose `installPath` is the plugin; `directory`, a `directory`-sourced marketplace whose manifest's
+ * `./plugin` source is the plugin, beside an install row naming a cache directory that does not
+ * exist; `none`, no records at all.
  *
  * @param {import('node:test').TestContext} t
- * @param {{ pluginJson?: boolean }} [options] `pluginJson: false` leaves `plugin.json` out.
+ * @param {{ pluginJson?: boolean, key?: boolean | null, layout?: 'installed' | 'directory' | 'none', qa?: boolean }} [options]
+ *   `pluginJson: false` leaves `plugin.json` out; `qa: true` turns `phases.qa` on.
  */
-async function pilotFixture(t, { pluginJson = true } = {}) {
+async function pilotFixture(t, { pluginJson = true, key = true, layout = 'installed', qa = false } = {}) {
   const f = await createWatcherFixture(t, { branch: BRANCH });
   if (f === null) return null;
   const root = await realpath(await mkdtemp(join(tmpdir(), 'watcher-planning-driver-')));
   t.after(() => rm(root, { recursive: true, force: true }));
+
+  const configPath = join(f.dir, 'devscene.config.json');
+  const config = JSON.parse(readFileSync(configPath, 'utf8'));
+  if (key !== null) config.execution = { ...(config.execution ?? {}), scriptDrivenPlanning: key };
+  if (qa) config.phases = { ...(config.phases ?? {}), qa: true };
+  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
 
   await mkdir(join(f.dir, STATE_DIR, 'task_prompts'), { recursive: true });
   await writeFile(join(f.dir, TASK_PROMPT), '# Task prompt\n\nAdd a fixture feature.\n', 'utf8');
@@ -164,7 +185,30 @@ async function pilotFixture(t, { pluginJson = true } = {}) {
   await runGit(f.dir, ['add', '--', 'devscene.config.json', TASK_PROMPT]);
   await runGit(f.dir, ['commit', '--quiet', '-m', 'fixture: seed']);
 
-  const plugin = join(root, 'plugin');
+  const claudeHome = join(root, 'claude-home');
+  const records = join(claudeHome, 'plugins');
+  await mkdir(records, { recursive: true });
+  const marketplace = join(root, 'harness-marketplace');
+  const plugin = layout === 'directory' ? join(marketplace, 'plugin') : join(root, 'plugin');
+  const installRow = (installPath) =>
+    JSON.stringify({ version: 2, plugins: { [`${PLUGIN_NAME}@${PLUGIN_NAME}`]: [{ scope: 'user', installPath }] } });
+  if (layout === 'installed') {
+    await writeFile(join(records, 'installed_plugins.json'), installRow(plugin), 'utf8');
+  } else if (layout === 'directory') {
+    await writeFile(join(records, 'installed_plugins.json'), installRow(join(root, 'cache', 'devscene')), 'utf8');
+    await writeFile(
+      join(records, 'known_marketplaces.json'),
+      JSON.stringify({ [PLUGIN_NAME]: { source: { source: 'directory', path: marketplace }, installLocation: marketplace } }),
+      'utf8',
+    );
+    await mkdir(join(marketplace, '.claude-plugin'), { recursive: true });
+    await writeFile(
+      join(marketplace, '.claude-plugin', 'marketplace.json'),
+      JSON.stringify({ name: PLUGIN_NAME, plugins: [{ name: PLUGIN_NAME, source: './plugin' }] }),
+      'utf8',
+    );
+  }
+
   const source = join(WORKSPACE_ROOT, 'plugin');
   await mkdir(join(plugin, '.claude-plugin'), { recursive: true });
   await mkdir(join(plugin, 'agents'));
@@ -185,6 +229,21 @@ async function pilotFixture(t, { pluginJson = true } = {}) {
   });
 
   const callsPath = join(stubDir, 'calls.log');
+  const runnerTemp = join(root, 'runner-temp');
+  await mkdir(runnerTemp);
+  const gh = join(stubDir, 'gh');
+  await writeFile(gh, "#!/usr/bin/env bash\nprintf '[]\\n'\n", { mode: 0o755 });
+  const sessionEnv = (env) => ({
+    DEVSCENE_AGENT_CLI: cli,
+    CLAUDE_CONFIG_DIR: claudeHome,
+    PUSH_RETRY_DELAY_SECS: '0',
+    GH_TOKEN: '',
+    GITHUB_TOKEN: '',
+    HARNESS_PR_TOKEN: '',
+    DEVSCENE_GIT_TOKEN: '',
+    GITHUB_ACTIONS: '',
+    ...env,
+  });
   return {
     ...f,
     plugin,
@@ -202,22 +261,42 @@ async function pilotFixture(t, { pluginJson = true } = {}) {
             .filter(Boolean)
             .map((line) => JSON.parse(line))
         : [],
-    /** One pass with the stub as the agent CLI, and the switch set to `plugin` unless `null`. */
+    /** One pass with the stub as the agent CLI and the fixture's own `CLAUDE_CONFIG_DIR`. */
     passStderr: '',
-    async pass(plugin = null, { env = {}, placeholderHost = false } = {}) {
-      const result = await f.tick(
-        {
-          DEVSCENE_AGENT_CLI: cli,
-          PLANNING_DRIVER_PLUGIN_DIR: plugin ?? '',
-          PUSH_RETRY_DELAY_SECS: '0',
-          GH_TOKEN: '',
-          GITHUB_TOKEN: '',
-          HARNESS_PR_TOKEN: '',
-          DEVSCENE_GIT_TOKEN: '',
-          GITHUB_ACTIONS: '',
-          ...env,
-        },
-        { timeoutMs: PASS_TIMEOUT_MS, placeholderHost },
+    async pass({ env = {}, placeholderHost = false } = {}) {
+      const result = await f.tick(sessionEnv(env), { timeoutMs: PASS_TIMEOUT_MS, placeholderHost });
+      this.passStderr = result.stderr;
+      return result;
+    },
+    /**
+     * One `job <branch> task none` run in job mode, every job input a runner would set pinned empty
+     * (as `watcher-remote-job.test.mjs` pins them), `RUNNER_TEMP` a fixture directory and `gh` a stub
+     * answering `[]`.
+     */
+    async job() {
+      const result = await runBash(
+        f.dir,
+        [f.watcherPath, 'job', BRANCH, 'task', 'none'],
+        f.watcherEnv(
+          sessionEnv({
+            HARNESS_JOB_MODE: '1',
+            HARNESS_INPUT_CHAIN: '',
+            HARNESS_REMOTE_SLUG: '',
+            HARNESS_JOB_STARTED_EPOCH: '',
+            HARNESS_JOB_DEADLINE_EPOCH: '',
+            RUNNER_ENVIRONMENT: '',
+            REMOTE_SELF_PAUSE_AFTER_SECS: '',
+            GITHUB_RUN_ID: '',
+            GITHUB_REPOSITORY: '',
+            GITHUB_SERVER_URL: '',
+            RUNNER_TEMP: runnerTemp,
+            REMOTE_CONTROL_POLL_SECS: '1',
+            REMOTE_AUTO_RESUME_DELAY_SECS: '0',
+            DEVSCENE_GH_CLI: gh,
+            POLL_INTERVAL_SECS: '1',
+          }),
+        ),
+        { timeoutMs: PASS_TIMEOUT_MS, signal: t.signal },
       );
       this.passStderr = result.stderr;
       return result;
@@ -264,24 +343,29 @@ function show(f) {
   ].join('\n');
 }
 
-test('switch unset: one engine session, with no clause and no --agent', async (t) => {
+for (const [name, key] of [
+  ['key absent', null],
+  ['key false', false],
+]) {
+  test(`${name}: one engine session, with no clause and no --agent, though the runtime root resolves`, async (t) => {
+    const f = await pilotFixture(t, { key });
+    if (f === null) return;
+    await f.armPauseResume();
+    await f.pass();
+    const calls = f.calls();
+    assert.equal(calls.length, 1, show(f));
+    assert.equal(calls[0].kind, 'engine', show(f));
+    assert.equal(calls[0].prompt.includes(CLAUSE), false);
+    assert.equal(calls[0].argv.includes('--agent'), false);
+    assert.equal(f.watcherLog().includes('planning driver'), false, f.watcherLog());
+  });
+}
+
+test('key on: the setup session, then node sessions on its vector, then one engine session', async (t) => {
   const f = await pilotFixture(t);
   if (f === null) return;
   await f.armPauseResume();
   await f.pass();
-  const calls = f.calls();
-  assert.equal(calls.length, 1, show(f));
-  assert.equal(calls[0].kind, 'engine', show(f));
-  assert.equal(calls[0].prompt.includes(CLAUSE), false);
-  assert.equal(calls[0].argv.includes('--agent'), false);
-  assert.equal(f.watcherLog().includes('planning driver'), false, f.watcherLog());
-});
-
-test('switch set: the setup session, then node sessions on its vector, then one engine session', async (t) => {
-  const f = await pilotFixture(t);
-  if (f === null) return;
-  await f.armPauseResume();
-  await f.pass(f.plugin);
   const calls = f.calls();
   assert.ok(calls.length >= 3, show(f));
   const [setup] = calls;
@@ -309,12 +393,12 @@ test('switch set: the setup session, then node sessions on its vector, then one 
   assert.equal(f.record().status, 'completed', show(f));
 });
 
-test('switch set, and the driver parks: no engine session follows, and the record is parked', async (t) => {
+test('key on, and the driver parks: no engine session follows, and the record is parked', async (t) => {
   const f = await pilotFixture(t);
   if (f === null) return;
   await f.setMode({ park: true });
   await f.armPauseResume();
-  await f.pass(f.plugin);
+  await f.pass();
   const calls = f.calls();
   assert.equal(calls[0]?.kind, 'setup', show(f));
   assert.ok(calls.some((c) => c.kind === 'node' && c.agent === 'task-plan-writer'), show(f));
@@ -322,12 +406,12 @@ test('switch set, and the driver parks: no engine session follows, and the recor
   assert.equal(f.record().status, 'parked', show(f));
 });
 
-test('switch set, and every node dispatch is undelivered: the run pauses and its one paused notification names the overload', async (t) => {
+test('key on, and every node dispatch is undelivered: the run pauses and its one paused notification names the overload', async (t) => {
   const f = await pilotFixture(t);
   if (f === null) return;
   await f.setMode({ undelivered: true });
   await f.armPauseResume();
-  await f.pass(f.plugin, { env: { PD_BACKOFF_SECS: '0' } });
+  await f.pass({ env: { PD_BACKOFF_SECS: '0' } });
   assert.equal(f.record().status, 'paused', show(f));
   const paused = f.notifications().filter((n) => n.event === 'paused' && n.branch === BRANCH);
   assert.equal(paused.length, 1, `${JSON.stringify(f.notifications())}\n${show(f)}`);
@@ -335,16 +419,90 @@ test('switch set, and every node dispatch is undelivered: the run pauses and its
   assert.equal(f.calls().some((c) => c.kind === 'engine'), false, show(f));
 });
 
-test('switch set to a directory with no plugin.json: one session, no clause, and the off line', async (t) => {
+test('key on, and the runtime root has no plugin.json: one session, no clause, and the off line', async (t) => {
   const f = await pilotFixture(t, { pluginJson: false });
   if (f === null) return;
   await f.armPauseResume();
-  await f.pass(f.plugin);
+  await f.pass();
   const calls = f.calls();
   assert.equal(calls.length, 1, show(f));
   assert.equal(calls[0].kind, 'engine', show(f));
   assert.equal(calls[0].prompt.includes(CLAUSE), false);
-  assert.ok(f.watcherLog().includes(`planning driver off for '${BRANCH}': `), f.watcherLog());
+  const off = f.watcherLog().split('\n').filter((l) => l.includes(`planning driver off for '${BRANCH}': `));
+  assert.equal(off.length, 1, f.watcherLog());
+  assert.ok(off[0].includes(`'${f.plugin}/.claude-plugin/plugin.json' is not readable`), off[0]);
+});
+
+test('key on, and no runtime root resolves from the records: one session, no clause, and one off line naming it', async (t) => {
+  const f = await pilotFixture(t, { layout: 'none' });
+  if (f === null) return;
+  await f.armPauseResume();
+  await f.pass();
+  const calls = f.calls();
+  assert.equal(calls.length, 1, show(f));
+  assert.equal(calls[0].kind, 'engine', show(f));
+  assert.equal(calls[0].prompt.includes(CLAUSE), false);
+  const off = f.watcherLog().split('\n').filter((l) => l.includes(`planning driver off for '${BRANCH}': `));
+  assert.equal(off.length, 1, f.watcherLog());
+  assert.ok(
+    off[0].endsWith(`planning driver off for '${BRANCH}': the plugin's runtime root could not be resolved from the agent runner's records`),
+    off[0],
+  );
+});
+
+test('key not a boolean: one session, no clause, and one off line naming the key', async (t) => {
+  const f = await pilotFixture(t, { key: null });
+  if (f === null) return;
+  const configPath = join(f.dir, 'devscene.config.json');
+  const config = JSON.parse(readFileSync(configPath, 'utf8'));
+  config.execution = { ...(config.execution ?? {}), scriptDrivenPlanning: 'true' };
+  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  await runGit(f.dir, ['commit', '--quiet', '-am', 'fixture: a string key']);
+  await f.armPauseResume();
+  await f.pass();
+  const calls = f.calls();
+  assert.equal(calls.length, 1, show(f));
+  assert.equal(calls[0].prompt.includes(CLAUSE), false);
+  const off = f.watcherLog().split('\n').filter((l) => l.includes(`planning driver off for '${BRANCH}': `));
+  assert.equal(off.length, 1, f.watcherLog());
+  assert.ok(off[0].includes('execution.scriptDrivenPlanning is not a boolean'), off[0]);
+});
+
+test('a job with the key on: the setup session, node sessions pinned to the installed runtime root, then the engine session', async (t) => {
+  const f = await pilotFixture(t, { layout: 'directory', qa: true });
+  if (f === null) return;
+  // The job's `init --plugin-root-entries` lists the runtime root in the base profile.
+  const profilePath = join(f.dir, '.claude', 'settings.autonomous.json');
+  const profile = JSON.parse(readFileSync(profilePath, 'utf8'));
+  profile.permissions.additionalDirectories = [...(profile.permissions.additionalDirectories ?? []), f.plugin];
+  await writeFile(profilePath, `${JSON.stringify(profile, null, 2)}\n`, 'utf8');
+
+  const result = await f.job();
+  const detail = `${result.stdout}\n${show(f)}`;
+  assert.equal(result.status, 0, detail);
+  assert.equal(result.stdout.trimEnd().split('\n').at(-1), 'job: completed stop', detail);
+
+  const calls = f.calls();
+  const [setup] = calls;
+  assert.equal(setup?.kind, 'setup', detail);
+  assert.ok(setup.prompt.includes(CLAUSE), detail);
+  assert.match(setup.prompt, /executes in a GitHub Actions job \(execution: github-actions\), where the interactive-test phase is unsupported/);
+  assert.equal(values(setup.argv, '--add-dir').filter((d) => d === f.plugin).length, 1, setup.argv.join(' '));
+
+  const nodes = calls.filter((c) => c.kind === 'node');
+  assert.ok(nodes.length > 0, detail);
+  assert.deepEqual(calls.slice(1, 1 + nodes.length).map((c) => c.kind), nodes.map(() => 'node'), detail);
+  for (const node of nodes) {
+    assert.deepEqual(values(node.argv, '--plugin-dir'), [f.plugin], node.agent);
+    assert.equal(values(node.argv, '--add-dir').filter((d) => d === f.plugin).length, 1, `${node.agent}: ${node.argv.join(' ')}`);
+    assert.deepEqual(values(node.argv, '--settings'), values(setup.argv, '--settings'), node.agent);
+  }
+
+  const engines = calls.filter((c) => c.kind === 'engine');
+  assert.equal(engines.length, 1, detail);
+  assert.equal(calls.at(-1).kind, 'engine', detail);
+  assert.equal(engines[0].prompt.includes(CLAUSE), false);
+  assert.ok(existsSync(join(f.dir, STATE_DIR, 'autonomous_logs', `${BRANCH}.planning`)), detail);
 });
 
 test('the hand-off archives only what the driver consumed', async (t) => {
@@ -361,7 +519,7 @@ test('the hand-off archives only what the driver consumed', async (t) => {
   await writeFile(join(f.dir, STORY), '# Story plan\n\nan existing draft\n', 'utf8');
   await f.seedRecord({ status: 'parked' });
 
-  await f.pass(f.plugin);
+  await f.pass();
   const calls = f.calls();
   assert.equal(calls[0]?.kind, 'setup', show(f));
   const engines = calls.filter((c) => c.kind === 'engine');
@@ -372,22 +530,22 @@ test('the hand-off archives only what the driver consumed', async (t) => {
   assert.deepEqual(await f.archived(), ['answer_1.md', 'answer_2.md', 'question_1.md', 'question_2.md']);
 });
 
-test('on a placeholder host the pilot launch records the plugin directory .mcp.json in the manifest, and a launch with the switch empty records none', async (t) => {
+test('on a placeholder host the pilot launch records the plugin directory .mcp.json in the manifest, and a launch with the key absent records none', async (t) => {
   const f = await pilotFixture(t);
   if (f === null) return;
   await f.armPauseResume();
   const env = { XDG_STATE_HOME: f.stateHome };
-  await f.pass(f.plugin, { env, placeholderHost: true });
+  await f.pass({ env, placeholderHost: true });
   const manifest = await f.manifestFile(env);
   assert.ok(existsSync(manifest), `no manifest at ${manifest}:\n${show(f)}`);
   const lines = readFileSync(manifest, 'utf8').split('\n');
   assert.ok(lines.includes(`${f.plugin}/.mcp.json`), `${lines.join('\n')}\n${show(f)}`);
 
-  const g = await pilotFixture(t);
+  const g = await pilotFixture(t, { key: null });
   if (g === null) return;
   await g.armPauseResume();
   const plainEnv = { XDG_STATE_HOME: g.stateHome };
-  await g.pass(null, { env: plainEnv, placeholderHost: true });
+  await g.pass({ env: plainEnv, placeholderHost: true });
   const plainManifest = await g.manifestFile(plainEnv);
   assert.ok(existsSync(plainManifest), `no manifest at ${plainManifest}:\n${show(g)}`);
   const plain = readFileSync(plainManifest, 'utf8').split('\n');

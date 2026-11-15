@@ -148,6 +148,8 @@ export interface HarnessExecution {
   progressComments?: boolean;
   /** Whether a run the local watcher launches holds this host awake for its engine's life (macOS on AC power, Linux on mains power); read at run time by `hr_keep_awake_mode_var` in the run library and by `doctor`'s `keep-awake` check through {@link keepAwakeEnabled}. */
   keepAwake?: boolean;
+  /** Whether a run the watcher launches, locally or in a GitHub Actions job, drives the task engine's planning by script rather than by the orchestrator; off by default, read at run time by `hr_script_driven_planning` in the run library and through {@link scriptDrivenPlanningEnabled}. */
+  scriptDrivenPlanning?: boolean;
 }
 
 /** One domain an unattended run's sandboxed commands may reach, and why. */
@@ -283,7 +285,7 @@ export const DEFAULTS = {
   clientEnvPrefix: null,
   phases: { qa: false, docs: false, parity: false },
   qa: { driver: 'web-playwright', portSeed: 3001 },
-  execution: { target: 'local', progressComments: true, keepAwake: true },
+  execution: { target: 'local', progressComments: true, keepAwake: true, scriptDrivenPlanning: false },
   sandbox: { allowedDomains: [] },
   treeGuards: [],
 } as const;
@@ -676,6 +678,17 @@ export function remoteExecutionApplies(config: HarnessConfig): boolean {
  */
 export function keepAwakeEnabled(config: HarnessConfig): boolean {
   return config.execution?.keepAwake !== false;
+}
+
+/**
+ * Does a run the watcher launches drive the task engine's planning by script?
+ *
+ * The one TypeScript reader of `execution.scriptDrivenPlanning`; its shell mirror is
+ * `hr_script_driven_planning` in `cli/templates/scripts/lib/harness-run-lib.sh`, and both read an
+ * absent key as `false`. Import it; do not re-spell it.
+ */
+export function scriptDrivenPlanningEnabled(config: HarnessConfig): boolean {
+  return config.execution?.scriptDrivenPlanning === true;
 }
 
 /**

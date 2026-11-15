@@ -45,7 +45,9 @@
 #
 # GLOBALS. In: `PD_PLUGIN_DIR`, `PD_MAIN_REPO`, `PD_SESSION_EXEC` (a function
 # name), `PD_FORMATTER` (a path, or `cat`), `PD_NODE_STALL_SECS` (an integer, 0
-# off), and the optional `PD_BACKOFF_SECS`, the backoff before an undelivered
+# off), the optional `PD_PLUGIN_DIR_ADDED` (`1` when `PD_SESSION_EXEC` already
+# passes `--add-dir` of the plugin directory; read by `pnl_agent_flags`), and
+# the optional `PD_BACKOFF_SECS`, the backoff before an undelivered
 # set's second re-dispatch and before every infrastructure retry, default and
 # ceiling 60. Out: `PD_CONSUMED_SET`, the indices, as
 # `hr_top_level_answered_pairs` spells them, of the answered pairs appended to a

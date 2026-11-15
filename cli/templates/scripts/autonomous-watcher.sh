@@ -173,14 +173,17 @@
 #
 # SCRIPT-DRIVEN PLANNING IS AN OPT-IN PILOT.
 #
-#   * THE SWITCH is the tunable PLANNING_DRIVER_PLUGIN_DIR, a plugin directory;
-#     empty, the default, is off, and the launch is today's. It is a watcher
-#     setting rather than a devscene.config.json key because its value is a
-#     machine-local path and the seam it opens is not yet measured.
+#   * THE SWITCH is the devscene.config.json key
+#     `execution.scriptDrivenPlanning`, read from the MAIN checkout at every
+#     launch (`hr_script_driven_planning`) in local and job mode alike; `false`
+#     or absent, the default, is off, and the launch is today's.
 #   * IT PINS THE PLUGIN every node session resolves: each one is launched with
-#     `--plugin-dir <switch>` and its agent qualified by that plugin's name.
-#   * LOCAL MODE ONLY. It is not read when JOB_MODE is 1, so a job always takes
-#     the orchestrated path.
+#     `--plugin-dir <root>` and its agent qualified by that plugin's name, where
+#     <root> is the plugin's runtime root — the directory this run already loads
+#     the plugin from — re-derived from the agent runner's records at every
+#     launch (`hr_plugin_runtime_root_var`) into PLANNING_DRIVER_PLUGIN_ROOT and
+#     never configured. In a job that is the copy `Install the pinned plugin`
+#     installs from the tag clone.
 #   * THE SEQUENCE, in one launch subshell: a setup session — the engine, its
 #     prompt carrying the `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH` clause —
 #     then lib/planning-driver-lib.sh's `pd_drive`, then, on its hand-off, the
@@ -190,13 +193,14 @@
 #     pairs the driver appended to a writer's prompt (PD_CONSUMED_SET) and drops
 #     them from the record's consumed set; every other pair is the engine
 #     session's, archived by classify_run_exit as today.
-#   * READY only when the switch is set, JOB_MODE is not 1, the engine is
-#     `task`, the three planning libraries sit under lib/ beside this script,
-#     <switch>/.claude-plugin/plugin.json and
-#     <switch>/instructions/task_plan_writing_instructions_core.md are readable,
+#   * READY only when the key is `true`, the engine is `task`, the three
+#     planning libraries sit under lib/ beside this script, the runtime root
+#     resolves, <root>/.claude-plugin/plugin.json and
+#     <root>/instructions/task_plan_writing_instructions_core.md are readable,
 #     and the run's ledger is absent or its first phase is pending
-#     (planning_driver_ready). Set but not ready, it logs one
-#     `planning driver off for '<branch>': <reason>` line and launches as today.
+#     (planning_driver_ready). On but not ready — or the key not a boolean —
+#     it logs one `planning driver off for '<branch>': <reason>` line and
+#     launches as today.
 #
 # THE USAGE GATE ACTS ON THE ONE SIGNAL NO RUN CAN OBSERVE ABOUT ITSELF. The
 # rate limits it exists for are ACCOUNT-GLOBAL, and they are reported as
@@ -1126,9 +1130,13 @@
 #                 record's status as they were
 #   planning pilot `a launch`'s fixture on a feat_x branch, with flow-walker.sh,
 #                 flows/ and the four lib/ libraries under devscene-scripts/,
-#                 a plugin directory "$p" holding .claude-plugin/plugin.json,
-#                 the planning agents and
-#                 instructions/task_plan_writing_instructions_core.md, and a
+#                 `"execution": {"scriptDrivenPlanning": true}` in
+#                 "$d/devscene.config.json", a plugin directory "$p" holding
+#                 .claude-plugin/plugin.json, the planning agents and
+#                 instructions/task_plan_writing_instructions_core.md, a
+#                 "$c/plugins/installed_plugins.json" whose
+#                 `plugins["devscene@devscene"]` row is
+#                 {"scope":"user","installPath":"$p"}, and a
 #                 stub that logs its argv and tells three kinds apart: a prompt
 #                 carrying `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH` writes
 #                 the task ledger with only P0 `[x]`; an argv carrying
@@ -1136,7 +1144,7 @@
 #                 success result whose structured_output names an outcome its
 #                 node declares; anything else ticks every ledger entry. A
 #                 paused record and "$d/devscene/RESUME", then
-#                 PLANNING_DRIVER_PLUGIN_DIR="$p" DEVSCENE_AGENT_CLI="$s" bash \
+#                 CLAUDE_CONFIG_DIR="$c" DEVSCENE_AGENT_CLI="$s" bash \
 #                   "$d/devscene-scripts/autonomous-watcher.sh" tick
 #                 -> the stub's log shows the setup session, then node sessions
 #                    carrying `--agent devscene:task-plan-writer` and
@@ -1584,10 +1592,6 @@ STALL_WAKE_GAP_SECS="${STALL_WAKE_GAP_SECS:-300}"
 # measurements are in the harness repository's docs/watcher.md §4, "A resume
 # that makes no progress is bounded.".
 PARK_LOOP_MAX_CYCLES="${PARK_LOOP_MAX_CYCLES:-2}"
-
-# The script-driven planning pilot's switch: a plugin directory, empty for off
-# (SCRIPT-DRIVEN PLANNING IS AN OPT-IN PILOT, in the header).
-PLANNING_DRIVER_PLUGIN_DIR="${PLANNING_DRIVER_PLUGIN_DIR:-}"
 
 # The usage gate (usage_gate; see the header for what it acts on and why only the
 # watcher can). Set 0 to turn the whole pass off — a run then spends the account's
@@ -2387,7 +2391,7 @@ print_status() {
   # observable. Nothing else the override file may have set is printed. The cap
   # printed is the one enforced.
   RUN_CAP="$(effective_max_parallel_runs)"
-  echo "tunables: MAX_PARALLEL_RUNS=$RUN_CAP POLL_INTERVAL_SECS=$POLL_INTERVAL_SECS PERMISSION_MODE=$PERMISSION_MODE CLEANUP_INTERVAL_SECS=$CLEANUP_INTERVAL_SECS AUTO_TAIL_TERMINAL=$AUTO_TAIL_TERMINAL STALL_CHECK_ENABLED=$STALL_CHECK_ENABLED STALL_WARN_SECS=$STALL_WARN_SECS STALL_KILL_SECS=$STALL_KILL_SECS STALL_MAX_RESTARTS=$STALL_MAX_RESTARTS STALL_BUSY_CPU_PCT=$STALL_BUSY_CPU_PCT PARK_LOOP_MAX_CYCLES=$PARK_LOOP_MAX_CYCLES USAGE_CHECK_ENABLED=$USAGE_CHECK_ENABLED USAGE_CHECK_INTERVAL_SECS=$USAGE_CHECK_INTERVAL_SECS USAGE_PAUSE_TRIGGER=$USAGE_PAUSE_TRIGGER USAGE_WARNING_DEBOUNCE=$USAGE_WARNING_DEBOUNCE USAGE_RESUME_MARGIN_SECS=$USAGE_RESUME_MARGIN_SECS USAGE_SEVEN_DAY_PAUSE_PCT=$USAGE_SEVEN_DAY_PAUSE_PCT USAGE_LANE_STATE_ENABLED=$USAGE_LANE_STATE_ENABLED USAGE_LANE_LOCK_ENABLED=$USAGE_LANE_LOCK_ENABLED REMOTE_CONTROL_POLL_SECS=$REMOTE_CONTROL_POLL_SECS REMOTE_WAIT_MAX_SECS=$REMOTE_WAIT_MAX_SECS REMOTE_AUTO_RESUME_MAX=$REMOTE_AUTO_RESUME_MAX REMOTE_AUTO_RESUME_DELAY_SECS=$REMOTE_AUTO_RESUME_DELAY_SECS STALL_WAKE_GAP_SECS=$STALL_WAKE_GAP_SECS PLANNING_DRIVER_PLUGIN_DIR=$PLANNING_DRIVER_PLUGIN_DIR KEEP_AWAKE=$KEEP_AWAKE_MODE"
+  echo "tunables: MAX_PARALLEL_RUNS=$RUN_CAP POLL_INTERVAL_SECS=$POLL_INTERVAL_SECS PERMISSION_MODE=$PERMISSION_MODE CLEANUP_INTERVAL_SECS=$CLEANUP_INTERVAL_SECS AUTO_TAIL_TERMINAL=$AUTO_TAIL_TERMINAL STALL_CHECK_ENABLED=$STALL_CHECK_ENABLED STALL_WARN_SECS=$STALL_WARN_SECS STALL_KILL_SECS=$STALL_KILL_SECS STALL_MAX_RESTARTS=$STALL_MAX_RESTARTS STALL_BUSY_CPU_PCT=$STALL_BUSY_CPU_PCT PARK_LOOP_MAX_CYCLES=$PARK_LOOP_MAX_CYCLES USAGE_CHECK_ENABLED=$USAGE_CHECK_ENABLED USAGE_CHECK_INTERVAL_SECS=$USAGE_CHECK_INTERVAL_SECS USAGE_PAUSE_TRIGGER=$USAGE_PAUSE_TRIGGER USAGE_WARNING_DEBOUNCE=$USAGE_WARNING_DEBOUNCE USAGE_RESUME_MARGIN_SECS=$USAGE_RESUME_MARGIN_SECS USAGE_SEVEN_DAY_PAUSE_PCT=$USAGE_SEVEN_DAY_PAUSE_PCT USAGE_LANE_STATE_ENABLED=$USAGE_LANE_STATE_ENABLED USAGE_LANE_LOCK_ENABLED=$USAGE_LANE_LOCK_ENABLED REMOTE_CONTROL_POLL_SECS=$REMOTE_CONTROL_POLL_SECS REMOTE_WAIT_MAX_SECS=$REMOTE_WAIT_MAX_SECS REMOTE_AUTO_RESUME_MAX=$REMOTE_AUTO_RESUME_MAX REMOTE_AUTO_RESUME_DELAY_SECS=$REMOTE_AUTO_RESUME_DELAY_SECS STALL_WAKE_GAP_SECS=$STALL_WAKE_GAP_SECS KEEP_AWAKE=$KEEP_AWAKE_MODE"
   if [ "$KEEP_AWAKE_MODE" = "off" ]; then
     echo "keep-awake: $KEEP_AWAKE_MODE — $KEEP_AWAKE_REASON"
   else
@@ -3488,9 +3492,13 @@ phase is unsupported: record it on the ledger's remote-skipped line, treat Phase
   fi
 
   # The pilot (SCRIPT-DRIVEN PLANNING IS AN OPT-IN PILOT, in the header). With
-  # the switch empty nothing below this test runs, and the launch is today's.
-  local planning_driver="" planning_clause=""
-  if [ -n "$PLANNING_DRIVER_PLUGIN_DIR" ]; then
+  # the key off or absent nothing below this test runs, and the launch is today's.
+  local planning_driver="" planning_clause="" planning_key=0
+  PLANNING_DRIVER_PLUGIN_ROOT=""
+  hr_script_driven_planning "$MAIN_REPO" || planning_key=$?
+  if [ "$planning_key" = "2" ]; then
+    log "planning driver off for '$branch': execution.scriptDrivenPlanning is not a boolean, or devscene.config.json could not be read"
+  elif [ "$planning_key" = "0" ]; then
     if planning_driver_ready "$branch" "$worktree" "$state_rel" "$engine"; then
       planning_driver=1
       planning_clause="PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH: run only the task engine command's steps 1–4 and its \
@@ -3607,6 +3615,24 @@ EOF
     [ -z "$extra_dirs_logged" ] || log "job mode: '$branch' also gets --add-dir from the profile's additionalDirectories:${extra_dirs_logged}"
   fi
 
+  # With the pilot on, the plugin's runtime root is a session root too. Where
+  # the profile already lists it — a job's `init --plugin-root-entries` grants
+  # it — every session carries it through extra_dir_args, so a node session
+  # does not pass it again (PD_PLUGIN_DIR_ADDED) and it is no second
+  # placeholder root.
+  local planning_roots planning_root_added="" listed_dir
+  planning_roots=()
+  if [ "$planning_driver" = "1" ]; then
+    planning_roots=("$PLANNING_DRIVER_PLUGIN_ROOT")
+    for listed_dir in ${extra_dirs[@]+"${extra_dirs[@]}"}; do
+      if [ "${listed_dir%/}" = "${PLANNING_DRIVER_PLUGIN_ROOT%/}" ]; then
+        planning_roots=()
+        planning_root_added=1
+        break
+      fi
+    done
+  fi
+
   # What was absent before this session: every path the --settings file's
   # denyWrite list yields (`hr_profile_deny_paths`: each exact entry, and each
   # path a remaining glob expands to now), where bubblewrap may plant a
@@ -3619,7 +3645,7 @@ EOF
     local manifest="" exact_paths line add_root mcp_paths deny_paths
     exact_paths=()
     mcp_paths=()
-    for add_root in "$worktree" "$main_state" ${extra_dirs[@]+"${extra_dirs[@]}"} ${planning_driver:+"$PLANNING_DRIVER_PLUGIN_DIR"}; do
+    for add_root in "$worktree" "$main_state" ${extra_dirs[@]+"${extra_dirs[@]}"} ${planning_roots[@]+"${planning_roots[@]}"}; do
       mcp_paths+=("${add_root%/}/.mcp.json")
     done
     if [ "$JOB_MODE" = "1" ]; then
@@ -3629,7 +3655,7 @@ EOF
     fi
     if [ -z "$manifest" ]; then
       log "placeholder manifest: no path for '$branch' — the next sweep removes nothing for this session"
-    elif add_root="$(placeholder_manifest_writable_root "$manifest" "$worktree" "$main_state" ${extra_dirs[@]+"${extra_dirs[@]}"} ${planning_driver:+"$PLANNING_DRIVER_PLUGIN_DIR"})"; then
+    elif add_root="$(placeholder_manifest_writable_root "$manifest" "$worktree" "$main_state" ${extra_dirs[@]+"${extra_dirs[@]}"} ${planning_roots[@]+"${planning_roots[@]}"})"; then
       log "placeholder manifest: not writing $manifest for '$branch', under the session-writable root $add_root — the next sweep removes nothing for this session"
     elif ! deny_paths="$(hr_profile_deny_paths "$settings_file")"; then
       log "placeholder manifest: could not read the denyWrite list of $settings_file for '$branch' — the next sweep removes nothing for this session"
@@ -3787,19 +3813,13 @@ PLANNING_DRIVER_LIBS="planning-node-lib planning-record-lib planning-driver-lib"
 # planning_driver_ready <branch> <worktree> <state_rel> <engine_kind>
 #
 # 0 when this launch takes the pilot's sequence (READY, under SCRIPT-DRIVEN
-# PLANNING IS AN OPT-IN PILOT in the header); otherwise 1, with the reason in
-# PLANNING_DRIVER_OFF_REASON.
+# PLANNING IS AN OPT-IN PILOT in the header), with the derived runtime root in
+# PLANNING_DRIVER_PLUGIN_ROOT; otherwise 1, with the reason in
+# PLANNING_DRIVER_OFF_REASON. The caller has already read the key as on.
 planning_driver_ready() {
   local branch="$1" worktree="$2" state_rel="$3" engine_kind="$4" lib f ledger phases
   PLANNING_DRIVER_OFF_REASON=""
-  if [ -z "$PLANNING_DRIVER_PLUGIN_DIR" ]; then
-    PLANNING_DRIVER_OFF_REASON="PLANNING_DRIVER_PLUGIN_DIR is empty"
-    return 1
-  fi
-  if [ "$JOB_MODE" = "1" ]; then
-    PLANNING_DRIVER_OFF_REASON="job mode always takes the orchestrated path"
-    return 1
-  fi
+  PLANNING_DRIVER_PLUGIN_ROOT=""
   if [ "$engine_kind" != "task" ]; then
     PLANNING_DRIVER_OFF_REASON="the engine is '$engine_kind', not 'task'"
     return 1
@@ -3810,14 +3830,21 @@ planning_driver_ready() {
       return 1
     fi
   done
+  if ! hr_plugin_runtime_root_var "$MAIN_REPO"; then
+    PLANNING_DRIVER_OFF_REASON="the plugin's runtime root could not be resolved from the agent runner's records"
+    return 1
+  fi
   for f in .claude-plugin/plugin.json instructions/task_plan_writing_instructions_core.md; do
-    if [ ! -r "$PLANNING_DRIVER_PLUGIN_DIR/$f" ]; then
-      PLANNING_DRIVER_OFF_REASON="'$PLANNING_DRIVER_PLUGIN_DIR/$f' is not readable"
+    if [ ! -r "$HR_PLUGIN_RUNTIME_ROOT/$f" ]; then
+      PLANNING_DRIVER_OFF_REASON="'$HR_PLUGIN_RUNTIME_ROOT/$f' is not readable"
       return 1
     fi
   done
   ledger="$worktree/$state_rel/flow_progress/${branch}_progress.md"
-  [ -e "$ledger" ] || return 0
+  if [ ! -e "$ledger" ]; then
+    PLANNING_DRIVER_PLUGIN_ROOT="$HR_PLUGIN_RUNTIME_ROOT"
+    return 0
+  fi
   if ! phases="$(hr_ledger_phases "$ledger")"; then
     PLANNING_DRIVER_OFF_REASON="'$state_rel/flow_progress/${branch}_progress.md' is not a readable task or user-review ledger"
     return 1
@@ -3827,6 +3854,7 @@ planning_driver_ready() {
     PLANNING_DRIVER_OFF_REASON="the ledger's first phase is '${3-}', so planning is not pending"
     return 1
   fi
+  PLANNING_DRIVER_PLUGIN_ROOT="$HR_PLUGIN_RUNTIME_ROOT"
   return 0
 }
 
@@ -3893,13 +3921,14 @@ planning_driver_run() {
     stall=$((STALL_KILL_SECS - POLL_INTERVAL_SECS))
     [ "$STALL_WARN_SECS" -le "$stall" ] || stall="$STALL_WARN_SECS"
   fi
-  PD_PLUGIN_DIR="$PLANNING_DRIVER_PLUGIN_DIR"
+  PD_PLUGIN_DIR="$PLANNING_DRIVER_PLUGIN_ROOT"
+  PD_PLUGIN_DIR_ADDED="$planning_root_added"
   PD_MAIN_REPO="$MAIN_REPO"
   PD_SESSION_EXEC=session_exec
   PD_FORMATTER="$formatter"
   PD_NODE_STALL_SECS="$stall"
 
-  log "planning driver: '$branch' set up; driving its planning with $PLANNING_DRIVER_PLUGIN_DIR"
+  log "planning driver: '$branch' set up; driving its planning with $PLANNING_DRIVER_PLUGIN_ROOT"
   # The hold the engine head takes, taken for this subshell across the driver
   # and released after it; the engine session takes its own.
   HR_KEEP_AWAKE_PID=""

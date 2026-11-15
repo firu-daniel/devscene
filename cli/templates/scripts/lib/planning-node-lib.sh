@@ -48,7 +48,8 @@
 # `PNL_SCRIPTS_DIR`, `PNL_GRAPH`, `PNL_TMP`, `PNL_PLUGIN_NAME`,
 # `PNL_MAX_DISPATCHES` and one `PNL_BLOCK_<key>` per key. `pnl_launch` sets
 # `PNL_HANDLE`, and must run in the shell that will `wait` on the session —
-# never inside `$(…)`. It reads `PD_SESSION_EXEC` and `PD_FORMATTER`.
+# never inside `$(…)`. It reads `PD_SESSION_EXEC`, `PD_FORMATTER` and the
+# optional `PD_PLUGIN_DIR_ADDED`.
 #
 # STATUSES. 0 done; 2 a fault, with one `planning-driver: <cause>` line on
 # stderr.
@@ -330,7 +331,9 @@ pnl_agent_tools_var() {
 
 # pnl_agent_flags <node> <agent> — the per-node flags, one argv word per line:
 # `--agent <plugin>:<agent>`, `--plugin-dir` and `--add-dir` the plugin
-# directory, `--json-schema <schema>`, then the MCP flags. An agent whose
+# directory — the `--add-dir` left out when `PD_PLUGIN_DIR_ADDED` is `1`, the
+# caller's shared vector already carrying it — `--json-schema <schema>`, then
+# the MCP flags. An agent whose
 # `tools:` line names no `mcp__` tool gets `--disallowedTools mcp__*`; one that
 # names some gets `--strict-mcp-config --mcp-config <file>`, the worktree's
 # `.mcp.json` cut to the servers those entries name (an empty server set when
@@ -340,7 +343,9 @@ pnl_agent_flags() {
 " file
   pnl_agent_tools_var "$agent" || { pnl_fail "'${PNL_PLUGIN_DIR-}/agents/$agent.md' carries no tools: line"; return 2; }
   schema=$(pnl_schema "$node") || return 2
-  printf '%s\n' --agent "$PNL_PLUGIN_NAME:$agent" --plugin-dir "$PNL_PLUGIN_DIR" --add-dir "$PNL_PLUGIN_DIR" --json-schema "$schema"
+  printf '%s\n' --agent "$PNL_PLUGIN_NAME:$agent" --plugin-dir "$PNL_PLUGIN_DIR"
+  [ "${PD_PLUGIN_DIR_ADDED-}" = "1" ] || printf '%s\n' --add-dir "$PNL_PLUGIN_DIR"
+  printf '%s\n' --json-schema "$schema"
   while IFS= read -r t; do
     case "$t" in
       mcp__?*__*)

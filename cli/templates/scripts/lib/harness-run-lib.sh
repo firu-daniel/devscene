@@ -23,6 +23,9 @@
 # answers whether a launch holds the host awake (`hr_keep_awake`,
 # `hr_keep_awake_probe_var`, `hr_keep_awake_mode_var`), whether it is on mains
 # power (`hr_on_mains_power`) and starts that hold (`hr_keep_awake_hold_var`),
+# answers whether a launch takes the script-driven planning pilot
+# (`hr_script_driven_planning`) and where the runtime loads the plugin from
+# (`hr_plugin_runtime_root_var`),
 # owns the Run gates lane for `run-test-suite.sh`,
 # `launch-sandboxed-gates.sh` and `run-analytics.sh` — its layout
 # (`hr_test_run_lane_dir`), label
@@ -1914,11 +1917,12 @@ hr_config_load() {
   # reads as the name `true`, and drops one carrying a newline, which
   # `hr_cfg_list_var`'s newline-joined value would split into two names.
   #
-  # A `phases.*`, `docs.retrieval`, `execution.progressComments` or
-  # `execution.keepAwake` value that is not a boolean is emitted as `invalid`, so
-  # the string `"true"` — which `tostring` would otherwise make indistinguishable
-  # from `true` — reaches `hr_phase_enabled`, `hr_docs_retrieval_applies`,
-  # `hr_progress_comments` or `hr_keep_awake` as a value it refuses (2).
+  # A `phases.*`, `docs.retrieval`, `execution.progressComments`,
+  # `execution.keepAwake` or `execution.scriptDrivenPlanning` value that is not a
+  # boolean is emitted as `invalid`, so the string `"true"` — which `tostring`
+  # would otherwise make indistinguishable from `true` — reaches
+  # `hr_phase_enabled`, `hr_docs_retrieval_applies`, `hr_progress_comments`,
+  # `hr_keep_awake` or `hr_script_driven_planning` as a value it refuses (2).
   #
   # `sandbox.optedOut` is a computed flag rather than the raw `reason`, because
   # `s()` drops `"null"` and `""` and the string `"null"` is a taken opt-out. Its
@@ -1962,6 +1966,8 @@ hr_config_load() {
         try (.execution.progressComments | if type == "boolean" or . == null then . else "invalid" end) catch null),
       s("execution.keepAwake";
         try (.execution.keepAwake | if type == "boolean" or . == null then . else "invalid" end) catch null),
+      s("execution.scriptDrivenPlanning";
+        try (.execution.scriptDrivenPlanning | if type == "boolean" or . == null then . else "invalid" end) catch null),
       s("docs.retrievalBackend"; try .docs.retrievalBackend catch null),
       s("docs.retrieval";        try (.docs.retrieval | if type == "boolean" or . == null then . else "invalid" end) catch null),
       s("forge";                 try .forge                catch null),
@@ -2290,6 +2296,99 @@ hr_keep_awake() {
     false) return 1 ;;
   esac
   return 2
+}
+
+# `execution.scriptDrivenPlanning` — whether a launch of the task engine takes
+# the script-driven planning pilot, in local and job mode alike. THE ONE READER
+# OF THE KEY IN THIS FAMILY, and the shell mirror of `cli/src/config/model.ts`
+# → `scriptDrivenPlanningEnabled`. PRINTS NOTHING: 0 = `true`; 1 = `false` or
+# absent (the schema default); 2 = the configuration is unresolvable or the
+# value is not a boolean. The watcher passes the MAIN checkout — in a job, the
+# job's own checkout — never a run copy, whose `devscene.config.json` a session
+# can rewrite.
+hr_script_driven_planning() {
+  local root="${1-}"
+  hr_config_load "$root" || return 2
+  hr_cfg_scalar_var "execution.scriptDrivenPlanning" || return 1
+  case "$HR_CFG_VALUE" in
+    true) return 0 ;;
+    false) return 1 ;;
+  esac
+  return 2
+}
+
+# ---------------------------------------------------------------------------
+# The plugin's runtime root: the read-only shell mirror of
+# `cli/src/machine/plugins.ts` → `pluginRuntimeRoot` (with its fallback,
+# `pluginInstallRoot`), over the same two agent-runner records under
+# `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/`. Change the selection there
+# and here together. Re-derived on every call and never cached: the install
+# root carries the plugin version.
+# ---------------------------------------------------------------------------
+
+# The plugin's identity in the runner's records — mirrors of
+# `cli/src/core/pluginIdentity.ts` → `PLUGIN_NAME` and
+# `cli/src/generators/projectSettings.ts` → `MARKETPLACE_NAME` and `PLUGIN_KEY`.
+HR_PLUGIN_NAME="devscene"
+HR_PLUGIN_MARKETPLACE="devscene"
+HR_PLUGIN_KEY="$HR_PLUGIN_NAME@$HR_PLUGIN_MARKETPLACE"
+
+# hr_plugin_runtime_root_var [<repo_root>] — set `HR_PLUGIN_RUNTIME_ROOT` to the
+# directory the runtime loads this harness's plugin from, and return 0; 1, with
+# it empty, when neither record yields one. A `directory`-sourced marketplace
+# gives `<installLocation>/<the manifest's plugin source>`; anything else falls
+# back to `installed_plugins.json`'s row: the `project` row whose `projectPath`
+# is <repo_root>, else the `user` row, else the first usable one. Reads only;
+# every unreadable, unparsable or unnavigable record is the fallback, never a
+# fault.
+hr_plugin_runtime_root_var() {
+  local repo="${1-}" home="${CLAUDE_CONFIG_DIR-}" location relative value
+  HR_PLUGIN_RUNTIME_ROOT=""
+  if [ -z "$home" ]; then
+    [ -n "${HOME-}" ] || return 1
+    home="$HOME/.claude"
+  fi
+  home="${home%/}"
+
+  location=$(jq -r --arg m "$HR_PLUGIN_MARKETPLACE" '
+    if type == "object" then (.[$m] // null) else null end
+    | if type == "object" and (.source | type) == "object" and .source.source == "directory"
+         and (.installLocation | type) == "string" and .installLocation != ""
+      then .installLocation else empty end' "$home/plugins/known_marketplaces.json" 2>/dev/null) || location=""
+  if [ -n "$location" ]; then
+    relative=$(jq -r --arg n "$HR_PLUGIN_NAME" '
+      if type == "object" and (.plugins | type) == "array" then
+        [.plugins[] | select(type == "object" and .name == $n)][0] // null
+      else null end
+      | if type == "object" and (.source | type) == "string" and .source != "" then .source else empty end' \
+      "$location/.claude-plugin/marketplace.json" 2>/dev/null) || relative=""
+    if [ -n "$relative" ]; then
+      while :; do
+        case "$relative" in
+          ./*) relative="${relative#./}" ;;
+          *) break ;;
+        esac
+      done
+      relative="${relative%/}"
+      case "$relative" in
+        '' | .) HR_PLUGIN_RUNTIME_ROOT="${location%/}" ;;
+        *) HR_PLUGIN_RUNTIME_ROOT="${location%/}/$relative" ;;
+      esac
+      return 0
+    fi
+  fi
+
+  value=$(jq -r --arg k "$HR_PLUGIN_KEY" --arg repo "$repo" '
+    (if type == "object" and (.plugins | type) == "object" then (.plugins[$k] // null) else null end)
+    | (if type == "array" then
+         [.[] | select(type == "object" and (.installPath | type) == "string" and .installPath != "")]
+       else [] end) as $rows
+    | ([$rows[] | select($repo != "" and .scope == "project" and .projectPath == $repo)]
+       + [$rows[] | select(.scope == "user")] + $rows)
+    | if length > 0 then .[0].installPath else empty end' "$home/plugins/installed_plugins.json" 2>/dev/null) || value=""
+  [ -n "$value" ] || return 1
+  HR_PLUGIN_RUNTIME_ROOT="$value"
+  return 0
 }
 
 # ---------------------------------------------------------------------------

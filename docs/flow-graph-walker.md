@@ -156,11 +156,11 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 
 ### Which runs when
 
-**Decision.** The orchestrator is the default, and the driver in every mode: supervised, semi-autonomous, a local autonomous run and a remote job. The script driver runs only when the watcher's switch `PLANNING_DRIVER_PLUGIN_DIR` is set, in a local run of the task engine whose planning is not finished — the run's ledger is absent or its first phase is pending — and with the three libraries and the pinned plugin's manifest and planning core readable (`cli/templates/scripts/autonomous-watcher.sh` → `planning_driver_ready`; the header's `SCRIPT-DRIVEN PLANNING IS AN OPT-IN PILOT.`).
+**Decision.** The orchestrator is the default, and the driver in every mode: supervised, semi-autonomous, a local autonomous run and a remote job. The script driver runs only when the configuration key `execution.scriptDrivenPlanning` is `true`, in a watcher run of the task engine — local or a remote job — whose planning is not finished — the run's ledger is absent or its first phase is pending — with the three libraries readable, the plugin's runtime root resolved from the agent runner's records, and that root's manifest and planning core readable (`cli/templates/scripts/autonomous-watcher.sh` → `planning_driver_ready`; the header's `SCRIPT-DRIVEN PLANNING IS AN OPT-IN PILOT.`). The pinned plugin directory is that runtime root, re-derived at every launch and never configured (`lib/harness-run-lib.sh` → `hr_plugin_runtime_root_var`, the shell mirror of `cli/src/machine/plugins.ts` → `pluginRuntimeRoot`).
 
-**Reason.** The driver's savings are not yet measured (`### What the follow-up measures`, below), so an adopter who does not opt in gains no new surface: the switch is a watcher tunable rather than a `devscene.config.json` key, empty by default, and its value is a machine-local path.
+**Reason.** The driver's savings are not yet measured (`### What the follow-up measures`, below), so an adopter who does not opt in gains no new surface: the key is `false` by default. It is a committed key rather than a watcher tunable because a remote run pays the orchestrator's cache-read tokens as a local one does, and a job reads its branch's `devscene.config.json` but no `watcher.env`. It is a boolean rather than a path because a committed path cannot be right both on the operator's machine and on a runner, so the directory is derived where the run executes: the installed copy locally, the copy `Install the pinned plugin` installs in a job.
 
-**Cost.** A launch that is not ready logs one `planning driver off for '<branch>': <reason>` line and takes the orchestrated path, so a mistyped switch costs the pilot's data, not the run.
+**Cost.** A launch that is not ready logs one `planning driver off for '<branch>': <reason>` line and takes the orchestrated path, so a key that is not a boolean, or a runtime root that does not resolve, costs the pilot's data, not the run.
 
 ### How each runs a parallel round
 
@@ -189,11 +189,11 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 
 **Reason.** Three properties follow from running inside the watcher. **One producer of the launch vector:** every node session is launched through the watcher's `session_exec`, the same function the engine session goes through, so a node gets the run's per-run settings, permission mode, model, effort, added directories, environment scrub and main-checkout anchor, with only the per-node flags appended (`autonomous-watcher.sh` → `session_exec`; `planning-node-lib.sh` → `pnl_agent_flags`). **No new agent reach:** nothing an agent can invoke starts the driver — a library run rather than sourced only defines functions, and none carries a profile entry (`docs/watcher.md` → `## 2. The scripts`). **The full environment for the wrappers:** the driver's `commit-on-branch.sh` and `push-branch.sh` calls run in the launch subshell, which keeps the watcher's environment; only a session's own launch pipe head is scrubbed (`docs/watcher.md` → `### The session's environment`).
 
-**Cost.** The driver cannot be run on its own; a reproduction by hand sources the libraries into a shell against a throwaway fixture (each library's `REPRO` block). A checkout `init` wrote before the libraries shipped lacks them until `init --force` rewrites the family, and until then every launch logs the switch off.
+**Cost.** The driver cannot be run on its own; a reproduction by hand sources the libraries into a shell against a throwaway fixture (each library's `REPRO` block). A checkout `init` wrote before the libraries shipped lacks them until `init --force` rewrites the family, and until then every launch with the key on logs the driver off.
 
 ### Why the prompts come from the pinned plugin's core
 
-**Decision.** At every drive, `pnl_init` reads `<switch>/instructions/task_plan_writing_instructions_core.md`, takes each node's prompt from the fenced blocks under the headings `PNL_CORE_BLOCKS` names and the dispatch cap from `## Setup (once per session)` step 4's `MAX_TOTAL_DISPATCHES` line, and fills them with the walker's values, appending nothing but a resumed writer's answered pairs (`planning-node-lib.sh` → `THE CORE IS WIRE TEXT.`, `pnl_prompt`).
+**Decision.** At every drive, `pnl_init` reads `<root>/instructions/task_plan_writing_instructions_core.md`, where `<root>` is the plugin's runtime root (`### Which runs when`, above), takes each node's prompt from the fenced blocks under the headings `PNL_CORE_BLOCKS` names and the dispatch cap from `## Setup (once per session)` step 4's `MAX_TOTAL_DISPATCHES` line, and fills them with the walker's values, appending nothing but a resumed writer's answered pairs (`planning-node-lib.sh` → `THE CORE IS WIRE TEXT.`, `pnl_prompt`).
 
 **Reason.** The core stays the one owner of every dispatch block, as `### Item 2` decided for the orchestrator: a copy in the script would be a second owner that drifts. The core's opening note names those headings, their fence counts and that line as wire text the library keys on.
 
@@ -203,7 +203,7 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 
 **Decision.** Each node session is launched with `--json-schema`, built from the planning graph: `outcome` is an enum of exactly that node's declared outcome keys, beside `findings_file`, `return` and `harness_friction` (`planning-node-lib.sh` → `pnl_schema`). `pnl_reap` decides a node's result from its stream alone, in one fixed order (`PNL_REAP_JQ`): no `system`/`init` event is an infrastructure `error`, retried (`### How each runs a parallel round`, above), and an `init` whose tools differ from the agent file's `tools:` line is an agent `error`, recorded at once; then a missing `result` event or an overload is undelivered; then an outcome the graph does not declare for the node is an agent `error`.
 
-**Reason.** The graph stays the one owner of a node's outcomes, and a session cannot route the walk with an outcome its node does not have. The `init` check and the launch flags answer the three gaps `docs/orchestrator-cost-measurement.md` → `## 4. Does a session's main agent keep its \`tools:\` allowlist?` → **Three things a launcher must handle:** names. **MCP tools not shown to be excluded:** an agent whose `tools:` line names no `mcp__` tool is launched with `--disallowedTools mcp__*`; one that names some, with `--strict-mcp-config` and an MCP configuration cut to those servers (`pnl_agent_flags`). **An unknown agent fails silently with exit 0:** a session with tools that do not match is `error` at once, and one with no `init` event is `error` once its third attempt has none either. **The agent set comes from the environment:** every session pins the plugin with `--plugin-dir <switch>` and names its agent by the scoped name `<plugin name>:<agent>`, the plugin name read from `<switch>/.claude-plugin/plugin.json`.
+**Reason.** The graph stays the one owner of a node's outcomes, and a session cannot route the walk with an outcome its node does not have. The `init` check and the launch flags answer the three gaps `docs/orchestrator-cost-measurement.md` → `## 4. Does a session's main agent keep its \`tools:\` allowlist?` → **Three things a launcher must handle:** names. **MCP tools not shown to be excluded:** an agent whose `tools:` line names no `mcp__` tool is launched with `--disallowedTools mcp__*`; one that names some, with `--strict-mcp-config` and an MCP configuration cut to those servers (`pnl_agent_flags`). **An unknown agent fails silently with exit 0:** a session with tools that do not match is `error` at once, and one with no `init` event is `error` once its third attempt has none either. **The agent set comes from the environment:** every session pins the plugin with `--plugin-dir <root>`, the plugin's runtime root, and names its agent by the scoped name `<plugin name>:<agent>`, the plugin name read from `<root>/.claude-plugin/plugin.json`.
 
 **Cost.** An agent whose `tools:` line changes is held to the new line at the next node; a session whose `init` tools carry anything that line does not name is refused, whatever the session did after.
 
@@ -223,15 +223,29 @@ Three facts the driver depends on are not measured on a real Claude Code session
 
 - **whether a `stream-json` session's closing `result` event carries `structured_output` under `--json-schema`.** `pnl_reap` reads `structured_output` and, where it is not an object, the `result` text parsed as JSON; a session that carries neither is an infrastructure `error`, so if neither is ever carried, every node parks after three attempts.
 - **whether the `init` tools under `--json-schema` are the agent's allowlist and nothing more.** A tool the schema flag added to the `init` list would make every node `error`, by the tool check above.
-- **whether an installed plugin copy shadows `--plugin-dir` for a scoped `--agent`.** `docs/orchestrator-cost-measurement.md` → `## 4.` saw an installed copy listed beside the one `--plugin-dir` passed; the tool check catches a shadowing definition only when its `tools:` line differs.
+- **whether an installed plugin copy shadows `--plugin-dir` for a scoped `--agent`.** `docs/orchestrator-cost-measurement.md` → `## 4.` saw an installed copy listed beside the one `--plugin-dir` passed. The pinned directory is now the installed copy's own runtime root, so the copy `--plugin-dir` passes and the installed one are the same directory; whether the session then loads it once or twice is not measured. The tool check catches a shadowing definition only when its `tools:` line differs.
 
-The hand step is one real planning run with the switch set, from a terminal outside any agent session, run from the main checkout with `<scripts_dir>` and `<state_dir>` your configured values. Set the switch to an absolute plugin directory and restart the watcher, then drop a task prompt for a throwaway branch `<branch>` as usual; once its first node has ended, read that node's stream:
+The hand step is one real planning run with the key on, from a terminal outside any agent session, run from the main checkout with `<scripts_dir>` and `<state_dir>` your configured values. Turn the key on — the watcher reads it at the next launch, with no restart:
 
 ```
-printf 'PLANNING_DRIVER_PLUGIN_DIR=%s\n' /absolute/path/to/plugin >> "${XDG_CONFIG_HOME:-$HOME/.config}/devscene/watcher.env"
-bash <scripts_dir>/restart-watcher.sh
+npx devscene config set execution.scriptDrivenPlanning true
+```
+
+Then drop a task prompt for a throwaway branch `<branch>` as usual. Once its first node has ended, read that node's stream, one command at a time — its `init` tools:
+
+```
 jq -c 'select(.type == "system" and .subtype == "init") | .tools' <state_dir>/autonomous_logs/<branch>.planning/1-plan_writer.stream.jsonl
+```
+
+the plugins it loaded:
+
+```
 jq -c 'select(.type == "system" and .subtype == "init") | .plugins' <state_dir>/autonomous_logs/<branch>.planning/1-plan_writer.stream.jsonl
+```
+
+and its decision object's keys:
+
+```
 jq -c 'select(.type == "result") | .structured_output | if type == "object" then keys else type end' <state_dir>/autonomous_logs/<branch>.planning/1-plan_writer.stream.jsonl
 ```
 
