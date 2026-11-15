@@ -58,7 +58,7 @@ A thin `-watch` wrapper is acceptable **only** if it adds ergonomics (e.g. "run 
 4a. **Script-driven setup — only when the launch prompt carries `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH`**, whatever resume or pause clause it also carries. The manual entry point never carries it.
    1. Read `${CLAUDE_PLUGIN_ROOT}/instructions/task_plan_writing_instructions_autonomous.md` → `## Override 5 — pause/resume + flow-progress ledger (planning half)`.
    2. Apply only its **Create the ledger at Setup.**, **Record the run mode in that same write.** and **Who reads first.** paragraphs and its `P0` bullet, with the screen's `SAFE` pairs step 4 holds.
-   3. Emit `PLANNING HANDED TO SCRIPT: <branch>` to the run log and end the session.
+   3. End the session.
 
    Run neither step 5 nor step 6, read neither the planning core nor the walker, and dispatch no agent beyond the screen's.
 
