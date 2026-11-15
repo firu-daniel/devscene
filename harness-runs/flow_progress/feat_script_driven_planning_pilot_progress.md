@@ -1,4 +1,4 @@
-# Flow progress — feat_script_driven_planning_pilot   (engine: task)
+# Flow progress — feat_script_driven_planning_pilot   (engine: user_review, round 1)
 
 ## Run mode
 Source: harness-runs/task_prompts/feat_script_driven_planning_pilot_task_prompt.md → `### Run mode`
@@ -6,25 +6,14 @@ Source: harness-runs/task_prompts/feat_script_driven_planning_pilot_task_prompt.
 - phases: parity=false, qa=false, docs=false   (from devscene.config.json, read at this write; an unset flag is false)
 - remote-skipped: none   (from the launch prompt's remote-job clause, read at this write; `none` for a local run)
 
-## Planning
-- [x] P0. Untrusted input screened (prompt-injection-reviewer SAFE)
+## Fix planning
+- [x] R0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_script_driven_planning_pilot_task_prompt.md sha256=7970141078b662730b877aa7c75e75f4f87e3d2909cc1dfe05fc3bae25dee77a
-- [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
-- [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
-
-## Implementation
-- [x] A.      Tasks implemented (story-index readiness all [x])
-- [-] A1.5g.  Branch parity review resolved (index committed — or PASS with no findings, no file written)
-- [-] A1.5f.  Parity findings fixed (findings index all [x] — or no index, the review having passed clean)
-- [x] A2g.    Branch architecture review resolved (index committed — or PASS with no findings, no file written)
-- [x] A2f.    Architecture findings fixed (findings index all [x] — or no index, the review having passed clean)
-- [x] Bg.     Branch review generated & committed
-- [x] Bm.     Review-plan meta-review PASS (B.2)
-- [x] C.      Code-review findings fixed
-- [x] C2g.    Skeptic review resolved (index committed — or PASS with no net-new findings, no file written)
-- [x] C2m.    Skeptic meta-review PASS — or not owed (C2.1 returned PASS, so C2.2 never ran)
-- [x] C2f.    Skeptic findings fixed (findings index all [x] — or no index, the review having passed clean)
-- [-] E.      QA passed (UI-test index all [x], or only blocked tests left / no_ui)
-- [x] G.      Run gates passed (the Run gates wrapper printed pass: test passed, typecheck passed or not run for <none>)
-- [x] D.      Branch statistics committed & pushed
+  - screened: harness-runs/user_reviews/feat_script_driven_planning_pilot_review.md sha256=c0d376cff7efa2283e85ad41fa017a8cb6f6fb231e4aae709035077f4f444ae3
+- [ ] R1. Fix plan written & converged (parity + architecture gates PASS)
+- [ ] R2. Fix plan + source review committed
+## Fixing
+- [ ] R3. All fix-plan findings implemented (fix-plan index all [x])
+- [-] R4. QA passed (UI-test index all [x], or only blocked tests left / no_ui / no-op augment)
+- [ ] RG. Run gates passed (the Run gates wrapper printed pass: test passed, typecheck passed or not run for <none>)
+- [ ] R5. Post-user-review statistics committed
