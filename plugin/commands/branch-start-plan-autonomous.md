@@ -22,7 +22,7 @@ The tokens below are not ordinary **path placeholders** (`<branch>`, `<n>`, `<N>
 
 ## Context
 
-This is the **one** autonomous engine command. It is the **execution-context-agnostic** entry point that chains autonomous **planning** straight into autonomous **implementation** in one uninterrupted session, except on a launch step 4a ends, ending at "branch ready for review" — **no** approval gate between planning and implementation, and **no** merge into a branch in `<protected_branches>`, no push to one, and no PR at the end.
+This is the **one** autonomous engine command. It is the **execution-context-agnostic** entry point that chains autonomous **planning** straight into autonomous **implementation** in one uninterrupted session — except on a launch that step 4a ends after setup — ending at "branch ready for review" — **no** approval gate between planning and implementation, and **no** merge into a branch in `<protected_branches>`, no push to one, and no PR at the end.
 
 It reuses the shared instruction canon by reference and only forks where the autonomous flow genuinely differs (trigger, approval gate, clarification channel, path resolution). That canon is a **mode-free core** on both halves — `${CLAUDE_PLUGIN_ROOT}/instructions/task_plan_writing_instructions_core.md` for **planning** and `${CLAUDE_PLUGIN_ROOT}/instructions/plan_orchestration_instructions_core.md` for **implementation** — with a thin autonomous fork over each:
 
