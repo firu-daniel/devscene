@@ -104,7 +104,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_committer_as_script/tas
 19. [x] **Task 19** — Re-point the semi-autonomous implement commands and the flow documents at the commit step _(layer: plugin)_ _(points: 10)_
 20. [x] **Task 20** — Delete the `committer` agent and re-home its `<MAIN_REPO>` resolution in the semi-autonomous forks _(layer: plugin)_ _(points: 20)_
 21. [x] **Task 21** — Replace the committer's wrapper-call suite with one that pins the commit step's call shape _(layer: cli)_ _(points: 10)_
-22. [ ] **Task 22** — Close the roadmap row and document the front end and its library in the watcher and CLI references _(layer: general)_ _(points: 10)_
+22. [x] **Task 22** — Close the roadmap row and document the front end and its library in the watcher and CLI references _(layer: general)_ _(points: 10)_
 23. [ ] **Task 23** — Re-point the analyze, development and remote-execution documents and the plan-shape grader at the commit step _(layer: general)_ _(points: 10)_
 24. [ ] **Task 24** — Re-render this repository's self-adopted script and state-directory README copies, and register the commit-step suite as a tree guard _(layer: general)_ _(points: 10)_
 
