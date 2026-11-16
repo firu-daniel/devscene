@@ -2597,7 +2597,10 @@ RUN_PROFILE_COPY_GIT_PATHS='.git/config file deny
 .git/objects/info/alternates file deny
 .git/commondir entry omit
 .git/config.worktree entry omit
-.git/objects/info/http-alternates entry omit'
+.git/objects/info/http-alternates entry omit
+.git/HEAD file deny
+.git/refs/heads directory deny
+.git/packed-refs file deny'
 
 # run_profile_glob_drops — on HR_PLACEHOLDER_HOST `1`, print each string of
 # $SETTINGS_PROFILE's `.sandbox.filesystem.denyWrite` that carries a `*` and

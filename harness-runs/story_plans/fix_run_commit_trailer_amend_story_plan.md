@@ -45,7 +45,7 @@ This branch closes the two defects behind the `feat_network_refusal_report` park
 
 Each entry resolves 1:1 to `harness-runs/task_plans/fix_run_commit_trailer_amend/task_<K>_plan.md`. The entries are ordered by ship sequence in the configured layer order, with the catch-all layer last.
 
-1. [ ] **Task 1** — Write-deny the run copy's branch-ref store and HEAD in the profile and the per-run copy _(layer: cli)_ _(points: 20)_
+1. [x] **Task 1** — Write-deny the run copy's branch-ref store and HEAD in the profile and the per-run copy _(layer: cli)_ _(points: 20)_
 2. [ ] **Task 2** — Switch off commit attribution and drop the raw commit grant in the run profile template _(layer: cli)_ _(points: 18)_
 3. [ ] **Task 3** — Name a split branch's cause and repair in the sync-in divergence refusal _(layer: cli)_ _(points: 15)_
 4. [ ] **Task 4** — Stop every plugin guard from vouching for `git commit --amend`, or for a commit compounded with a ref move _(layer: plugin)_ _(points: 20)_
