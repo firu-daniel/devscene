@@ -23,7 +23,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Add the G.2 architecture gate's `blocker` / third-failed-routing-check arm to the autonomous user-review-fix fork's closed `<escalate>` list and its Phase G origin mapping _(layer: plugin)_
+1. [x] **Finding 1** — Add the G.2 architecture gate's `blocker` / third-failed-routing-check arm to the autonomous user-review-fix fork's closed `<escalate>` list and its Phase G origin mapping _(layer: plugin)_
 
 ---
 
