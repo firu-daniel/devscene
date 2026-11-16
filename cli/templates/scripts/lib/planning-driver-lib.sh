@@ -32,6 +32,8 @@
 # flip, park, pause and observation is `lib/planning-record-lib.sh`'s; every
 # prompt, launch and verdict is `lib/planning-node-lib.sh`'s; every route is
 # the walker's. The answered pairs come only from `hr_top_level_answered_pairs`.
+# A field a node returned is read only from the validated return object
+# `pnl_reap` names on `object_file=`, never parsed out of the `result` text.
 #
 # SOURCED, NEVER EXECUTED. It sets no shell option. The caller sources
 # `lib/harness-run-lib.sh`, `lib/planning-node-lib.sh` and
@@ -67,7 +69,7 @@
 #   worktree is added, commit a task-engine ledger at
 #   "$r/w/devscene/flow_progress/feat_x_progress.md" and a task prompt, and fill
 #   a plugin directory "$p" with `.claude-plugin/plugin.json`, the six planning
-#   agents and the planning core.
+#   agents, their `schemas/<agent>.return.json` files and the planning core.
 #   cd "$r/w"; for l in harness-run-lib planning-node-lib planning-record-lib planning-driver-lib; do . "s/lib/$l.sh"; done
 #   stub() { exec <stub agent cli> -p "$1" "${@:2}"; }
 #   PD_PLUGIN_DIR=$p PD_MAIN_REPO=$r/m PD_SESSION_EXEC=stub PD_FORMATTER=cat PD_NODE_STALL_SECS=0
@@ -507,16 +509,24 @@ pd_node_var() {
   PD_V="${!var-}"
 }
 
+# The park body: one `## Q<k> — <first line>` section per item of the node's
+# return object `questions`, the clarification channel's per-question form.
 pd_ask_park() {
-  local out="$1" node agent file
+  local out="$1" node agent obj file="$PNL_TMP/ask.body"
   pd_first node "$out"
   node="$PD_V"
   pd_first agent "$out"
   agent="${PD_V:-$node}"
-  pd_node_var "$node" RET
-  file="$PD_V"
-  if [ -z "$file" ] || [ ! -s "$file" ]; then
-    file="$PNL_TMP/ask.body"
+  pd_node_var "$node" OBJ
+  obj="$PD_V"
+  : >"$file" || { pd_fail "cannot write '$file'"; return 2; }
+  if [ -n "$obj" ] && [ -s "$obj" ]; then
+    jq -r '(if (.questions | type) == "array" then .questions else [] end) as $q
+      | range(0; $q | length) as $i | ($q[$i] | tostring) as $t
+      | "## Q" + (($i + 1) | tostring) + " — " + ($t | split("\n") | .[0]) + "\n\n" + $t + "\n"' "$obj" >"$file" 2>/dev/null \
+      || : >"$file"
+  fi
+  if [ ! -s "$file" ]; then
     printf 'The writer `%s` returned questions, but its return text was not captured in this session.\n' "$agent" >"$file" \
       || { pd_fail "cannot write '$file'"; return 2; }
   fi
@@ -525,7 +535,7 @@ pd_ask_park() {
   return 3
 }
 
-# Append one session's captured `reason=` and `return` text to stdout.
+# Append one session's captured `reason=` and whole `result` text to stdout.
 pd_session_detail() {
   local node="$1" outcome="$2" reason file line
   pd_node_var "$node" REASON
@@ -599,23 +609,18 @@ EOF
   return 3
 }
 
-# pd_ret_value <node> <key> — PD_V the first `<key>: ` value in the node's last
-# captured return text.
-pd_ret_value() {
-  local key="$2" line
-  pd_node_var "$1" RET
-  local file="$PD_V"
+# pd_ret_field <node> <field> — PD_V the field's value in the node's last
+# validated return object; 1 when the object file or the field is absent. Every
+# call names its field literally: a suite holds those names to the agents'
+# `schemas/<agent>.return.json`.
+pd_ret_field() {
+  local file
+  pd_node_var "$1" OBJ
+  file="$PD_V"
   PD_V=""
   [ -n "$file" ] && [ -f "$file" ] || return 1
-  while IFS= read -r line || [ -n "$line" ]; do
-    line=${line%$'\r'}
-    line="${line#"${line%%[![:space:]]*}"}"
-    line="${line#- }"
-    case "$line" in
-      "$key: "*) PD_V="${line#"$key: "}"; return 0 ;;
-    esac
-  done <"$file"
-  return 1
+  PD_V=$(jq -r --arg f "$2" '.[$f] // empty | tostring' "$file" 2>/dev/null) || { PD_V=""; return 1; }
+  [ -n "$PD_V" ]
 }
 
 # The `📌 Run mode:` line, from the ledger's `## Run mode` block — PD_V.
@@ -671,15 +676,15 @@ EOF
   prl_convergence_commits "$ui_yes" || return 2
   prl_ledger_flip P3 || return 2
 
-  if pd_ret_value plan_writer tasks_count; then tasks="$PD_V"; else tasks="not reported in this session"; fi
+  if pd_ret_field plan_writer tasks_count; then tasks="$PD_V"; else tasks="not reported in this session"; fi
   case "$ui" in
     passed)
-      if pd_ret_value ui_writer tests_count; then tests="$PD_V"; else tests="not reported in this session"; fi
+      if pd_ret_field ui_writer tests_count; then tests="$PD_V"; else tests="not reported in this session"; fi
       ui_line="ui_test: $sd/ui_test_plans/${b}_ui_test_plan.md, per-test files $sd/ui_test_plans/$b/, tests_count: $tests"
       ;;
     no_ui)
       ui_line="ui_test: no-UI (QA skipped)"
-      if pd_ret_value ui_writer reason; then ui_line="$ui_line — $PD_V"; fi
+      if pd_ret_field ui_writer reason; then ui_line="$ui_line — $PD_V"; fi
       ;;
     qa-phase-off) ui_line="ui_test: QA phase not enabled" ;;
     run-mode-skipped) ui_line="ui_test: skipped by run mode" ;;
@@ -1014,8 +1019,8 @@ $PD_PAIR_TEXT"
 
 # pd_reap_one <index> <stalled yes|no> — read the session, observe it, record it.
 pd_reap_one() {
-  local i="$1" stalled="$2" res line kind="" class="" outcome="" findings="" ret="" fr="" cost="" dur="" denials=0 reason="" withheld=""
-  local node="${S_NODE[$i]}" agent="${S_AGENT[$i]}" seq round item rc attempt retry=no exhausted=no
+  local i="$1" stalled="$2" res line kind="" class="" outcome="" findings="" ret="" obj="" cost="" dur="" denials=0 reason="" withheld=""
+  local node="${S_NODE[$i]}" agent="${S_AGENT[$i]}" seq round rc attempt retry=no exhausted=no
   local -a args
   seq="${S_H[$i]#*	}"
   seq="${seq%%	*}"
@@ -1027,7 +1032,7 @@ pd_reap_one() {
       outcome=*) outcome="${line#outcome=}" ;;
       findings=*) findings="${line#findings=}" ;;
       return_file=*) ret="${line#return_file=}" ;;
-      friction_file=*) fr="${line#friction_file=}" ;;
+      object_file=*) obj="${line#object_file=}" ;;
       cost=*) cost="${line#cost=}" ;;
       duration_secs=*) dur="${line#duration_secs=}" ;;
       denials=*) denials="${line#denials=}" ;;
@@ -1044,6 +1049,7 @@ EOF
     reason=stalled
   fi
   printf -v "PD_RET_$node" '%s' "$ret"
+  printf -v "PD_OBJ_$node" '%s' "$obj"
   printf -v "PD_REASON_$node" '%s' "${reason:-none}"
   printf -v "PD_AGENT_$node" '%s' "$agent"
   pd_node_var "$node" ATTEMPTS
@@ -1071,13 +1077,6 @@ EOF
     [ "$exhausted" = no ] || pd_log "$node ($agent): attempt $attempt of $PD_MAX_ATTEMPTS failed for an infrastructure reason ($reason); no attempt remains, recorded as error"
     [ "$kind" != error ] && [ "$outcome" != error ] || pd_observe silent-failure "A planning node session ended in error" \
       "#$seq $node ($agent), round $round: ${reason:-no reason}" "one dispatch recorded as error"
-  fi
-  if [ -n "$fr" ] && [ -s "$fr" ]; then
-    while IFS= read -r item || [ -n "$item" ]; do
-      [ -n "$item" ] || continue
-      pd_observe tooling-gap "Harness friction reported by $agent" \
-        "node $node, agent $agent, round $round: $item" "reported by the agent"
-    done <"$fr"
   fi
 
   case "$kind" in

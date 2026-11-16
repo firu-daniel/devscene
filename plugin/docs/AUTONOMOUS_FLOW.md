@@ -60,6 +60,7 @@ This document uses it for the global kill switch in `## Safety / reversibility` 
 | Improvement-observations intake (canonical; activated by one `Override I` in each of the two **autonomous** forks) | `${CLAUDE_PLUGIN_ROOT}/instructions/improvement_observations_instructions.md` |
 | Clarification digest (canonical; activated by one `Override J` in each of the two **autonomous** forks) | `${CLAUDE_PLUGIN_ROOT}/instructions/clarification_digest_instructions.md` |
 | What an orchestrator may add to a dispatch prompt, and the record it owes (canonical; activated by a pointer in each orchestrating document's dispatch site) | `${CLAUDE_PLUGIN_ROOT}/instructions/dispatch_discipline_instructions.md` |
+| How a caller checks an agent's return object, and the route for one that fails (canonical; pointed at by each caller that routes on a return) | `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` |
 | Run-mode contract — how a task prompt's `### Run mode` binds an orchestrator (canonical; activated by a pointer at each governed orchestrator's Setup and gating sites) | `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md` |
 | Pause/resume protocol and the flow-progress ledger a resumed run reads back | `${CLAUDE_PLUGIN_ROOT}/instructions/autonomous_pause_and_ledger.md` |
 | The core/fork binding vocabulary and the rules that keep a pair honest | `${CLAUDE_PLUGIN_ROOT}/instructions/mode_contract.md` |

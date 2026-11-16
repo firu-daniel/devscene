@@ -14,21 +14,32 @@
  * runs in, with `phases.parity` `true` (a round's set is three gates) and `phases.qa` `false`. Its
  * bare `origin` is the one `createFixture` seeds, so `push-branch.sh` has a remote.
  *
- * The stub reads `--agent`, `-p`, `--plugin-dir` and `--json-schema` from its argv and acts on the
- * entry the case's script holds for that agent at that call index — the index counts the agent's
- * calls across every `pd_drive` of one fixture. An entry is
- * `{ outcome?, findings?, sleepMs?, mode?, friction?, touch?, return? }`: `mode` is `no-init`, `no-result`,
- * `undeclared` (outcome `SHIP`), `not-success` (a `result` of subtype `error_max_turns` with
- * `is_error`), `no-decision` (a `success` result whose text is no JSON object) or `withhold` (the
- * `init` event drops `Glob` and `Grep` from the declared tools when they include `Bash`, as Claude
- * Code 2.1.325 does); `findings`, on a
- * gate, is the verdict (`PASS` or `FAIL`) of the findings file it writes whatever its outcome, so
- * `{ outcome: 'blocker', findings: 'PASS' }` leaves a PASS file and then fails; with `outcome`
- * `PASS` or `FAIL` and a different `findings`, the decision carries no `findings_file`, which the
- * driver records as `error`; `touch` names a
- * file it creates under `<stateDir>/` before its sleep, such as `STOP` or `PAUSE`. A `sleepMs` past
- * `drive`'s `stallSecs` is a stall the driver kills. With no entry a gate returns `PASS` and a
- * writer `returned`.
+ * The stub reads `--agent`, `-p` and `--plugin-dir` from its argv and acts on the entry the case's
+ * script holds for that agent at that call index — the index counts the agent's calls across every
+ * `pd_drive` of one fixture. It emits what a real node session emits: a `result` whose text is one
+ * prose line, a blank line and a ```` ```json ```` return block, and no structured field beside it. The
+ * block is built from the fixture plugin's copy of the real agent's `schemas/<agent>.return.json`: the
+ * variant whose `outcome` the entry names, every required property filled — the known ones with
+ * their real values, any other with a placeholder.
+ *
+ * An entry is `{ outcome?, findings?, sleepMs?, mode?, touch?, questions? }`. `mode` is `no-init`,
+ * `no-result`, `not-success` (a `result` of subtype `error_max_turns` with `is_error`), `no-block`
+ * (a `success` whose text carries no return block), `invalid` (a block carrying the unknown key
+ * `stub_unknown`, so it fails its schema) or `withhold` (the `init` event drops `Glob` and `Grep`
+ * from the declared tools when they include `Bash`, as Claude Code 2.1.325 does). `questions` is
+ * the `questions` array of a `questions` outcome. `touch` names a file it creates under
+ * `<stateDir>/` before its sleep, such as `STOP` or `PAUSE`. A `sleepMs` past `drive`'s `stallSecs`
+ * is a stall the driver kills. With no entry a gate returns `PASS` and a writer `returned`.
+ *
+ * `findings`, on a gate, is the verdict (`PASS` or `FAIL`) of the round file it writes whatever its
+ * outcome, so `{ outcome: 'blocker', findings: 'PASS' }` leaves a PASS file and then blocks. Where
+ * `findings` differs from `outcome`, the object omits `findings_file` even where the variant
+ * requires it, and the driver's reading of that splits by gate: a mismatched `FAIL` at any gate,
+ * or a mismatched `PASS` at `plan_review` (whose `PASS` requires `findings_file`), fails the schema
+ * — an infrastructure `error`, retried up to `PD_MAX_ATTEMPTS`; a mismatched `PASS` at
+ * `architecture_review` or `business_parity_review` (whose `PASS` leaves it optional) passes the
+ * schema and is caught by the round-gate `findings_file` check instead — also an infrastructure
+ * `error`, retried up to `PD_MAX_ATTEMPTS`.
  */
 
 import assert from 'node:assert/strict';
@@ -72,7 +83,6 @@ const prompt = flag('-p');
 const qualified = flag('--agent');
 const agent = qualified.slice(qualified.indexOf(':') + 1);
 const pluginDir = flag('--plugin-dir');
-JSON.parse(flag('--json-schema'));
 const dir = process.env.STUB_DIR;
 const cwd = process.cwd();
 
@@ -91,20 +101,25 @@ const lines = prompt.split('\n');
 const value = (key) => { const line = lines.find((l) => l.startsWith(key)); return line === undefined ? '' : line.slice(key.length); };
 const put = (rel, text) => { mkdirSync(dirname(join(cwd, rel)), { recursive: true }); writeFileSync(join(cwd, rel), text); };
 
-const decision = {};
+const agentText = readFileSync(join(pluginDir, 'agents', agent + '.md'), 'utf8').split('\n');
+const fence = '\x60\x60\x60';
+const schema = JSON.parse(readFileSync(join(pluginDir, 'schemas', agent + '.return.json'), 'utf8'));
+
+// The known fields, with the values a real session would return; a required field not here gets a placeholder.
+const known = {};
 const folder = value('findings_folder: ');
+let outcome;
 if (folder !== '') {
-  decision.outcome = entry.outcome ?? 'PASS';
-  const verdict = entry.findings ?? decision.outcome;
+  outcome = entry.outcome ?? 'PASS';
+  const verdict = entry.findings ?? outcome;
   if (verdict === 'PASS' || verdict === 'FAIL') {
     const findings = folder + 'review_' + value('iteration: ') + '.md';
     put(findings, '# review\nverdict: ' + verdict + '\nreview_mode: ' + value('review_mode: ') + '\n');
-    if (verdict === decision.outcome) decision.findings_file = findings;
+    if (verdict === outcome) known.findings_file = findings;
   }
-  decision.return = entry.return ?? 'verdict: ' + decision.outcome;
 } else {
-  decision.outcome = entry.outcome ?? 'returned';
-  if (decision.outcome === 'returned') {
+  outcome = entry.outcome ?? 'returned';
+  if (outcome === 'returned' && agent === 'task-plan-writer') {
     let story = value('Story index: ');
     let tasks = value('Per-task files: ');
     const initial = /^Outputs: story index at (\S+) and per-task files at (\S+)task_<N>_plan\.md$/m.exec(prompt);
@@ -113,18 +128,39 @@ if (folder !== '') {
     put(tasks + 'task_1_plan.md', '### Task 1\n\nwritten by call ' + index + '\n');
     const note = value('Revision note: ');
     if (note !== '') put(note, '# Revision\n\nwritten by call ' + index + '\n');
-    decision.return = 'story_file: ' + story + '\ntask_files_dir: ' + tasks + '\ntasks_count: 1';
-  } else {
-    decision.return = entry.return ?? 'stub ' + decision.outcome;
+    Object.assign(known, { story_file: story, task_files_dir: tasks, tasks_count: 1, story_points_total: 1 });
+  } else if (outcome === 'returned') {
+    let uiIndex = value('Index: ') || value('ui_test_index: ');
+    let files = value('Per-test files: ') || value('ui_test_files_dir: ');
+    const initial = /^Outputs: index (\S+) and per-test files (\S+)ui_test_<N>\.md$/m.exec(prompt);
+    if (initial !== null) [, uiIndex, files] = initial;
+    Object.assign(known, { ui_test_index: uiIndex, ui_test_files_dir: files, tests_count: 1 });
   }
 }
-if (entry.return !== undefined) decision.return = entry.return;
-if (entry.mode === 'undeclared') decision.outcome = 'SHIP';
-decision.harness_friction = entry.friction === undefined ? [] : [entry.friction];
+Object.assign(known, { questions: entry.questions ?? ['stub question'], blocker: 'stub blocker', reason: 'stub reason' });
+
+const placeholder = (name, p) => {
+  if (p.type === 'integer') return Math.max(1, p.minimum ?? 1);
+  if (p.type === 'array') return ['stub ' + name];
+  if (p.type === 'boolean') return true;
+  return 'stub ' + name;
+};
+const variant = schema.oneOf.find((v) => v.properties?.outcome?.const === outcome);
+const object = { outcome };
+if (variant !== undefined) {
+  for (const name of variant.required ?? []) {
+    if (name === 'outcome' || name === 'findings_file') continue;
+    object[name] = known[name] !== undefined && known[name] !== '' ? known[name] : placeholder(name, variant.properties[name]);
+  }
+  if (known.findings_file !== undefined && variant.properties.findings_file !== undefined) object.findings_file = known.findings_file;
+}
+if (entry.mode === 'invalid') object.stub_unknown = true;
+const resultText = entry.mode === 'no-block'
+  ? 'stub ' + agent + ' ended with no return block.'
+  : 'stub ' + agent + ' returned ' + outcome + '.\n\n' + fence + 'json\n' + JSON.stringify(object, null, 2) + '\n' + fence + '\n';
 
 const tools = (() => {
-  const text = readFileSync(join(pluginDir, 'agents', agent + '.md'), 'utf8');
-  const line = text.split('\n').find((l) => l.startsWith('tools:'));
+  const line = agentText.find((l) => l.startsWith('tools:'));
   return line.slice('tools:'.length).split(',').map((t) => t.trim()).filter(Boolean);
 })();
 appendFileSync(join(dir, 'calls.log'), agent + ' ' + index + ' end ' + Date.now() + '\n');
@@ -133,10 +169,8 @@ const initTools = entry.mode === 'withhold' && tools.includes('Bash') ? tools.fi
 if (entry.mode !== 'no-init') events.push({ type: 'system', subtype: 'init', session_id: 'stub', tools: initTools });
 if (entry.mode === 'not-success') {
   events.push({ type: 'result', subtype: 'error_max_turns', is_error: true, total_cost_usd: 0.01, permission_denials: [] });
-} else if (entry.mode === 'no-decision') {
-  events.push({ type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0.01, permission_denials: [], result: 'verdict: PASS' });
 } else if (entry.mode !== 'no-result') {
-  events.push({ type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0.01, permission_denials: [], structured_output: decision });
+  events.push({ type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0.01, permission_denials: [], result: resultText });
 }
 process.stdout.write(events.map((e) => JSON.stringify(e)).join('\n') + (events.length ? '\n' : ''));
 `;
@@ -191,11 +225,14 @@ export async function driverFixture(t, { script = {}, core = (text) => text } = 
   const plugin = join(root, 'plugin');
   await mkdir(join(plugin, '.claude-plugin'), { recursive: true });
   await mkdir(join(plugin, 'agents'));
+  await mkdir(join(plugin, 'schemas'));
   await mkdir(join(plugin, 'instructions'));
   const source = join(WORKSPACE_ROOT, 'plugin');
   await copyFile(join(source, '.claude-plugin', 'plugin.json'), join(plugin, '.claude-plugin', 'plugin.json'));
   for (const agent of PLANNING_AGENTS) {
     await copyFile(join(source, 'agents', `${agent}.md`), join(plugin, 'agents', `${agent}.md`));
+    const schemaFile = `${agent}.return.json`;
+    await copyFile(join(source, 'schemas', schemaFile), join(plugin, 'schemas', schemaFile));
   }
   const coreName = 'task_plan_writing_instructions_core.md';
   await writeFile(join(plugin, 'instructions', coreName), core(await readFile(join(source, 'instructions', coreName), 'utf8')));
