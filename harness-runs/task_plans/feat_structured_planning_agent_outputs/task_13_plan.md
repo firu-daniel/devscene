@@ -1,0 +1,30 @@
+### Task 13 — Add `cli/test/agent-return-schemas.test.mjs`, the static check that holds every return schema to its contract, its dialect, the planning graph and every citation of its fields
+
+**Goal:** Make renaming a field in any of the six returns break a test rather than a caller at run time (task prompt goal 4), and make the check the one #380 turns on agent by agent: every agent definition that carries a `## Return schema` is held to the dialect, to its own `## Output contract`, to the planning graph where the graph dispatches it, and to every citation of its fields across the plugin and the driver; an agent with no `## Return schema` section is skipped.
+
+**Depends on:** Tasks 1–9 and 11, which this suite reads as they now stand:
+
+- `plugin/instructions/agent_return_contract.md` (Task 1): `## The return block`, whose **first fenced block** is the canonical sentence; `## The return schema`, the closed dialect (top level `$schema` = `http://json-schema.org/draft-07/schema#`, `title`, `description`, `type: "object"`, non-empty `oneOf`; each variant `type: "object"`, `description`, `properties`, `required` including `outcome`, `additionalProperties: false`; `properties.outcome` = `{ "const": … }` plus optional `description`, consts distinct; every other property `type` ∈ `string` / `integer` / `boolean` / `array` with only `description`, `const`, `enum`, `minLength`, `minimum`, `minItems`, `items` = `{ "type": "string" }` with optional `minLength`); `## Return fields` (the `### Return fields` subsection, one bullet per property opening with the name in backticks); `## Citing a field` (`` `<agent>.<field>` ``); `## Who may cite this` (the roster).
+- The six agent files (Tasks 2–5): a `## Return schema` section with exactly one ```` ```json ```` fenced block, directly after `## Output contract`, which carries the canonical sentence and `### Return fields`.
+- `cli/templates/scripts/flows/task_plan_writing.graph.json`: each `kind: "dispatch"` node's `agent` and `outcomes` keys.
+- `cli/templates/scripts/lib/planning-driver-lib.sh` (Task 11): every literal `pd_ret_field <node> <field>` call.
+
+**Registration.** The suite reads trees of repository files as text, so it is a tree guard (`plugin/instructions/unit_loop_core.md` → `## The test-run rule`, point 8). **Task 15 adds its two `treeGuards` entries** to `devscene.config.json` — `test/agent-return-schemas.test.mjs` covering `plugin/**/*.md`, and the same test covering `cli/templates/scripts/**` — because that file is the catch-all layer's.
+
+### Targets
+
+- `cli/test/agent-return-schemas.test.mjs` (new)
+
+**Work:**
+
+- [ ] The header opens with the rule the suite enforces, before any case (`.claude/context/conventions.md` → `## The testing bar`): *every agent definition carrying a `## Return schema` declares its return in the closed dialect, describes exactly that schema in its `### Return fields`, carries the canonical return-block sentence, and is cited — by the planning graph, by every `` `<agent>.<field>` `` in the plugin and by every `pd_ret_field` call in the driver — only for outcomes and fields it declares.* State that an agent without the section is skipped by design, so agents adopt the mechanism one at a time (#380), and that the suite reads this checkout's files and creates nothing in it. Use `node:test`, `node:assert/strict` and `node:fs` only, locating the root from `cli/test/helpers/fixture.mjs` → `WORKSPACE_ROOT`. Section scans skip `#` lines inside fences, because several `## Output contract` sections carry a fenced findings-file template whose `## Must Fix` lines are not headings.
+- [ ] Per schema-carrying agent: exactly one ```` ```json ```` block in `## Return schema`, which parses; every keyword at every level is in the dialect, `additionalProperties` is `false` on every variant, `required` includes `outcome`, and the `outcome` consts are distinct. Against `## Output contract`: the canonical sentence, read from the module's `## The return block`, appears verbatim; the bullet-opening backticked names under `### Return fields` equal the union of the variants' property names, `outcome` included; every `outcome` const appears backticked in the section; and no fenced block in the section is made only of `key: value` lines (the retired return form — a fence holding a findings-file template is not one).
+- [ ] Against the planning graph: every `kind: "dispatch"` node's agent carries a `## Return schema`, and its set of `outcome` consts equals the node's `outcomes` keys minus `error`. Every round-gate node's agent (the `gates` of each `kind: "round"` node) declares `findings_file` on its `PASS` and its `FAIL` variant, because `pnl_reap`'s rule 7 reads it there. Every `pd_ret_field <node> <field>` call in `planning-driver-lib.sh` names a property of that node's agent's schema.
+- [ ] Across `plugin/**/*.md`: every `` `<agent>.<field>` `` token whose `<agent>` is a schema-carrying agent's file basename names a property of that agent's schema — skipping the token whose `<field>` is `md`, which is a file name. The set of plugin files, the module excluded, whose text names `agent_return_contract.md` equals the module's `## Who may cite this` roster.
+- [ ] Each check is a function over text, and each is also run once on an inline bad sample it must reject — a schema with an unknown keyword, a variant without `additionalProperties: false`, a `### Return fields` list missing one property, an Output contract without the canonical sentence, a citation of an undeclared field, a graph node whose outcomes differ from its agent's consts — so no check can pass vacuously on the real tree.
+
+**Verification:**
+
+- `cli/test/agent-return-schemas.test.mjs` passes against the tree as Tasks 1–12 left it.
+- Editing a copy of one schema-carrying agent text in memory — renaming `findings_file` to `review_file` in its schema only — makes the property-equality check and the citation check report it; the inline bad samples assert exactly this kind of rejection.
+- The suite names no fixture path inside this checkout and writes nothing.
