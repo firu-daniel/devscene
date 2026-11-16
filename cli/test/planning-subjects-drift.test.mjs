@@ -1,14 +1,14 @@
 /**
- * The planning driver's fixed commit subjects against the artifact table,
+ * The planning driver's commits against the artifact table,
  * `cli/templates/scripts/lib/planning-record-lib.sh` against `cli/templates/scripts/lib/unit-commit-lib.sh`.
  *
- * **The rule this suite enforces: each fixed subject and path set the planning driver hardcodes
- * equals the library's artifact-table row byte-for-byte.** The driver keeps its own plain wrapper
- * calls while the autonomous fork issues `commit-on-branch.sh --artifact <kind>`, so the two must
- * name the same commit or the same commit point lands under two subjects.
+ * **The rule this suite enforces: each planning-driver commit carries `ucl_artifact`'s subject and
+ * path set for its kind, byte-for-byte.** The driver keeps its own plain wrapper calls while the
+ * autonomous fork issues `commit-on-branch.sh --artifact <kind>`, so a driver call reading the wrong
+ * kind or passing the wrong round or entry lands the same commit point under two subjects.
  *
  * Each case runs one `bash` subprocess that sources `lib/harness-run-lib.sh`,
- * `lib/planning-record-lib.sh` and `lib/unit-commit-lib.sh` from the templates, sets the `PRL_*`
+ * `lib/unit-commit-lib.sh` and `lib/planning-record-lib.sh` from the templates, sets the `PRL_*`
  * globals to a throwaway worktree under the system temp directory, and redefines `prl_commit` to
  * print its subject and paths NUL-separated, each commit closed by an empty record. A second
  * subprocess prints the matching `ucl_artifact` rows the same way, and the two outputs are compared.
@@ -30,8 +30,8 @@ const S = 'devscene';
 
 const PRELUDE = [
   `. '${join(LIB, 'harness-run-lib.sh')}' || exit 99`,
-  `. '${join(LIB, 'planning-record-lib.sh')}' || exit 98`,
   `. '${join(LIB, 'unit-commit-lib.sh')}' || exit 97`,
+  `. '${join(LIB, 'planning-record-lib.sh')}' || exit 98`,
   `PRL_BRANCH=${BRANCH}`,
   `PRL_STATE_DIR=${S}`,
   'PRL_WORKTREE="$W"',

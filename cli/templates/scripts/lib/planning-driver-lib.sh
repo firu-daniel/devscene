@@ -34,8 +34,8 @@
 # the walker's. The answered pairs come only from `hr_top_level_answered_pairs`.
 #
 # SOURCED, NEVER EXECUTED. It sets no shell option. The caller sources
-# `lib/harness-run-lib.sh`, `lib/planning-node-lib.sh` and
-# `lib/planning-record-lib.sh` first, and calls `pd_drive` with the working
+# `lib/harness-run-lib.sh`, `lib/planning-node-lib.sh`, `lib/unit-commit-lib.sh`
+# and `lib/planning-record-lib.sh` first, and calls `pd_drive` with the working
 # directory at <worktree> and never inside `$(…)`: it waits on the sessions it
 # launches.
 #
@@ -63,12 +63,12 @@
 # REPRO — against a throwaway fixture, never a checkout:
 #
 #   Build `lib/planning-record-lib.sh`'s REPRO fixture in "$r", copy
-#   `flow-walker.sh`, `flows/` and the four libraries under "$r/m/s/" before the
+#   `flow-walker.sh`, `flows/` and the five libraries under "$r/m/s/" before the
 #   worktree is added, commit a task-engine ledger at
 #   "$r/w/devscene/flow_progress/feat_x_progress.md" and a task prompt, and fill
 #   a plugin directory "$p" with `.claude-plugin/plugin.json`, the six planning
 #   agents and the planning core.
-#   cd "$r/w"; for l in harness-run-lib planning-node-lib planning-record-lib planning-driver-lib; do . "s/lib/$l.sh"; done
+#   cd "$r/w"; for l in harness-run-lib planning-node-lib unit-commit-lib planning-record-lib planning-driver-lib; do . "s/lib/$l.sh"; done
 #   stub() { exec <stub agent cli> -p "$1" "${@:2}"; }
 #   PD_PLUGIN_DIR=$p PD_MAIN_REPO=$r/m PD_SESSION_EXEC=stub PD_FORMATTER=cat PD_NODE_STALL_SECS=0
 #

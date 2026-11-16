@@ -3807,8 +3807,9 @@ engine_pipeline() {
   return "${PIPESTATUS[0]}"
 }
 
-# The pilot's three libraries under "$SCRIPT_DIR/lib/", in sourcing order.
-PLANNING_DRIVER_LIBS="planning-node-lib planning-record-lib planning-driver-lib"
+# The pilot's libraries under "$SCRIPT_DIR/lib/", in sourcing order;
+# planning-record-lib reads unit-commit-lib's artifact table.
+PLANNING_DRIVER_LIBS="planning-node-lib unit-commit-lib planning-record-lib planning-driver-lib"
 
 # planning_driver_ready <branch> <worktree> <state_rel> <engine_kind>
 #

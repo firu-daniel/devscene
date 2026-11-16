@@ -22,7 +22,7 @@ The conventions documents still cite `plugin/agents/committer.md` (five citation
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Planning-record library re-declares the artifact table's subjects and path sets _(layer: cli, general)_
+1. [x] **Finding 1** — Planning-record library re-declares the artifact table's subjects and path sets _(layer: cli, general)_
 
 ## Should Fix
 

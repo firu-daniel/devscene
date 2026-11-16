@@ -12,18 +12,19 @@
 # `### 1.6`). The fork issues `commit-on-branch.sh --artifact <kind> --push` as
 # one call; this library keeps the plain form — the main checkout's
 # `commit-on-branch.sh --repo <worktree> <path>… -- "<subject>"`, then its own
-# `push-branch.sh <worktree>`, each its own process. Its subjects and path sets
-# are held equal to `lib/unit-commit-lib.sh` → `ucl_artifact`'s table by
-# `cli/test/planning-subjects-drift.test.mjs`.
+# `push-branch.sh <worktree>`, each its own process. Every commit's subject and
+# path set are read from `lib/unit-commit-lib.sh` → `ucl_artifact`'s table,
+# never spelled here.
 #
 # IT DECIDES NOTHING. Which `round:` or `ledger:` line fires a commit, when a
 # park, pause or hand-off happens, and what a park's body holds are
 # `lib/planning-driver-lib.sh`'s.
 #
 # SOURCED, NEVER EXECUTED. It sets no shell option. The caller sources
-# `lib/harness-run-lib.sh` first: `prl_init` resolves `stateDir` from the
-# worktree and `scriptsDir` from the main checkout through it, and `prl_park`
-# takes its index from `hr_max_question_index`.
+# `lib/harness-run-lib.sh` and `lib/unit-commit-lib.sh` first: `prl_init`
+# resolves `stateDir` from the worktree and `scriptsDir` from the main checkout
+# through the former, `prl_park` takes its index from `hr_max_question_index`,
+# and every commit takes its subject and path set from `ucl_artifact`.
 #
 # BASH 3.2 AND JQ 1.5 ARE THE FLOORS, as in `lib/harness-run-lib.sh`. Every
 # temporary file names an explicit `mktemp` template; a rewritten tracked file
@@ -54,7 +55,7 @@
 #   printf '{"version":1,"defaultBranch":"trunk","stateDir":"devscene/","scriptsDir":"s","layers":[],"commands":{}}' > "$r/m/devscene.config.json"
 #   mkdir -p "$r/m/s"; cp -R <scripts_dir>/commit-on-branch.sh <scripts_dir>/push-branch.sh <scripts_dir>/lib "$r/m/s/"
 #   git -C "$r/m" add -A; git -C "$r/m" commit -qm seed; git -C "$r/m" worktree add -q -b feat_x "$r/w"
-#   . "$r/w/s/lib/harness-run-lib.sh"; . "$r/w/s/lib/planning-record-lib.sh"
+#   for l in harness-run-lib unit-commit-lib planning-record-lib; do . "$r/w/s/lib/$l.sh"; done
 #
 #   init      prl_init feat_x "$r/w" "$r/m" "$r/run.log"; echo "$? $PRL_STATE_DIR"  -> 0 devscene
 #   round     mkdir -p "$r/w/devscene/task_plans/feat_x"; echo a > "$r/w/devscene/task_plans/feat_x/task_1_plan.md"
@@ -100,6 +101,7 @@ prl_init() {
   [ -n "$worktree" ] && [ -d "$worktree" ] || { prl_fail "the worktree '$worktree' does not exist"; return 2; }
   [ -n "$main_repo" ] && [ -d "$main_repo" ] || { prl_fail "the main checkout '$main_repo' does not exist"; return 2; }
   command -v hr_state_dir >/dev/null 2>&1 || { prl_fail "lib/harness-run-lib.sh is not sourced"; return 2; }
+  command -v ucl_artifact >/dev/null 2>&1 || { prl_fail "lib/unit-commit-lib.sh is not sourced"; return 2; }
   PRL_BRANCH="$branch"
   PRL_WORKTREE="${worktree%/}"
   PRL_MAIN_REPO="${main_repo%/}"
@@ -163,11 +165,20 @@ prl_commit() {
   prl_fail "$cause"
 }
 
-# The planning path set of Override 6, in its order, into PRL_PATHS.
-prl_round_paths() {
-  local s="$PRL_STATE_DIR" b="$PRL_BRANCH"
-  PRL_PATHS=("$s/story_plans/${b}_story_plan.md" "$s/task_plans/$b/" "$s/task_plan_reviews/$b/"
-    "$s/business_parity_reviews/$b/" "$s/architecture_reviews/$b/" "$s/plan_revisions/$b/")
+# prl_artifact_commit <kind> [<round>] [<entry>] — `prl_commit` of
+# `ucl_artifact`'s subject and path set for <kind>.
+prl_artifact_commit() {
+  local kind="${1-}" err cause=""
+  PRL_COMMIT_LANDED=no
+  err=$(mktemp "${TMPDIR:-/tmp}/planning-record-ucl.XXXXXX") || { prl_fail "cannot create a temporary file"; return 2; }
+  if ! ucl_artifact "$kind" "$PRL_STATE_DIR" "$PRL_BRANCH" "${2-}" '' "${3-}" 2>"$err"; then
+    IFS= read -r cause <"$err"
+    rm -f "$err"
+    prl_fail "the artifact table refused '$kind': ${cause#unit-commit-lib: }"
+    return 2
+  fi
+  rm -f "$err"
+  prl_commit "$UCL_SUBJECT" "${UCL_PATHS[@]}"
 }
 
 prl_round_number() {
@@ -180,30 +191,23 @@ prl_round_number() {
 # prl_round_commit <n>
 prl_round_commit() {
   prl_round_number "${1-}" || return 2
-  prl_round_paths
-  prl_commit "chore: Plan round $1 for $PRL_BRANCH" "${PRL_PATHS[@]}"
+  prl_artifact_commit plan-round "$1"
 }
 
 # prl_partial_commit <n>
 prl_partial_commit() {
   prl_round_number "${1-}" || return 2
-  prl_round_paths
-  prl_commit "chore: Plan round $1 partial for $PRL_BRANCH" "${PRL_PATHS[@]}"
+  prl_artifact_commit plan-round-partial "$1"
 }
 
 # prl_convergence_commits <yes|no> — <yes> when a UI-test plan was written.
 prl_convergence_commits() {
-  local s="$PRL_STATE_DIR" b="$PRL_BRANCH"
   case "${1-}" in
-    yes)
-      prl_commit "chore: Add UI-test plan for $b" "$s/ui_test_plans/${b}_ui_test_plan.md" "$s/ui_test_plans/$b/" || return 2
-      ;;
+    yes) prl_artifact_commit ui-test-plan || return 2 ;;
     no) ;;
     *) prl_fail "prl_convergence_commits takes yes or no, not '${1-}'"; return 2 ;;
   esac
-  prl_commit "chore: Add task plan for $b" "$s/story_plans/${b}_story_plan.md" "$s/task_plans/$b/" \
-    "$s/task_plan_reviews/$b/" "$s/business_parity_reviews/$b/" "$s/architecture_reviews/$b/" \
-    "$s/plan_revisions/$b/" "$s/ui_test_plan_reviews/$b/"
+  prl_artifact_commit task-plan
 }
 
 # prl_ledger_flip <P1|P2|P3> — `[ ]` becomes `[x]`; `[x]` and `[-]` stay.
@@ -233,7 +237,7 @@ prl_ledger_flip() {
   else
     prl_log "ledger: $id already resolved"
   fi
-  prl_commit "chore: Flow progress $id for $PRL_BRANCH" "$rel"
+  prl_artifact_commit ledger-flip '' "$id"
 }
 
 # prl_park <raised_by> <q_title> <body_file>
@@ -432,7 +436,7 @@ prl_observe_flush() {
       ;;
     *) prl_log "observations: the machine-path check could not run; committing" ;;
   esac
-  if ! prl_commit "chore: Log improvement observations for $PRL_BRANCH" "$rel" 2>/dev/null; then
+  if ! prl_artifact_commit observations 2>/dev/null; then
     prl_log "observations: the commit of '$rel' failed"
     if [ "$PRL_COMMIT_LANDED" = no ] && [ -n "$backup" ]; then cp "$backup" "$file"; fi
   fi

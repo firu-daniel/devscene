@@ -52,7 +52,7 @@ const PLANNING_AGENTS = [
   'ui-tests-plan-reviewer',
 ];
 
-const LIBRARIES = ['harness-run-lib', 'planning-node-lib', 'planning-record-lib', 'planning-driver-lib'];
+const LIBRARIES = ['harness-run-lib', 'planning-node-lib', 'unit-commit-lib', 'planning-record-lib', 'planning-driver-lib'];
 
 /** Bounds one `pd_drive`; its group is killed past it (`fixture.mjs` → choice 6). */
 const DRIVE_TIMEOUT_MS = 180_000;

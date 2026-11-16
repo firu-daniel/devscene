@@ -10,8 +10,8 @@
  *
  * Each case builds its own main checkout, bare `origin` and linked worktree on `feat_x` under the
  * system temp directory, with the isolated git configuration `runBash` and `runGit` apply and a
- * fake `HOME`. It copies `lib/harness-run-lib.sh`, `commit-on-branch.sh`, `push-branch.sh` and the
- * library from `cli/templates/scripts/`, and seeds a task-engine ledger.
+ * fake `HOME`. It copies `lib/harness-run-lib.sh`, `lib/unit-commit-lib.sh`, `commit-on-branch.sh`,
+ * `push-branch.sh` and the library from `cli/templates/scripts/`, and seeds a task-engine ledger.
  *
  * Not covered: that the run copy's index matches `HEAD` after a real landed exit 1. The real
  * wrapper reaches that exit only when the working copy's index cannot take the paths after the ref
@@ -59,6 +59,7 @@ const CLOSING = '# Task run (Phase D)';
 
 const PRELUDE = [
   '. "$M/s/lib/harness-run-lib.sh" || exit 99',
+  '. "$M/s/lib/unit-commit-lib.sh" || exit 96',
   '. "$M/s/lib/planning-record-lib.sh" || exit 98',
   `prl_init ${BRANCH} "$W" "$M" "$LOG" || exit 97`,
 ].join('\n');
@@ -80,7 +81,7 @@ async function fixture(t) {
   await runGit(main, ['remote', 'add', 'origin', origin]);
   await writeFile(join(main, 'devscene.config.json'), `${JSON.stringify(CONFIG)}\n`);
   await mkdir(join(main, 's', 'lib'), { recursive: true });
-  for (const name of ['commit-on-branch.sh', 'push-branch.sh', 'lib/harness-run-lib.sh', 'lib/planning-record-lib.sh']) {
+  for (const name of ['commit-on-branch.sh', 'push-branch.sh', 'lib/harness-run-lib.sh', 'lib/unit-commit-lib.sh', 'lib/planning-record-lib.sh']) {
     await copyFile(join(TEMPLATES, name), join(main, 's', name));
   }
   await mkdir(join(main, S, 'flow_progress'), { recursive: true });
