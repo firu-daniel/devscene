@@ -94,7 +94,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_committer_as_script/tas
 9. [x] **Task 9** — Make the unit loop's step 5 one `<commit_call> --unit` call and retire the committer columns _(layer: plugin)_ _(points: 20)_
 10. [x] **Task 10** — Move the task-flow core's review-file and mark-pass commits onto `<commit_call> --unit` _(layer: plugin)_ _(points: 20)_
 11. [x] **Task 11** — Bind `<commit_call>` in the autonomous task fork and move its fixed-subject commits onto `--artifact` _(layer: plugin)_ _(points: 20)_
-12. [ ] **Task 12** — Bind `<commit_call>` in the autonomous user-review-fix fork and move its fixed-subject commits onto `--artifact` _(layer: plugin)_ _(points: 20)_
+12. [x] **Task 12** — Bind `<commit_call>` in the autonomous user-review-fix fork and move its fixed-subject commits onto `--artifact` _(layer: plugin)_ _(points: 20)_
 13. [ ] **Task 13** — Move the ledger, dispatch-additions, digest and re-screened-input commits onto `--artifact` _(layer: plugin)_ _(points: 20)_
 14. [ ] **Task 14** — Move the observations commit onto `--artifact` and read the records from any message line _(layer: plugin)_ _(points: 15)_
 15. [ ] **Task 15** — Move both planning forks' plan, round, UI-test-plan and lessons commits onto `--artifact` _(layer: plugin)_ _(points: 20)_

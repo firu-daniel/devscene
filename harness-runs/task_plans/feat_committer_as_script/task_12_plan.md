@@ -43,3 +43,11 @@
 - `git grep -n -e 'committer' -- plugin/instructions/user_review_fixes_instructions_autonomous.md plugin/commands/branch-start-user-review-fix-autonomous.md` prints nothing.
 - `git grep -n -F -e '--artifact statistics-update --push' -e '--artifact ui-test-plan --push' -e '--artifact ledger-flip --entry' -- plugin/instructions/user_review_fixes_instructions_autonomous.md` shows Overrides D, L and G.
 - `git grep -n -F 'chore: Update branch statistics for' -- plugin/instructions/user_review_fixes_instructions_autonomous.md` prints nothing.
+
+**Deviations from plan:**
+
+- Override G cites `autonomous_pause_and_ledger.md` §1.6 by section number, not by its full heading text: that heading (`### 1.6 How to flip / create — direct `commit-on-branch.sh`, NEVER a committer dispatch`) contains `committer`, which the first verification grep forbids in this file. The §1.6 form matches Task 11's task fork.
+- "The **Commits** summary bullet names the wrapper's `--push`": the only **Commits** bullet in the fork is Override H's docs-phase one, and the docs phase keeps its two-call commit + `push-branch.sh` form (`docs_phase_instructions.md`; this task's own Override E bullet). That bullet now names itself as "the two-call form Override E names as its one exception", the same wording Task 11 used for the task fork, instead of naming `--push`.
+- Override E's heading is renamed to `### Override E — every commit pushes through `--push` (autonomous user-review-fix fork only)`, matching Task 11. Its old push block, the no-exit-code-gate warning and the no-op paragraph are dropped. The only other places that cite the old heading are point-in-time artifacts under `harness-runs/`.
+- Override D's "Interaction with the hard boundary" sentence now reads "The push the same call makes (Override E below)", because no separate push follows the commit any more.
+- Override D's subject parenthesis now sits after the code block and names the kinds `statistics` / `statistics-update`. The removed "No `Co-Authored-By:`" paragraph held it before.
