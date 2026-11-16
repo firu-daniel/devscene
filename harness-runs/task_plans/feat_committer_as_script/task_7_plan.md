@@ -26,6 +26,7 @@
 - [ ] **`task-plan-writer.md` and `user-review-fix-plan-writer.md`.**
   - **The committing-role sentence.** In `task-plan-writer.md` → `## Process` step 7's readiness bullet, replace the parenthetical committing-role sentence with the one above. Make the same replacement in `user-review-fix-plan-writer.md`.
   - **Other mentions.** "the committer never touches them" / "the committer ignores them" → "the commit step …". In step 7(b), "an implementer, reviewer or committer does the task" → "an implementer or reviewer does the task, and the commit step commits it". "the orchestrator and the committer ignore them" → "the orchestrator and the commit step ignore them".
+  - **Deviations from plan:** `user-review-fix-plan-writer.md` carried no parenthetical committing-role sentence to replace, only "that transition belongs to the committing role". The sentence was appended there after a colon, so the second Verification grep lists that file as the plan requires.
 - [ ] **`conventions-reviewer.md`.** "a list reaching past the committer's own commit modes is correct" becomes "a list reaching past the commit step's own fixed subjects is correct". Change nothing else there.
 
 **Verification:**
