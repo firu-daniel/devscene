@@ -7,9 +7,9 @@ The tokens below are neither Mode-contract **bindings** (this file declares none
 | Token | Class | How to resolve it |
 |---|---|---|
 | `<state_dir>` | config value | `stateDir` — the run-artifact tree every artifact path in this file is relative to. Default `devscene/`. It is never dot-named: no path segment of it may begin with a dot. |
-| `<scripts_dir>` | config value | `scriptsDir` — the repo-relative directory the generated wrapper scripts live in. The two scripts this file names by path, `commit-on-branch.sh` in `## Commit mechanics` and `push-branch.sh` in `## Push`, are outer-loop scripts rather than generated wrappers — they are named by their destination path, and the item that delivers them settles it. Both are invoked under `<MAIN_REPO>` rather than repo-relative, because the main checkout's copy is the one the unattended permission profile runs outside the sandbox. |
+| `<scripts_dir>` | config value | `scriptsDir` — the repo-relative directory the generated wrapper scripts live in. The one script this file names by path, `commit-on-branch.sh` in `## Commit mechanics`, is an outer-loop script rather than a generated wrapper — it is named by its destination path, and the item that delivers it settles it; its `--push` runs the `push-branch.sh` beside it. It is invoked under `<MAIN_REPO>` rather than repo-relative, because the main checkout's copy is the one the unattended permission profile runs outside the sandbox. |
 | `<MAIN_REPO>` | derived at runtime | The main checkout — the path a bare `printenv DEVSCENE_MAIN_REPO` prints, else the path `${CLAUDE_PLUGIN_ROOT}/instructions/main_repo_resolution.md` → `## The fallback` resolves, and a stop with its sentence when it resolves none. Spell it as a literal absolute path in the command, never through a substitution or a variable. |
-| `<repo_root>` | derived at runtime | The run-copy root this run executes in — the value the activating flow's `<repo_root>` binding gives and `$REPO_ROOT` holds. In the commit and push commands, spell it as a literal absolute path, never through a substitution or a variable. |
+| `<repo_root>` | derived at runtime | The run-copy root this run executes in — the value the activating flow's `<repo_root>` binding gives and `$REPO_ROOT` holds. In the commit command, spell it as a literal absolute path, never through a substitution or a variable. |
 
 ---
 
@@ -62,31 +62,23 @@ The digest is `<state_dir>/clarification_digests/<branch>.md` — **one per bran
 
 ## Commit mechanics
 
-**Direct wrapper, never a `committer` dispatch, and never a bare `git add` / `git commit` to make this commit** — the canonical rule for a non-readiness artifact is `${CLAUDE_PLUGIN_ROOT}/instructions/autonomous_pause_and_ledger.md` §1.6, and the reasoning plus the **four wrapper exit codes with their per-code revert and re-stage duties** are canonical in `${CLAUDE_PLUGIN_ROOT}/instructions/improvement_observations_instructions.md` → `## Commit mechanics`. They apply here unchanged, with this file's own path and subject substituted. Pass the digest as the single explicit path, and keep the fixed subject `chore: Record clarification digest for <branch>` verbatim — **the same subject in both flows**, stated once here so neither activating fork can drift it:
+**Direct wrapper call, never a bare `git add` / `git commit` to make this commit** — the canonical rule for a non-readiness artifact is `${CLAUDE_PLUGIN_ROOT}/instructions/autonomous_pause_and_ledger.md` §1.6, and the reasoning plus the **four wrapper exit codes with their per-code revert and re-stage duties** are canonical in `${CLAUDE_PLUGIN_ROOT}/instructions/improvement_observations_instructions.md` → `## Commit mechanics`. They apply here unchanged, with this file's own artifact kind substituted. The wrapper's `clarification-digest` kind fixes the one path it stages, `<state_dir>/clarification_digests/<branch>.md`, and the subject `chore: Record clarification digest for <branch>` — **the same subject in both flows**, so neither activating fork can drift it — and the call names neither:
 
 ```zsh
-bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root> <state_dir>/clarification_digests/<branch>.md -- "chore: Record clarification digest for <branch>"
+bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root> --artifact clarification-digest --push
 ```
 
-Spell `<MAIN_REPO>`, `<repo_root>` and `<branch>` each as the literal text it resolves to, with no `$` anywhere in the command.
+Spell `<MAIN_REPO>` and `<repo_root>` each as the literal text it resolves to, with no `$` anywhere in the command, and issue it once, alone.
 
 ## Push
 
-The push follows the commit **immediately**, as a **plain, single-statement** Bash command, naming the same run-copy root the commit above used, spelled literally:
-
-```zsh
-bash <MAIN_REPO>/<scripts_dir>/push-branch.sh <repo_root>
-```
-
-Spell both paths literally — `<MAIN_REPO>` and `<repo_root>` each as the absolute path it resolves to, never `"$REPO_ROOT"` or any other variable. From a run copy, the script-allowlist guard does not vouch for the main checkout's copy, so the profile's literal `allow` entry is this call's only grant, and a command carrying a shell expansion does not match it.
-
-> ⚠️ **No exit-code gate.** Why an `if …; then … fi` wrapper is refused in a headless run, and why no gate is needed, is canonical in `${CLAUDE_PLUGIN_ROOT}/instructions/improvement_observations_instructions.md` → `## Push` and applies here as written.
+The `## Commit mechanics` call's `--push` pushes in the same call, after exit 0 or exit 3 and never after a refusal; no separate push call follows it. The push is best-effort (`## Where it is written` → **Best-effort — never a gate.**).
 
 ## Ledger / resume
 
 This step runs **inside the activating flow's Phase D re-runnable region** and gets **no** flow-progress-ledger entry — do **not** add a `[ ]`/`[x]` flip for it. It must land **before** that flow's terminal Phase-D ledger flip, which the activating Override names: that flip is the run's last ledger entry, so a pause taken after it resumes into a Phase D that resume-from-ledger skips entirely.
 
-A resumed session re-enters this step and **re-derives the same blocks from the same files** — it remembers nothing from the pre-pause session and needs to. It appends only the blocks whose `## question_<n>` key the file does not already carry, so the common re-entry — every key already present — appends nothing, leaves the file byte-unchanged and takes wrapper **exit 3** (nothing to commit; the unconditional push is then a harmless no-op). That is a normal outcome, not an error.
+A resumed session re-enters this step and **re-derives the same blocks from the same files** — it remembers nothing from the pre-pause session and needs to. It appends only the blocks whose `## question_<n>` key the file does not already carry, so the common re-entry — every key already present — appends nothing, leaves the file byte-unchanged and takes wrapper **exit 3** (nothing to commit; the same call still pushes). That is a normal outcome, not an error.
 
 ## Surfacing it in the Done summary
 
