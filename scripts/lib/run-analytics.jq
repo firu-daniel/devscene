@@ -16,24 +16,32 @@
 # jq keyword as a $ variable, . field or object key (jq 1.7 accepts one, jq 1.6
 # does not), and every `if` has an `else`.
 #
-# EVERY MODE TAKES EVERY VARIABLE: $mode, $idle_threshold_s, $known, $redact,
-# $suspend, $suspend_source. jq resolves every $name the program references at
-# compile time, not when the branch holding it runs, so a call omitting one
-# aborts with `$<name> is not defined` whatever its mode — sessions, overlay,
-# transcripts, attach, rounds or gate_logs. Each mode ignores the ones it does not
-# use; pass those as the neutral values shown. The variable set is unchanged, and a
-# variable may be bound by --slurpfile as well as by --arg / --argjson: modes
+# EVERY MODE TAKES EVERY VARIABLE: $mode, $idle_threshold_s, $known, $nodes,
+# $redact, $suspend, $suspend_source. jq resolves every $name the program
+# references at compile time, not when the branch holding it runs, so a call
+# omitting one aborts with `$<name> is not defined` whatever its mode — sessions,
+# overlay, transcripts, attach, rounds or gate_logs. Each mode ignores the ones it
+# does not use; pass those as the neutral values shown (`--argjson nodes '[]'`).
+# A variable may be bound by --slurpfile as well as by --arg / --argjson: modes
 # `rounds` and `gate_logs` bind $known that way, as the recorded rounds or gate-log
-# array wrapped in a one-element array, not session ids. Every other mode keeps
-# --argjson known.
+# array wrapped in a one-element array, not session ids, and mode `sessions` may
+# bind $nodes that way. Every other mode keeps --argjson known.
 #
 # Mode `sessions`:
 #   jq -n -R -c -S -f run-analytics.jq --arg mode sessions
 #      --argjson idle_threshold_s <int> --argjson known '<["<session_id>", …]>'
+#      --slurpfile nodes <file holding [{"session_id", "node"}, …]> (or
+#      --argjson nodes '[]')
 #      --argjson redact '<[["<from>", "<to>"], …]>' --argjson suspend '[]'
 #      --arg suspend_source none < <stream file>
 #   One pass over `inputs | fromjson?`: a non-JSON or truncated line is skipped.
 #   Output: one JSON array of NEW session records, oldest first.
+#   - kind and node: a record whose session_id (a resume's `#<N>` stripped)
+#     is the session_id of a $nodes[0] entry is kind "planning_node", node that
+#     entry's node (`<seq>-<node>`, the first entry wins); every other record is
+#     kind "engine", node null. The entries are the planning driver's node-session
+#     manifest, as run-analytics.sh reads it; a session is never classed from its
+#     timing.
 #   - A session is the run of events from one system/init event to the next;
 #     events before the first init are dropped.
 #   - session_id is the init event's session_id; a resume reuses that id, so its
@@ -207,6 +215,9 @@
 #
 # Session record, of modes sessions, overlay and attach (top-level keys exactly these):
 #   session_id, complete, first_at, last_at  (ISO timestamps, verbatim)
+#   kind: "engine" | "planning_node", node: "<seq>-<node>" | null  (mode
+#     `sessions` → kind and node). A record written before schema 4 lacks both
+#     keys and is an engine session.
 #   time: {wall_ms, duration_ms, duration_api_ms, host_suspended_ms, idle_ms,
 #          active_ms, subagent_wall_ms, idle_threshold_s, suspend_source,
 #          idle_gaps: [{start_at, length_ms, context, class}]}
@@ -550,7 +561,10 @@ def finalize:
        max_ms: (if $n == 0 then null else $l[-1] end),
        over_threshold: ([$l[] | select(. > ($idle_threshold_s * 1000))] | length)};
     def durs: [.[] | .duration_ms | numbers];
-  {session_id: .key,
+  (.node_of[.key | split("#")[0]]) as $node
+  | {session_id: .key,
+   kind: (if $node == null then "engine" else "planning_node" end),
+   node: $node,
    complete: ($r != null),
    first_at: .at_min,
    last_at: .at_max,
@@ -946,7 +960,11 @@ def gate_logs:
 if $mode == "sessions" then
   reduce (inputs | fromjson? | select(type == "object")) as $e
     ({out: [], emitted: {}, seen: {}, active: false,
-      known: (reduce ($known[]? | strings) as $k ({}; .[$k] = true))};
+      known: (reduce ($known[]? | strings) as $k ({}; .[$k] = true)),
+      node_of: (reduce ($nodes[0]? | if type == "array" then .[] else empty end
+                        | select(type == "object" and (.session_id | type) == "string"
+                                 and (.node | type) == "string")) as $n
+                  ({}; if has($n.session_id) then . else .[$n.session_id] = $n.node end))};
      step($e))
   | close_current(false)
   | .out
