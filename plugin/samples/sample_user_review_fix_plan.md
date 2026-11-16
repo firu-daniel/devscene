@@ -18,7 +18,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-**This section is the single source of truth for the per-item fix loop.** The orchestrator walks the `[ ]` entries below top-to-bottom; the committer flips each one to `[x]` as that fix's commit lands. **Only the committing role flips a marker** — the `committer` agent in every flow that dispatches one, the orchestrator itself in the supervised fix flow, which dispatches none. `[ ]` markers anywhere else (e.g., sub-step bullets inside individual per-finding files) are informational progress markers for the implementer agent — they are NEVER the iteration source and the committer does NOT touch them.
+**This section is the single source of truth for the per-item fix loop.** The orchestrator walks the `[ ]` entries below top-to-bottom; the commit step flips each one to `[x]` as that fix's commit lands. **Only the committing role flips a marker** — the commit step — `commit-on-branch.sh --unit` — in every flow that runs the unit loop, the orchestrator itself in the supervised flow, which runs none. `[ ]` markers anywhere else (e.g., sub-step bullets inside individual per-finding files) are informational progress markers for the implementer agent — they are NEVER the iteration source and the commit step does NOT touch them.
 
 Each entry resolves to a self-contained `<state_dir>/user_reviews/<branch>_fix_plan/finding_<K>.md` file via its `**Finding K**` reference (1-to-1 with the `### K. <title>` pointers below). Sorted "lowest blast-radius first" → "wider refactors last".
 

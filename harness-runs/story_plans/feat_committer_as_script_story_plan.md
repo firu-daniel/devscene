@@ -99,7 +99,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_committer_as_script/tas
 14. [x] **Task 14** — Move the observations commit onto `--artifact` and read the records from any message line _(layer: plugin)_ _(points: 15)_
 15. [x] **Task 15** — Move both planning forks' plan, round, UI-test-plan and lessons commits onto `--artifact` _(layer: plugin)_ _(points: 20)_
 16. [x] **Task 16** — Re-point the five branch-level reviewers' readiness wording at the commit step _(layer: plugin)_ _(points: 10)_
-17. [ ] **Task 17** — Re-point the sample fixtures at the commit step _(layer: plugin)_ _(points: 15)_
+17. [x] **Task 17** — Re-point the sample fixtures at the commit step _(layer: plugin)_ _(points: 15)_
 18. [ ] **Task 18** — Re-point the supervised flows, the QA instructions and the instructions README at the commit step _(layer: plugin)_ _(points: 10)_
 19. [ ] **Task 19** — Re-point the semi-autonomous implement commands and the flow documents at the commit step _(layer: plugin)_ _(points: 10)_
 20. [ ] **Task 20** — Delete the `committer` agent and re-home its `<MAIN_REPO>` resolution in the semi-autonomous forks _(layer: plugin)_ _(points: 20)_
