@@ -10,7 +10,7 @@ Source: harness-runs/task_prompts/feat_structured_planning_agent_outputs_task_pr
 - [x] R0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_structured_planning_agent_outputs_task_prompt.md sha256=d54953ba0d68883ba04b2c771e4f734c12530b0937b1081fc332cd5ea0bd6016
   - screened: harness-runs/user_reviews/feat_structured_planning_agent_outputs_review.md sha256=9831e124c4e6168d3c4c49b13641177c0a70525e48b6d98c3d01133d69727deb
-- [ ] R1. Fix plan written & converged (parity + architecture gates PASS)
+- [x] R1. Fix plan written & converged (parity + architecture gates PASS)
 - [ ] R2. Fix plan + source review committed
 ## Fixing
 - [ ] R3. All fix-plan findings implemented (fix-plan index all [x])
