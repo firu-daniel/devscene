@@ -40,3 +40,9 @@ Every heading named above keeps its text byte for byte. Each one is cited from e
 - `git grep -nE '/Users/|/home/' -- docs/flow-graph-walker.md docs/watcher.md` adds no hit this task wrote.
 - Every value in the two new measured entries can be found, character for character apart from the `<main checkout>` substitution, in the task prompt's `## What happened` or `## Measured, 2026-11-16, Claude Code 2.1.325` sections.
 - `docs/flow-graph-walker.md` no longer contains *"whether the `init` tools under `--json-schema` are the agent's allowlist"* or *"whether an installed plugin copy shadows `--plugin-dir`"* as unmeasured items, and each heading listed under `### Targets` is unchanged.
+
+**Deviations from plan:**
+
+- **Reason.** wording: the plan says the two-way check "refused every writer and gate node"; the measured table shows `prompt-injection-reviewer` (no `Bash`) keeps `Glob`/`Grep` and would pass, so the sentence uses the task prompt's own scope, "every node whose agent declares `Bash` beside `Glob` or `Grep`".
+- **Deferral citation:** `#379` is cited with `ROADMAP.md` → the `Structured agent outputs` row beside it, because `.claude/context/conventions.md` → `## Documents of record` requires a deferral to resolve against a roadmap row; `ROADMAP.md` carries no issue number for that row.
+- **Hand step:** the first two `jq` reads are kept, recast as the re-measurement route for a later Claude Code version, with a sentence stating the 2.1.325 values were not recorded as their output.

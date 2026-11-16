@@ -164,7 +164,7 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 
 ### How each runs a parallel round
 
-**Decision.** The orchestrator runs a printed set as one message of foreground `Agent` calls (`plugin/instructions/task_plan_writing_instructions_core.md` → `## Safety contract — applies before EVERY Agent dispatch` → **A set.**). The driver runs one headless session per block, all launched at once once the set's safety contract has passed (`### Item 4` → **On the script-driven path.**), and records each with `flow-walker.sh next --node <node>` as its session ends, in finish order (`planning-driver-lib.sh` → `pd_run_set`, `pd_reap_one`). An `action: wait` is nothing to do. A held `error` or `blocker` comes back as one binding after the last outcome, printed by the walker's join. A sibling is never cancelled: an `error`, a `blocker` or a stall kill ends that one session. The driver splits `error` by class, which `pnl_reap` prints as `class=infra` or `class=agent` on every `kind=error` so the driver never parses a reason (`planning-node-lib.sh` → `pnl_reap`, `PNL_REAP_JQ`). **An infrastructure failure** — a session the driver killed as stalled, a missing `init` event, a session that ended not `success` or with `is_error`, a result with no decision object — is held unrecorded, and after `PD_BACKOFF_SECS` its node alone is dispatched again from the blocks `flow-walker.sh current` re-prints, its siblings keeping their recorded outcomes; only attempt `PD_MAX_ATTEMPTS` (3) is recorded as `error`, and a node's count restarts at 1 once it records an outcome. **Every other `error`** — an agent-reported `error` or `blocker`, tools that do not match the `init` event, an undeclared outcome, `FAIL` or `PASS` without `findings_file`, `questions` with a blank return — is recorded at once (`planning-driver-lib.sh` → `pd_reap_one`, `pd_run_set`'s `retry` result).
+**Decision.** The orchestrator runs a printed set as one message of foreground `Agent` calls (`plugin/instructions/task_plan_writing_instructions_core.md` → `## Safety contract — applies before EVERY Agent dispatch` → **A set.**). The driver runs one headless session per block, all launched at once once the set's safety contract has passed (`### Item 4` → **On the script-driven path.**), and records each with `flow-walker.sh next --node <node>` as its session ends, in finish order (`planning-driver-lib.sh` → `pd_run_set`, `pd_reap_one`). An `action: wait` is nothing to do. A held `error` or `blocker` comes back as one binding after the last outcome, printed by the walker's join. A sibling is never cancelled: an `error`, a `blocker` or a stall kill ends that one session. The driver splits `error` by class, which `pnl_reap` prints as `class=infra` or `class=agent` on every `kind=error` so the driver never parses a reason (`planning-node-lib.sh` → `pnl_reap`, `PNL_REAP_JQ`). **An infrastructure failure** — a session the driver killed as stalled, a missing `init` event, a session that ended not `success` or with `is_error`, a result with no decision object — is held unrecorded, and after `PD_BACKOFF_SECS` its node alone is dispatched again from the blocks `flow-walker.sh current` re-prints, its siblings keeping their recorded outcomes; only attempt `PD_MAX_ATTEMPTS` (3) is recorded as `error`, and a node's count restarts at 1 once it records an outcome. **Every other `error`** — an agent-reported `error` or `blocker`, an `init` event carrying a tool the agent does not declare, an undeclared outcome, `FAIL` or `PASS` without `findings_file`, `questions` with a blank return — is recorded at once (`planning-driver-lib.sh` → `pd_reap_one`, `pd_run_set`'s `retry` result).
 
 **Reason.** That is the contract `### Item 8` → **What a second driver must do.** wrote, followed as written, so the walker needed no change for a second driver: the join, the held binding and the refusal of a second outcome are the walker's (`flow-walker.sh` → `ROUNDS`, `CONCURRENCY`).
 
@@ -201,11 +201,11 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 
 ### The schema-from-graph rule, and the `init` check
 
-**Decision.** Each node session is launched with `--json-schema`, built from the planning graph: `outcome` is an enum of exactly that node's declared outcome keys, beside `findings_file`, `return` and `harness_friction` (`planning-node-lib.sh` → `pnl_schema`). `pnl_reap` decides a node's result from its stream alone, in one fixed order (`PNL_REAP_JQ`): no `system`/`init` event is an infrastructure `error`, retried (`### How each runs a parallel round`, above), and an `init` whose tools differ from the agent file's `tools:` line is an agent `error`, recorded at once; then a missing `result` event or an overload is undelivered; then an outcome the graph does not declare for the node is an agent `error`.
+**Decision.** Each node session is launched with `--json-schema`, built from the planning graph: `outcome` is an enum of exactly that node's declared outcome keys, beside `findings_file`, `return` and `harness_friction` (`planning-node-lib.sh` → `pnl_schema`). `pnl_reap` decides a node's result from its stream alone, in one fixed order (`PNL_REAP_JQ`): no `system`/`init` event is an infrastructure `error`, retried (`### How each runs a parallel round`, above), and an `init` whose tools carry one the agent file's `tools:` line does not name is an agent `error`, recorded at once; then a missing `result` event or an overload is undelivered; then an outcome the graph does not declare for the node is an agent `error`. A declared tool the `init` lacks is not refused: `pnl_reap` prints it on `withheld=`, and the driver logs one `[plan-drive] #<seq> <node> (<agent>): the init event lacks declared tools [<tools>]; not refused` line for the session (`planning-driver-lib.sh` → `pd_reap_one`).
 
-**Reason.** The graph stays the one owner of a node's outcomes, and a session cannot route the walk with an outcome its node does not have. The `init` check and the launch flags answer the three gaps `docs/orchestrator-cost-measurement.md` → `## 4. Does a session's main agent keep its \`tools:\` allowlist?` → **Three things a launcher must handle:** names. **MCP tools not shown to be excluded:** an agent whose `tools:` line names no `mcp__` tool is launched with `--disallowedTools mcp__*`; one that names some, with `--strict-mcp-config` and an MCP configuration cut to those servers (`pnl_agent_flags`). **An unknown agent fails silently with exit 0:** a session with tools that do not match is `error` at once, and one with no `init` event is `error` once its third attempt has none either. **The agent set comes from the environment:** every session pins the plugin with `--plugin-dir <root>`, the plugin's runtime root, and names its agent by the scoped name `<plugin name>:<agent>`, the plugin name read from `<root>/.claude-plugin/plugin.json`.
+**Reason.** The graph stays the one owner of a node's outcomes, and a session cannot route the walk with an outcome its node does not have. The `init` check refuses in one direction only because a missing tool cannot widen what a session does, and an agent that needs a withheld tool fails visibly in its own work. Claude Code 2.1.325 withholds `Glob` and `Grep` from every session that has `Bash` (`### Not yet measured, and the hand step that measures it`, below), so a two-way check refused every node whose agent declares `Bash` beside `Glob` or `Grep`. The `init` check and the launch flags answer the three gaps `docs/orchestrator-cost-measurement.md` → `## 4. Does a session's main agent keep its \`tools:\` allowlist?` → **Three things a launcher must handle:** names. **MCP tools not shown to be excluded:** an agent whose `tools:` line names no `mcp__` tool is launched with `--disallowedTools mcp__*`; one that names some, with `--strict-mcp-config` and an MCP configuration cut to those servers (`pnl_agent_flags`). **An unknown agent fails silently with exit 0:** an unknown agent produces no `init` event (`docs/orchestrator-cost-measurement.md` → `## 4.`, the `Unknown agent` row), so the no-`init` rule catches it: the session is `error` once its third attempt has none either. **The agent set comes from the environment:** every session pins the plugin with `--plugin-dir <root>`, the plugin's runtime root, and names its agent by the scoped name `<plugin name>:<agent>`, the plugin name read from `<root>/.claude-plugin/plugin.json`.
 
-**Cost.** An agent whose `tools:` line changes is held to the new line at the next node; a session whose `init` tools carry anything that line does not name is refused, whatever the session did after.
+**Cost.** A shadowing agent definition is now caught only when its `tools:` line names a tool the pinned one does not; a narrower one passes. The driver ties its refusal to nothing a Claude Code version withholds, so a change in what is withheld shows in `<branch>.log`, not as a park: the log line is the deliberate surface, and no observation is written for it.
 
 ### The cost
 
@@ -233,37 +233,66 @@ One fact the driver depends on is measured on a plain session, outside the drive
   {"subtype":"success","is_error":false,"structured_output":{"outcome":"PASS","return":"probe ok"},"result":"{\"outcome\":\"PASS\",\"return\":\"probe ok\"}"}
   ```
 
-  Both of the sources `pnl_reap` reads carry the decision: `structured_output` as an object, and `result` as the same object in JSON text. A node session adds `--plugin-dir`, a scoped `--agent` and its tool flags; that it carries the object there too is the third `jq` read below.
+  Both of the sources `pnl_reap` reads carry the decision: `structured_output` as an object, and `result` as the same object in JSON text. A node session adds `--plugin-dir`, a scoped `--agent` and its tool flags; whether it carries the object there too is not yet measured (below).
 
-Two facts the driver depends on are not measured on a real Claude Code session:
+Two facts the driver depends on are measured on a real node session, on Claude Code 2.1.325, 2026-11-16:
 
-- **whether the `init` tools under `--json-schema` are the agent's allowlist and nothing more.** A tool the schema flag added to the `init` list would make every node `error`, by the tool check above.
-- **whether an installed plugin copy shadows `--plugin-dir` for a scoped `--agent`.** `docs/orchestrator-cost-measurement.md` → `## 4.` saw an installed copy listed beside the one `--plugin-dir` passed. The pinned directory is now the installed copy's own runtime root, so the copy `--plugin-dir` passes and the installed one are the same directory; whether the session then loads it once or twice is not measured. The tool check catches a shadowing definition only when its `tools:` line differs.
+- **The `init` tools under `--json-schema` are the agent's allowlist less what Claude Code withholds, and nothing more.** Node 1 (`plan_writer`) of the run `fix_run_commit_trailer_amend`, launched by the driver with `--json-schema`, had an `init` `tools` list of:
 
-The hand step is one real planning run with the key on, from a terminal outside any agent session, run from the main checkout with `<scripts_dir>` and `<state_dir>` your configured values. Turn the key on — the watcher reads it at the next launch, with no restart:
+  ```
+  ["Read","Write","Edit","Bash"]
+  ```
+
+  against the `tools:` line `Read, Write, Edit, Bash, Glob, Grep, mcp__devscene-docs__search_docs`. `--json-schema` added no tool. The only difference from the `tools:` line is the `Glob`/`Grep` omission the sessions below show. Three more sessions were launched by hand as the driver launches them, one per agent:
+
+  ```
+  claude -p --output-format stream-json --verbose --plugin-dir <main checkout>/plugin --agent devscene:<agent>
+  ```
+
+  reading the `system`/`init` event's `tools`:
+
+  | Agent | `tools:` line | `init` tools |
+  |---|---|---|
+  | `task-plan-writer` (the run's node 1) | `Read, Write, Edit, Bash, Glob, Grep, mcp__devscene-docs__search_docs` | `Read, Write, Edit, Bash` |
+  | `architecture-reviewer` | `Read, Glob, Grep, Bash, Write, mcp__devscene-docs__search_docs` | `Read, Bash, Write` |
+  | `committer` | `Bash, Read, Edit` | `Bash, Read, Edit` |
+  | `prompt-injection-reviewer` | `Read, Grep, Glob` | `Read, Grep, Glob` |
+
+  The run's orchestrator session, launched with no `--agent`, has no `Glob` or `Grep` in its `init` tools either, beside `Bash`. So in this Claude Code version a session that has `Bash` is given neither `Glob` nor `Grep`, whatever the agent declares. A session without `Bash` keeps them. No session was given a tool its agent does not declare. The two-way check the one-way rule replaced (`### The schema-from-graph rule, and the \`init\` check`, above) refused node 1 for that omission, and the run parked after its first node:
+
+  ```
+  [plan-drive] #1 plan_writer: error (the agent tools do not match its init event: missing [Glob, Grep], extra [])
+  ```
+
+- **No installed plugin copy is loaded beside `--plugin-dir`.** The same node-1 `init` event loaded `devscene` once:
+
+  ```
+  {"name":"devscene","path":"<main checkout>/plugin","source":"devscene@inline","version":"0.7.1"}
+  ```
+
+  beside Claude Code's built-in plugins. No installed copy was loaded beside the `--plugin-dir` one.
+
+One fact the driver depends on is still not measured on a node session: **that its `result` event carries `structured_output` under `--json-schema`.** The plain-session entry above measures it outside the driver; the node-session question belongs to `feat_structured_agent_outputs` (#379; `ROADMAP.md` → the `Structured agent outputs` row), which replaces how a node's decision is read, and no result is recorded for it here.
+
+The hand step that measures it is one real planning run with the key on, from a terminal outside any agent session, run from the main checkout with `<scripts_dir>` and `<state_dir>` your configured values. Turn the key on — the watcher reads it at the next launch, with no restart:
 
 ```
 npx devscene config set execution.scriptDrivenPlanning true
 ```
 
-Then drop a task prompt for a throwaway branch `<branch>` as usual. Once its first node has ended, read that node's stream, one command at a time — its `init` tools:
-
-```
-jq -c 'select(.type == "system" and .subtype == "init") | .tools' <state_dir>/autonomous_logs/<branch>.planning/1-plan_writer.stream.jsonl
-```
-
-the plugins it loaded:
-
-```
-jq -c 'select(.type == "system" and .subtype == "init") | .plugins' <state_dir>/autonomous_logs/<branch>.planning/1-plan_writer.stream.jsonl
-```
-
-and its decision object's keys:
+Then drop a task prompt for a throwaway branch `<branch>` as usual. Once its first node has ended, read its decision object's keys from that node's stream:
 
 ```
 jq -c 'select(.type == "result") | .structured_output | if type == "object" then keys else type end' <state_dir>/autonomous_logs/<branch>.planning/1-plan_writer.stream.jsonl
 ```
 
-Compare the first read with the `tools:` line of `plugin/agents/task-plan-writer.md` in the pinned plugin; the second names every plugin the session loaded and where from; the third prints the decision object's keys, or the type found in their place.
+It prints the decision object's keys, or the type found in their place. To re-measure the two facts above on a later Claude Code version, read the same stream's `init` tools and plugins, one command at a time, and compare the first with the `tools:` line of `plugin/agents/task-plan-writer.md` in the pinned plugin:
+
+```
+jq -c 'select(.type == "system" and .subtype == "init") | .tools' <state_dir>/autonomous_logs/<branch>.planning/1-plan_writer.stream.jsonl
+jq -c 'select(.type == "system" and .subtype == "init") | .plugins' <state_dir>/autonomous_logs/<branch>.planning/1-plan_writer.stream.jsonl
+```
+
+These two reads are the re-measurement route; the 2.1.325 values above were read from the sessions' `system`/`init` events, not recorded as these commands' output.
 
 Each fact is recorded with its command, its exact output, the Claude Code version and the date, as this tree's documents of record require (`.claude/context/conventions.md` → `## Documents of record`).
