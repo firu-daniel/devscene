@@ -84,6 +84,10 @@
     {
       "test": "test/untrusted-input-corpus.test.mjs",
       "covers": "plugin/**/*.md"
+    },
+    {
+      "test": "test/commit-step-calls.test.mjs",
+      "covers": "plugin/**/*.md"
     }
   ]
 }

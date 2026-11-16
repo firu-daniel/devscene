@@ -28,3 +28,11 @@
 - `git grep -n -w committer -- 'harness-runs/*/README.md'` prints nothing.
 - `ls -l scripts/lib/unit-commit-lib.sh scripts/commit-on-branch.sh` shows modes `-rw-r--r--` and `-rwxr-xr-x`.
 - `jq -e '.treeGuards[] | select(.test == "test/commit-step-calls.test.mjs")' devscene.config.json` exits zero.
+
+**Deviations from plan:**
+
+- **`dev` is `origin/dev`.** This checkout has no local `dev` branch (`git diff --stat dev -- …` → `fatal: bad revision 'dev'`). Every before-copy comparison used `origin/dev`.
+- **Before-copy check, run as a blob-identity test.** I did not compare the two hunk sets. Instead I compared each copy's indexed blob (`git ls-files -s`, tree clean) with the template's blob at `origin/dev` (`git rev-parse origin/dev:<template>`). The 4 existing scripts and the 14 READMEs all matched hash for hash. That is the stronger form of the check: the copy equals the dev template, so it carries no local change. The 4 parity- and QA-gated directories have no copy here (`git ls-files -s` printed nothing for them).
+- **Copies made with the file tools, not `cp`.** The permission profile refused `cp <template> <copy>` ("Permission to use Bash has been denied"). Each copy was written instead with `Write` (`commit-on-branch.sh`, `lib/unit-commit-lib.sh`) or with `Edit` hunks taken from `git diff origin/dev -- <template>` (the other three scripts and the 14 READMEs). The byte-identity verification below covers this route.
+- **The verification's `--exit-code` exits 1 on three scripts, because of mode only.** `git diff --no-index --exit-code` exits 1 for `commit-on-branch.sh`, `push-branch.sh` and `remote-run.sh` and prints only `old mode 100644 / new mode 100755`. The templates are `100644`; the copies keep the `100755` this plan's mode bullet requires (both were `100755` at `origin/dev` too). `git diff --no-index --numstat` prints `0	0` for each of the three, so the content is identical. The two libraries and the 14 READMEs exit 0.
+- **`cli/templates/scripts/README.md` changed on this branch but was not copied.** It has no self-adopted copy (`scripts/README.md` does not exist), and it is not in this task's targets.
