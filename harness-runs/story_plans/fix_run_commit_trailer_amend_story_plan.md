@@ -48,7 +48,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/fix_run_commit_trailer_amend
 1. [x] **Task 1** — Write-deny the run copy's branch-ref store and HEAD in the profile and the per-run copy _(layer: cli)_ _(points: 20)_
 2. [x] **Task 2** — Switch off commit attribution and drop the raw commit grant in the run profile template _(layer: cli)_ _(points: 18)_
 3. [x] **Task 3** — Name a split branch's cause and repair in the sync-in divergence refusal _(layer: cli)_ _(points: 15)_
-4. [ ] **Task 4** — Stop every plugin guard from vouching for `git commit --amend`, or for a commit compounded with a ref move _(layer: plugin)_ _(points: 20)_
+4. [x] **Task 4** — Stop every plugin guard from vouching for `git commit --amend`, or for a commit compounded with a ref move _(layer: plugin)_ _(points: 20)_
 5. [ ] **Task 5** — Committer reads back the landed commit and reports, never repairs, one that went wrong _(layer: plugin)_ _(points: 10)_
 6. [ ] **Task 6** — Record the attribution measurement, the owed ref-deny row and the guard decisions _(layer: general)_ _(points: 20)_
 7. [ ] **Task 7** — Document the attribution switch, the ref write-deny and the narrowed raw commit in the docs of record _(layer: general)_ _(points: 20)_

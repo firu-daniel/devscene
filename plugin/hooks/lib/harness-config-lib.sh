@@ -1834,6 +1834,10 @@ EOF
 # 0 when <piece> is a shape NO ALLOW-ONLY GUARD MAY VOUCH FOR, whatever prefix it
 # happens to match; 1 otherwise. All four allow-only guards call it before every
 # other test, so no arm of any of them can grant one of these.
+# `git-commit-branch-guard.sh` also calls it, on EVERY piece of the command, and
+# there it withholds only that guard's `allow`: the guard's own `ask` decisions
+# (protected branch, detached HEAD, unresolvable configuration) come first and
+# are not overridden.
 #
 # WHY IT EXISTS. `hc_safe_prefixes` matches LEADING WORDS ONLY, so a base entry
 # that is safe in its listing form carries its destructive forms with it: the
@@ -1845,6 +1849,12 @@ EOF
 # git branch -D <x>` and the deny never gets a chance to. Without this test the
 # plugin ships both halves of a contradiction: one artifact refuses these
 # outright while another hands them out inside a compound.
+#
+# The `commit` arm exists for the same reason one level up: `git commit --amend`
+# overwrites the branch tip with a rewritten commit, so in a run copy, outside
+# the wrappers, it moves that copy's ref alone. The profile denies
+# `Bash(git commit --amend:*)`, and a guard `allow` covering the whole command
+# would short-circuit that deny.
 #
 # IT JUDGES THE OPERATION, NOT A LIST OF SPELLINGS. The piece is parsed with
 # `hc_git_piece_parts` and the options of a `branch` subcommand are walked;
@@ -1864,17 +1874,25 @@ EOF
 # helper covers, because the parse strips git's global options first. A caller
 # therefore does NOT need to test a rewritten form separately.
 #
+# A `commit` piece is refused when any token is a long option whose body is a
+# non-empty prefix of `amend` — `--am`, `--amen` and `--amend` all rewrite, and
+# a stub ambiguous to git (`--a`) is rejected by git without running. Every other
+# commit piece passes, `--fixup` and `--squash` included: each makes a new
+# commit. A `-m` message token reading `--amend` is over-refused, at one prompt.
+#
 # A TOKEN THIS TEST CANNOT READ IS REFUSED TOO, and both spellings of that were
 # measured to slip past the option walk alone. QUOTES: the shell removes them
 # before git sees the word, so `git branch "-D" <x>` and `git branch --de"lete"
-# <x>` run the deletion while carrying no bare `-D` / `--delete` token — every
+# <x>` run the deletion while carrying no bare `-D` / `--delete` token (and
+# `git commit "--amend"` the rewrite) — every
 # quote character is therefore deleted from a token before it is classified,
 # which is a classification-only transformation (nothing here is a path) and
 # needs no fork, unlike `hc_strip_quotes`, which peels one outer layer and is
 # called per token on a hook that fires on every Bash call. AN EXPANSION: this is
 # a textual test on a string the shell has NOT expanded yet, so `git branch $F
-# <x>` says nothing about the flag it will run — a `git branch` piece carrying a
-# `$` or a backtick anywhere is refused wholesale, for the same reason the
+# <x>` says nothing about the flag it will run — a `git branch` or `git commit`
+# piece carrying a `$` or a backtick anywhere is refused wholesale, for the same
+# reason the
 # workspace helpers above accept only ordinary path characters. Its cost is one
 # prompt for a legitimate `git branch --list "$pattern"` inside a compound, and
 # it is the shipped corpus's own spelling (`git branch --show-current`) that
@@ -1892,16 +1910,18 @@ EOF
 # matches nothing; tokens after it are still walked, which can only over-refuse.
 #
 # KEEP THIS AND THE PROFILE'S `deny` ENTRIES IN STEP: an entry added there that
-# names a prefix in the base set above belongs here too.
+# names a prefix in the base set above belongs here too, as does the profile's
+# `Bash(git commit --amend:*)`, which the `commit` arm mirrors.
 hc_piece_is_never_safe() {
-  local piece="${1-}" rest tok body
+  local piece="${1-}" rest tok body sub
   hc_git_piece_parts "$piece" || return 1
   case "$HC_GIT_REST" in
-    branch|branch\ *) ;;
+    branch|branch\ *) sub=branch ;;
+    commit|commit\ *) sub=commit ;;
     *) return 1 ;;
   esac
 
-  rest=${HC_GIT_REST#branch}
+  rest=${HC_GIT_REST#"$sub"}
   case "$rest" in
     *'$'*|*'`'*) return 0 ;;
   esac
@@ -1915,6 +1935,12 @@ hc_piece_is_never_safe() {
     esac
     tok=${tok//\"/}
     tok=${tok//\'/}
+    if [ "$sub" = commit ]; then
+      case "$tok" in
+        --?*) case amend in "${tok#--}"*) return 0 ;; esac ;;
+      esac
+      continue
+    fi
     case "$tok" in
       # A long option is judged as a PREFIX of a ref-losing one, because git
       # accepts any unambiguous abbreviation: `--dele` deletes. An empty body

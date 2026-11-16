@@ -58,3 +58,7 @@
 - The unresolvable-configuration case (invalid JSON in the fixture's config) still answers `ask` for `git -C <dir> commit --amend -m x`, and a fixture with no `devscene.config.json` still answers nothing.
 - `hc_piece_is_never_safe` still refuses `git branch -D x` and still permits `git branch --show-current` on the same fixture. The `branch` arm is unchanged.
 - `bash scripts/typecheck.sh` exits 0.
+
+**Deviations from plan:**
+
+- Fixture shape: a direct `git init` under the temp directory was refused by the run's permission profile (`dontAsk`), so the fixture was built and driven by the probe `harness-runs/scratch/task4_guard_probe.py` through `bash scripts/scratch-run.sh`. It holds one `git init` repository per branch state rather than one repository with two branches: `ord` (unborn `feat`), `prot` (unborn `main`, protected set `["main","release/*"]`), `det` (HEAD written as a bare sha), `bad` (invalid-JSON config) and `none` (no config). All 16 contract rows, the unresolvable and no-config cases, and the `hc_piece_is_never_safe` branch-arm checks (`git branch -D x` refused, `git branch --show-current` permitted) answered as stated: the probe printed `FAILURES: 0`.
