@@ -1014,7 +1014,7 @@ $PD_PAIR_TEXT"
 
 # pd_reap_one <index> <stalled yes|no> — read the session, observe it, record it.
 pd_reap_one() {
-  local i="$1" stalled="$2" res line kind="" class="" outcome="" findings="" ret="" fr="" cost="" dur="" denials=0 reason=""
+  local i="$1" stalled="$2" res line kind="" class="" outcome="" findings="" ret="" fr="" cost="" dur="" denials=0 reason="" withheld=""
   local node="${S_NODE[$i]}" agent="${S_AGENT[$i]}" seq round item rc attempt retry=no exhausted=no
   local -a args
   seq="${S_H[$i]#*	}"
@@ -1031,6 +1031,7 @@ pd_reap_one() {
       cost=*) cost="${line#cost=}" ;;
       duration_secs=*) dur="${line#duration_secs=}" ;;
       denials=*) denials="${line#denials=}" ;;
+      withheld=*) withheld="${line#withheld=}" ;;
       reason=*) reason="${line#reason=}" ;;
     esac
   done <<EOF
@@ -1054,6 +1055,7 @@ EOF
     if [ "$attempt" -lt "$PD_MAX_ATTEMPTS" ]; then retry=yes; else exhausted=yes; fi
   fi
   pd_log "#$seq $node: $kind${outcome:+ $outcome}${reason:+ ($reason)}"
+  [ -z "$withheld" ] || pd_log "#$seq $node ($agent): the init event lacks declared tools [$withheld] (a lacking tool is never refused)"
 
   PD_SESSION_COUNT=$((PD_SESSION_COUNT + 1))
   PD_SESSIONS="${PD_SESSIONS:+$PD_SESSIONS; }#$seq $node $agent $attempt/$PD_MAX_ATTEMPTS ${outcome:-$kind} ${dur:-?}s ${cost:-unknown}"

@@ -3,11 +3,12 @@
  * blocks, the node's prompt and schema, the per-node flags, the launch and the validated read.
  *
  * **The rule this suite enforces: a node's result is a declared outcome, `error` or
- * `undelivered`, never a guess.** `pnl_reap` decides in one fixed order — no `init` event, a tools
- * mismatch, no `result` (or an API overload), a failed session, no decision object, an undeclared
- * outcome, a missing `findings_file`, `questions` with a blank `return` — and one case pins each
- * rule, beside the declared outcomes that pass. Each `error` case also pins its `class=`: `infra`
- * for rules 1, 4 and 5, `agent` for the rest.
+ * `undelivered`, never a guess.** `pnl_reap` decides in one fixed order — no `init` event, an
+ * `init` tool the agent does not declare, no `result` (or an API overload), a failed session, no
+ * decision object, an undeclared outcome, a missing `findings_file`, `questions` with a blank
+ * `return` — and one case pins each rule, beside the declared outcomes that pass. Each `error` case
+ * also pins its `class=`: `infra` for rules 1, 4 and 5, `agent` for the rest. `withheld=` reports
+ * the declared tools the `init` event lacks and refuses nothing.
  *
  * Each case copies `lib/harness-run-lib.sh`, the library and the shipped planning graph from
  * `cli/templates/scripts/` into its own fixture under the system temp directory, beside a plugin
@@ -289,6 +290,7 @@ test('pnl_launch runs the session through PD_SESSION_EXEC with the per-node flag
   assert.match(r.keys.duration_secs, /^\d+$/);
   assert.equal(r.keys.cost, '0.25');
   assert.equal(r.keys.denials, '0');
+  assert.equal(r.keys.withheld, '');
 });
 
 test('rule 1: a stub that exits 0 with empty stdout is error, no init event', { skip: SKIP }, async (t) => {
@@ -299,23 +301,37 @@ test('rule 1: a stub that exits 0 with empty stdout is error, no init event', { 
   assert.equal(r.keys.reason, 'the agent did not resolve: no init event');
   assert.equal(r.keys.class, 'infra');
   assert.equal(r.keys.return_file, '');
+  assert.equal(r.keys.withheld, '');
   assert.equal(r.manifest, null, 'a session with no init event has no session id to record');
 });
 
-test('rule 2: init tools that miss an agent tool, or add one, are error', { skip: SKIP }, async (t) => {
+test('rule 2: init tools the agent does not declare are error; declared tools the init lacks are withheld, not refused', { skip: SKIP }, async (t) => {
   const f = await fixture(t);
   const ok = { structured_output: { outcome: 'PASS', findings_file: 'f.md', return: 'x' } };
-  const missing = await reap(f, 'plan_review', 'task-plan-reviewer', [init(['Read', 'Bash']), result(ok)]);
-  assert.equal(missing.keys.kind, 'error');
-  assert.equal(missing.keys.reason, 'the agent tools do not match its init event: missing [Grep], extra []');
-  assert.equal(missing.keys.class, 'agent');
+  const lacking = await reap(f, 'plan_review', 'task-plan-reviewer', [init(['Read', 'Bash']), result(ok)]);
+  assert.equal(lacking.keys.kind, 'returned');
+  assert.equal(lacking.keys.class, '');
+  assert.equal(lacking.keys.withheld, 'Grep');
 
   const extra = await reap(f, 'plan_review', 'task-plan-reviewer', [init([...REVIEWER_TOOLS, 'Edit']), result(ok)]);
   assert.equal(extra.keys.kind, 'error');
-  assert.equal(extra.keys.reason, 'the agent tools do not match its init event: missing [], extra [Edit]');
+  assert.equal(extra.keys.class, 'agent');
+  assert.equal(extra.keys.reason, 'the init event grants tools the agent does not declare: [Edit]');
+  assert.equal(extra.keys.withheld, '');
+
+  const mixed = await reap(f, 'plan_review', 'task-plan-reviewer', [init(['Read', 'Bash', 'Edit']), result(ok)]);
+  assert.equal(mixed.keys.kind, 'error', 'a lacking tool does not mask an extra one');
+  assert.equal(mixed.keys.class, 'agent');
+  assert.equal(mixed.keys.reason, 'the init event grants tools the agent does not declare: [Edit]');
+  assert.equal(mixed.keys.withheld, 'Grep');
 
   const withMcp = await reap(f, 'plan_review', 'task-plan-reviewer', [init([...REVIEWER_TOOLS, 'mcp__docs__search_docs']), result(ok)]);
   assert.equal(withMcp.keys.kind, 'returned', 'an agent MCP tool present in init matches');
+  assert.equal(withMcp.keys.withheld, '');
+
+  const noMcp = await reap(f, 'plan_review', 'task-plan-reviewer', [init(REVIEWER_TOOLS), result(ok)]);
+  assert.equal(noMcp.keys.kind, 'returned');
+  assert.equal(noMcp.keys.withheld, '', 'a declared mcp__ tool absent from init is never withheld');
 });
 
 test('rule 3: no result event, or an API overload, is undelivered', { skip: SKIP }, async (t) => {

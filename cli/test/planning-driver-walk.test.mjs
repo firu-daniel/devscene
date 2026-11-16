@@ -5,7 +5,8 @@
  * **The rule this suite enforces: the driver walks the planning graph the walker routes, launching
  * a round's three gates as one concurrent set that closes once, and a session it cannot read as a
  * declared outcome — an `error`, an undeclared outcome, no `init` event on each of its three
- * attempts — is held as `error` while its siblings run to their end, then parks.** Each case is graded on `git log`, the ledger, the
+ * attempts — is held as `error` while its siblings run to their end, then parks; one whose `init`
+ * event merely lacks declared tools is not refused, and is logged.** Each case is graded on `git log`, the ledger, the
  * clarification files, the calls log the stub keeps and the prompts it was handed.
  *
  * Every expected literal — a subject, a prompt's first line, a `held:` line — is written here,
@@ -111,6 +112,32 @@ test('an undeclared outcome is held as error and parks', { skip: SKIP }, async (
 test('a session with no init event on all three attempts is held as error and parks', { skip: SKIP }, async (t) => {
   const noInit = { mode: 'no-init' };
   await heldCase(t, 'business-parity-reviewer', [noInit, noInit, noInit], 'business_parity_review error', 'the agent did not resolve: no init event');
+});
+
+test('sessions whose init withholds Glob and Grep beside Bash are not refused, and each is logged', { skip: SKIP }, async (t) => {
+  const f = await driverFixture(t, {
+    script: { [WRITER]: [{ mode: 'withhold' }], 'architecture-reviewer': [{ mode: 'withhold' }] },
+  });
+  const r = await drive(t, f);
+  assert.equal(r.status, 0, show(r));
+  assert.ok(r.subjects.includes(`chore: Flow progress P3 for ${BRANCH}`), show(r));
+  const lines = r.log.split('\n');
+  assert.ok(
+    lines.includes('[plan-drive] #1 plan_writer (task-plan-writer): the init event lacks declared tools [Glob, Grep] (a lacking tool is never refused)'),
+    show(r),
+  );
+  assert.ok(
+    lines.some(
+      (l) =>
+        l.startsWith('[plan-drive] #') &&
+        l.includes('architecture_review (architecture-reviewer): the init event lacks declared tools [Glob, Grep]'),
+    ),
+    show(r),
+  );
+  const lacking = lines.filter((l) => l.includes('lacks declared tools'));
+  for (const agent of ['business-parity-reviewer', 'task-plan-reviewer']) {
+    assert.ok(!lacking.some((l) => l.includes(agent)), `${agent} ran with no mode\n${show(r)}`);
+  }
 });
 
 test('every prompt is the copied core\'s dispatch block', { skip: SKIP }, async (t) => {

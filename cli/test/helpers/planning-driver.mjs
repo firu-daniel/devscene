@@ -19,7 +19,9 @@
  * calls across every `pd_drive` of one fixture. An entry is
  * `{ outcome?, findings?, sleepMs?, mode?, friction?, touch?, return? }`: `mode` is `no-init`, `no-result`,
  * `undeclared` (outcome `SHIP`), `not-success` (a `result` of subtype `error_max_turns` with
- * `is_error`) or `no-decision` (a `success` result whose text is no JSON object); `findings`, on a
+ * `is_error`), `no-decision` (a `success` result whose text is no JSON object) or `withhold` (the
+ * `init` event drops `Glob` and `Grep` from the declared tools when they include `Bash`, as Claude
+ * Code 2.1.325 does); `findings`, on a
  * gate, is the verdict (`PASS` or `FAIL`) of the findings file it writes whatever its outcome, so
  * `{ outcome: 'blocker', findings: 'PASS' }` leaves a PASS file and then fails; with `outcome`
  * `PASS` or `FAIL` and a different `findings`, the decision carries no `findings_file`, which the
@@ -127,7 +129,8 @@ const tools = (() => {
 })();
 appendFileSync(join(dir, 'calls.log'), agent + ' ' + index + ' end ' + Date.now() + '\n');
 const events = [];
-if (entry.mode !== 'no-init') events.push({ type: 'system', subtype: 'init', session_id: 'stub', tools });
+const initTools = entry.mode === 'withhold' && tools.includes('Bash') ? tools.filter((t) => t !== 'Glob' && t !== 'Grep') : tools;
+if (entry.mode !== 'no-init') events.push({ type: 'system', subtype: 'init', session_id: 'stub', tools: initTools });
 if (entry.mode === 'not-success') {
   events.push({ type: 'result', subtype: 'error_max_turns', is_error: true, total_cost_usd: 0.01, permission_denials: [] });
 } else if (entry.mode === 'no-decision') {
