@@ -53,3 +53,29 @@
 - **cost this run:** 9 node session(s)
 
 # Task run (Phase D)
+
+## The plan needed 3 review rounds to converge
+- **category:** optimization
+- **evidence:** round indices 0, 1, 2 across `harness-runs/task_plan_reviews/fix_run_commit_trailer_amend/` and `harness-runs/architecture_reviews/fix_run_commit_trailer_amend/` (no business-parity folder; `phases.parity` false). Per root, against that root's prior round: task-plan-reviewer round 1 — 3 net-new, 1 re-raised (the §1.2 guard-cost item, which the round-1 file itself marks "carried from round 0"); round 2 — 0 findings (PASS). architecture-reviewer round 1 — 1 net-new, 1 re-raised (the forward citation of CS16); round 2 — 0 findings (PASS).
+- **cost this run:** 2 extra plan rounds (6 node sessions beyond the first round, per the driver block above)
+
+## The run copy has no local `<default_branch>` ref, so `dev..HEAD` ranges fail
+- **category:** tooling-gap
+- **evidence:** at session start `git log --oneline dev..HEAD` printed `fatal: ambiguous argument 'dev..HEAD': unknown revision or path not in the working tree.`; the Phase A2 `architecture-reviewer` and the Phase B `branch-reviewer` each reported "This run copy has no local `dev` branch, so I diffed against `origin/dev`"; this step's disposition / index-only derivation was likewise run over `origin/dev..HEAD`.
+- **cost this run:** every `diff_base: dev` consumer had to fall back on its own; the fallback is per-agent, not stated by the flow
+
+## The session's own commit-attribution instruction still reaches agents in this run
+- **category:** tooling-gap
+- **evidence:** the Phase G `committer` (Finding 1 of `harness-runs/test_fix_plans/fix_run_commit_trailer_amend_task_round_1.md`, commit `11f04a77`) returned "I didn't add the `Co-Authored-By` line. The project's commit-message rules forbid attribution trailers." — the instruction to add one was present in its context; this run's profile was rendered before this branch's Task 2 (`733e591c`) added the `attribution` key to the template.
+- **cost this run:** none landed (every commit checked was trailer-free); the defect this branch fixes was live for the whole run
+- **hypothesis:** the run profile in use carries no `attribution` key until it is re-rendered from the updated template
+
+## A committer's push exceeded its tool timeout and reported `pushed: failed`
+- **category:** tooling-gap
+- **evidence:** the Phase G `committer` for commit `11f04a77` returned `pushed: failed` — "`push-branch.sh` was still running after its 120s timeout and printed nothing … `git ls-remote` was denied in this permission mode"; the next committer push (`cb8ac646`) reported `pushed: yes`.
+- **cost this run:** one commit unpushed until the next unit's push carried it
+
+## Sub-agents met refused commands while building throwaway fixtures or reading the environment
+- **category:** tooling-gap
+- **evidence:** Task 4's `layer-implementer` (`48380978`): "The permission profile refused a direct `git init` in this run, so the probe built the fixture"; code-review Finding 1's `layer-implementer` (`dbdd06ec`): "the sandbox refused the inline shell version of the fixture"; the Phase G `test-fix-plan-writer`: "The rule's `printenv HOME` call was denied".
+- **cost this run:** three workarounds (fixtures moved into `harness-runs/scratch/` probe scripts run through `scripts/scratch-run.sh`; a prefix grep in place of the home-directory read)
