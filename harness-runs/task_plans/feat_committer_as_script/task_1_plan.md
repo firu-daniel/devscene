@@ -24,7 +24,7 @@ It makes no git call and reads no configuration. Task 3's front end in `commit-o
   - **Shell options.** Set no shell option at all, as a sourced library must (`.claude/context/conventions.md` → `## Shell assets`).
   - **Results and statuses.** Every function returns its result in `UCL_*` globals rather than on stdout. It returns 0 on success, 1 for a "not found / not applicable" answer, and 2 for bad input, with one `unit-commit-lib: <cause>` line on stderr.
   - **REPRO.** Carry a `REPRO` block that drives each public function against a throwaway index file under `mktemp -d "${TMPDIR:-/tmp}/ucl-repro.XXXXXX"`.
-  - **Temporary files.** Every `mktemp` names an explicit template; the `test/shipped-scripts-mktemp.test.mjs` tree guard covers this file.
+  - **Temporary files.** Every `mktemp` names an explicit template.
 - [ ] **Index functions.**
   - **`ucl_entry_find <index_file> <word> <K>`.** `<word>` is `Task`, `Finding` or `Test`. Search **only** inside the section opened by the exact line `## Phase 2 Readiness — Ordered Fix List` and closed by the next `## ` line. Match the first line of the form `<N>. [ ] **<word> <K>** — …` or `<N>. [x] **<word> <K>** — …`, by the token and never by position. Set `UCL_ENTRY_LINE`, `UCL_ENTRY_LINENO` and `UCL_ENTRY_STATE` (`open` | `done`); return 1 when no entry carries the token.
   - **`ucl_tick <index_file> <lineno>`.** Rewrite that one line's `[ ]` to `[x]` through a temporary file created beside the index (`mktemp "<dir>/.ucl-tick.XXXXXX"`), `chmod 644`, then `mv`. Every other byte stays unchanged, sub-step `- [ ]` bullets included.

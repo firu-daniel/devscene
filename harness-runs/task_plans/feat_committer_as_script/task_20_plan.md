@@ -1,11 +1,11 @@
 ### Task 20 — Delete the `committer` agent and re-home its `<MAIN_REPO>` resolution in the semi-autonomous forks
 
-**Goal:** Delete `plugin/agents/committer.md` once nothing dispatches it, and in the same unit move the `<MAIN_REPO>` resolution clause it carried for supervised-checkout flows into the two semi-autonomous forks. Those forks now bind `<commit_call>` and spell `<MAIN_REPO>` in it. The resolution module's roster swaps the one file for the two in the same unit too. That keeps the roster-driven corpus guard green across this task.
+**Goal:** Delete `plugin/agents/committer.md` once nothing dispatches it, and in the same unit move the `<MAIN_REPO>` resolution clause it carried for supervised-checkout flows into the two semi-autonomous forks. Those forks now bind `<commit_call>` and spell `<MAIN_REPO>` in it. The resolution module's roster swaps the one file for the two in the same unit too.
 
 **Depends on:**
 
 - **Tasks 8–19**, which leave no file under `plugin/` dispatching `committer`, passing it a `mode:`, or citing `agents/committer.md` — except the roster and the README this task edits.
-- **Task 6**, which makes `cli/test/main-repo-resolution-corpus.test.mjs` take its expected carriers from `plugin/instructions/main_repo_resolution.md` → `## Who may cite this`, its binders as that roster minus the suite's `EXEMPT` map, and a count of 1 per carrier.
+- **Task 6**, after which the expected `<MAIN_REPO>` clause carriers are the files listed in `plugin/instructions/main_repo_resolution.md` → `## Who may cite this`, with a count of 1 per carrier, and every roster entry must name an existing file. A carrier and its roster entry therefore move in the same unit.
 - **Task 8**, which declares `<commit_call>` in `mode_contract.md`: the wrapper prefix ahead of `--unit` / `--artifact`, bound by every fork.
 
 **The binding value for both semi-autonomous forks:** `bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root>` — no `--push`, because these flows leave commits unpushed for the human merge step.
