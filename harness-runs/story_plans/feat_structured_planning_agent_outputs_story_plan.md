@@ -70,7 +70,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_planning_age
 12. [ ] **Task 12** — Bring the watcher planning-driver suite's stub and the watcher's REPRO note to the return block _(layer: cli)_ _(points: 10)_
 13. [ ] **Task 13** — Add `cli/test/agent-return-schemas.test.mjs`, the static check that holds every return schema to its contract, its dialect, the planning graph and every citation of its fields _(layer: cli)_ _(points: 20)_
 14. [ ] **Task 14** — Record the mechanism in `docs/structured-agent-returns.md` and correct `docs/flow-graph-walker.md` → `## 5. The two drivers` _(layer: general)_ _(points: 15)_
-15. [ ] **Task 15** — Update `docs/watcher.md` and `ARCHITECTURE.md`, and register the new suite in `devscene.config.json` → `treeGuards` _(layer: general)_ _(points: 10)_
+15. [ ] **Task 15** — Update `docs/watcher.md`, `ARCHITECTURE.md` and `docs/analyze.md`, and register the new suite in `devscene.config.json` → `treeGuards` _(layer: general)_ _(points: 10)_
 
 ## Scope register
 
@@ -107,7 +107,7 @@ git grep -lE '(key: value|verdict: (PASS|FAIL)|findings_file|structured_output|j
 | 3 | `plugin/agents/business-parity-reviewer.md` → the disabled-phase paragraph under the opening, `## Invocation contract`, `## Read first`, `## Output contract` | — | A | `change` | Task 5 |
 | 4 | `plugin/agents/conventions-writer.md` → its citation of `task-plan-writer.md`'s conventions-document prohibition | — | A | `no-change` | Cites a `## Process` rule of the writer, not its return. |
 | 5 | `plugin/agents/skeptic-reviewer.md` | — | A | `no-change` | Names the six only as sibling reviewers; its own `verdict:` return is not one of the six and is #380's. |
-| 6 | `plugin/agents/task-plan-reviewer.md` → `## Invocation contract` (**Your return is parsed, not read.**), `## Read first`, `## Output contract` | — | A | `change` | Task 4 |
+| 6 | `plugin/agents/task-plan-reviewer.md` → `## Invocation contract` (**Your return is parsed, not read.**), `## Read first`, `## What to check` → `### Architecture (Must Fix)` → **No task targets a conventions document**, `## Output contract` | — | A | `change` | Task 4 |
 | 7 | `plugin/agents/task-plan-writer.md` → `## Invocation contract` (**How the caller consumes your return.**), `## Read first (everything — the plan spans every layer)`, `## Process` steps 5 and 7, `## Clarification questions`, `## Output contract` | — | A | `change` | Task 2 |
 | 8 | `plugin/agents/ui-tests-plan-reviewer.md` → `## Invocation contract`, `## Read first`, `## Process` step 0, `## Output contract` | — | A | `change` | Task 4 |
 | 9 | `plugin/agents/ui-tests-plan-writer.md` → the phase-gate paragraph under the opening, `## Invocation contract`, `## Read first`, `## No-UI determination (do this FIRST, before enumerating tests)`, `## Process`, `## Quality checks before saving`, `## Clarification questions`, `## Output contract` | — | A | `change` | Task 3 |
@@ -144,7 +144,7 @@ git grep -lE '(key: value|verdict: (PASS|FAIL)|findings_file|structured_output|j
 | 40 | `plugin/samples/sample_story_plan.md` | — | A | `no-change` | As row 37; its `## Scope register` cites the writer's `## Process`, not its return. |
 | 41 | `plugin/samples/sample_task_plan.md` | — | A | `no-change` | As row 37. |
 | 42 | `ARCHITECTURE.md` → the `cli/templates/scripts/lib/planning-node-lib.sh` → `pnl_agent_flags`, `pnl_launch` and `pnl_reap` row | — | B | `change` | Task 15 |
-| 43 | `docs/analyze.md` | — | B | `no-change` | Cites the writer's conventions-document prohibition; states no return. |
+| 43 | `docs/analyze.md` → the **Any write under a repository's own `.claude/` tree is a supervised action** paragraph, its sentence naming the planner's `## Corpus staleness` return section | — | B | `change` | Task 15 |
 | 44 | `docs/development.md` | — | B | `no-change` | Its `structured_output` / `--json-schema` hits are the remote mention session's, which runs without `--agent` and is unaffected. |
 | 45 | `docs/flow-graph-walker.md` → `## 5. The two drivers` → `### How each runs a parallel round`, `### The schema-from-graph rule, and the \`init\` check`, `### Not yet measured, and the hand step that measures it` | — | B | `change` | Task 14 |
 | 46 | `docs/sandbox-verification.md` → the `AP3` row | — | B | `no-change` | A dated run record of what a planner returned then; editing it falsifies the record. |
