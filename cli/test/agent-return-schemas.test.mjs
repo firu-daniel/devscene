@@ -1,15 +1,17 @@
 /**
  * The agent return schemas, held to their contract.
  *
- * **The rule this suite exists to enforce: every agent definition carrying a `## Return schema`
- * declares its return in the closed dialect, describes exactly that schema in its
- * `### Return fields`, carries the canonical return-block sentence, and is cited — by the planning
- * graph, by every `` `<agent>.<field>` `` in the plugin and by every `pd_ret_field` call in the
- * driver — only for outcomes and fields it declares.** The dialect, the sentence and the roster are
- * read from `plugin/instructions/agent_return_contract.md`, never restated here.
+ * **The rule this suite exists to enforce: every agent with a `plugin/schemas/<agent>.return.json`
+ * declares its return there in the closed dialect, describes exactly that schema — names and
+ * non-string types — in its `### Return fields`, carries the canonical return-block sentence, never
+ * re-inlines the schema in its definition, and is cited — by the planning graph, by every
+ * `` `<agent>.<field>` `` in the plugin and by every `pd_ret_field` call in the driver — only for
+ * outcomes and fields it declares.** The sentence and the roster are read from
+ * `plugin/instructions/agent_return_contract.md`, never restated here.
  *
- * An agent without a `## Return schema` section is skipped by design, so agents adopt the
- * mechanism one at a time (#380). The suite reads this checkout's files and creates nothing in it.
+ * An agent with no schema file is skipped by design, so agents adopt the mechanism one at a time
+ * (#380); a schema file with no agent definition beside it fails. The suite reads this checkout's
+ * files and creates nothing in it.
  *
  * Every check is a function over text, and each is also run once on an inline bad sample it must
  * reject, so none can pass vacuously on the real tree.
@@ -17,8 +19,9 @@
  * Section scans skip `#` lines inside fences: several `## Output contract` sections carry a fenced
  * findings-file template whose `## Must Fix` lines are not headings.
  *
- * Registered as a tree guard by Task 15 of `feat_structured_planning_agent_outputs`, which adds
- * this file's two `treeGuards` entries to `devscene.config.json`.
+ * Registered as a tree guard in `devscene.config.json` → `treeGuards`, once per covered glob — the
+ * plugin's Markdown, `plugin/schemas/` and `cli/templates/scripts/` — so a schema-only edit still
+ * runs it.
  */
 
 import assert from 'node:assert/strict';
@@ -30,6 +33,8 @@ import { WORKSPACE_ROOT } from './helpers/fixture.mjs';
 
 const MODULE = 'plugin/instructions/agent_return_contract.md';
 const AGENTS_DIR = 'plugin/agents';
+const SCHEMAS_DIR = 'plugin/schemas';
+const SCHEMA_SUFFIX = '.return.json';
 const GRAPH = 'cli/templates/scripts/flows/task_plan_writing.graph.json';
 const DRIVER = 'cli/templates/scripts/lib/planning-driver-lib.sh';
 const PLUGIN_ROOT_TOKEN = '${CLAUDE_PLUGIN_ROOT}/';
@@ -40,6 +45,13 @@ const VARIANT_KEYS = ['type', 'description', 'properties', 'required', 'addition
 const OUTCOME_KEYS = ['const', 'description'];
 const PROPERTY_KEYS = ['type', 'description', 'const', 'enum', 'minLength', 'minimum', 'minItems', 'items'];
 const PROPERTY_TYPES = ['string', 'integer', 'boolean', 'array'];
+/** A `### Return fields` type annotation, as written after the backticked name, to its schema `type`. */
+const ANNOTATIONS = new Map([
+  ['string', 'string'],
+  ['integer', 'integer'],
+  ['boolean', 'boolean'],
+  ['array of strings', 'array'],
+]);
 
 const read = (rel) => readFileSync(join(WORKSPACE_ROOT, rel), 'utf8');
 const toPosix = (p) => p.split(sep).join('/');
@@ -105,12 +117,6 @@ function section(text, heading) {
     .join('\n');
 }
 
-/** The unfenced level-2 headings, in order. */
-const h2Headings = (text) =>
-  scanLines(text)
-    .filter((e) => headingLevel(e) === 2)
-    .map((e) => e.line.trimEnd());
-
 /** Every fenced block: `{ info, body }`. */
 function fencedBlocks(text) {
   const blocks = [];
@@ -127,8 +133,6 @@ function fencedBlocks(text) {
   }
   return blocks;
 }
-
-const hasSchemaSection = (text) => section(text, '## Return schema') !== null;
 
 // ---------------------------------------------------------------------------------------------
 // Reading the module.
@@ -154,26 +158,38 @@ function roster(moduleText) {
 // The checks. Each returns a list of problems; empty means it holds.
 // ---------------------------------------------------------------------------------------------
 
-/** `## Return schema` holds exactly one fenced block, opened with `json`, which parses. */
-export function checkSchemaBlock(agentText) {
-  const body = section(agentText, '## Return schema');
-  if (body === null) return { schema: null, problems: ['no ## Return schema section'] };
-  const blocks = fencedBlocks(body);
-  if (blocks.length !== 1) {
-    return { schema: null, problems: [`## Return schema holds ${blocks.length} fenced blocks, not exactly one`] };
-  }
-  if (blocks[0].info !== 'json') {
-    return { schema: null, problems: [`the ## Return schema block opens with "${blocks[0].info}", not json`] };
-  }
-  try {
-    return { schema: JSON.parse(blocks[0].body), problems: [] };
-  } catch (error) {
-    return { schema: null, problems: [`the ## Return schema block does not parse: ${error.message}`] };
-  }
-}
-
 const unknownKeys = (obj, allowed) => Object.keys(obj).filter((k) => !allowed.includes(k));
 const isPlainObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** A schema file's text holds one JSON object. */
+export function checkSchemaBlock(schemaText) {
+  let value;
+  try {
+    value = JSON.parse(schemaText);
+  } catch (error) {
+    return { schema: null, problems: [`the schema file does not parse: ${error.message}`] };
+  }
+  if (!isPlainObject(value)) return { schema: null, problems: ['the schema file is not one JSON object'] };
+  return { schema: value, problems: [] };
+}
+
+/** Every schema file names an agent that has a definition. */
+export function checkSchemaOwners(schemaNames, agentNames) {
+  return schemaNames
+    .filter((n) => !agentNames.includes(n))
+    .map((n) => `${SCHEMAS_DIR}/${n}${SCHEMA_SUFFIX} has no ${AGENTS_DIR}/${n}.md`);
+}
+
+/** The definition carries no `## Return schema` section and no fenced `json` block in `## Output contract`. */
+export function checkNotInlined(agentText) {
+  const problems = [];
+  if (section(agentText, '## Return schema') !== null) problems.push('the definition carries a ## Return schema section');
+  const contract = section(agentText, '## Output contract');
+  if (contract !== null && fencedBlocks(contract).some((b) => b.info === 'json')) {
+    problems.push('## Output contract carries a fenced json block');
+  }
+  return problems;
+}
 
 /** Every keyword at every level is in the closed dialect. */
 export function checkDialect(schema) {
@@ -252,6 +268,20 @@ const outcomeConsts = (schema) => schema.oneOf.map((v) => v.properties?.outcome?
 const propertyNames = (schema) =>
   new Set(schema.oneOf.flatMap((v) => (isPlainObject(v.properties) ? Object.keys(v.properties) : [])));
 
+/** Each non-`outcome` property name to the set of `type`s its variants declare it with. */
+function propertyTypes(schema) {
+  const types = new Map();
+  for (const v of schema.oneOf) {
+    if (!isPlainObject(v.properties)) continue;
+    for (const [name, prop] of Object.entries(v.properties)) {
+      if (name === 'outcome' || !isPlainObject(prop)) continue;
+      if (!types.has(name)) types.set(name, new Set());
+      types.get(name).add(prop.type);
+    }
+  }
+  return types;
+}
+
 const sorted = (iterable) => [...iterable].sort();
 
 /** A block whose every non-blank line is `key: value` — the retired return form. */
@@ -265,23 +295,32 @@ export function checkOutputContract(agentText, schema, sentence) {
   const problems = [];
   const contract = section(agentText, '## Output contract');
   if (contract === null) return ['no ## Output contract section'];
-  const h2 = h2Headings(agentText);
-  const at = h2.indexOf('## Output contract');
-  if (h2[at + 1] !== '## Return schema') problems.push('## Return schema does not directly follow ## Output contract');
   if (!contract.includes(sentence)) problems.push('## Output contract does not carry the canonical sentence verbatim');
   const fields = section(contract, '### Return fields');
   if (fields === null) {
     problems.push('## Output contract has no ### Return fields');
   } else {
-    const listed = scanLines(fields)
+    const bullets = scanLines(fields)
       .filter((e) => !e.fenced)
-      .map((e) => /^- `([^`]+)`/.exec(e.line))
+      .map((e) => /^- `([^`]+)`(?: \(([^)]*)\))?/.exec(e.line))
       .filter(Boolean)
-      .map((m) => m[1]);
+      .map((m) => ({ name: m[1], annotation: m[2] }));
     const declared = sorted(propertyNames(schema));
-    const named = sorted(new Set(listed));
+    const named = sorted(new Set(bullets.map((b) => b.name)));
     for (const n of declared) if (!named.includes(n)) problems.push(`### Return fields lists no bullet for "${n}"`);
     for (const n of named) if (!declared.includes(n)) problems.push(`### Return fields lists "${n}", which the schema does not declare`);
+    const types = propertyTypes(schema);
+    for (const { name, annotation } of bullets) {
+      if (!types.has(name)) continue;
+      const annotated = ANNOTATIONS.get(annotation);
+      for (const type of types.get(name)) {
+        if (annotated === undefined && type !== 'string') {
+          problems.push(`### Return fields: "${name}" is a schema ${type} but its bullet carries no type annotation`);
+        } else if (annotated !== undefined && annotated !== type) {
+          problems.push(`### Return fields: "${name}" is annotated (${annotation}) but the schema types it ${type}`);
+        }
+      }
+    }
   }
   for (const c of outcomeConsts(schema)) {
     if (!contract.includes(`\`${c}\``)) problems.push(`outcome "${c}" does not appear backticked in ## Output contract`);
@@ -299,7 +338,7 @@ export function checkGraph(graph, schemas) {
     if (node.kind !== 'dispatch') continue;
     const schema = schemas.get(node.agent);
     if (!schema) {
-      problems.push(`node ${id}: agent ${node.agent} carries no ## Return schema`);
+      problems.push(`node ${id}: agent ${node.agent} has no ${SCHEMAS_DIR}/${node.agent}${SCHEMA_SUFFIX}`);
       continue;
     }
     const expected = sorted(Object.keys(node.outcomes).filter((k) => k !== 'error'));
@@ -375,36 +414,43 @@ const moduleText = read(MODULE);
 const SENTENCE = canonicalSentence(moduleText);
 const pluginFiles = walk('plugin').map((path) => ({ path, text: read(path) }));
 const pluginMarkdown = pluginFiles.filter((f) => f.path.endsWith('.md'));
-const agentFiles = pluginFiles
-  .filter((f) => f.path.startsWith(`${AGENTS_DIR}/`) && f.path.endsWith('.md'))
-  .filter((f) => hasSchemaSection(f.text));
 const agentName = (path) => path.slice(AGENTS_DIR.length + 1, -'.md'.length);
+const schemaName = (path) => path.slice(SCHEMAS_DIR.length + 1, -SCHEMA_SUFFIX.length);
+const allAgentFiles = pluginFiles.filter((f) => f.path.startsWith(`${AGENTS_DIR}/`) && f.path.endsWith('.md'));
+const schemaFiles = pluginFiles.filter((f) => f.path.startsWith(`${SCHEMAS_DIR}/`) && f.path.endsWith(SCHEMA_SUFFIX));
+const schemaTexts = new Map(schemaFiles.map((f) => [schemaName(f.path), f.text]));
+const agentFiles = allAgentFiles.filter((f) => schemaTexts.has(agentName(f.path)));
 const graph = JSON.parse(read(GRAPH));
 const driverText = read(DRIVER);
 
-function schemaMap(files) {
-  const map = new Map();
-  for (const f of files) {
-    const { schema } = checkSchemaBlock(f.text);
-    if (schema) map.set(agentName(f.path), schema);
-  }
-  return map;
+const SCHEMAS = new Map();
+for (const [name, text] of schemaTexts) {
+  const { schema } = checkSchemaBlock(text);
+  if (schema) SCHEMAS.set(name, schema);
 }
-
-const SCHEMAS = schemaMap(agentFiles);
 
 test('the module yields a canonical sentence and a roster', () => {
   assert.match(SENTENCE, /^End your reply with your return object: /);
   assert.ok(roster(moduleText).length > 0, 'the roster is empty');
 });
 
-test('at least one agent carries a ## Return schema', () => {
-  assert.ok(agentFiles.length > 0, 'no agent under plugin/agents carries a ## Return schema');
+test(`at least one agent has a ${SCHEMAS_DIR}/<agent>${SCHEMA_SUFFIX}`, () => {
+  assert.ok(agentFiles.length > 0, `no agent under ${AGENTS_DIR} has a schema file under ${SCHEMAS_DIR}`);
+});
+
+test('every schema file belongs to an agent definition', () => {
+  assert.deepEqual(checkSchemaOwners([...schemaTexts.keys()], allAgentFiles.map((f) => agentName(f.path))), []);
+});
+
+test('no agent definition re-inlines a return schema', () => {
+  const problems = allAgentFiles.flatMap((f) => checkNotInlined(f.text).map((p) => `${f.path}: ${p}`));
+  assert.deepEqual(problems, []);
 });
 
 for (const file of agentFiles) {
-  test(`${file.path}: schema block, dialect and Output contract`, () => {
-    const { schema, problems } = checkSchemaBlock(file.text);
+  const name = agentName(file.path);
+  test(`${file.path}: ${SCHEMAS_DIR}/${name}${SCHEMA_SUFFIX}, dialect and Output contract`, () => {
+    const { schema, problems } = checkSchemaBlock(schemaTexts.get(name));
     assert.deepEqual(problems, []);
     assert.deepEqual(checkDialect(schema), []);
     assert.deepEqual(checkOutputContract(file.text, schema, SENTENCE), []);
@@ -465,7 +511,13 @@ const goodSchema = () => ({
   ],
 });
 
-const sampleAgent = ({ sentence = SENTENCE, fields = ['outcome', 'findings_file', 'questions'], extra = '' } = {}) =>
+/** The sample agent's definition; its schema is `goodSchema()`, passed alongside. */
+const sampleAgent = ({
+  sentence = SENTENCE,
+  fields = ['outcome', 'findings_file', 'questions'],
+  annotations = { questions: 'array of strings' },
+  extra = '',
+} = {}) =>
   [
     '# sample',
     '',
@@ -481,29 +533,48 @@ const sampleAgent = ({ sentence = SENTENCE, fields = ['outcome', 'findings_file'
     extra,
     '### Return fields',
     '',
-    ...fields.map((f) => `- \`${f}\` — described.`),
-    '',
-    '## Return schema',
-    '',
-    '```json',
-    JSON.stringify(goodSchema(), null, 2),
-    '```',
+    ...fields.map((f) => `- \`${f}\`${annotations[f] ? ` (${annotations[f]})` : ''} — described.`),
     '',
   ].join('\n');
 
 test('bad samples: the good sample passes every per-agent check', () => {
   const text = sampleAgent();
-  const { schema, problems } = checkSchemaBlock(text);
+  const { schema, problems } = checkSchemaBlock(JSON.stringify(goodSchema(), null, 2));
   assert.deepEqual(problems, []);
   assert.deepEqual(checkDialect(schema), []);
+  assert.deepEqual(checkNotInlined(text), []);
   assert.deepEqual(checkOutputContract(text, schema, SENTENCE), []);
 });
 
-test('bad samples: a ## Return schema without exactly one json block is rejected', () => {
-  const two = sampleAgent().replace('\n## Return schema\n', '\n## Return schema\n\n```json\n{}\n```\n');
-  assert.match(checkSchemaBlock(two).problems.join('\n'), /holds 2 fenced blocks/);
-  const broken = sampleAgent().replace('"$schema"', '$schema');
-  assert.match(checkSchemaBlock(broken).problems.join('\n'), /does not parse/);
+test('bad samples: a schema file that is not one JSON object is rejected', () => {
+  assert.match(checkSchemaBlock('{"oneOf":[]} {}').problems.join('\n'), /does not parse/);
+  assert.match(checkSchemaBlock('[1]').problems.join('\n'), /not one JSON object/);
+});
+
+test('bad samples: a schema file with no agent definition is rejected', () => {
+  assert.deepEqual(checkSchemaOwners(['sample'], ['sample']), []);
+  assert.deepEqual(checkSchemaOwners(['orphan'], ['sample']), [
+    `${SCHEMAS_DIR}/orphan${SCHEMA_SUFFIX} has no ${AGENTS_DIR}/orphan.md`,
+  ]);
+});
+
+test('bad samples: a re-inlined schema is rejected', () => {
+  const inline = `${sampleAgent()}\n## Return schema\n\n\`\`\`json\n${JSON.stringify(goodSchema())}\n\`\`\`\n`;
+  assert.match(checkNotInlined(inline).join('\n'), /carries a ## Return schema section/);
+  const fenced = sampleAgent({ extra: `\`\`\`json\n${JSON.stringify(goodSchema())}\n\`\`\`\n` });
+  assert.match(checkNotInlined(fenced).join('\n'), /## Output contract carries a fenced json block/);
+});
+
+test('bad samples: a missing or wrong type annotation is rejected', () => {
+  const missing = sampleAgent({ annotations: {} });
+  assert.match(
+    checkOutputContract(missing, goodSchema(), SENTENCE).join('\n'),
+    /"questions" is a schema array but its bullet carries no type annotation/,
+  );
+  const wrong = sampleAgent({ annotations: { questions: 'integer', findings_file: 'boolean' } });
+  const problems = checkOutputContract(wrong, goodSchema(), SENTENCE).join('\n');
+  assert.match(problems, /"questions" is annotated \(integer\) but the schema types it array/);
+  assert.match(problems, /"findings_file" is annotated \(boolean\) but the schema types it string/);
 });
 
 test('bad samples: a schema with an unknown keyword is rejected', () => {
@@ -550,11 +621,6 @@ test('bad samples: a fenced key: value block in the Output contract is rejected'
   assert.match(checkOutputContract(text, goodSchema(), SENTENCE).join('\n'), /retired return form/);
 });
 
-test('bad samples: a ## Return schema not directly after ## Output contract is rejected', () => {
-  const text = sampleAgent().replace('\n## Return schema\n', '\n## Notes\n\nx\n\n## Return schema\n');
-  assert.match(checkOutputContract(text, goodSchema(), SENTENCE).join('\n'), /does not directly follow/);
-});
-
 const sampleGraph = () => ({
   nodes: {
     review: {
@@ -572,7 +638,7 @@ test('bad samples: a graph node whose outcomes differ from its agent\'s consts i
   const g = sampleGraph();
   g.nodes.review.outcomes.blocker = {};
   assert.match(checkGraph(g, schemas).join('\n'), /node review: outcomes \[FAIL,PASS,blocker\] differ/);
-  assert.match(checkGraph(sampleGraph(), new Map()).join('\n'), /carries no ## Return schema/);
+  assert.match(checkGraph(sampleGraph(), new Map()).join('\n'), /has no plugin\/schemas\/sample-reviewer\.return\.json/);
 });
 
 test('bad samples: a round gate whose agent declares no findings_file on PASS is rejected', () => {
@@ -609,11 +675,15 @@ test('bad samples: a roster that differs from the citing files is rejected', () 
 test('a real agent with findings_file renamed in its schema only fails the property and citation checks', () => {
   const real = agentFiles.find((f) => propertyNames(SCHEMAS.get(agentName(f.path))).has('findings_file'));
   assert.ok(real, 'no schema-carrying agent declares findings_file');
-  const schemaBody = section(real.text, '## Return schema');
-  const renamed = real.text.replace(schemaBody, schemaBody.replaceAll('"findings_file"', '"review_file"'));
-  const { schema } = checkSchemaBlock(renamed);
+  const schema = structuredClone(SCHEMAS.get(agentName(real.path)));
+  for (const variant of schema.oneOf) {
+    if (!('findings_file' in variant.properties)) continue;
+    variant.properties.review_file = variant.properties.findings_file;
+    delete variant.properties.findings_file;
+    variant.required = variant.required.map((r) => (r === 'findings_file' ? 'review_file' : r));
+  }
   assert.deepEqual(checkDialect(schema), []);
-  const contractProblems = checkOutputContract(renamed, schema, SENTENCE).join('\n');
+  const contractProblems = checkOutputContract(real.text, schema, SENTENCE).join('\n');
   assert.match(contractProblems, /lists no bullet for "review_file"/);
   assert.match(contractProblems, /lists "findings_file", which the schema does not declare/);
   const name = agentName(real.path);

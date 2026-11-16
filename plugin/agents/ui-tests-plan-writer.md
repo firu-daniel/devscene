@@ -180,7 +180,7 @@ If anything material is missing or ambiguous (a behaviour the task files describ
 
 ## Output contract
 
-End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object that is valid against `## Return schema` below, with nothing after its closing fence.
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
 Return `returned` after writing, augmenting or revising the plan — an augment that changed nothing included.
 
@@ -195,67 +195,9 @@ Return `blocker` in place of every plan file when a cited path cannot be read (`
 - `outcome` — `returned`, `no_ui`, `questions` or `blocker`.
 - `ui_test_index` — `returned`, and `questions` after an augment wrote files: the index's full path.
 - `ui_test_files_dir` — `returned`, and `questions` after an augment wrote files: `<state_dir>/ui_test_plans/<branch>/`.
-- `tests_count` — `returned`, and `questions` after an augment wrote files: the number of readiness entries.
+- `tests_count` (integer) — `returned`, and `questions` after an augment wrote files: the number of readiness entries.
 - `reason` — `no_ui`: one line — what the branch delivers instead of interactively-testable UI, or that the interactive-test phase is disabled.
-- `questions` — `questions`: one self-contained question per item. An untrusted-input report is an item, per `${CLAUDE_PLUGIN_ROOT}/instructions/untrusted_input.md` → `## Where a report goes`.
+- `questions` (array of strings) — `questions`: at least 1 item, one self-contained question each. An untrusted-input report is an item, per `${CLAUDE_PLUGIN_ROOT}/instructions/untrusted_input.md` → `## Where a report goes`.
 - `blocker` — `blocker`: one line naming the path and the refusal.
 
 Do not paste the plan content back to the orchestrator — it will not read it.
-
-## Return schema
-
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ui-tests-plan-writer return",
-  "description": "The ui-tests-plan-writer's return object.",
-  "type": "object",
-  "oneOf": [
-    {
-      "type": "object",
-      "description": "The plan was written, augmented or revised.",
-      "properties": {
-        "outcome": { "const": "returned", "description": "The plan was written, augmented or revised." },
-        "ui_test_index": { "type": "string", "minLength": 1, "description": "The index's full path." },
-        "ui_test_files_dir": { "type": "string", "minLength": 1, "description": "The per-test files' directory." },
-        "tests_count": { "type": "integer", "minimum": 0, "description": "The number of readiness entries." }
-      },
-      "required": ["outcome", "ui_test_index", "ui_test_files_dir", "tests_count"],
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "description": "The branch renders no interactively-testable UI, or the phase is off; no file was written.",
-      "properties": {
-        "outcome": { "const": "no_ui", "description": "No UI-test plan; the caller skips the QA loop." },
-        "reason": { "type": "string", "minLength": 1, "description": "One line: what the branch delivers instead, or that the phase is disabled." }
-      },
-      "required": ["outcome", "reason"],
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "description": "Clarification questions stop the work.",
-      "properties": {
-        "outcome": { "const": "questions", "description": "Clarification questions stop the work." },
-        "questions": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "One self-contained question per item." },
-        "ui_test_index": { "type": "string", "minLength": 1, "description": "The index's full path, when an augment wrote files first." },
-        "ui_test_files_dir": { "type": "string", "minLength": 1, "description": "The per-test files' directory, when an augment wrote files first." },
-        "tests_count": { "type": "integer", "minimum": 0, "description": "The number of readiness entries, when an augment wrote files first." }
-      },
-      "required": ["outcome", "questions"],
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "description": "A cited input could not be read; no plan file was written.",
-      "properties": {
-        "outcome": { "const": "blocker", "description": "A cited input could not be read." },
-        "blocker": { "type": "string", "minLength": 1, "description": "The unreadable path and the refusal, on one line." }
-      },
-      "required": ["outcome", "blocker"],
-      "additionalProperties": false
-    }
-  ]
-}
-```

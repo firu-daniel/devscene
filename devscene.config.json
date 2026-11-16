@@ -92,6 +92,10 @@
     {
       "test": "test/agent-return-schemas.test.mjs",
       "covers": "cli/templates/scripts/**"
+    },
+    {
+      "test": "test/agent-return-schemas.test.mjs",
+      "covers": "plugin/schemas/**"
     }
   ]
 }

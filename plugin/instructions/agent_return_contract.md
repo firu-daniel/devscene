@@ -15,12 +15,12 @@ An agent that adopts this contract ends its reply with its **return object**: on
 Every adopting agent carries this sentence verbatim in its `## Output contract`:
 
 ```
-End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object that is valid against `## Return schema` below, with nothing after its closing fence.
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 ```
 
 ## The return schema
 
-The agent's definition carries a `## Return schema` section placed directly after its `## Output contract`. It holds exactly one fenced `json` block: a draft-07 JSON Schema written in this **closed dialect**.
+The agent's return schema is the file `${CLAUDE_PLUGIN_ROOT}/schemas/<agent>.return.json`, `<agent>` being the definition's basename. The agent never reads it, and its definition carries no copy of it. The file holds one JSON object: a draft-07 JSON Schema written in this **closed dialect**.
 
 - **Top level:** `$schema` (`http://json-schema.org/draft-07/schema#`), `title`, `description`, `type: "object"`, and `oneOf`, a non-empty array of variants.
 - **Each variant:** `type: "object"`, `description`, `properties`, `required` — which always includes `outcome` — and `additionalProperties: false`.
@@ -33,11 +33,11 @@ No other keyword appears anywhere in the schema.
 
 ## Return fields
 
-The agent's `## Output contract` carries a `### Return fields` subsection with one bullet per schema property, each opening with the property name in backticks (`` - `findings_file` — … ``), `outcome` included with its values. The prose says which outcome carries which field. It never restates the schema in another form, so a fenced `key: value` block has no place in it.
+The agent's `## Output contract` carries a `### Return fields` subsection, the only return description the agent carries. It has one bullet per schema property, each opening with the property name in backticks (`` - `findings_file` — … ``), `outcome` included with its values. A property whose `type` is not `string` carries its type in parentheses right after the name, separated by one space: `(integer)`, `(boolean)` or `(array of strings)` (`` - `must_fix_count` (integer) — … ``). The prose says which outcome carries which field and states each lower bound. It never restates the schema in another form, so a fenced `key: value` or `json` block has no place in it.
 
 ## Citing a field
 
-A document other than the agent's own definition names a return field it reads as `` `<agent>.<field>` `` — `` `task-plan-reviewer.findings_file` `` — and an outcome as "an `outcome` of `PASS`". A static check holds each such citation to the named agent's `## Return schema`, so this is the only spelling a caller uses.
+A document other than the agent's own definition names a return field it reads as `` `<agent>.<field>` `` — `` `task-plan-reviewer.findings_file` `` — and an outcome as "an `outcome` of `PASS`". A static check holds each such citation to the named agent's schema file, so this is the only spelling a caller uses.
 
 ## Reading a return
 
@@ -47,7 +47,7 @@ An orchestrating caller applies this **routing check** to a return before acting
 2. Its `outcome` is one the dispatching section routes on for this dispatch.
 3. Every field that section reads for that outcome is present and not empty.
 
-The driver applies the agent's full `## Return schema` instead (`<scripts_dir>/lib/planning-node-lib.sh` → `pnl_reap`). The routing check is deliberately lighter because an orchestrating session runs no validator.
+The driver applies the agent's full schema file instead (`<scripts_dir>/lib/planning-node-lib.sh` → `pnl_reap`). The routing check is deliberately lighter because an orchestrating session runs no validator.
 
 ## A return that fails the check
 
@@ -61,13 +61,13 @@ The driver's bound is the same three attempts, taken as its infrastructure class
 
 An agent author adds, in this order:
 
-1. The `## Return schema` section, per `## The return schema`.
+1. The file `${CLAUDE_PLUGIN_ROOT}/schemas/<agent>.return.json`, per `## The return schema`.
 2. The `### Return fields` subsection, per `## Return fields`.
 3. The sentence `## The return block` carries, verbatim, in the `## Output contract`.
 
 Then rewrite every caller's citation of that agent's fields into `## Citing a field`'s form, and point each caller that routes on the return at `## Reading a return`.
 
-An agent with no `## Return schema` section is outside every check until it gains one, so agents adopt the contract one at a time.
+An agent with no schema file is outside every check until it gains one, so agents adopt the contract one at a time.
 
 ## Who may cite this
 

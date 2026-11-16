@@ -146,7 +146,7 @@ Follow `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The wr
 
 ## Output contract
 
-End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object that is valid against `## Return schema` below, with nothing after its closing fence.
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
 Return `returned` after writing or revising the plan.
 
@@ -159,65 +159,14 @@ Return `blocker` in place of every plan file when a cited path cannot be read (`
 - `outcome` — `returned`, `questions` or `blocker`.
 - `story_file` — `returned`: the story index's full path.
 - `task_files_dir` — `returned`: `<state_dir>/task_plans/<branch>/`.
-- `tasks_count` — `returned`: the number of readiness entries.
-- `story_points_total` — `returned`: the sum of every readiness entry's `_(points: <N>)_` value — the statistics writer's denominator.
-- `parity_exclusions` — `returned`, **only when `phases.parity` is `true`**; never present with the phase off. One entry per excluded `<reference_impl>` behaviour with its authorising task-prompt line, and per deferred one with its `TODO: @claude` marker location.
-- `corpus_staleness` — `returned`, when the branch's work invalidates a rule an existing conventions document states, or lands in a directory the layer profile does not describe. Every entry opens with its **type** as its first token, one of exactly two:
-  - **`stale-rule`** — one entry per invalidated document, naming the **conventions document**, the **rule the branch's work falsified**, and the **supervised follow-up that would restate it** (a `/devscene:analyze <target>` re-run or a hand edit).
-  - **`undescribed-layer`** — one entry per directory the branch's work lands in that no `layers[]` row of `<layer_path_map>` but the catch-all (the row whose `path` is `"."`) covers, whether this branch created that directory or found it. Name the **directory**, the **code it holds**, and the **supervised remedy**: a `/devscene:analyze` run in a session in that repository, answered `skip` for every already-filled document — never the `--yes` spelling, which takes `merge` on all of them — with the profile itself applied through `npx devscene config set layers`. `doctor`'s `layer-drift` check reports the same directories.
-
-  The caller writes these entries to the branch's improvement-observations intake and the closing Done summary. Every entry is a recommendation, never a task.
-- `manual_setup` — `returned`, when any task requires human-performed infrastructure steps (provisioning a message topic or subscription, adding secrets, console changes — anything an agent cannot do). One step per entry, naming the task that depends on it; the same list the story index's `## Context` carries.
-- `questions` — `questions`: one self-contained question per item. An untrusted-input report is an item, per `${CLAUDE_PLUGIN_ROOT}/instructions/untrusted_input.md` → `## Where a report goes`.
+- `tasks_count` (integer) — `returned`: the number of readiness entries, at least 1.
+- `story_points_total` (integer) — `returned`: the sum of every readiness entry's `_(points: <N>)_` value.
+- `parity_exclusions` (array of strings) — `returned`, **only when `phases.parity` is `true`**: one entry per excluded `<reference_impl>` behaviour with its authorising task-prompt line, or per deferred one with its `TODO: @claude` marker location.
+- `corpus_staleness` (array of strings) — `returned`, when the branch's work falsifies a conventions-document rule or lands in a directory no layer describes. Each entry opens with its type, one of exactly two:
+  - **`stale-rule`** — one per document: the conventions document, the falsified rule, and the supervised follow-up that restates it (`/devscene:analyze <target>` or a hand edit).
+  - **`undescribed-layer`** — one per directory, created or found, that only the catch-all row (`path` `"."`) of `<layer_path_map>` covers: the directory, the code it holds, and the remedy — `/devscene:analyze` in that repository answering `skip` for every already-filled document, never the `--yes` spelling, then `npx devscene config set layers`.
+- `manual_setup` (array of strings) — `returned`, when a task needs a human-performed infrastructure step: one step per entry, naming its dependent task — the list the story index's `## Context` carries.
+- `questions` (array of strings) — `questions`: at least 1 item, each a self-contained question; an untrusted-input report is an item (`${CLAUDE_PLUGIN_ROOT}/instructions/untrusted_input.md` → `## Where a report goes`).
 - `blocker` — `blocker`: one line naming the path and the refusal.
 
 Omit an optional field that would be empty. Do not paste the plan content back to the orchestrator — it will not read it.
-
-## Return schema
-
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "task-plan-writer return",
-  "description": "The task-plan-writer's return object.",
-  "type": "object",
-  "oneOf": [
-    {
-      "type": "object",
-      "description": "The plan was written or revised.",
-      "properties": {
-        "outcome": { "const": "returned", "description": "The plan was written or revised." },
-        "story_file": { "type": "string", "minLength": 1, "description": "The story index's full path." },
-        "task_files_dir": { "type": "string", "minLength": 1, "description": "The per-task files' directory." },
-        "tasks_count": { "type": "integer", "minimum": 1, "description": "The number of readiness entries." },
-        "story_points_total": { "type": "integer", "minimum": 0, "description": "The sum of every readiness entry's points." },
-        "parity_exclusions": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Excluded or deferred reference behaviours; parity phase only." },
-        "corpus_staleness": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "stale-rule or undescribed-layer entries, each opening with its type." },
-        "manual_setup": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Human-performed steps, each with the task depending on it." }
-      },
-      "required": ["outcome", "story_file", "task_files_dir", "tasks_count", "story_points_total"],
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "description": "Clarification questions stop the work.",
-      "properties": {
-        "outcome": { "const": "questions", "description": "Clarification questions stop the work." },
-        "questions": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "One self-contained question per item." }
-      },
-      "required": ["outcome", "questions"],
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "description": "A cited input could not be read; no plan file was written.",
-      "properties": {
-        "outcome": { "const": "blocker", "description": "A cited input could not be read." },
-        "blocker": { "type": "string", "minLength": 1, "description": "The unreadable path and the refusal, on one line." }
-      },
-      "required": ["outcome", "blocker"],
-      "additionalProperties": false
-    }
-  ]
-}
-```

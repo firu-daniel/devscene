@@ -1,0 +1,15 @@
+# cli review — 1. Each planning agent's return JSON schema is inlined in its definition, so every dispatch pays for a block only the driver and the suite read — iteration 0
+
+## Must Fix
+1. **The driver's REPRO fixture still builds a plugin directory with no schema files** — `cli/templates/scripts/lib/planning-driver-lib.sh` (header `REPRO`) — "fill\n#   a plugin directory \"$p\" with `.claude-plugin/plugin.json`, the six planning\n#   agents and the planning core."
+   After this move, `pnl_load_schemas` (reached through `pnl_init` from `pd_drive`) reads `$PNL_PLUGIN_DIR/schemas/$agent.return.json` and fails with `planning-driver: the return schema file '…' cannot be read` when it is absent. A maintainer who builds "$p" exactly as this REPRO says and runs the `drive` row gets status 2 and that fault, not the documented `-> 0 [] once the stub's walk converges`. The plan's driver bullet asks for "the `REPRO` lines the move affects" to be updated; this is one, and it was left unchanged. (Confirmed by reading the new `pnl_load_schemas` body and the `pnl_init refuses an agent with no usable schema file` case in `cli/test/planning-node-lib.test.mjs`, which passes 20/20 locally with `npm test --workspace cli -- test/planning-node-lib.test.mjs`. The REPRO itself was not run.)
+   **Fix:** Change the sentence to "…with `.claude-plugin/plugin.json`, the six planning agents, their `schemas/<agent>.return.json` files and the planning core."
+
+2. **The watcher's `planning pilot` REPRO fixture still builds a plugin directory with no schema files** — `cli/templates/scripts/autonomous-watcher.sh` (header `REPRO`, row `planning pilot`) — "a plugin directory \"$p\" holding\n#                 .claude-plugin/plugin.json, the planning agents and\n#                 instructions/task_plan_writing_instructions_core.md"
+   The unit edited this row: it now says the stub's return block must be valid "against its agent's `schemas/<agent>.return.json`". But the fixture it describes still holds no `schemas/` directory, so the driver's `pnl_init` fails at `pnl_load_schemas`, and the documented outcome (node sessions carrying `--agent devscene:task-plan-writer`, record ends `completed`) cannot be reached by following the row. (Confirmed by reading only, as in finding 1.)
+   **Fix:** Change it to "a plugin directory \"$p\" holding .claude-plugin/plugin.json, the planning agents, their schemas/<agent>.return.json files and instructions/task_plan_writing_instructions_core.md".
+
+## Nice to Have
+1. **Re-wrapped comment lines run past the surrounding width** — `cli/templates/scripts/autonomous-watcher.sh` (header `REPRO`, row `planning pilot`) — "against its agent's `schemas/<agent>.return.json`, naming an outcome"; also `cli/templates/scripts/lib/planning-node-lib.sh` (header) — "declare is `error`, whatever else the session printed. Every `error` carries its class,"
+   The substitution made each line longer than its neighbours, which are wrapped at about 80 columns. Nothing reads these lines by machine.
+   **Fix:** Re-flow both paragraphs to the column their neighbours use.

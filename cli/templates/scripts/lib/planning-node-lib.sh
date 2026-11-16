@@ -1,27 +1,28 @@
 #!/usr/bin/env bash
 # planning-node-lib.sh — one planning node session, for the script-driven
 # planning driver: the node's prompt, read out of the pinned plugin's planning
-# core; the `## Return schema` its agent's return object must satisfy, read out
-# of the pinned plugin's agent file; the per-node launch flags; the background
-# launch; and the validated read of the session's stream once it has exited.
+# core; the return schema its agent's return object must satisfy, read out of
+# the pinned plugin's `schemas/<agent>.return.json`; the per-node launch flags;
+# the background launch; and the validated read of the session's stream once it
+# has exited.
 #
 # The rule this library exists to enforce: a node's result is a declared
 # outcome, `error` or `undelivered`, never a guess. `pnl_reap` decides it from
 # the stream alone, in one fixed order: the outcome is read only from the
 # return block that ends the `result` text, validated against the agent's own
-# `## Return schema`, and an outcome the node's graph entry does not declare is
-# `error`, whatever else the session printed. Every `error` carries its class,
-# decided here and nowhere else: `infra` for no `init` event, a session that
-# ended not `success` or with `is_error`, a result whose return block is
-# missing, not one JSON object or fails the schema, and a `FAIL` — or a round
-# gate's `PASS` — that carries no non-blank `findings_file` — infrastructure
-# because the driver's bounded re-dispatch of the same prompt is the remedy for a
-# malformed reply, as the plugin's return contract (`agent_return_contract.md`
-# → `## A return that fails the check`) bounds it at three attempts; `agent`
-# for every other `error`. A session is
-# refused for its tools only when its `init` tools carry one the agent does not
-# declare; a declared tool the session lacks is reported on `withheld=` and
-# never refused, because a missing tool cannot widen what the session does.
+# `schemas/<agent>.return.json`, and an outcome the node's graph entry does not
+# declare is `error`, whatever else the session printed. Every `error` carries
+# its class, decided here and nowhere else: `infra` for no `init` event, a
+# session that ended not `success` or with `is_error`, a result whose return
+# block is missing, not one JSON object or fails the schema, and a `FAIL` — or
+# a round gate's `PASS` — that carries no non-blank `findings_file` —
+# infrastructure because the driver's bounded re-dispatch of the same prompt is
+# the remedy for a malformed reply, as the plugin's return contract
+# (`agent_return_contract.md` → `## A return that fails the check`) bounds it at
+# three attempts; `agent` for every other `error`. A session is refused for its
+# tools only when its `init` tools carry one the agent does not declare; a
+# declared tool the session lacks is reported on `withheld=` and never refused,
+# because a missing tool cannot widen what the session does.
 #
 # IT LAUNCHES NOTHING ON ITS OWN AND DECIDES NO ROUTING. Which node runs next,
 # when a set is launched, STOP, PAUSE, the dispatch cap, recording with
@@ -230,51 +231,24 @@ EOF
   return 0
 }
 
-# pnl_agent_schema_scan <agent_file> — print the first ```` ```json ```` block
-# of its `## Return schema` section. A fence line opens with three backticks and
-# nothing inside a fence is read as a heading; the section ends at the next `## `.
-# Exit 3 when there is no such section, 4 when it holds no such block.
-pnl_agent_schema_scan() {
-  awk '
-    BEGIN { insec = 0; infence = 0; inblock = 0; done = 0; fsec = 0; fblock = 0 }
-    {
-      line = $0
-      sub(/\r$/, "", line)
-      if (substr(line, 1, 3) == "```") {
-        if (infence) { infence = 0; if (inblock) { inblock = 0; done = 1 } }
-        else { infence = 1; if (insec && !done && line == "```json") { inblock = 1; fblock = 1 } }
-        next
-      }
-      if (infence) { if (inblock) print line; next }
-      if (substr(line, 1, 3) == "## ") { insec = (line == "## Return schema"); if (insec) fsec = 1 }
-    }
-    END { if (!fsec) exit 3; if (!fblock) exit 4 }
-  ' "$1"
-}
-
 # pnl_load_schemas — for every `kind: "dispatch"` node of the planning graph,
-# its agent's `## Return schema` block as compact JSON in
-# `<PNL_TMP>/schema-<node>.json`. A missing section or block, a block that is
+# its agent's `<PNL_PLUGIN_DIR>/schemas/<agent>.return.json` as compact JSON in
+# `<PNL_TMP>/schema-<node>.json`. A missing or unreadable file, a file that is
 # not one JSON object, or one with no top-level `oneOf` array is a fault naming
-# the agent file, so no session is launched against an agent with no schema.
+# the file, so no session is launched against an agent with no schema.
 pnl_load_schemas() {
-  local pairs node agent f text rc obj
+  local pairs node agent f obj
   pairs=$(jq -r '.nodes | to_entries[] | select(.value.kind == "dispatch") | .key + " " + (.value.agent | if type == "string" then . else "" end)' "$PNL_GRAPH" 2>/dev/null) \
     || { pnl_fail "the planning graph '$PNL_GRAPH' could not be read for its dispatch nodes"; return 2; }
   while IFS=' ' read -r node agent; do
     [ -n "$node" ] || continue
     [ -n "$agent" ] || { pnl_fail "the planning graph '$PNL_GRAPH' names no agent for dispatch node '$node'"; return 2; }
-    f="$PNL_PLUGIN_DIR/agents/$agent.md"
-    [ -f "$f" ] && [ -r "$f" ] || { pnl_fail "the agent file '$f' cannot be read"; return 2; }
-    text=$(pnl_agent_schema_scan "$f")
-    rc=$?
-    [ "$rc" -ne 3 ] || { pnl_fail "the agent file '$f' carries no '## Return schema' section"; return 2; }
-    [ "$rc" -ne 4 ] || { pnl_fail "the '## Return schema' section of '$f' carries no \`\`\`json block"; return 2; }
-    [ "$rc" -eq 0 ] || { pnl_fail "the agent file '$f' could not be scanned for its '## Return schema'"; return 2; }
-    obj=$(printf '%s\n' "$text" | jq -c -s 'if length == 1 and (.[0] | type) == "object" then .[0] else error("not one object") end' 2>/dev/null) \
-      || { pnl_fail "the '## Return schema' block of '$f' is not one JSON object"; return 2; }
+    f="$PNL_PLUGIN_DIR/schemas/$agent.return.json"
+    [ -f "$f" ] && [ -r "$f" ] || { pnl_fail "the return schema file '$f' cannot be read"; return 2; }
+    obj=$(jq -c -s 'if length == 1 and (.[0] | type) == "object" then .[0] else error("not one object") end' "$f" 2>/dev/null) \
+      || { pnl_fail "the return schema file '$f' is not one JSON object"; return 2; }
     printf '%s\n' "$obj" | jq -e '(.oneOf | type) == "array"' >/dev/null 2>&1 \
-      || { pnl_fail "the '## Return schema' block of '$f' carries no top-level oneOf array"; return 2; }
+      || { pnl_fail "the return schema file '$f' carries no top-level oneOf array"; return 2; }
     printf '%s\n' "$obj" >"$PNL_TMP/schema-$node.json" || { pnl_fail "cannot write '$PNL_TMP/schema-$node.json'"; return 2; }
   done <<EOF
 $pairs
@@ -454,10 +428,10 @@ EOF
 }
 
 # The decision over one session's stream, in `pnl_reap`'s order. Input: the raw
-# stream; `$g` the planning graph; `$sch` the node's return schema; `$node`;
-# `$tools` the agent's `tools:` list. `vfail` and `schemafail` hold a value to
-# the closed dialect of the plugin's `agent_return_contract.md` → `## The
-# return schema` and yield the first failure, or "" when there is none.
+# stream; `$g` the planning graph; `$sch` the node's return schema, loaded from
+# its agent's `schemas/<agent>.return.json`; `$node`; `$tools` the agent's
+# `tools:` list. `vfail` and `schemafail` hold a value to the closed dialect
+# that file is written in, and yield the first failure, or "" when there is none.
 PNL_REAP_JQ='
   def blank: if type == "string" then ([explode[] | select(. != 32 and . != 9 and . != 10 and . != 13)] | length) == 0 else true end;
   def oneline: tostring | split("\r") | join(" ") | split("\n") | join(" ");

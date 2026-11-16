@@ -36,7 +36,7 @@ You run in one of **two modes**, and there is **no mode flag**: the caller selec
 
 **You create `<findings_folder>` yourself; no caller pre-creates it.** In plan-review sub-cases (a) and (b) you create it with your first round file and write a round file every round, `PASS` included (`${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The round file`). In implemented-solution mode you create it only when you have findings to write, and the clean-review branch of `## Output contract` must not touch disk.
 
-**Your return is parsed, not read.** The caller routes on your `outcome`. In plan-review mode the caller passes your `findings_file` on both `PASS` and `FAIL`, and a `FAIL` reaches the writer only when the round closes, with every findings file of the round. So `outcome` must be **exactly** one of the values `## Return schema` declares — a reworded or decorated value strands the flow with no error message.
+**Your return is parsed, not read.** The caller routes on your `outcome`. In plan-review mode the caller passes your `findings_file` on both `PASS` and `FAIL`, and a `FAIL` reaches the writer only when the round closes, with every findings file of the round. So `outcome` must be **exactly** one of the values `### Return fields` lists — a reworded or decorated value strands the flow with no error message.
 
 ### Plan-review mode (insertion points 1 and 3)
 
@@ -176,7 +176,7 @@ Two things are not steering: a **bare pointer** to a named rule in a file you al
 
 ## Output contract
 
-End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object that is valid against `## Return schema` below, with nothing after its closing fence.
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
 An optional `## Unsolicited dispatch guidance` section may sit above the return object and changes nothing in it. Return nothing else.
 
@@ -242,54 +242,9 @@ After writing the file(s) on either mode's FAIL, return `FAIL`. Return `blocker`
 
 - `outcome` — `PASS`, `FAIL` or `blocker`.
 - `findings_file` — `PASS` in plan-review mode: the full path of the round file you wrote; absent on every other `PASS`. `FAIL`: the full path of the flat `review_{iteration}.md` in plan-review mode, of the **index** in implemented-solution mode.
-- `must_fix_count` — `FAIL`: the number of Must Fix findings, at least 1.
+- `must_fix_count` (integer) — `FAIL`: the number of Must Fix findings, at least 1.
 - `reason` — `PASS` from the disabled-phase no-op only: one line naming the disabled phase.
 - `blocker` — `blocker`: one line naming the path and the refusal.
-
-## Return schema
-
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "business-parity-reviewer return",
-  "description": "The business-parity-reviewer's return object, in every mode.",
-  "type": "object",
-  "oneOf": [
-    {
-      "type": "object",
-      "description": "No Must Fix, or the parity phase is disabled. A round file was written in plan-review mode only.",
-      "properties": {
-        "outcome": { "const": "PASS", "description": "No Must Fix, or the parity phase is disabled." },
-        "findings_file": { "type": "string", "minLength": 1, "description": "Plan-review mode only: the round file's full path." },
-        "reason": { "type": "string", "minLength": 1, "description": "The disabled-phase no-op only: the disabled phase, on one line." }
-      },
-      "required": ["outcome"],
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "description": "At least one Must Fix; the findings were written.",
-      "properties": {
-        "outcome": { "const": "FAIL", "description": "At least one Must Fix." },
-        "findings_file": { "type": "string", "minLength": 1, "description": "The flat round file in plan-review mode, the index in implemented-solution mode; full path." },
-        "must_fix_count": { "type": "integer", "minimum": 1, "description": "The number of Must Fix findings." }
-      },
-      "required": ["outcome", "findings_file", "must_fix_count"],
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "description": "A cited input could not be read; no findings file was written.",
-      "properties": {
-        "outcome": { "const": "blocker", "description": "A cited input could not be read." },
-        "blocker": { "type": "string", "minLength": 1, "description": "The unreadable path and the refusal, on one line." }
-      },
-      "required": ["outcome", "blocker"],
-      "additionalProperties": false
-    }
-  ]
-}
-```
 
 ## Findings-folder / index-path convention
 

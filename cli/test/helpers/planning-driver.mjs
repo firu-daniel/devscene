@@ -18,7 +18,7 @@
  * script holds for that agent at that call index — the index counts the agent's calls across every
  * `pd_drive` of one fixture. It emits what a real node session emits: a `result` whose text is one
  * prose line, a blank line and a ```` ```json ```` return block, and no structured field beside it. The
- * block is built from the `## Return schema` of the fixture plugin's copy of the real agent: the
+ * block is built from the fixture plugin's copy of the real agent's `schemas/<agent>.return.json`: the
  * variant whose `outcome` the entry names, every required property filled — the known ones with
  * their real values, any other with a placeholder.
  *
@@ -103,12 +103,7 @@ const put = (rel, text) => { mkdirSync(dirname(join(cwd, rel)), { recursive: tru
 
 const agentText = readFileSync(join(pluginDir, 'agents', agent + '.md'), 'utf8').split('\n');
 const fence = '\x60\x60\x60';
-const schema = (() => {
-  const at = agentText.indexOf('## Return schema');
-  const open = agentText.indexOf(fence + 'json', at);
-  const close = agentText.findIndex((l, i) => i > open && l.startsWith(fence));
-  return JSON.parse(agentText.slice(open + 1, close).join('\n'));
-})();
+const schema = JSON.parse(readFileSync(join(pluginDir, 'schemas', agent + '.return.json'), 'utf8'));
 
 // The known fields, with the values a real session would return; a required field not here gets a placeholder.
 const known = {};
@@ -230,11 +225,14 @@ export async function driverFixture(t, { script = {}, core = (text) => text } = 
   const plugin = join(root, 'plugin');
   await mkdir(join(plugin, '.claude-plugin'), { recursive: true });
   await mkdir(join(plugin, 'agents'));
+  await mkdir(join(plugin, 'schemas'));
   await mkdir(join(plugin, 'instructions'));
   const source = join(WORKSPACE_ROOT, 'plugin');
   await copyFile(join(source, '.claude-plugin', 'plugin.json'), join(plugin, '.claude-plugin', 'plugin.json'));
   for (const agent of PLANNING_AGENTS) {
     await copyFile(join(source, 'agents', `${agent}.md`), join(plugin, 'agents', `${agent}.md`));
+    const schemaFile = `${agent}.return.json`;
+    await copyFile(join(source, 'schemas', schemaFile), join(plugin, 'schemas', schemaFile));
   }
   const coreName = 'task_plan_writing_instructions_core.md';
   await writeFile(join(plugin, 'instructions', coreName), core(await readFile(join(source, 'instructions', coreName), 'utf8')));

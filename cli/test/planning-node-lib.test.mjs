@@ -7,20 +7,20 @@
  * `undelivered`, never a guess.** `pnl_reap` decides in one fixed order — 1 no `init` event, 2 an
  * `init` tool the agent does not declare, 3 no `result` (or an API overload), 4 a failed session,
  * 5 a `result` text whose return block is missing, is not one JSON object or fails the agent's
- * `## Return schema`, 6 an outcome the graph does not declare, 7 `FAIL` (or `PASS` at a round gate)
- * without a non-blank `findings_file` — and one case pins each rule, beside the declared outcomes
- * that pass. Each `error` case also pins its `class=`: `infra` for rules 1, 4, 5 and 7, `agent`
- * for the rest. `withheld=` reports the declared tools the `init` event lacks and refuses nothing.
- * `pnl_init` refuses a dispatch node's agent file with no usable `## Return schema`.
+ * `schemas/<agent>.return.json`, 6 an outcome the graph does not declare, 7 `FAIL` (or `PASS` at a
+ * round gate) without a non-blank `findings_file` — and one case pins each rule, beside the declared
+ * outcomes that pass. Each `error` case also pins its `class=`: `infra` for rules 1, 4, 5 and 7,
+ * `agent` for the rest. `withheld=` reports the declared tools the `init` event lacks and refuses
+ * nothing. `pnl_init` refuses a dispatch node whose agent has no usable schema file.
  *
  * Each case copies `lib/harness-run-lib.sh`, the library and the shipped planning graph from
  * `cli/templates/scripts/` into its own fixture under the system temp directory, beside a plugin
- * directory holding this checkout's planning core and fixture agent files, and sources them in one
- * `bash` process. `PD_SESSION_EXEC` names a stub function that runs
+ * directory holding this checkout's planning core and fixture agent and schema files, and sources
+ * them in one `bash` process. `PD_SESSION_EXEC` names a stub function that runs
  * `$DEVSCENE_AGENT_CLI -p "$1" "${@:2}"`; the agent CLI is a stub that records its argv and prints
- * canned `stream-json` lines. The agent files — their `tools:` lines and their `## Return schema`
- * blocks — are written here rather than copied, so an assertion holds the library's comparison and
- * not the corpus's current allowlists and schemas.
+ * canned `stream-json` lines. The agent files' `tools:` lines and the schema files are written here
+ * rather than copied, so an assertion holds the library's comparison and not the corpus's current
+ * allowlists and schemas.
  */
 
 import assert from 'node:assert/strict';
@@ -91,10 +91,10 @@ const REVIEWER_TOOLS = ['Read', 'Grep', 'Bash'];
 const UI_REVIEWER_TOOLS = ['Read', 'Grep'];
 const UI_WRITER_TOOLS = ['Read', 'Write'];
 
-/** An agent file: frontmatter, an `## Output contract`, then `section` (a `## Return schema` by default). */
-const agentFile = (name, tools, section) =>
-  `---\nname: ${name}\ndescription: fixture\ntools: ${tools}\nmodel: inherit\n---\n\nBody.\n\n## Output contract\n\n${FENCE}\n# not a heading\n${FENCE}\n\n${section}\n## Next\n\n${FENCE}json\n{"not":"this"}\n${FENCE}\n`;
-const schemaSection = (value) => `## Return schema\n\n${FENCE}json\n${JSON.stringify(value, null, 2)}\n${FENCE}\n`;
+/** An agent file: frontmatter and an `## Output contract`. */
+const agentFile = (name, tools) =>
+  `---\nname: ${name}\ndescription: fixture\ntools: ${tools}\nmodel: inherit\n---\n\nBody.\n\n## Output contract\n\n${FENCE}\n# not a heading\n${FENCE}\n`;
+const schemaFile = (value) => `${JSON.stringify(value, null, 2)}\n`;
 
 const PRELUDE = [
   '. "$W/s/lib/harness-run-lib.sh" || exit 99',
@@ -106,10 +106,10 @@ const PRELUDE = [
 
 /**
  * A fresh fixture: a worktree carrying the shipped libraries and graph, a plugin directory, and a
- * stub agent CLI. `core` transforms the copied planning core's text; `sections` replaces an agent's
- * `## Return schema` section text by agent name.
+ * stub agent CLI. `core` transforms the copied planning core's text; `schemas` replaces an agent's
+ * `schemas/<agent>.return.json` text by agent name, `null` leaving the file unwritten.
  */
-async function fixture(t, { core = (text) => text, sections = {} } = {}) {
+async function fixture(t, { core = (text) => text, schemas = {} } = {}) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'planning-node-lib-')));
   t.after(() => rm(root, { recursive: true, force: true }));
   const wt = join(root, 'wt');
@@ -127,11 +127,13 @@ async function fixture(t, { core = (text) => text, sections = {} } = {}) {
 
   await mkdir(join(plugin, '.claude-plugin'), { recursive: true });
   await mkdir(join(plugin, 'agents'), { recursive: true });
+  await mkdir(join(plugin, 'schemas'), { recursive: true });
   await mkdir(join(plugin, 'instructions'), { recursive: true });
   await writeFile(join(plugin, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: PLUGIN_NAME }));
   for (const [agent, { tools, schema: s }] of Object.entries(AGENTS)) {
-    const section = agent in sections ? sections[agent] : schemaSection(s);
-    await writeFile(join(plugin, 'agents', `${agent}.md`), agentFile(agent, tools, section));
+    await writeFile(join(plugin, 'agents', `${agent}.md`), agentFile(agent, tools));
+    const text = agent in schemas ? schemas[agent] : schemaFile(s);
+    if (text !== null) await writeFile(join(plugin, 'schemas', `${agent}.return.json`), text);
   }
   await writeFile(
     join(plugin, 'instructions', 'task_plan_writing_instructions_core.md'),
@@ -239,27 +241,27 @@ d=$PNL_TMP; pnl_cleanup; [ ! -e "$d" ] || exit 92
     'schema-ui_review.json',
     'schema-ui_writer.json',
   ]);
-  assert.deepEqual(JSON.parse(schemaLine), REVIEWER_SCHEMA, 'the first json block of the section, compact');
+  assert.deepEqual(JSON.parse(schemaLine), REVIEWER_SCHEMA, 'the schema file, compact');
   assert.ok(!schemaLine.includes('\n  '));
 });
 
-test('pnl_init refuses an agent file with no usable ## Return schema, naming it', { skip: SKIP }, async (t) => {
+test('pnl_init refuses an agent with no usable schema file, naming the file', { skip: SKIP }, async (t) => {
   const cases = [
-    ['', /carries no '## Return schema' section/],
-    [`## Return schema\n\nProse only.\n\n${FENCE}\n{}\n${FENCE}\n`, /'## Return schema' section of '.*' carries no ```json block/],
-    [`## Return schema\n\n${FENCE}json\n{"oneOf":[]} {}\n${FENCE}\n`, /'## Return schema' block of '.*' is not one JSON object/],
-    [`## Return schema\n\n${FENCE}json\n[1]\n${FENCE}\n`, /'## Return schema' block of '.*' is not one JSON object/],
-    [`## Return schema\n\n${FENCE}json\n{"type":"object"}\n${FENCE}\n`, /'## Return schema' block of '.*' carries no top-level oneOf array/],
-    [`${FENCE}\n## Return schema\n${FENCE}\n`, /carries no '## Return schema' section/],
+    [null, /return schema file '.*' cannot be read/],
+    ['', /return schema file '.*' is not one JSON object/],
+    ['{"oneOf":[]} {}\n', /return schema file '.*' is not one JSON object/],
+    ['[1]\n', /return schema file '.*' is not one JSON object/],
+    ['{"oneOf":\n', /return schema file '.*' is not one JSON object/],
+    ['{"type":"object"}\n', /return schema file '.*' carries no top-level oneOf array/],
   ];
-  for (const [section, pattern] of cases) {
-    const f = await fixture(t, { sections: { 'architecture-reviewer': section } });
+  for (const [text, pattern] of cases) {
+    const f = await fixture(t, { schemas: { 'architecture-reviewer': text } });
     const r = await f.bash('pnl_init "$P" "$W"; rc=$?; printf "%s" "${PNL_TMP-}"; exit $rc');
-    assert.equal(r.status, 2, section);
+    assert.equal(r.status, 2, String(text));
     assert.equal(r.stdout, '', 'no temporary directory is left set');
     assert.match(r.stderr, /^planning-driver: /);
     assert.match(r.stderr, pattern);
-    assert.ok(r.stderr.includes(join(f.plugin, 'agents', 'architecture-reviewer.md')), r.stderr);
+    assert.ok(r.stderr.includes(join(f.plugin, 'schemas', 'architecture-reviewer.return.json')), r.stderr);
     assert.equal(r.stderr.trimEnd().split('\n').length, 1);
   }
 });
@@ -538,7 +540,7 @@ test('rule 5: prose above the block, an earlier json block and whitespace after 
 
 test('rule 6: an outcome the schema admits and the graph does not declare is error, agent', { skip: SKIP }, async (t) => {
   const widened = schema([...REVIEWER_SCHEMA.oneOf, variant('SHIP', { findings_file: str() }, [])]);
-  const f = await fixture(t, { sections: { 'task-plan-reviewer': schemaSection(widened) } });
+  const f = await fixture(t, { schemas: { 'task-plan-reviewer': schemaFile(widened) } });
   const r = await reap(f, 'plan_review', 'task-plan-reviewer', [
     init(REVIEWER_TOOLS),
     returns({ outcome: 'SHIP', findings_file: 'devscene/r/review_0.md' }),

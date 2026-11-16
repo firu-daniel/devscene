@@ -69,7 +69,7 @@
 #   worktree is added, commit a task-engine ledger at
 #   "$r/w/devscene/flow_progress/feat_x_progress.md" and a task prompt, and fill
 #   a plugin directory "$p" with `.claude-plugin/plugin.json`, the six planning
-#   agents and the planning core.
+#   agents, their `schemas/<agent>.return.json` files and the planning core.
 #   cd "$r/w"; for l in harness-run-lib planning-node-lib planning-record-lib planning-driver-lib; do . "s/lib/$l.sh"; done
 #   stub() { exec <stub agent cli> -p "$1" "${@:2}"; }
 #   PD_PLUGIN_DIR=$p PD_MAIN_REPO=$r/m PD_SESSION_EXEC=stub PD_FORMATTER=cat PD_NODE_STALL_SECS=0
@@ -612,7 +612,7 @@ EOF
 # pd_ret_field <node> <field> — PD_V the field's value in the node's last
 # validated return object; 1 when the object file or the field is absent. Every
 # call names its field literally: a suite holds those names to the agents'
-# `## Return schema`.
+# `schemas/<agent>.return.json`.
 pd_ret_field() {
   local file
   pd_node_var "$1" OBJ

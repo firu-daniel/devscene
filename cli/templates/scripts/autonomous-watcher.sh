@@ -1132,7 +1132,8 @@
 #                 flows/ and the four lib/ libraries under devscene-scripts/,
 #                 `"execution": {"scriptDrivenPlanning": true}` in
 #                 "$d/devscene.config.json", a plugin directory "$p" holding
-#                 .claude-plugin/plugin.json, the planning agents and
+#                 .claude-plugin/plugin.json, the planning agents, their
+#                 schemas/<agent>.return.json files and
 #                 instructions/task_plan_writing_instructions_core.md, a
 #                 "$c/plugins/installed_plugins.json" whose
 #                 `plugins["devscene@devscene"]` row is
@@ -1142,8 +1143,9 @@
 #                 the task ledger with only P0 `[x]`; an argv carrying
 #                 `--agent` prints an init event with the agent's tools and a
 #                 success result whose text ends in a return block valid
-#                 against its agent's `## Return schema`, naming an outcome
-#                 its node declares; anything else ticks every ledger entry. A
+#                 against its agent's `schemas/<agent>.return.json`, naming
+#                 an outcome its node declares; anything else ticks every
+#                 ledger entry. A
 #                 paused record and "$d/devscene/RESUME", then
 #                 CLAUDE_CONFIG_DIR="$c" DEVSCENE_AGENT_CLI="$s" bash \
 #                   "$d/devscene-scripts/autonomous-watcher.sh" tick
