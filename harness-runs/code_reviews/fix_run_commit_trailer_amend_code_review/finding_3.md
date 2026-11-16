@@ -17,3 +17,5 @@ The `$` and backtick cases really are substitutions. The `<`/`>` case is prose. 
 > silent there too when any piece — the commit's own message included — carries a `$`, a backtick, `|`, `<` or `>`, so Claude Code's default `git commit -m "$(cat <<'EOF' … EOF)"` spelling and a subject naming a placeholder in angle brackets each cost one prompt, never a permit;
 
 Leave the rest of the row, the `## Fail closed` table and the jq paragraph unchanged.
+
+- **Deviations from plan:** The inserted `|` is written `\|`, as every other pipe in that table is (the `autonomous-script-allowlist-guard.sh` row); unescaped, it would split the table cell. Rendered text is as specified.
