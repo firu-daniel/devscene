@@ -11,7 +11,10 @@
 # does not declare is `error`, whatever else the session printed. Every `error`
 # carries its class, decided here and nowhere else: `infra` for no `init`
 # event, a session that ended not `success` or with `is_error`, and a result
-# with no decision object; `agent` for every other `error`.
+# with no decision object; `agent` for every other `error`. A session is
+# refused for its tools only when its `init` tools carry one the agent does not
+# declare; a declared tool the session lacks is reported on `withheld=` and
+# never refused, because a missing tool cannot widen what the session does.
 #
 # IT LAUNCHES NOTHING ON ITS OWN AND DECIDES NO ROUTING. Which node runs next,
 # when a set is launched, STOP, PAUSE, the dispatch cap, recording with
@@ -76,7 +79,8 @@
 #             PD_SESSION_EXEC=s PD_FORMATTER=cat
 #             pnl_launch 1 plan_review task-plan-reviewer "$(pnl_prompt plan_review '' feat_x 0 '')" "$w/run.log"
 #             h=$PNL_HANDLE; wait "${h%%	*}"
-#   reap      pnl_reap "$h"   -> kind=error … reason=the agent tools do not match …
+#   reap      pnl_reap "$h"   -> kind=undelivered … withheld=<the reviewer's
+#                                non-mcp__ tools:> / reason=no result event
 #   cleanup   pnl_cleanup; echo "$PNL_TMP"   -> empty, the directory gone
 
 PNL_CORE_SETUP_HEADING='## Setup (once per session)'
@@ -424,7 +428,7 @@ PNL_REAP_JQ='
   | [split("\n")[] | select(length > 0) | fromjson? | objects] as $ev
   | ([$ev[] | select(.type == "system" and .subtype == "init")] | first) as $init
   | ([$ev[] | select(.type == "result")] | last) as $res
-  | { outcome: "", findings: "", ret: "", friction: [], read: false, class: "",
+  | { outcome: "", findings: "", ret: "", friction: [], read: false, class: "", withheld: "",
       cost: (if ($res | type) == "object" and ($res.total_cost_usd | type) == "number" then ($res.total_cost_usd | tostring) else "" end),
       denials: (if ($res | type) == "object" and ($res.permission_denials | type) == "array" then ($res.permission_denials | length) else 0 end) } as $m
   | if ($init | type) != "object" then $m + { kind: "error", class: "infra", reason: "the agent did not resolve: no init event" }
@@ -432,8 +436,9 @@ PNL_REAP_JQ='
       (if ($init.tools | type) == "array" then $init.tools else [] end) as $it
       | [$agent[] | select(startswith("mcp__") | not) | select(. as $t | any($it[]; . == $t) | not)] as $missing
       | [$it[] | select(. as $t | any($agent[]; . == $t) | not)] as $extra
-      | if ($missing | length) > 0 or ($extra | length) > 0
-        then $m + { kind: "error", class: "agent", reason: ("the agent tools do not match its init event: missing [" + ($missing | join(", ")) + "], extra [" + ($extra | join(", ")) + "]") }
+      | ($m + { withheld: ($missing | join(", ")) }) as $m
+      | if ($extra | length) > 0
+        then $m + { kind: "error", class: "agent", reason: ("the init event grants tools the agent does not declare: [" + ($extra | join(", ")) + "]") }
         elif ($res | type) != "object" then $m + { kind: "undelivered", reason: "no result event" }
         elif $res.is_error == true
           and (($res.result // "") | tostring | (contains("API Error: 500") or contains("API Error: 503") or contains("API Error: 529") or contains("Overloaded")))
@@ -466,10 +471,12 @@ PNL_REAP_JQ='
 # event's session_id — to `${log_path%.log}.planning/node-sessions.jsonl`, the
 # manifest `run-analytics.sh` classes node sessions by. Then it prints
 # `kind=`, `class=`, `outcome=`, `findings=`, `return_file=`, `friction_file=`,
-# `cost=`, `duration_secs=`, `denials=` and `reason=`, one per line. `class=` is
-# `infra` or `agent` and set only for `kind=error`; `outcome=` only for
-# `kind=returned`; `return_file=` and `friction_file=` only once the outcome
-# was read as declared.
+# `cost=`, `duration_secs=`, `denials=`, `withheld=` and `reason=`, one per
+# line. `class=` is `infra` or `agent` and set only for `kind=error`;
+# `outcome=` only for `kind=returned`; `return_file=` and `friction_file=` only
+# once the outcome was read as declared. `withheld=` is the agent's declared
+# non-`mcp__` tools the `init` event lacks, in `tools:` order, joined by `, `,
+# on every kind; empty when none is lacking or there is no `init` event.
 pnl_reap() {
   local handle="${1-}" pid seq node agent stream log_path start now verdict ret_file="" fr_file="" tools="" sid
   IFS='	' read -r pid seq node agent stream log_path start <<EOF
@@ -510,5 +517,6 @@ EOF
     "cost=" + .cost,
     "duration_secs=" + $dur,
     "denials=" + (.denials | tostring),
+    "withheld=" + (.withheld | oneline),
     "reason=" + (.reason | oneline)' "$verdict"
 }
