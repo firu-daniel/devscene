@@ -428,7 +428,7 @@ test('every `<agent>.<field>` citation across plugin/**/*.md names a declared fi
 });
 
 test('the plugin files naming the module equal its ## Who may cite this roster', () => {
-  assert.deepEqual(checkRoster(moduleText, pluginFiles), []);
+  assert.deepEqual(checkRoster(moduleText, pluginMarkdown), []);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -600,9 +600,9 @@ test('bad samples: a citation of an undeclared field is rejected; a .md file nam
 });
 
 test('bad samples: a roster that differs from the citing files is rejected', () => {
-  const extra = [...pluginFiles, { path: 'plugin/instructions/new_citer.md', text: 'see agent_return_contract.md' }];
+  const extra = [...pluginMarkdown, { path: 'plugin/instructions/new_citer.md', text: 'see agent_return_contract.md' }];
   assert.match(checkRoster(moduleText, extra).join('\n'), /new_citer\.md names the module but is not on its roster/);
-  const fewer = pluginFiles.filter((f) => f.path !== roster(moduleText)[0]);
+  const fewer = pluginMarkdown.filter((f) => f.path !== roster(moduleText)[0]);
   assert.match(checkRoster(moduleText, fewer).join('\n'), /is on the roster but does not name the module/);
 });
 
