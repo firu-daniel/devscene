@@ -100,4 +100,8 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 
 - **When an agent definition has to give back words to hold its word count, cut restatement or rationale, never a definition or edge case the agent acts on.** _(taught by: fix_run_gates_answered_park_resume)_
 
+- **Keep a machine-read contract the model never acts on, such as a JSON schema only a script or test validates, in a plugin file outside the agent definition. The definition carries only the prose the agent writes from, and a static check holds that prose to the file.** _(taught by: feat_structured_planning_agent_outputs)_
+
+- **A shared instruction module carries only what its runtime reader acts on. Authoring rules for maintainers live in a maintainer-facing document outside the plugin.** _(taught by: feat_structured_planning_agent_outputs)_
+
 _Written by `autonomous-sdlc-harness init`, and yours from there on: a re-run never touches a ledger that already exists._

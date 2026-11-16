@@ -26,7 +26,7 @@ One row per binding declared in `user_review_fixes_instructions_core.md` → `##
 | Binding | Value for this flow |
 |---|---|
 | `<escalate>` | Stop, surface the blocker plus whatever path(s) the core's site names (for a non-convergent review loop, the latest findings file and a one-paragraph summary) in your text output, then wait for direction — do not continue. |
-| `<ask>` | Stop and surface the `ui-tests-plan-writer`'s `## Questions` section in your text output; do **not** run the QA loop with an incomplete plan. |
+| `<ask>` | Stop and surface each `` `ui-tests-plan-writer.questions` `` item, verbatim, in your text output; do **not** run the QA loop with an incomplete plan. |
 | `<park_answer_lookup>` | `none` — this flow's `<escalate>` surfaces the blocker and waits, and writes no answer file, so the cited G.0's pending-answer test never holds here. |
 | `<gate_launcher>` | `none` — this flow runs under the session's own settings, in which `init` writes no sandbox block, so the run form's detached worker outlives its call there and the core's G.1 issues the run form directly. A user whose own settings turn the sandbox on under Linux meets `docs/sandbox-verification.md` §5 F10 in this flow too. |
 | `<repo_root>` | The supervised checkout root, resolved as `## Resolved values` above states. On a main-repo run that is the main checkout; a worktree run resolves the same way to that worktree's own root. The core's QA.1+ `test_credentials` clause therefore names `<repo_root>/<qa_creds_path>`. |

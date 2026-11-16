@@ -8,8 +8,10 @@
  * cap send nothing of the set, a STOP or PAUSE raised while a set runs lets the set finish and its
  * round commit land, and every stop returns 3 with its files written — and the next `pd_drive`
  * continues the saved walk where it stopped rather than starting a fresh one. A node failing for an
- * infrastructure reason is re-dispatched alone, up to three attempts, and parks once only when all
- * three failed; an agent-reported `blocker` parks with no retry. A resume after an escalation
+ * infrastructure reason — a return block that is missing or fails its schema among them — is
+ * re-dispatched alone, up to three attempts, and parks once only when all three failed; an
+ * agent-reported `blocker` parks with no retry. A writer's `questions` park as one `## Q<k>` section
+ * per item of its return object. A resume after an escalation
  * park re-dispatches a gate that passed in the escalated round only after a writer revision, or
  * when the escalated gate's own file completed the round.** Each case is graded
  * on the return, `git log`, the run log, the clarification and pause files and the calls log.
@@ -30,9 +32,12 @@ const GATES = ['business-parity-reviewer', 'architecture-reviewer', 'task-plan-r
 const WRITER = 'task-plan-writer';
 const isGate = (c) => GATES.includes(c.agent);
 
-test('<ask>: questions park with the return text, and an answer resumes the saved walk', { skip: SKIP }, async (t) => {
-  const asked = '## Questions\n1. Which storage key does the feature use?';
-  const f = await driverFixture(t, { script: { [WRITER]: [{ outcome: 'questions', return: asked }] } });
+test('<ask>: questions park as one Q<k> section per returned item, and an answer resumes the saved walk', { skip: SKIP }, async (t) => {
+  const asked = [
+    'Which storage key does the feature use?\nThe feature persists one value across launches.',
+    'Should the value be cleared on sign-out?',
+  ];
+  const f = await driverFixture(t, { script: { [WRITER]: [{ outcome: 'questions', questions: asked }] } });
   const first = await drive(t, f);
   assert.equal(first.status, 3, show(first));
   const question = first.clarifications['question_1.md'];
@@ -40,7 +45,13 @@ test('<ask>: questions park with the return text, and an answer resumes the save
     question.startsWith('# Questions from task-plan-writer\n\nRaised by: task-plan-writer (script-driven planning)\n'),
     question,
   );
-  assert.ok(question.includes(asked), question);
+  assert.deepEqual(
+    question.split('\n').filter((l) => l.startsWith('## Q')),
+    ['## Q1 — Which storage key does the feature use?', '## Q2 — Should the value be cleared on sign-out?'],
+    question,
+  );
+  assert.ok(question.includes(`## Q1 — Which storage key does the feature use?\n\n${asked[0]}\n`), question);
+  assert.ok(question.includes(`## Q2 — Should the value be cleared on sign-out?\n\n${asked[1]}\n`), question);
   assert.ok(first.log.includes(`PARKED: ${BRANCH} — 1 question(s) at `), first.log);
   assert.equal(first.calls.filter(isGate).length, 0);
 
@@ -157,7 +168,7 @@ test('a gate stalled once is re-dispatched alone and passes; its siblings run on
 test('a gate failing all three attempts parks once, after its siblings, naming every attempt', { skip: SKIP }, async (t) => {
   const f = await driverFixture(t, {
     script: {
-      'task-plan-reviewer': [{ mode: 'not-success' }, { mode: 'no-decision' }, { mode: 'no-init' }],
+      'task-plan-reviewer': [{ mode: 'not-success' }, { mode: 'no-block' }, { mode: 'invalid' }],
       'business-parity-reviewer': [{ sleepMs: 1500 }],
       'architecture-reviewer': [{ sleepMs: 1500 }],
     },
@@ -174,9 +185,30 @@ test('a gate failing all three attempts parks once, after its siblings, naming e
   assert.ok(question.split('\n').includes('held: plan_review error'), question);
   assert.ok(question.includes('- agent: `task-plan-reviewer`\n'), question);
   assert.match(question, /\n {2}- attempt 1 of 3 \(#\d+\): the session ended as error_max_turns with is_error\n/);
-  assert.match(question, /\n {2}- attempt 2 of 3 \(#\d+\): the result carries no decision object\n/);
-  assert.match(question, /\n {2}- attempt 3 of 3 \(#\d+\): the agent did not resolve: no init event\n/);
+  assert.match(question, /\n {2}- attempt 2 of 3 \(#\d+\): the result carries no return block\n/);
+  assert.match(question, /\n {2}- attempt 3 of 3 \(#\d+\): the return fails its schema: unknown key stub_unknown\n/);
   assert.ok(question.includes('## Q1 — How should planning continue?'), question);
+});
+
+test('a plan_review PASS with no findings_file fails its schema and is retried as infrastructure, not parked', { skip: SKIP }, async (t) => {
+  const f = await driverFixture(t, {
+    script: { 'task-plan-reviewer': [{ outcome: 'PASS', findings: 'FAIL' }, { outcome: 'PASS' }] },
+  });
+  const r = await drive(t, f);
+  assert.equal(r.status, 0, show(r));
+  assert.deepEqual(Object.keys(r.clarifications), [], show(r));
+  assert.equal(r.calls.filter((c) => c.agent === 'task-plan-reviewer').length, 2, show(r));
+  assert.ok(
+    r.log.includes(
+      'plan_review (task-plan-reviewer): attempt 1 of 3 failed for an infrastructure reason ' +
+        '(the return fails its schema: missing required key findings_file); it alone is re-dispatched',
+    ),
+    r.log,
+  );
+  const text = await f.read(`${f.sd}/improvement_observations/${BRANCH}.md`);
+  const sessions = text.split('\n## ').find((b) => b.startsWith('Script-driven planning node sessions'));
+  assert.ok(sessions.includes('plan_review task-plan-reviewer 1/3 error'), sessions);
+  assert.ok(sessions.includes('plan_review task-plan-reviewer 2/3 PASS'), sessions);
 });
 
 test('an agent-reported blocker parks with no retry', { skip: SKIP }, async (t) => {
@@ -189,10 +221,10 @@ test('an agent-reported blocker parks with no retry', { skip: SKIP }, async (t) 
 });
 
 /**
- * The observations file a flush committed: its label, a `flow-efficiency` block naming every
- * session, and the `friction:` text under the node that reported it — with no fixture path in it.
+ * The observations file a flush committed: its label and a `flow-efficiency` block naming every
+ * session — with no fixture path in it.
  */
-async function assertObservations(f, r, sessions, friction) {
+async function assertObservations(f, r, sessions) {
   const rel = `${f.sd}/improvement_observations/${BRANCH}.md`;
   const text = await f.read(rel);
   assert.match(text, /^# Script-driven planning — /m);
@@ -200,43 +232,31 @@ async function assertObservations(f, r, sessions, friction) {
   assert.ok(block !== undefined, text);
   assert.ok(block.includes('- **category:** flow-efficiency\n'), block);
   for (const session of sessions) assert.ok(block.includes(session), `${session}\n${block}`);
-  const fr = text.split('\n## ').find((b) => b.startsWith(`Harness friction reported by ${friction.agent}`));
-  assert.ok(fr !== undefined, text);
-  assert.ok(fr.includes(`- **evidence:** node ${friction.node}, agent ${friction.agent}, `), fr);
-  assert.ok(fr.includes(friction.text), fr);
   assert.ok(r.subjects.includes(`chore: Log improvement observations for ${BRANCH}`), show(r));
   assert.ok(!text.includes(f.dir) && !text.includes(f.root), text);
 }
 
-test('the dispatch cap halts before a set that would pass it; its observations are logged', { skip: SKIP }, async (t) => {
-  const friction = 'the commit wrapper refused one path';
+test('the dispatch cap halts before a set that would pass it; its session table is logged', { skip: SKIP }, async (t) => {
   const f = await driverFixture(t, {
-    script: { [WRITER]: [{ friction }] },
     core: (text) => text.replace(/MAX_TOTAL_DISPATCHES = \d+/, 'MAX_TOTAL_DISPATCHES = 3'),
   });
   const r = await drive(t, f);
   assert.equal(r.status, 3, show(r));
   assert.equal(r.calls.filter(isGate).length, 0, show(r));
   assert.ok(r.log.includes('Halted: exceeded MAX_TOTAL_DISPATCHES (3).'), r.log);
-  await assertObservations(f, r, ['#1 plan_writer task-plan-writer'], { agent: WRITER, node: 'plan_writer', text: friction });
+  await assertObservations(f, r, ['#1 plan_writer task-plan-writer']);
 });
 
-test('observations after a hand-off name every session and the reported friction', { skip: SKIP }, async (t) => {
-  const friction = 'the round file folder did not exist yet';
-  const f = await driverFixture(t, { script: { 'architecture-reviewer': [{ friction }] } });
+test('observations after a hand-off carry a session table naming every session', { skip: SKIP }, async (t) => {
+  const f = await driverFixture(t);
   const r = await drive(t, f);
   assert.equal(r.status, 0, show(r));
-  await assertObservations(
-    f,
-    r,
-    [
-      '#1 plan_writer task-plan-writer',
-      'business_parity_review business-parity-reviewer',
-      'architecture_review architecture-reviewer',
-      'plan_review task-plan-reviewer',
-    ],
-    { agent: 'architecture-reviewer', node: 'architecture_review', text: friction },
-  );
+  await assertObservations(f, r, [
+    '#1 plan_writer task-plan-writer',
+    'business_parity_review business-parity-reviewer',
+    'architecture_review architecture-reviewer',
+    'plan_review task-plan-reviewer',
+  ]);
 });
 
 /**

@@ -20,7 +20,9 @@
  * Every local pass is one `tick` of `cli/test/helpers/watcher.mjs`, launched through the
  * pause-resume or park-resume pass. The stub agent CLI is written here and imports nothing from
  * `cli/test/helpers/planning-driver.mjs`: it tells the three session kinds apart, records each argv
- * to a calls log, and every literal this suite asserts on is spelled in this file.
+ * to a calls log, answers a node session the way a real one does — a `result` whose text ends in a
+ * return block, the return objects written out here rather than built from a schema — and every
+ * literal this suite asserts on is spelled in this file.
  */
 
 import assert from 'node:assert/strict';
@@ -49,7 +51,9 @@ const PASS_TIMEOUT_MS = scaleBound(180_000);
 
 /**
  * The stub. argv[2] is its own directory; the rest is the watcher's argv. A node session (an
- * `--agent` flag) prints an `init` event with the agent file's `tools:` list and a `success` result;
+ * `--agent` flag) prints an `init` event with the agent file's `tools:` list and a `success` result
+ * whose `result` text ends in a ```` ```json ```` return block valid against the agent's `## Return
+ * schema` and no other field carrying the return;
  * a setup session (the clause in its `-p` prompt) writes the task ledger with only `P0` closed; any
  * other session is the engine, which records the channel's top level and closes every ledger entry.
  */
@@ -82,20 +86,16 @@ if (qualified !== '') {
   }
   const lines = prompt.split('\n');
   const value = (key) => { const line = lines.find((l) => l.startsWith(key)); return line === undefined ? '' : line.slice(key.length); };
-  const decision = { outcome: '', findings_file: null, return: '', harness_friction: [] };
+  let ret;
   const folder = value('findings_folder: ');
   if (agent === 'ui-tests-plan-writer') {
-    decision.outcome = 'no_ui';
-    decision.return = 'no_ui';
+    ret = { outcome: 'no_ui', reason: 'The branch delivers no user-facing surface.' };
   } else if (folder !== '') {
     const findings = folder + 'review_' + value('iteration: ') + '.md';
     put(findings, '# review\nverdict: PASS\nreview_mode: ' + value('review_mode: ') + '\n');
-    decision.outcome = 'PASS';
-    decision.findings_file = findings;
-    decision.return = 'verdict: PASS';
+    ret = { outcome: 'PASS', findings_file: findings };
   } else if (mode.park === true) {
-    decision.outcome = 'questions';
-    decision.return = '## Questions\n1. Which storage key does the feature use?';
+    ret = { outcome: 'questions', questions: ['Which storage key does the feature use?'] };
   } else {
     let story = value('Story index: ');
     let tasks = value('Per-task files: ');
@@ -105,12 +105,12 @@ if (qualified !== '') {
     put(tasks + 'task_1_plan.md', '### Task 1\n\nwritten by the stub\n');
     const note = value('Revision note: ');
     if (note !== '') put(note, '# Revision\n\nwritten by the stub\n');
-    decision.outcome = 'returned';
-    decision.return = 'story_file: ' + story + '\ntask_files_dir: ' + tasks + '\ntasks_count: 1';
+    ret = { outcome: 'returned', story_file: story, task_files_dir: tasks, tasks_count: 1, story_points_total: 3 };
   }
+  const result = 'Done.\n\n' + '\x60\x60\x60json\n' + JSON.stringify(ret, null, 2) + '\n\x60\x60\x60';
   const events = [
     { type: 'system', subtype: 'init', session_id: 'stub', tools },
-    { type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0.01, permission_denials: [], structured_output: decision },
+    { type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0.01, permission_denials: [], result },
   ];
   process.stdout.write(events.map((e) => JSON.stringify(e)).join('\n') + '\n');
 } else if (prompt.includes('${CLAUSE}')) {
@@ -154,8 +154,9 @@ function graphAgents(dir) {
 }
 
 /**
- * A watcher fixture on `feat_x`, a plugin directory under the system temp directory, the agent
- * runner's records naming it under a temp `CLAUDE_CONFIG_DIR`, and the stub.
+ * A watcher fixture on `feat_x`, a plugin directory under the system temp directory holding each
+ * graph agent's `agents/<agent>.md` and `schemas/<agent>.return.json`, the agent runner's records
+ * naming it under a temp `CLAUDE_CONFIG_DIR`, and the stub.
  *
  * `key` is `execution.scriptDrivenPlanning`, committed with the fixture; `null` leaves it out.
  * `layout` is how the records name the plugin: `installed`, an `installed_plugins.json` `user` row
@@ -212,10 +213,13 @@ async function pilotFixture(t, { pluginJson = true, key = true, layout = 'instal
   const source = join(WORKSPACE_ROOT, 'plugin');
   await mkdir(join(plugin, '.claude-plugin'), { recursive: true });
   await mkdir(join(plugin, 'agents'));
+  await mkdir(join(plugin, 'schemas'));
   await mkdir(join(plugin, 'instructions'));
   if (pluginJson) await copyFile(join(source, '.claude-plugin', 'plugin.json'), join(plugin, '.claude-plugin', 'plugin.json'));
   for (const agent of graphAgents(f.dir)) {
     await copyFile(join(source, 'agents', `${agent}.md`), join(plugin, 'agents', `${agent}.md`));
+    const schemaFile = `${agent}.return.json`;
+    await copyFile(join(source, 'schemas', schemaFile), join(plugin, 'schemas', schemaFile));
   }
   await copyFile(join(source, 'instructions', CORE), join(plugin, 'instructions', CORE));
 
@@ -404,6 +408,9 @@ test('key on, and the driver parks: no engine session follows, and the record is
   assert.ok(calls.some((c) => c.kind === 'node' && c.agent === 'task-plan-writer'), show(f));
   assert.equal(calls.filter((c) => c.kind === 'engine').length, 0, show(f));
   assert.equal(f.record().status, 'parked', show(f));
+  const question = readFileSync(join(f.dir, CLAR, 'question_1.md'), 'utf8');
+  const sections = question.split('\n').filter((l) => l.startsWith('## '));
+  assert.deepEqual(sections, ['## Q1 — Which storage key does the feature use?'], question);
 });
 
 test('key on, and every node dispatch is undelivered: the run pauses and its one paused notification names the overload', async (t) => {
@@ -510,7 +517,7 @@ test('the hand-off archives only what the driver consumed', async (t) => {
   if (f === null) return;
   await f.writeQuestion(
     1,
-    '# Questions from task-plan-writer\n\nRaised by: task-plan-writer (script-driven planning)\n\n## Questions\n1. Which storage key?\n',
+    '# Questions from task-plan-writer\n\nRaised by: task-plan-writer (script-driven planning)\n\n## Q1 — Which storage key?\n\nWhich storage key?\n',
   );
   await f.writeAnswer(1, 'Use `fixture.storage`.\n');
   await f.writeQuestion(2, '# Questions from Phase G\n\nRaised by: Phase G — Run gates (test-fix-plan-writer)\n\n## Questions\n1. Which gate?\n');
