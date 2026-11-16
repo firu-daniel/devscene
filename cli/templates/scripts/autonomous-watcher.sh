@@ -1141,8 +1141,9 @@
 #                 carrying `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH` writes
 #                 the task ledger with only P0 `[x]`; an argv carrying
 #                 `--agent` prints an init event with the agent's tools and a
-#                 success result whose structured_output names an outcome its
-#                 node declares; anything else ticks every ledger entry. A
+#                 success result whose text ends in a return block valid
+#                 against its agent's `## Return schema`, naming an outcome
+#                 its node declares; anything else ticks every ledger entry. A
 #                 paused record and "$d/devscene/RESUME", then
 #                 CLAUDE_CONFIG_DIR="$c" DEVSCENE_AGENT_CLI="$s" bash \
 #                   "$d/devscene-scripts/autonomous-watcher.sh" tick
