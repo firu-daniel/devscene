@@ -310,7 +310,7 @@ Issue, as **one** Bash call, alone (this commits the code-review index + all per
 <commit_call> --unit review_plan_file --plan <code_review_path> --extra <review_plan_review_folder>
 ```
 
-(`--extra` is what gets B.2's meta-review findings committed: the commit step derives the per-finding folder from `--plan` by stripping `.md`, and `<review_plan_review_folder>` is a different tree it cannot reach that way, so this phase passes it explicitly. Pass it **unconditionally**: the wrapper skips an absent path with a warning (`<scripts_dir>/commit-on-branch.sh` → **STAGING POLICY, AND THE ONE TRAP IN IT**), and a folder still holding an earlier round's tracked files is staged as an unchanged no-op.)
+(`--extra` is what gets B.2's meta-review findings committed: the commit step derives the per-finding folder from `--plan` by stripping `.md`, and `<review_plan_review_folder>` is a different tree it cannot reach that way, so this phase passes it explicitly. Pass it **unconditionally**: the wrapper skips a path neither the branch's tip nor the working tree holds, with a warning (`<scripts_dir>/commit-on-branch.sh` → **STAGING POLICY**), and a folder still holding an earlier round's tracked files is staged as an unchanged no-op.)
 
 ---
 

@@ -32,7 +32,7 @@ There is no parity review, because `phases.parity` is `false`. The planning roun
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Two plugin instructions cite the renamed wrapper header `STAGING POLICY, AND THE ONE TRAP IN IT` _(layer: plugin)_
+1. [x] **Finding 1** — Two plugin instructions cite the renamed wrapper header `STAGING POLICY, AND THE ONE TRAP IN IT` _(layer: plugin)_
 
 ## Must Fix
 
