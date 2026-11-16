@@ -46,14 +46,7 @@ A round's gates review the same plan revision as one set, dispatched together: n
 - Then, before any section, exactly one line `verdict: PASS` or `verdict: FAIL` and exactly one line `review_mode: full` or `review_mode: converging`.
 - On `PASS` the file holds only those lines plus any `## Should Fix`, `## Nice to Have` and `## Incidental findings (not gating)` sections.
 
-Return on `PASS`:
-
-```
-verdict: PASS
-findings_file: <full_path>
-```
-
-Return on `FAIL`: the reviewer's existing three lines — `verdict: FAIL`, `findings_file: <full_path>`, `must_fix_count: <N>`.
+The reviewer's return: on `PASS`, an `outcome` of `PASS` carrying `findings_file`; on `FAIL`, an `outcome` of `FAIL` carrying `findings_file` and `must_fix_count`. The reviewer's own `## Return schema` owns the shape.
 
 ## The verdict
 
