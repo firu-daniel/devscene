@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/feat_structured_planning_agent_outputs_task_pr
   - screened: harness-runs/task_prompts/feat_structured_planning_agent_outputs_task_prompt.md sha256=d54953ba0d68883ba04b2c771e4f734c12530b0937b1081fc332cd5ea0bd6016
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
