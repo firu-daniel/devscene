@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/fix_planning_node_tool_check_task_prompt.md â†
   - screened: harness-runs/task_prompts/fix_planning_node_tool_check_task_prompt.md sha256=7ef255f2d910a76366aa05deef001359a381367edd9dde97b3bc0974f3252ecc
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) â€” or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
