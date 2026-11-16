@@ -68,7 +68,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_planning_age
 10. [x] **Task 10** — Drop `--json-schema` from `planning-node-lib.sh` and decide a node's outcome from its return block validated against the agent's `## Return schema` _(layer: cli)_ _(points: 20)_
 11. [x] **Task 11** — Read the validated return object in `planning-driver-lib.sh`, and bring the driver fixture's stub and suites to the return block _(layer: cli)_ _(points: 20)_
 12. [x] **Task 12** — Bring the watcher planning-driver suite's stub and the watcher's REPRO note to the return block _(layer: cli)_ _(points: 10)_
-13. [ ] **Task 13** — Add `cli/test/agent-return-schemas.test.mjs`, the static check that holds every return schema to its contract, its dialect, the planning graph and every citation of its fields _(layer: cli)_ _(points: 20)_
+13. [x] **Task 13** — Add `cli/test/agent-return-schemas.test.mjs`, the static check that holds every return schema to its contract, its dialect, the planning graph and every citation of its fields _(layer: cli)_ _(points: 20)_
 14. [ ] **Task 14** — Record the mechanism in `docs/structured-agent-returns.md` and correct `docs/flow-graph-walker.md` → `## 5. The two drivers` _(layer: general)_ _(points: 15)_
 15. [ ] **Task 15** — Update `docs/watcher.md`, `ARCHITECTURE.md` and `docs/analyze.md`, and register the new suite in `devscene.config.json` → `treeGuards` _(layer: general)_ _(points: 10)_
 
