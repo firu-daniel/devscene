@@ -85,7 +85,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_committer_as_script/tas
 
 1. [x] **Task 1** — Add `unit-commit-lib.sh`, the library that ticks an entry, builds every subject and record, and holds the artifact table _(layer: cli)_ _(points: 20)_
 2. [x] **Task 2** — Ship the library with the outer-loop scripts and pin the planning driver's subjects against its artifact table _(layer: cli)_ _(points: 10)_
-3. [ ] **Task 3** — Give `commit-on-branch.sh` its `--unit` and `--artifact` front end, with `--push` and the printed return _(layer: cli)_ _(points: 20)_
+3. [x] **Task 3** — Give `commit-on-branch.sh` its `--unit` and `--artifact` front end, with `--push` and the printed return _(layer: cli)_ _(points: 20)_
 4. [ ] **Task 4** — Describe the script-built subject and the body-line records in the adopter's conventions and CLAUDE templates _(layer: cli)_ _(points: 10)_
 5. [ ] **Task 5** — Re-point the state-directory README templates and two script comments from the committer to the commit step _(layer: cli)_ _(points: 15)_
 6. [ ] **Task 6** — Read the `<MAIN_REPO>` corpus guard's expected carriers from the resolution module's roster _(layer: cli)_ _(points: 10)_
