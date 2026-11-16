@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/feat_committer_as_script_task_prompt.md → `#
   - screened: harness-runs/task_prompts/feat_committer_as_script_task_prompt.md sha256=f24f28a0e8cc479db2ad9abd43bf92f19f6da18abbd973d7f4b4cff9aaab36b4
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
