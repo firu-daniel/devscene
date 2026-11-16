@@ -22,3 +22,9 @@
 - `git grep -nE 'verdict: (PASS|FAIL)|no_ui: true|## Questions|## Parity exclusions|error:' -- plugin/instructions/task_plan_writing_instructions_semi_autonomous.md plugin/instructions/task_plan_writing_instructions_autonomous.md` prints no line that reads a retired form of a planning agent's return. (A `## Questions` heading of another agent's return, if any line names one, is not this branch's.)
 - Every `` `<agent>.<field>` `` citation in the two forks names a property the story index `## Context` field table lists for that agent.
 - Each fork's binding table still carries exactly the five bindings `task_plan_writing_instructions_core.md` → `## Mode contract — bindings this file uses` declares.
+
+**Deviations from plan:**
+
+- The first verification grep also matched sites outside the Work list that read a retired form, so they were rewritten to the `outcome` form as well: both forks' `## What … NOT redefine` → `## UI-test-plan write loop` bullet (`no_ui: true` hand-off note / short-circuit → the core's **No-UI short-circuit** / the `no_ui` short-circuit); in the autonomous fork, Override 3's no-idempotency-guard sentence and **Push after the commit.** paragraph, Override 4's **Trigger (when it fires).** and Override 5's `P2` bullet. Without them the grep prints lines that read a retired return form.
+- The semi-autonomous hand-off's UI-test count and the autonomous summary's `tests_count` now cite `` `ui-tests-plan-writer.tests_count` `` too (a field the story index lists), so both hand-offs name every writer field they read by citation.
+- The verification grep still prints one line, autonomous Override 5 **Self-pause on API overload during planning.**: its `error:` match is the quoted API message `an API error: API Error: 529 Overloaded`, not an agent return.
