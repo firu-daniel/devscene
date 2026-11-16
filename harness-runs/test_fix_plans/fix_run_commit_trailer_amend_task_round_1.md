@@ -12,7 +12,7 @@ Gate 13 (13a–13c, Python docs-retrieval service) was reported `BLOCKED` and 13
 
 This list is the **single source of truth** for the fix loop: its `[ ]` / `[x]` markers are the ones the loop reads and flips. Any `[ ]` marker elsewhere in this plan or its per-finding files is informational only.
 
-1. [ ] **Finding 1** — Placeholder-host profile test still counts three kept `COPY_GIT_PATHS` rows. _(layer: cli)_
+1. [x] **Finding 1** — Placeholder-host profile test still counts three kept `COPY_GIT_PATHS` rows. _(layer: cli)_
 2. [ ] **Finding 2** — Probe's `git` leg declaration disagrees with Gate 15's restated leg table. _(layer: general)_
 
 ## Must Fix
