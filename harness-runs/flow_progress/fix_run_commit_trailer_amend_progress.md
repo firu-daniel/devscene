@@ -12,7 +12,7 @@ Source: harness-runs/task_prompts/fix_run_commit_trailer_amend_task_prompt.md â†
   - screened: harness-runs/clarifications/fix_run_commit_trailer_amend/answer_1.md sha256=01160f5ec3fccb9a6db5a3ce7c46ca29cb8f034e08c1897ae8e24cffcb64ba74
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) â€” or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
