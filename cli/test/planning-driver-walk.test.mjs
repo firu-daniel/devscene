@@ -123,7 +123,7 @@ test('sessions whose init withholds Glob and Grep beside Bash are not refused, a
   assert.ok(r.subjects.includes(`chore: Flow progress P3 for ${BRANCH}`), show(r));
   const lines = r.log.split('\n');
   assert.ok(
-    lines.includes('[plan-drive] #1 plan_writer (task-plan-writer): the init event lacks declared tools [Glob, Grep]; not refused'),
+    lines.includes('[plan-drive] #1 plan_writer (task-plan-writer): the init event lacks declared tools [Glob, Grep] (a lacking tool is never refused)'),
     show(r),
   );
   assert.ok(

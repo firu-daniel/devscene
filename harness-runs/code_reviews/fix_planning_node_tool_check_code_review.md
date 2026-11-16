@@ -26,7 +26,7 @@ One finding remains.
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Make the withheld-tools `[plan-drive]` line say that the lack is never refused, not that the session was not refused _(layer: cli, general)_
+1. [x] **Finding 1** — Make the withheld-tools `[plan-drive]` line say that the lack is never refused, not that the session was not refused _(layer: cli, general)_
 
 ---
 

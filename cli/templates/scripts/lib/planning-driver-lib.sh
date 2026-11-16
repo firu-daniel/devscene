@@ -1055,7 +1055,7 @@ EOF
     if [ "$attempt" -lt "$PD_MAX_ATTEMPTS" ]; then retry=yes; else exhausted=yes; fi
   fi
   pd_log "#$seq $node: $kind${outcome:+ $outcome}${reason:+ ($reason)}"
-  [ -z "$withheld" ] || pd_log "#$seq $node ($agent): the init event lacks declared tools [$withheld]; not refused"
+  [ -z "$withheld" ] || pd_log "#$seq $node ($agent): the init event lacks declared tools [$withheld] (a lacking tool is never refused)"
 
   PD_SESSION_COUNT=$((PD_SESSION_COUNT + 1))
   PD_SESSIONS="${PD_SESSIONS:+$PD_SESSIONS; }#$seq $node $agent $attempt/$PD_MAX_ATTEMPTS ${outcome:-$kind} ${dur:-?}s ${cost:-unknown}"
