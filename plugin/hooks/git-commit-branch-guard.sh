@@ -57,10 +57,11 @@
 #     (within jurisdiction)                       document, no `defaultBranch`)
 #   payload unparsable, or `jq` absent -> SILENT (no command to judge)
 #   no config, or one that cannot be read -> SILENT (both out of jurisdiction)
-#   ordinary branch, and any piece rewrites a commit (`--amend` in any
-#     abbreviation, or an unexpanded token), is a git call outside the remit,
-#     is a non-git command other than a leading `cd`, or carries a pipe,
-#     redirection or substitution     -> SILENT
+#   ordinary branch, and any piece fails the library's ride-along answer
+#     (`hc_commit_piece_may_ride_along`: it rewrites a commit — `--amend` in
+#     any abbreviation, or an unexpanded token — is a git call outside the
+#     remit, is a non-git command other than a leading `cd` into the
+#     workspace, or carries a pipe, redirection or substitution) -> SILENT
 #   anything else (ordinary branch)     -> allow
 #
 # JURISDICTION IS A DELIBERATE SCOPING DECISION, NOT AN OVERSIGHT. A repository
@@ -125,47 +126,18 @@ case "$cmd" in
   *) exit 0 ;;
 esac
 
-# The git subcommands this guard may vouch for beside a commit. A closed
-# allowlist, not a list of refused subcommands: a refused list is wrong again at
-# the next ref-moving spelling. None of these moves a ref.
-remit=" commit add status diff log show rev-parse ls-files "
-
 # Walk the compound looking for a real `git … commit`, and remember the FIRST
 # such piece together with its own `-C` argument. A piece whose command word is
 # not `git` cannot be that piece, which is what keeps `echo "git commit"` and a
-# wrapper script named on the command line out of scope. Every piece is also
-# judged into `vouchable`, which only the ordinary-branch `allow` reads.
+# wrapper script named on the command line out of scope.
+pieces=$(hc_split_command "$cmd")
 found=0
 commit_piece=""
 commit_dir=""
-vouchable=1
-idx=0
 
 while IFS= read -r piece; do
-  idx=$((idx + 1))
-  case "$piece" in
-    *'|'*|*'<'*|*'>'*|*'$'*|*'`'*) vouchable=0 ;;
-  esac
   p=$(hc_clean_piece "$piece")
-  if ! hc_git_piece_parts "$p"; then
-    case "$p" in
-      cd\ *)
-        d=${p#cd }
-        [ "$idx" -eq 1 ] && [ -n "$d" ] && [ "${d#* }" = "$d" ] || vouchable=0
-        ;;
-      *) vouchable=0 ;;
-    esac
-    continue
-  fi
-  case "$remit" in
-    *" ${HC_GIT_REST%% *} "*) ;;
-    *) vouchable=0 ;;
-  esac
-  [ -n "$HC_GIT_REST" ] || vouchable=0
-  # Re-parses the same piece, so HC_GIT_DIR / HC_GIT_REST come back unchanged.
-  if [ "$vouchable" -eq 1 ] && hc_piece_is_never_safe "$p"; then
-    vouchable=0
-  fi
+  hc_git_piece_parts "$p" || continue
   case "$HC_GIT_REST" in
     commit|commit\ *)
       if [ "$found" -eq 0 ]; then
@@ -176,7 +148,7 @@ while IFS= read -r piece; do
       ;;
   esac
 done <<EOF
-$(hc_split_command "$cmd")
+$pieces
 EOF
 
 [ "$found" -eq 1 ] || exit 0
@@ -226,6 +198,15 @@ case $? in
     emit ask "Branch $branch is protected ($patterns_desc) or detached — confirm commit manually"
     ;;
   1)
+    # Only the `allow` reads the ride-along answer, so every `ask` above stands.
+    vouchable=1
+    idx=0
+    while IFS= read -r piece; do
+      idx=$((idx + 1))
+      hc_commit_piece_may_ride_along "$root" "$piece" "$idx" || vouchable=0
+    done <<EOF
+$pieces
+EOF
     [ "$vouchable" -eq 1 ] || exit 0
     emit allow "Auto-allowed commit on branch $branch"
     ;;

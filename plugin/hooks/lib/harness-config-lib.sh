@@ -1641,7 +1641,9 @@ EOF
 # build their path-anchored arms from this function and match them through
 # `hc_matches_any_pattern`, so no two of them can apply different workspace
 # definitions — the drift the source guards could only warn about in prose — and
-# every one of them honours the vetoes with no change of its own. A new arm, a
+# every one of them honours the vetoes with no change of its own; so does
+# `git-commit-branch-guard.sh`'s leading `cd`, through
+# `hc_commit_piece_may_ride_along`. A new arm, a
 # new veto, a new `commands.*` key or a change to how the app/worktree paths
 # compose belongs here, once.
 hc_path_anchored_patterns() {
@@ -1834,8 +1836,9 @@ EOF
 # 0 when <piece> is a shape NO ALLOW-ONLY GUARD MAY VOUCH FOR, whatever prefix it
 # happens to match; 1 otherwise. All four allow-only guards call it before every
 # other test, so no arm of any of them can grant one of these.
-# `git-commit-branch-guard.sh` also calls it, on EVERY piece of the command, and
-# there it withholds only that guard's `allow`: the guard's own `ask` decisions
+# `git-commit-branch-guard.sh` also reaches it, on EVERY git piece of the
+# command, through `hc_commit_piece_may_ride_along` below, and there it
+# withholds only that guard's `allow`: the guard's own `ask` decisions
 # (protected branch, detached HEAD, unresolvable configuration) come first and
 # are not overridden.
 #
@@ -1956,4 +1959,50 @@ hc_piece_is_never_safe() {
       -*[dDmMfC]*) return 0 ;;
     esac
   done
+}
+
+# 0 when <piece> — a RAW piece of `hc_split_command`, at 1-based <position> in
+# the compound — may ride along on `git-commit-branch-guard.sh`'s `allow` for a
+# commit into the repository at <root>; 1 otherwise. This is that guard's whole
+# ride-along answer.
+#
+# A CLOSED ALLOWLIST, NARROWER THAN `hc_safe_prefixes`: `commit add status diff
+# log show rev-parse ls-files`, none of which moves a ref. The commit guard's
+# `allow` covers the whole command and short-circuits the profile's `deny` and
+# `ask` entries, so it may not carry the base set's ref-moving members
+# (`git branch`, `git stash`, `git worktree`, `git fetch`) or anything outside
+# it. A refused list is wrong again at the next ref-moving spelling, so this one
+# names what it grants.
+#
+# Every other test is the library's own: a pipe, redirection or substitution
+# anywhere in the raw piece refuses it; a git piece is parsed through
+# `hc_git_piece_parts` and refused by `hc_piece_is_never_safe`; and the one
+# non-git piece granted is a `cd` at position 1 that an arm of
+# `hc_path_anchored_patterns "<root>"` grants through `hc_matches_any_pattern`,
+# vetoes included — the leading `cd` every allow-only guard accepts. An empty
+# piece is refused. The patterns are built only for that one `cd` piece.
+hc_commit_piece_may_ride_along() {
+  local root="${1-}" piece="${2-}" position="${3-}" p patterns
+  case "$piece" in
+    *'|'*|*'<'*|*'>'*|*'$'*|*'`'*) return 1 ;;
+  esac
+  hc_clean_piece_line "$piece"
+  p="$HC_CLEAN_LINE"
+  if ! hc_git_piece_parts "$p"; then
+    case "$p" in
+      cd\ *) ;;
+      *) return 1 ;;
+    esac
+    [ "$position" = 1 ] || return 1
+    patterns=$(hc_path_anchored_patterns "$root") || return 1
+    hc_matches_any_pattern "$p" "$patterns"
+    return
+  fi
+  [ -n "$HC_GIT_REST" ] || return 1
+  case " commit add status diff log show rev-parse ls-files " in
+    *" ${HC_GIT_REST%% *} "*) ;;
+    *) return 1 ;;
+  esac
+  hc_piece_is_never_safe "$p" && return 1
+  return 0
 }

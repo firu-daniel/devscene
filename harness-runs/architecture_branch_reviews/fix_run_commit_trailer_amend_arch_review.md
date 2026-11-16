@@ -8,7 +8,7 @@ Headline: the `cli` and `general` segments respect their layers. The new ref row
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Commit guard re-derives the ride-along answer the shared library owns _(layer: plugin)_
+1. [x] **Finding 1** — Commit guard re-derives the ride-along answer the shared library owns _(layer: plugin)_
 
 ## Must Fix
 
