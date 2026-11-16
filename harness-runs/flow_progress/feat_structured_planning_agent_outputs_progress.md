@@ -1,4 +1,4 @@
-# Flow progress — feat_structured_planning_agent_outputs   (engine: task)
+# Flow progress — feat_structured_planning_agent_outputs   (engine: user_review, round 1)
 
 ## Run mode
 Source: harness-runs/task_prompts/feat_structured_planning_agent_outputs_task_prompt.md → `### Run mode`
@@ -6,25 +6,14 @@ Source: harness-runs/task_prompts/feat_structured_planning_agent_outputs_task_pr
 - phases: parity=false, qa=false, docs=false
 - remote-skipped: none
 
-## Planning
-- [x] P0. Untrusted input screened (prompt-injection-reviewer SAFE)
+## Fix planning
+- [x] R0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_structured_planning_agent_outputs_task_prompt.md sha256=d54953ba0d68883ba04b2c771e4f734c12530b0937b1081fc332cd5ea0bd6016
-- [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
-- [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
-
-## Implementation
-- [x] A.      Tasks implemented (story-index readiness all [x])
-- [-] A1.5g.  Branch parity review resolved (index committed — or PASS with no findings, no file written)
-- [-] A1.5f.  Parity findings fixed (findings index all [x] — or no index, the review having passed clean)
-- [x] A2g.    Branch architecture review resolved (index committed — or PASS with no findings, no file written)
-- [x] A2f.    Architecture findings fixed (findings index all [x] — or no index, the review having passed clean)
-- [x] Bg.     Branch review generated & committed
-- [x] Bm.     Review-plan meta-review PASS (B.2)
-- [x] C.      Code-review findings fixed
-- [x] C2g.    Skeptic review resolved (index committed — or PASS with no net-new findings, no file written)
-- [x] C2m.    Skeptic meta-review PASS — or not owed (C2.1 returned PASS, so C2.2 never ran)
-- [x] C2f.    Skeptic findings fixed (findings index all [x] — or no index, the review having passed clean)
-- [-] E.      QA passed (UI-test index all [x], or only blocked tests left / no_ui)
-- [x] G.      Run gates passed (the Run gates wrapper printed pass: test passed, typecheck passed or not run for <none>)
-- [x] D.      Branch statistics committed & pushed
+  - screened: harness-runs/user_reviews/feat_structured_planning_agent_outputs_review.md sha256=9831e124c4e6168d3c4c49b13641177c0a70525e48b6d98c3d01133d69727deb
+- [ ] R1. Fix plan written & converged (parity + architecture gates PASS)
+- [ ] R2. Fix plan + source review committed
+## Fixing
+- [ ] R3. All fix-plan findings implemented (fix-plan index all [x])
+- [-] R4. QA passed (UI-test index all [x], or only blocked tests left / no_ui / no-op augment)
+- [ ] RG. Run gates passed (the Run gates wrapper printed pass: test passed, typecheck passed or not run for <none>)
+- [ ] R5. Post-user-review statistics committed
