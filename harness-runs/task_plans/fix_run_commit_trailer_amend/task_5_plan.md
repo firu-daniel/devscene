@@ -2,7 +2,7 @@
 
 **Goal:** Make the committer, and every orchestrator commit point that calls the wrapper directly, check the commit that actually landed. If it is wrong, report it so the run parks, and never repair it by rewriting history. This is the contract half of the incident, where a committer saw its own commit carry a trailer and ran `git commit --amend` in the run copy.
 
-**Depends on:** Task 1, which switches off the session's attribution instruction in the run profile. Two things follow for this task. The trailer rule below no longer competes with an instruction telling the session to add one. And no raw `git commit` is granted, so the amend this task forbids in prose is refused by the profile too. Task 4 keeps the plugin guard from vouching for it.
+**Depends on:** Task 2, which switches off the session's attribution instruction in the run profile. Two things follow for this task. The trailer rule below no longer competes with an instruction telling the session to add one. And no raw `git commit` is granted, so the amend this task forbids in prose is refused by the profile too. Task 4 keeps the plugin guard from vouching for it.
 
 **Where this layer stops.** Prose contracts only. The divergence a raw rewrite leaves behind is reported by the wrappers' refusal, which is **Task 3's**. A landed-wrong `error:` parks through the callers' existing mapping: a `committer` returning `error:` goes to `<escalate>` (`plugin/instructions/plan_orchestration_instructions_core.md`, `plugin/instructions/user_review_fixes_instructions_core.md`), and no caller changes.
 

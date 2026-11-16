@@ -2,7 +2,7 @@
 
 **Goal:** When a clone's branch and the main checkout's have diverged, the one sentence every wrapper and the watcher's copy check surface must say what happened and how a person repairs it. The sentence then reaches a park through the committer's `error:`, `push-branch.sh`'s `refusing to push:` line or `HR_RUN_REFUSAL`, and that park names the split and its repair the way the maintainer had to work it out by hand for Park 1.
 
-**Where this layer stops.** One sentence, in one function. It moves no ref and adds no repair path: the refusal still moves nothing. The committer's report of a commit that landed wrong is **Task 5's**, and the documentation is **Task 6's**. This repository's own `scripts/lib/harness-run-lib.sh` is re-rendered by hand after merge (story index → `Manual setup required`).
+**Where this layer stops.** One sentence, in one function. It moves no ref and adds no repair path: the refusal still moves nothing. The committer's report of a commit that landed wrong is **Task 5's**, and the documentation is **Task 7's**. This repository's own `scripts/lib/harness-run-lib.sh` is re-rendered by hand after merge (story index → `Manual setup required`).
 
 ### Targets
 

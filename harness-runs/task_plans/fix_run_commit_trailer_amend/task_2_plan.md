@@ -1,46 +1,39 @@
-### Task 2 — Write-deny the run copy's branch-ref store and HEAD in the profile and the per-run copy
+### Task 2 — Switch off commit attribution and drop the raw commit grant in the run profile template
 
-**Goal:** Make a sandboxed command in a run copy unable to move that copy's branch, whatever spelling it uses: a raw `git commit` or `--amend`, `git update-ref` run through a scratch script, a rewrite of `packed-refs`, or a switch of `HEAD`. Every other route is closed so that the only thing left able to move the branch is the excluded commit, push and refresh wrappers, which run outside the sandbox.
+**Goal:** Change the unattended run profile so that a run's sessions are never told to append Claude Code's attribution lines to a commit, and so that the profile no longer grants a raw `git commit` and denies the amend outright. Every commit a run makes still goes through the excluded `commit-on-branch.sh`.
 
-**Where this layer stops.** This task changes the protected set and its two declared mirrors. It does not change the profile template's `permissions` lists, which are **Task 1's**, and that task's assertions sit in a different suite. It does not document the change, which is **Tasks 6 and 7's**: those tasks cite the three rows below by exactly these paths and kinds. It adds no probe leg: the measurement row CS16 is **Task 7's**, graded `owed`.
+**Depends on:** Task 1. That task appends `['.git/HEAD', 'file']`, `['.git/refs/heads', 'directory']` and `['.git/packed-refs', 'file']` to `cli/src/generators/writeProtection.ts` → `COPY_GIT_PATHS` and to the watcher's mirror `RUN_PROFILE_COPY_GIT_PATHS`, each with `bubblewrapDenyWrite: true`. This task's **FOUR COMMANDS…** clause below states what those rows do to a sandboxed commit in a clone, so it ships after them.
 
-**The three rows this task adds**, appended after `.git/objects/info/http-alternates`, in this order:
-
-| path | kind | bubblewrapDenyWrite |
-|---|---|---|
-| `.git/HEAD` | `file` | `true` |
-| `.git/refs/heads` | `directory` | `true` |
-| `.git/packed-refs` | `file` | `true` |
-
-Why these three:
-
-- **`refs/heads`** holds the loose branch ref, and every git ref update takes `refs/heads/<branch>.lock` first.
-- **`packed-refs`** holds a branch that has been packed. Git rewrites it through `packed-refs.lock` in `.git` and then renames that onto it.
-- **`HEAD`** names which branch the copy is on, and the wrappers' clone check reads the branch from it.
-
-None of the three is the whole `.git`, which the module header forbids for a run copy (`docs/sandbox-verification.md` CL4). `refs/heads` and `HEAD` exist in every clone when a sandbox starts. `packed-refs` exists in every clone `git clone` wrote refs into. Where it is absent on a bubblewrap host, the exact entry mounts the documented placeholder, and the per-run copy's absent-path manifest and sweep already handle that.
+**Where this task stops.** It edits the template and adds one test; it is the only task that edits `cli/templates/claude/settings.autonomous.json`. It does not touch `cli/src/generators/writeProtection.ts` or the watcher's per-run rows, which are **Task 1's**: that task also edits `cli/test/profile.test.mjs`, so this task puts its assertions in a new suite of its own. It does not touch the plugin guard that auto-allows `git commit`, which is **Task 4's**. It writes no document under `docs/`, which is **Tasks 6 and 7's**. The rendered copies of this template are re-rendered by hand after merge (story index → `Manual setup required`), not by this task.
 
 ### Targets
 
-- `cli/src/generators/writeProtection.ts` — `COPY_GIT_PATHS`, its module header, and the `_README` line it renders.
-- `cli/templates/scripts/autonomous-watcher.sh` — the declared mirror `RUN_PROFILE_COPY_GIT_PATHS` and the header comment above it.
-- `cli/test/profile.test.mjs` — the pinned `COPY_GIT_PATHS` list and the bubblewrap comment.
+- `cli/templates/claude/settings.autonomous.json` — the run profile template.
+- `cli/test/profile-commit-attribution.test.mjs` (new) — drives `init` against a throwaway fixture and asserts the rendered profile's three changes.
 
 **Work:**
 
-- [ ] `writeProtection.ts` → `COPY_GIT_PATHS`: append the three rows in the table above, with these `reason` clauses:
-  - `.git/HEAD`: *"it names the branch that run copy is on, which only the excluded wrappers may move"*;
-  - `.git/refs/heads`: *"it holds the run branch's ref, which only the excluded commit, push and refresh wrappers may move"*;
-  - `.git/packed-refs`: *"a branch packed there moves when it is rewritten"*.
+- [ ] `settings.autonomous.json`: add a top-level `"attribution": {"commit": "", "pr": ""}`, placed after `"model"` and before `"sandbox"`. Write the object form, never `"attribution": false`. That form needs Claude Code v2.1.281 or later, and an older version skips the whole settings file that holds it. A `-p` session ignores an invalid settings file silently (`docs/sandbox-record.md` → `## 6. The residuals`, item 11), so on an older Claude Code the `false` form would start the run without this profile's sandbox block and `deny` rules. Set no `sessionUrl` key: `attribution.sessionUrl` applies only to cloud and Remote Control sessions, and an unattended run is a local or job `-p` session.
+- [ ] `settings.autonomous.json` `permissions`: remove `"Bash(git commit:*)"` from `allow`, and add `"Bash(git commit --amend:*)"` to `deny`. No flow issues a raw commit in an unattended run. Every commit point calls the main checkout's excluded `commit-on-branch.sh`. Add no other entry to any list: no new permission.
+- [ ] `settings.autonomous.json` `_README`: add one paragraph, `COMMIT ATTRIBUTION IS OFF, AND ONLY THE COMMIT WRAPPER COMMITS: …`, placed after the `` `deny` IS A FLOOR… `` paragraph. It covers four points:
+  - **What the attribution key removes.** It removes Claude Code's instruction to end commit messages and pull-request bodies with its attribution lines, which is where the trailer in a run's commit came from.
+  - **Why the object form.** The object form, not `false`, because of the v2.1.281 floor and the silent skip.
+  - **Who still decides on trailers.** The adopter's own commit-message policy still decides whether a commit carries a trailer: an agent that commits adds one only where that policy requires it.
+  - **Why no raw commit is granted.** `git commit` is no longer in `allow`, because every commit a run makes goes through the excluded commit wrapper, and the amend is denied because a raw amend in a run copy moves that copy's branch alone. Say also that the harness plugin's commit guard withholds its own `allow` for an amend, or for a commit compounded with another ref-moving git call, which ties the deny to the guard the way the floor paragraph ties `Bash(git branch -D:*)` to `hc_piece_is_never_safe`.
 
-  Each clause renders into the profile's `_README` and into `doctor`'s message as it stands.
-- [ ] `writeProtection.ts` module header: extend the set description and the **A run copy's `.git` must never be covered as a whole** paragraph. Under the sibling-run-copy glob the protected `.git` paths are now the trust files **and** the branch-ref store — `HEAD`, `refs/heads` and `packed-refs` — so that a run copy's branch moves only through the excluded wrappers, which read and swap that ref outside the sandbox (`cli/templates/scripts/lib/harness-run-lib.sh` → `hr_copy_sync_in_var`, `hr_copy_ref_swap_var`). State the accepted cost: a sandboxed `git commit`, `git switch`, branch creation and `git stash push` are refused in a run copy, and no flow issues them. Mark the stash refusal as derived rather than measured: it runs `git reset --hard`, which locks `refs/heads/<branch>`. Point at `docs/sandbox-verification.md` row CS16, owed. Wherever the generator's rendered `_README` line (`WHAT RUNS OUTSIDE THE SANDBOX CANNOT BE WRITTEN…`) enumerates the run copy's protected `.git` paths, it must name the three new ones.
-- [ ] `autonomous-watcher.sh` → `RUN_PROFILE_COPY_GIT_PATHS`: append `.git/HEAD file deny`, `.git/refs/heads directory deny` and `.git/packed-refs file deny`, in that order. This is the declared mirror, held equal by `cli/test/watcher-run-profile.test.mjs`. In the `# THE PER-RUN PROFILE.` header block, adjust any wording that counts or lists the rows so it no longer says six.
-- [ ] `cli/test/profile.test.mjs`: extend the `assert.deepEqual` pin of `COPY_GIT_PATHS.map(({ path, kind }) => [path, kind])` with `['.git/HEAD', 'file']`, `['.git/refs/heads', 'directory']` and `['.git/packed-refs', 'file']`. Keep the bubblewrap `omit` list pin unchanged, at the trio alone, and change its comment *"the base keeps all six"* to state the new count. The existing per-row `assertProtected` loop then covers the new rows. If `cli/test/watcher-run-profile.test.mjs`, `cli/test/doctor-profile-sandbox.test.mjs` or `cli/test/doctor.test.mjs` pins the row count or the six-row list literally, edit that pin in this task too. Those files then become this task's own edited test files.
+  Keep the paragraph one string, ASCII-safe like its neighbours, and carry no `{{…}}` token.
+- [ ] `settings.autonomous.json` `_README`, the paragraph `FOUR COMMANDS RUN OUTSIDE THE SANDBOX, EACH IN ONE SPELLING: …`: its clone clause, *"in a clone, it cannot move the main checkout's branch, whose whole `.git` this profile write-denies"*, stays true but now tells half of it. Extend that clause, in place and in the same sentence's register, to say: and the run watcher's per-run copy also write-denies the clone's own `.git/refs/heads`, `.git/packed-refs` and `.git/HEAD` by exact path, so a sandboxed git that would move the clone's `refs/heads/<branch>`, its `packed-refs` or its `HEAD` is refused as well — derived from the code, owed until `docs/sandbox-verification.md` row CS16 is taken. Keep every other sentence of the paragraph byte-identical: the measured G1/G2, P1a/P2, F10, AP2 and GW1 citations and the excluded-rule sentences are unchanged. Nowhere in any `_README` paragraph may it say, or come to say, that a sandboxed commit in a clone lands on the clone's ref. Same string discipline as above.
+- [ ] `cli/test/profile-commit-attribution.test.mjs`: a new suite whose header opens with the rule it enforces, *"the unattended profile switches off Claude Code's commit attribution in its object form, grants no raw `git commit` and denies the amend"*, following `.claude/context/conventions.md` → `## The testing bar`. Build a throwaway fixture with `cli/test/helpers/fixture.mjs`, run the compiled CLI's `init` against it, read the written `.claude/settings.autonomous.json`, and assert:
+  - `attribution` deep-equals `{ commit: '', pr: '' }`;
+  - `permissions.allow` holds no entry equal to `Bash(git commit:*)` and none starting `Bash(git commit`;
+  - `permissions.deny` includes `Bash(git commit --amend:*)`;
+  - one `_README` line starts `COMMIT ATTRIBUTION IS OFF`.
+
+  This suite reads one fixed file per fixture. It is not a tree-reading test and owes no `treeGuards` entry.
 
 **Verification:**
 
-- `npm test --workspace cli -- test/profile.test.mjs` passes, and so does each other test file this task edited, run the same way.
+- `cli/test/profile-commit-attribution.test.mjs` passes, run through `npm test --workspace cli -- test/profile-commit-attribution.test.mjs`.
 - `bash scripts/typecheck.sh` exits 0.
-- A fixture's rendered base profile carries, under the sibling glob, a `denyWrite` entry and its `Edit` rules for each new row: `Edit(/<glob>/.git/HEAD)`, `Edit(/<glob>/.git/refs/heads/**)` and `Edit(/<glob>/.git/packed-refs)`. Its `denyWrite` still holds no entry for `<glob>/.git` as a whole.
-- `RUN_PROFILE_COPY_GIT_PATHS` in `cli/templates/scripts/autonomous-watcher.sh` lists exactly the paths, kinds and `deny`/`omit` columns of `COPY_GIT_PATHS`, in its order, ending with the three new rows, each marked `deny`.
+- The rendered profile still parses as one JSON object, and its `_README` paragraphs stay one string each.
+- `grep -n "own ref alone\|lands on the clone" cli/templates/claude/settings.autonomous.json` has no hit, and the **FOUR COMMANDS…** paragraph names `refs/heads`, `packed-refs` and `HEAD` with CS16 marked owed.

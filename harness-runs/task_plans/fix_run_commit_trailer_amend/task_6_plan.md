@@ -1,45 +1,36 @@
-### Task 6 — Document the attribution switch, the ref write-deny and the narrowed raw commit in the docs of record
+### Task 6 — Record the attribution measurement, the owed ref-deny row and the guard decisions
 
-**Goal:** Bring the three documents of record that describe the unattended profile, the per-run copy and the residuals into line with what Tasks 1, 2 and 3 shipped, so that no document still says a sandboxed commit in a clone lands, or that a run copy has six protected `.git` paths. This is the catch-all task, so its implementer reads every configured layer's conventions document.
+**Goal:** Give every protection this branch relies on a row of record. Measured facts are entered with what was run and what it printed. The new sandbox protection is graded `owed` until a probe takes it. The probe's CS3 expectation, which the new protection makes wrong, is flagged before the next probe run reads it as a regression. This is a catch-all task, so its implementer reads every configured layer's conventions document.
 
 **Depends on:**
 
-- **Task 1.** The profile gains `"attribution": {"commit": "", "pr": ""}` (the object form, because of the v2.1.281 floor), loses `Bash(git commit:*)` from `allow`, and gains `Bash(git commit --amend:*)` in `deny`.
-- **Task 2.** `COPY_GIT_PATHS` and `RUN_PROFILE_COPY_GIT_PATHS` gain `.git/HEAD` (`file`), `.git/refs/heads` (`directory`) and `.git/packed-refs` (`file`), each with `bubblewrapDenyWrite: true`. That makes nine rows, and the bubblewrap `omit` trio is unchanged.
-- **Task 3.** `hr_copy_sync_in_var`'s diverged refusal names the cause and the two `update-ref` repair commands.
+- **Task 1.** The run copy's new protected rows, `.git/HEAD` (`file`), `.git/refs/heads` (`directory`) and `.git/packed-refs` (`file`), all `bubblewrapDenyWrite: true`.
+- **Task 2.** The profile's `"attribution": {"commit": "", "pr": ""}`.
+- **Task 4.** The commit guard's contract, the sixteen payloads of `task_4_plan.md`'s table, restated here so this file stands alone. On an ordinary branch: `allow` for `git -C <dir> commit -m x`, `git -C <dir> add f && git -C <dir> commit -m x`, `cd <dir> && git commit -m x` and `git -C <dir> commit --fixup=HEAD`; no output for `… commit --amend -m x`, `… commit --amen --no-edit`, `… commit "--amend" -m x`, `… commit $F -m x`, and for `git -C <dir> commit -m x` followed by `&& git -C <dir> commit --amend -m y`, `&& git -C <dir> reset --hard HEAD~1`, `&& git -C <dir> update-ref refs/heads/<b> HEAD~1`, `&& git -C <dir> rebase HEAD~1`, `&& bash ./x.sh`, or `| cat`. On a protected branch and on a detached HEAD: `ask` for `git -C <dir> commit --amend -m x`, unchanged.
 
-This task changes no code. The measurement rows these statements cite — AT1, AT2 and CS16 — are written by **Task 7**. Cite them by those ids.
+This task changes no code and adds no probe leg. It ships before **Task 7**, which cites AT1, AT2, CS16 and PD32 by those ids, so every row Task 7 cites already exists when it lands.
 
 ### Targets
 
-- `docs/cli.md`
-- `docs/watcher.md`
-- `docs/sandbox-record.md`
+- `docs/sandbox-verification.md`
+- `docs/guard-verification.md`
+- `docs/development.md`
 
 **Work:**
 
-- [ ] `docs/cli.md`, the paragraph opening **The unattended profile runs every Bash command…**: add three statements.
-  - **The attribution key.** The profile sets `attribution` to `{"commit": "", "pr": ""}`, which removes Claude Code's instruction to append its attribution lines to commits and pull-request bodies. That honoured from `--settings` is measured in AT1, and AT2 is owed. Say why not `false`: the v2.1.281 floor, an older version skipping the whole file, and the silent skip of residual 11. Say that the adopter's commit-message policy still decides whether a trailer is wanted.
-  - **The raw-commit grant.** The profile no longer allows `Bash(git commit:*)`, and it denies `Bash(git commit --amend:*)`, which the harness plugin's commit guard backs by withholding its own `allow`.
-  - **Existing profiles.** A profile written before this release gains these entries only through `init --force` or a hand edit, because the file is the adopter's from the first write. This repository's `_README` paragraph says the same.
-- [ ] `docs/cli.md`, the paragraphs **Four scripts run outside the sandbox…**, **Everything that runs outside the sandbox is write-protected on both sides** and **Each run adds its own copy's paths by exact path…** with its clone bullet.
-  - Replace *"a sandboxed commit in a clone lands on the clone's own ref alone"* with the new state: a sandboxed git that would move the clone's `refs/heads/<branch>`, its `packed-refs` or its `HEAD` is refused by the per-run copy's exact entries. Mark this as derived from the code, and owed until CS16 is taken.
-  - Name the set's three new run-copy paths in the write-protected paragraph.
-  - Change *"the six `.git` paths above"* to the nine, and keep the bubblewrap clause naming only the trio as omitted.
-- [ ] `docs/watcher.md`: in **Branch visibility.**, replace *"A sandboxed commit made directly in the clone, which no flow issues, leaves it behind"* with the new state, which is refused by the per-run copy's entries (owed: CS16). Keep the second lag case. In **What it adds.** → the clone bullet, list `.git/HEAD`, `.git/refs/heads` and `.git/packed-refs` after the existing six, and keep the bubblewrap trio clause as it is. Add one sentence saying that the diverged refusal names the cause and gives both `git update-ref` repair commands (`lib/harness-run-lib.sh` → `hr_copy_sync_in_var`).
-- [ ] `docs/sandbox-record.md` → `## 6. The residuals`:
-  - item 2: add the three new paths to *"its six `.git` paths"* and make the count nine;
-  - item 9: change *"every other `.git` file but the six protected paths"* to *"nine"*, and name the three;
-  - item 10: change its first lag case, a sandboxed commit in the clone, to *refused by the per-run copy's ref entries, derived, owed until CS16*. Its second case, the swap's `5`, stays.
-- [ ] `docs/sandbox-record.md` → `## 6. The residuals`: append one new numbered residual, after the last existing one, opening with what is left.
-  - **Ref-moving git calls in a run copy are refused, by design.** A sandboxed `git commit`, `git switch`, branch creation and `git stash push` in a run copy are expected to be refused by Task 2's entries. That stash push is refused is derived, not measured: it runs `git reset --hard`, which locks `refs/heads/<branch>`. A session needing any of them is refused with git's lock error, and no flow issues one (CS16, owed under roadmap item 21).
-  - **The `packed-refs` placeholder.** On a bubblewrap host an absent `.git/packed-refs` gets the placeholder the exact entry mounts. Whether git in the run copy reads it cleanly is owed, also under CS16.
-  - **`attribution.sessionUrl` is not set.** Its `Claude-Session` trailer applies only to cloud and Remote Control sessions, which is documented but not measured for a local or job `-p` session.
-  - **The trailer rests on the commit point.** A trailer an agent writes on its own still reaches a commit if the commit point passes it, because the wrapper builds the message from its arguments and does not refuse. The committer's post-commit read-back reports one.
+- [ ] `docs/sandbox-verification.md` → `## 4. The profile's denials`: add row **AT1**, *"`attribution` set through `--settings` switches off Claude Code's commit-attribution instruction"*, graded **pass**. Record it as measured by hand in a supervised session on 2026-11-16, Claude Code 2.1.325, three `claude -p --model haiku` sessions each asked to quote any instruction in its system context about lines to end a git commit message with. Record the three readings exactly as the task prompt's `## Checked before this run` states them. Quote them as data with that source, between the markers of `plugin/instructions/untrusted_input.md` → `## The markers`, or as an attributed quotation:
+  - no `--settings`: `End git commit messages with:` followed by `Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>`;
+  - `--settings '{"attribution":{"commit":"","pr":""}}'`: no attribution lines;
+  - `--settings '{"attribution":false}'`: no attribution lines.
+
+  Also record that this was an inline JSON `--settings`, not the rendered profile file. Then add row **AT2**, graded **owed** (roadmap item 21): the same question asked of a session launched on a rendered per-run profile carrying Task 2's key, through §0's launch line, on macOS and on Linux.
+- [ ] `docs/sandbox-verification.md` → `### The clone layout (owed)`: add row **CS16**, graded **owed** (roadmap item 21), *"the run copy's branch-ref store and HEAD under the real `<run profile>`"*. Its calls are one each, cwd = `<clone>` on its run branch, through `--allowedTools` where the profile refuses one: `git commit -m "<subject>"`, `git commit --amend --no-edit`, `git stash push`, `git switch -c <x>`, and a `dd if=/dev/null of=<clone>/.git/packed-refs conv=notrunc`. Expected: each is refused at the sandbox layer, and `git rev-parse refs/heads/<branch>`, `git symbolic-ref HEAD` and `packed-refs`' `shasum` are unchanged. Controls `git add <file>` and `git status` succeed. On Linux, also record whether an absent `.git/packed-refs` read as the placeholder inside the session, and whether `git status` there still succeeds. Add **CS16 (Linux)** in `## 8. The Linux legs (owed)`, also owed.
+- [ ] `docs/sandbox-verification.md`, rows **CS3** and **CS3 (Linux)**: append to each `Expected` cell a note. Since this branch, the clone's `refs/heads`, `packed-refs` and `HEAD` are write-denied, so CS3's `git commit`, `git stash push`/`pop` and `git switch -c` are expected to be refused. CS16 measures that, and the CS3 leg still grades them as calls expected to succeed (PD32). Leave every recorded result as it stands. Then add row **PD32** to §5's failure table, after PD31: *"CS3's probe leg expects `commit`, `stash push`/`pop` and `switch -c` to succeed, which the run copy's ref write-deny now refuses"*. Fixes: owed. Moving those calls from `scripts/lib/sandbox-probe/legs-protection.sh` → `sp_leg_git`'s CS3 grading into a CS16 leg is deferred under roadmap item 21. Until then, a CS3 `fail` naming only those calls is that expectation and not a regression.
+- [ ] `docs/guard-verification.md`: add a short subsection under `## 3. Decision changes across the port` → `### 3.1 Narrowed — \`allow\` → SILENT`, holding Task 4's sixteen payloads against `plugin/hooks/git-commit-branch-guard.sh` on a throwaway `git init` fixture under the system temp directory. The fixture carries a `devscene.config.json`, has one ordinary branch and one in the protected set, can be put on a detached HEAD, and is never this checkout. Record each row's command, the branch state, and the exact outcome observed: the JSON object, or *no output, exit 0*. A row that cannot be driven in this run is entered `owed`, never with an assumed outcome. Do not retake or edit the §1.2 latency table: a wall-clock figure is taken by hand outside any session (`harness-runs/lessons.md` → `## Evidence and measurement`).
+- [ ] `docs/development.md`, the Gate 12 probe-leg table's `git` row. It currently reads *"ordinary git in the clone succeeds under the real per-run profile"*. Qualify it: ordinary git that writes only the index and objects succeeds, and the calls that move `refs/heads`, `packed-refs` or `HEAD` are expected to be refused, which CS16 measures (owed). Cite PD32 for the CS3 leg's interim `fail`. Leave the Linux table's `as macOS` row and every dated result unchanged.
 
 **Verification:**
 
-- `grep -n "six .git\|six \`.git\` paths\|six protected" docs/cli.md docs/watcher.md docs/sandbox-record.md` has no hit that describes the run copy's protected set.
-- `grep -n "sandboxed commit" docs/cli.md docs/watcher.md docs/sandbox-record.md` has no hit that says one lands in a clone.
-- `grep -n "attribution" docs/cli.md` hits the new statement, and it cites AT1.
-- Every measured claim added carries its row id, every derived one is marked derived, and no line number appears in any citation.
+- `grep -n -E "^\| (AT1|AT2|CS16|CS16 \(Linux\)|PD32) \|" docs/sandbox-verification.md` shows each new id as exactly one row, and none of them collides with an existing id.
+- Every new row graded `pass` carries its date, its Claude Code version, the command and the exact output. Every other new row is graded `owed` and names roadmap item 21, which has its row in `docs/development.md` → `## 6. The roadmap this tree defers to`.
+- The new `docs/guard-verification.md` rows name the fixture's shape and quote outcomes, and none claims a decision that was not driven.- No citation added in any of the three files carries a line number.
