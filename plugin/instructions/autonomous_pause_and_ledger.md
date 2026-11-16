@@ -323,7 +323,7 @@ in the command: never `"$REPO_ROOT"`, `${branch}` or any other variable. From a 
 guard does not vouch for the main checkout's copy, so the profile's literal `allow` entry is each call's only
 grant, and a command carrying a shell expansion does not match it. Fixed subject `chore: Flow progress <entry-id> for <branch>`
 (e.g. `chore: Flow progress A1.5f for <branch>`; for creation, `chore: Add flow-progress ledger for
-<branch>`). No `Co-Authored-By:` / trailer, no `--no-verify` — the wrapper enforces both.
+<branch>`). No `Co-Authored-By:` / trailer, no `--no-verify` — the wrapper adds neither and validates no message, so a trailer passed after `--` lands on the commit.
 
 ⚠️ **Run the commit and the push as two separate, literal single-statement Bash commands — do NOT gate the
 push on the commit's exit code with a shell conditional** (`commit … ; if [ "$?" -eq 0 ]; then push … ; fi`).

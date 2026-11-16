@@ -39,7 +39,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Replace the six flow files' false "the wrapper enforces both" trailer guarantee with what the wrapper does _(layer: plugin)_
+1. [x] **Finding 1** — Replace the six flow files' false "the wrapper enforces both" trailer guarantee with what the wrapper does _(layer: plugin)_
 
 ---
 
