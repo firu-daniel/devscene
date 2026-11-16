@@ -56,7 +56,7 @@ Read the **existing** UI-test plan (index + per-test files) AND the fix plan. **
 - **If no UI-test plan exists yet**: apply the No-UI determination to the branch **plus** the fix-plan behaviour. If the fixes introduce user-observable UI, write the plan **from scratch** in the initial-write shape; otherwise write no files and return the `no_ui` outcome.
 - **If you add and revise zero test cases** (the fixes changed no user-observable behaviour): make **no change to any file** — leave the index and every per-test file **byte-identical**, `## Context` and all other prose included — and return `returned` with the unchanged `tests_count`.
 
-**Revision (per reviewer findings)** — sent by `${CLAUDE_PLUGIN_ROOT}/instructions/task_plan_writing_instructions_core.md` → `## UI-test-plan write loop` step 1 on a `verdict: FAIL` iteration:
+**Revision (per reviewer findings)** — sent by `${CLAUDE_PLUGIN_ROOT}/instructions/task_plan_writing_instructions_core.md` → `## UI-test-plan write loop` step 1 after the reviewer's `FAIL` outcome:
 
 ```
 Revise the UI-test plan per findings at <findings_file>.

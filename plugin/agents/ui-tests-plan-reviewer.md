@@ -73,7 +73,7 @@ Where the auto-loaded `CLAUDE.md` routing table names a document this definition
 
 ## Process
 
-0. **No-plan guard (check FIRST).** If `ui_test_index` does not exist on disk — the writer's `no_ui: true` path, or the interactive-test phase is off — return the `PASS` outcome immediately, write **no** files and grade nothing. The absent index is never a Must Fix.
+0. **No-plan guard (check FIRST).** If `ui_test_index` does not exist on disk — the writer's `no_ui` outcome, or the interactive-test phase is off — return the `PASS` outcome immediately, write **no** files and grade nothing. The absent index is never a Must Fix.
 1. Read the task prompt — internalize the requirement the tests are acceptance criteria for.
 2. Read the **index** in full, then **every** per-test file in `ui_test_files_dir`. You are the coherence guardian — you read the whole set.
 3. For every identity locator a per-test step cites, confirm the story/task files say it exists.

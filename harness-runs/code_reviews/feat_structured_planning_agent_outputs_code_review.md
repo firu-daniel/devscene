@@ -30,7 +30,7 @@ Per-unit review folder `harness-runs/task_plan_point_reviews/feat_structured_pla
 
 Each entry resolves to `harness-runs/code_reviews/feat_structured_planning_agent_outputs_code_review/finding_<K>.md` through its `**Finding K**` reference. The leading `N.` is the ship order; `K` is the finding's own number.
 
-1. [ ] **Finding 2** — Replace the retired `verdict: FAIL` / `no_ui: true` literals in the two UI-test agent definitions _(layer: plugin)_
+1. [x] **Finding 2** — Replace the retired `verdict: FAIL` / `no_ui: true` literals in the two UI-test agent definitions _(layer: plugin)_
 2. [ ] **Finding 4** — Make `pnl_load_schemas` report a dispatch node with no string `agent` at `pnl_init` _(layer: cli)_
 3. [ ] **Finding 3** — Narrow the suite's roster check to the `plugin/**/*.md` set its `treeGuards` entry covers _(layer: cli)_
 4. [ ] **Finding 1** — Class a round gate's `PASS`, or a `FAIL`, with no `findings_file` as infrastructure in `PNL_REAP_JQ`, so the driver re-dispatches it as the contract says _(layer: cli, general)_
