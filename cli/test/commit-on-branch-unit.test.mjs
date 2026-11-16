@@ -381,7 +381,7 @@ test('--push reports failed on push-branch.sh failure lines', async (t) => {
   }
 });
 
-test('a deletion is staged as its parent directory', async (t) => {
+test('a deletion is staged as the deleted path', async (t) => {
   const f = await fixture(t);
   await f.seed({ [STORY]: readiness(['[ ] **Task 1** — Remove gone']) });
   await rm(join(f.wt, 'dir', 'gone.txt'));
@@ -391,6 +391,64 @@ test('a deletion is staged as its parent directory', async (t) => {
   assert.equal(result.status, 0, output(result));
   assert.equal(await f.changed(), `M\t${STORY}\nD\tdir/gone.txt\nA\tdir/kept.txt`);
   assert.equal(await f.status(), '');
+});
+
+/**
+ * An unrelated filter-attributed file. The driver is named `marker`, not `lfs`: the wrapper drops
+ * `GIT_CONFIG_GLOBAL`, so a host `~/.gitconfig` defining `filter.lfs` would run during the listing.
+ */
+const FILTERED = { '.gitattributes': 'kept/lfs.bin filter=marker\n', 'kept/lfs.bin': 'blob\n' };
+
+/** Seed `top.txt`, the readiness index and `extra`, then delete `top.txt` and run `--unit task`. */
+async function deleteTopLevel(t, extra = {}) {
+  const f = await fixture(t);
+  await f.seed({ [STORY]: readiness(['[ ] **Task 1** — Remove top']), 'top.txt': 'top\n', ...extra });
+  const before = await f.tip();
+  await rm(join(f.wt, 'top.txt'));
+  const result = await f.call(['--unit', 'task', '--plan', STORY, '--id', '1']);
+  return { f, before, result };
+}
+
+/** Seed the readiness index and `extra`, then delete the whole `dir/` and run `--unit task`. */
+async function deleteDirectory(t, extra = {}) {
+  const f = await fixture(t);
+  await f.seed({ [STORY]: readiness(['[ ] **Task 1** — Remove dir']), ...extra });
+  const before = await f.tip();
+  await rm(join(f.wt, 'dir'), { recursive: true });
+  const result = await f.call(['--unit', 'task', '--plan', STORY, '--id', '1']);
+  return { f, before, result };
+}
+
+test('a deletion at the repository top is committed', async (t) => {
+  const { f, result } = await deleteTopLevel(t);
+  assert.equal(result.status, 0, output(result));
+  assert.equal((await runGit(f.wt, ['ls-files', 'top.txt'])).stdout, '');
+  assert.equal(await f.changed(), `M\t${STORY}\nD\ttop.txt`);
+});
+
+test('a whole-directory deletion is committed', async (t) => {
+  const { f, result } = await deleteDirectory(t);
+  assert.equal(result.status, 0, output(result));
+  assert.equal(await f.mainGit('ls-tree', '-r', await f.tip(), '--', 'dir'), '');
+  assert.equal(await f.changed(), `M\t${STORY}\nD\tdir/gone.txt`);
+});
+
+test('a top-level deletion commits beside an unrelated filtered file without touching it', async (t) => {
+  const { f, before, result } = await deleteTopLevel(t, FILTERED);
+  assert.equal(result.status, 0, output(result));
+  assert.equal((await runGit(f.wt, ['ls-files', 'top.txt'])).stdout, '');
+  const names = await f.mainGit('diff', '--name-only', before, await f.tip());
+  assert.equal(names.trim(), `${STORY}\ntop.txt`);
+  assert.doesNotMatch(names, /kept\/lfs\.bin|\.gitattributes/);
+});
+
+test('a whole-directory deletion commits beside an unrelated filtered file without touching it', async (t) => {
+  const { f, before, result } = await deleteDirectory(t, FILTERED);
+  assert.equal(result.status, 0, output(result));
+  assert.equal(await f.mainGit('ls-tree', '-r', await f.tip(), '--', 'dir'), '');
+  const names = await f.mainGit('diff', '--name-only', before, await f.tip());
+  assert.equal(names.trim(), `${STORY}\ndir/gone.txt`);
+  assert.doesNotMatch(names, /kept\/lfs\.bin|\.gitattributes/);
 });
 
 test('a findings folder is staged whole and counted as index, not work', async (t) => {

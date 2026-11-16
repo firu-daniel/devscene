@@ -198,9 +198,11 @@
 # in. It never runs a commit hook, never runs a filter driver, and never
 # retries a failed commit.
 #
-# STAGING POLICY, AND THE ONE TRAP IN IT. Only the explicit paths passed before
+# STAGING POLICY. Only the explicit paths passed before
 # `--` are committed, and the commit is exactly the branch's tip plus those
-# paths as the working tree holds them. A path that does not exist is
+# paths as the working tree holds them. A path absent from the working tree
+# that the tip holds, as a file or a directory, is committed as the removal of
+# every blob the tip holds at or under it. A path absent from both is
 # skip-with-warning rather than a hard error, and that tolerance is what lets
 # callers pass their paths UNCONDITIONALLY: an optional-but-absent one (an empty
 # per-finding folder, say) must not fail the commit, and a caller-side
@@ -213,13 +215,7 @@
 # the tip holds under it plus every tracked or untracked, not ignored, path the
 # working copy holds there — except a gitlink (a submodule), which is carried
 # from the tip unchanged, and an untracked embedded repository, which is left
-# out; anything else stands for itself. THE TRAP: a path
-# that was DELETED does not exist either, so passing the exact deleted path
-# commits nothing and the deletion is silently left out. Pass the PARENT
-# DIRECTORY of a deletion instead — the tip's entries under it that the working
-# tree no longer holds are committed as removals. This is source behaviour
-# carried across deliberately rather than fixed: the existence check is what
-# keeps an absent optional path from failing a commit.
+# out; anything else stands for itself.
 #
 # MESSAGE ARGUMENTS, AND THE BYTES ONE MAY NOT CARRY. The subject and every body
 # line arrive as ordinary shell arguments, so none of them may carry `$(…)`, a
@@ -302,8 +298,8 @@
 # `refs/heads/<branch>`'s tip — `diff --name-status -z --no-renames <tip>`
 # and `ls-files -z --others --exclude-standard` — never `git status`, which
 # compares against the main checkout's `HEAD`. The library turns that listing
-# into the plan, `--findings` and every changed path, a deletion staged as its
-# parent directory (STAGING POLICY), the `--findings` folder staged whole and
+# into the plan, `--findings` and every changed path, a deletion staged as the
+# deleted path (STAGING POLICY), the `--findings` folder staged whole and
 # its contents excluded from the work files (`ucl_stage_set`). An already-`[x]`
 # entry with nothing changed is `error: nothing to commit`, exit 3.
 # `review_plan_file` stages the plan, its findings folder and `--extra`;
@@ -387,9 +383,10 @@
 #                     same call -> exit 0 (the set is configured, not remembered)
 #   unresolvable      printf 'x' > "$d/devscene.config.json"; same call -> exit 1,
 #                     no commit; then `git -C "$d" checkout -q -- devscene.config.json`
-#   deleted path      rm "$d/f.txt"; passing `f.txt` -> a "skipping" line,
-#                     exit 3, the deletion NOT committed; passing `.` instead
-#                     -> exit 0, and `git -C "$d" ls-files f.txt` prints nothing
+#   deleted path      rm "$d/f.txt"; passing `f.txt` -> exit 0, and
+#                     `git -C "$d" ls-files f.txt` prints nothing
+#   absent path       passing a path neither the tip nor the working tree
+#                     holds -> a "skipping" line, exit 3
 #   no commit hook    mkdir -p "$d/githooks"; git -C "$d" config core.hooksPath githooks
 #                     printf '%s\n' '#!/bin/sh' "touch $d.hook" > "$d/githooks/pre-commit"
 #                     chmod +x "$d/githooks/pre-commit"; printf 'z\n' > "$d/h.txt"
@@ -1039,10 +1036,6 @@ fi
 # zero-path call before it could reach the nothing-to-commit exit 3.
 if [ "${#paths[@]}" -gt 0 ]; then
   for p in "${paths[@]}"; do
-    if [ ! -e "$top/$p" ]; then
-      echo "commit-on-branch.sh: path '$p' does not exist under '$top' — skipping" >&2
-      continue
-    fi
     case "$p" in
       /*)
         fail 1 "commit-on-branch.sh: refusing to commit: '$p' is not a path relative to '$top'"
@@ -1063,6 +1056,21 @@ if [ "${#paths[@]}" -gt 0 ]; then
         *) rel="${rel:+$rel/}$seg" ;;
       esac
     done
+    if [ ! -e "$top/$p" ]; then
+      : >"$work/listing"
+      if [ -n "$rel" ] && ! main_git ls-tree -r -z "$old_tip" -- "$rel" >"$work/listing"; then
+        fail 1 "commit-on-branch.sh: refusing to commit: git could not list '$p' at '$branch' (see output above)"
+      fi
+      if [ ! -s "$work/listing" ]; then
+        echo "commit-on-branch.sh: path '$p' does not exist under '$top' — skipping" >&2
+        continue
+      fi
+      while IFS= read -r -d '' entry; do
+        case "$entry" in 160000\ *) continue ;; esac
+        printf '%s\0' "${entry#*	}" >>"$work/paths"
+      done <"$work/listing"
+      continue
+    fi
     if [ -d "$top/$p" ] && [ ! -L "$top/$p" ]; then
       [ -n "$rel" ] || rel=.
       # A gitlink (a submodule) under a passed directory is carried from the tip

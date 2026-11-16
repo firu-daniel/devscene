@@ -27,11 +27,9 @@
 #
 # THE STAGE-SET LISTING `ucl_stage_set` reads: the NUL-separated output of
 # `git diff --name-status -z --no-renames <old_tip>`, one `--others` record,
-# then that of `git ls-files -z --others --exclude-standard`. A deletion is
-# staged as its parent directory (`commit-on-branch.sh` → STAGING POLICY, AND
-# THE ONE TRAP IN IT); a deletion at the repository top is refused with 2,
-# because its parent would stage the whole tree. Residual: a deletion whose
-# parent directory is gone too is skipped by the wrapper and not committed.
+# then that of `git ls-files -z --others --exclude-standard`. A deleted path
+# is staged as itself; the wrapper commits an absent path the tip holds as a
+# removal (`commit-on-branch.sh` → STAGING POLICY).
 #
 # REPRO — every public function, against a throwaway index:
 #
@@ -454,14 +452,6 @@ ucl_stage_set() {
     fi
     [ -n "$p" ] || { status=""; continue; }
     if [ -n "$findings" ] && ucl_under "$p" "$findings"; then status=""; continue; fi
-    case "$status" in
-      D*)
-        case "$p" in
-          */*) p="${p%/*}/" ;;
-          *) ucl_fail "the deletion '$p' sits at the repository top; its parent would stage the whole tree"; return 2 ;;
-        esac
-        ;;
-    esac
     status=""
     have=no
     for e in "${paths[@]}"; do

@@ -262,7 +262,7 @@ const PLAN = 'devscene/story_plans/b_story_plan.md';
 const DETAIL = 'devscene/task_plans/b/task_3_plan.md';
 const FINDINGS = 'devscene/task_plan_point_reviews/b_task_plan/task_3/';
 
-test('ucl_stage_set stages a deletion as its parent directory and excludes the findings folder from the work count', async (t) => {
+test('ucl_stage_set stages a deletion as itself and excludes the findings folder from the work count', async (t) => {
   const r = await stageSet(
     t,
     ['M', PLAN, 'D', 'src/a/old.ts', 'D', 'src/a/older.ts', 'M', 'src/b.ts'],
@@ -270,8 +270,8 @@ test('ucl_stage_set stages a deletion as its parent directory and excludes the f
     { P: PLAN, F: FINDINGS, D: DETAIL, X: '' },
   );
   assert.equal(r.status, '0', r.stderr);
-  assert.deepEqual(r.staged, [PLAN, FINDINGS, 'src/a/', 'src/b.ts', 'src/c.ts']);
-  assert.equal(r.work, 3);
+  assert.deepEqual(r.staged, [PLAN, FINDINGS, 'src/a/old.ts', 'src/a/older.ts', 'src/b.ts', 'src/c.ts']);
+  assert.equal(r.work, 4);
   assert.equal(r.set, `${PLAN}, ${FINDINGS}`);
 });
 
@@ -289,10 +289,11 @@ test('ucl_stage_set reports an index-only set', async (t) => {
   assert.equal(r.set, `devscene/code_reviews/b_code_review.md, ${fdir}finding_2.md`);
 });
 
-test('ucl_stage_set refuses a deletion at the repository top', async (t) => {
+test('ucl_stage_set stages a deletion at the repository top as itself', async (t) => {
   const r = await stageSet(t, ['D', 'README.md'], [], { P: PLAN, F: '', D: DETAIL, X: '' });
-  assert.equal(r.status, '2');
-  assert.match(r.stderr, /^unit-commit-lib: /);
+  assert.equal(r.status, '0', r.stderr);
+  assert.deepEqual(r.staged, [PLAN, 'README.md']);
+  assert.equal(r.work, 1);
 });
 
 const S = 'devscene';

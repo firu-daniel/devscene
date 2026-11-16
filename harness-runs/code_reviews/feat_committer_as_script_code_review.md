@@ -29,7 +29,7 @@ One gating finding: the stage set refuses a top-level deletion, and silently dro
 ## Phase 2 Readiness — Ordered Fix List
 
 1. [x] **Finding 2** — `OUTER_LOOP_SCRIPTS` comment names only one sourcer of `unit-commit-lib.sh` _(layer: cli)_
-2. [ ] **Finding 1** — A deletion at the repository top is refused, and one whose parent directory is gone is never committed _(layer: cli, general)_
+2. [x] **Finding 1** — A deletion at the repository top is refused, and one whose parent directory is gone is never committed _(layer: cli, general)_
 
 ## Must Fix
 
