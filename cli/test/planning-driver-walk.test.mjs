@@ -4,9 +4,8 @@
  *
  * **The rule this suite enforces: the driver walks the planning graph the walker routes, launching
  * a round's three gates as one concurrent set that closes once, and a session whose return it
- * cannot take — an agent error (a gate `PASS` whose schema-valid return object omits the
- * `findings_file` the round needs) at once, a return failing its schema or no `init` event on each
- * of its three attempts — is held as `error` while its siblings run to their end, then parks; one
+ * cannot take — a return failing its schema, a gate `PASS` whose schema-valid return object omits
+ * the `findings_file` the round needs, or no `init` event, on each of its three attempts — is held as `error` while its siblings run to their end, then parks; one
  * whose `init` event merely lacks declared tools is not refused, and is logged. A hand-off logs the
  * `tasks_count` the writer's return object carries.** Each case is graded on `git log`, the ledger, the
  * clarification files, the calls log the stub keeps and the prompts it was handed.
@@ -107,8 +106,9 @@ async function heldCase(t, agent, entries, held, reason) {
   assert.ok(!r.calls.some((c) => c.agent === WRITER && c.index > 0), 'nothing dispatched after the park');
 }
 
-test('an architecture_review PASS with no findings_file is an agent error: held once while its siblings finish, then parks', { skip: SKIP }, async (t) => {
-  await heldCase(t, 'architecture-reviewer', [{ outcome: 'PASS', findings: 'FAIL' }], 'architecture_review error', 'PASS carries no findings_file');
+test('an architecture_review PASS with no findings_file on all three attempts is held as error and parks', { skip: SKIP }, async (t) => {
+  const noFile = { outcome: 'PASS', findings: 'FAIL' };
+  await heldCase(t, 'architecture-reviewer', [noFile, noFile, noFile], 'architecture_review error', 'PASS carries no findings_file');
 });
 
 test('a return failing its schema on all three attempts is held as error and parks', { skip: SKIP }, async (t) => {

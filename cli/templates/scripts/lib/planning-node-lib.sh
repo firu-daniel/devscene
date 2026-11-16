@@ -12,9 +12,10 @@
 # `## Return schema`, and an outcome the node's graph entry does not declare is
 # `error`, whatever else the session printed. Every `error` carries its class,
 # decided here and nowhere else: `infra` for no `init` event, a session that
-# ended not `success` or with `is_error`, and a result whose return block is
-# missing, not one JSON object or fails the schema — infrastructure because the
-# driver's bounded re-dispatch of the same prompt is the remedy for a
+# ended not `success` or with `is_error`, a result whose return block is
+# missing, not one JSON object or fails the schema, and a `FAIL` — or a round
+# gate's `PASS` — that carries no non-blank `findings_file` — infrastructure
+# because the driver's bounded re-dispatch of the same prompt is the remedy for a
 # malformed reply, as the plugin's return contract (`agent_return_contract.md`
 # → `## A return that fails the check`) bounds it at three attempts; `agent`
 # for every other `error`. A session is
@@ -538,7 +539,7 @@ PNL_REAP_JQ='
                       ($m + { read: true, ret: $text, obj: $d,
                           findings: (if ($d.findings_file | type) == "string" then $d.findings_file else "" end) }) as $r
                       | if ($r.findings | blank) and ($d.outcome == "FAIL" or ($d.outcome == "PASS" and any($gates[]; . == $node)))
-                        then $r + { kind: "error", class: "agent", reason: ($d.outcome + " carries no findings_file") }
+                        then $m + { kind: "error", class: "infra", reason: ($d.outcome + " carries no findings_file") }
                         else $r + { kind: "returned", outcome: $d.outcome, reason: "" } end
                     end
                 end

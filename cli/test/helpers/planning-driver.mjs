@@ -38,7 +38,8 @@
  * or a mismatched `PASS` at `plan_review` (whose `PASS` requires `findings_file`), fails the schema
  * — an infrastructure `error`, retried up to `PD_MAX_ATTEMPTS`; a mismatched `PASS` at
  * `architecture_review` or `business_parity_review` (whose `PASS` leaves it optional) passes the
- * schema and is an agent `error` — recorded and parked at once, never retried.
+ * schema and is caught by the round-gate `findings_file` check instead — also an infrastructure
+ * `error`, retried up to `PD_MAX_ATTEMPTS`.
  */
 
 import assert from 'node:assert/strict';

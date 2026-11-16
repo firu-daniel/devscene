@@ -52,7 +52,7 @@ The mechanism was settled on `feat_structured_planning_agent_outputs` for the si
 
 ### A return that fails its check
 
-**Decision.** On the driver, a return with no block, a block that is not one JSON object, or an object that fails its schema is the existing infrastructure class: the node alone is re-dispatched, at most `PD_MAX_ATTEMPTS` (3) attempts, and only the last is recorded `error` (`planning-node-lib.sh` → `PNL_REAP_JQ`; `cli/templates/scripts/lib/planning-driver-lib.sh` → `pd_reap_one`). On the orchestrator path it is treated as a dispatch that did not return, and the third consecutive failure takes the section's `error` route (`agent_return_contract.md` → `## A return that fails the check`). The alternative weighed for the orchestrator path was an immediate blocker.
+**Decision.** On the driver, a return with no block, a block that is not one JSON object, an object that fails its schema, or a `FAIL` or round gate's `PASS` carrying no non-blank `findings_file` is the existing infrastructure class: the node alone is re-dispatched, at most `PD_MAX_ATTEMPTS` (3) attempts, and only the last is recorded `error` (`planning-node-lib.sh` → `PNL_REAP_JQ`; `cli/templates/scripts/lib/planning-driver-lib.sh` → `pd_reap_one`). On the orchestrator path it is treated as a dispatch that did not return, and the third consecutive failure takes the section's `error` route (`agent_return_contract.md` → `## A return that fails the check`). The alternative weighed for the orchestrator path was an immediate blocker.
 
 **Reason.** A malformed reply is the failure a re-dispatch of the same prompt can remedy, so one bound of three on both paths treats it alike, and neither path guesses at a malformed return.
 

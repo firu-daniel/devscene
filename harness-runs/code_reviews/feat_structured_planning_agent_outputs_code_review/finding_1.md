@@ -62,3 +62,5 @@ npm test --workspace cli -- test/planning-driver-walk.test.mjs
 ```
 
 Also run the tree guards the unit loop selects for the changed paths. The full suite runs in the Run gates round, not here.
+
+- **Deviations from plan:** Beyond fix steps 1-7, three more sites still filed a blank `findings_file` as an agent `error` and now contradicted `PNL_REAP_JQ`; each was brought into line: `docs/flow-graph-walker.md` → `### How each runs a parallel round` → **Decision** (moved from the "Every other `error`" list into the infrastructure list) and `### The return schema, the graph's outcomes, and the \`init\` check` → **Decision** (rule 7 now "an infrastructure `error`"); the header of `cli/test/planning-node-lib.test.mjs` ("`infra` for rules 1, 4, 5 and 7"); the header of `cli/test/planning-driver-walk.test.mjs` (the gate-`PASS` case joined the three-attempt list). The step-2 header sentence in `planning-node-lib.sh` was rewrapped to the file's comment width.

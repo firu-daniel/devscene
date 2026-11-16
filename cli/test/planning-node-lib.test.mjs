@@ -9,8 +9,8 @@
  * 5 a `result` text whose return block is missing, is not one JSON object or fails the agent's
  * `## Return schema`, 6 an outcome the graph does not declare, 7 `FAIL` (or `PASS` at a round gate)
  * without a non-blank `findings_file` — and one case pins each rule, beside the declared outcomes
- * that pass. Each `error` case also pins its `class=`: `infra` for rules 1, 4 and 5, `agent` for
- * the rest. `withheld=` reports the declared tools the `init` event lacks and refuses nothing.
+ * that pass. Each `error` case also pins its `class=`: `infra` for rules 1, 4, 5 and 7, `agent`
+ * for the rest. `withheld=` reports the declared tools the `init` event lacks and refuses nothing.
  * `pnl_init` refuses a dispatch node's agent file with no usable `## Return schema`.
  *
  * Each case copies `lib/harness-run-lib.sh`, the library and the shipped planning graph from
@@ -552,16 +552,17 @@ test('rule 6: an outcome the schema admits and the graph does not declare is err
   assert.equal(r.keys.object_file, '');
 });
 
-test('rule 7: FAIL anywhere, or PASS at a round gate, without a non-blank findings_file is error, agent', { skip: SKIP }, async (t) => {
+test('rule 7: FAIL anywhere, or PASS at a round gate, without a non-blank findings_file is error, infra', { skip: SKIP }, async (t) => {
   const f = await fixture(t);
   const pass = await reap(f, 'plan_review', 'task-plan-reviewer', [init(REVIEWER_TOOLS), returns({ outcome: 'PASS' })]);
   assert.equal(pass.keys.kind, 'error');
-  assert.equal(pass.keys.class, 'agent');
+  assert.equal(pass.keys.class, 'infra');
   assert.equal(pass.keys.reason, 'PASS carries no findings_file');
+  assert.equal(pass.keys.object_file, '');
 
   const blank = await reap(f, 'plan_review', 'task-plan-reviewer', [init(REVIEWER_TOOLS), returns({ outcome: 'FAIL', findings_file: ' ' })]);
   assert.equal(blank.keys.kind, 'error');
-  assert.equal(blank.keys.class, 'agent');
+  assert.equal(blank.keys.class, 'infra');
   assert.equal(blank.keys.reason, 'FAIL carries no findings_file');
 
   const uiPass = await reap(f, 'ui_review', 'ui-tests-plan-reviewer', [init(UI_REVIEWER_TOOLS), returns({ outcome: 'PASS' })]);
