@@ -90,7 +90,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_committer_as_script/tas
 5. [x] **Task 5** — Re-point the state-directory README templates and two script comments from the committer to the commit step _(layer: cli)_ _(points: 15)_
 6. [x] **Task 6** — Read the `<MAIN_REPO>` corpus guard's expected carriers from the resolution module's roster _(layer: cli)_ _(points: 10)_
 7. [x] **Task 7** — Have `layer-implementer` record a `**Cause:**` line, and re-point the writers, `qa-tester` and `conventions-reviewer` at the commit step _(layer: plugin)_ _(points: 15)_
-8. [ ] **Task 8** — Replace `<committer_push>` with `<commit_call>` in the mode contract and the user-review-fix core _(layer: plugin)_ _(points: 20)_
+8. [x] **Task 8** — Replace `<committer_push>` with `<commit_call>` in the mode contract and the user-review-fix core _(layer: plugin)_ _(points: 20)_
 9. [ ] **Task 9** — Make the unit loop's step 5 one `<commit_call> --unit` call and retire the committer columns _(layer: plugin)_ _(points: 20)_
 10. [ ] **Task 10** — Move the task-flow core's review-file and mark-pass commits onto `<commit_call> --unit` _(layer: plugin)_ _(points: 20)_
 11. [ ] **Task 11** — Bind `<commit_call>` in the autonomous task fork and move its fixed-subject commits onto `--artifact` _(layer: plugin)_ _(points: 20)_
