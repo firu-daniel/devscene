@@ -1286,6 +1286,41 @@ test("the planning driver's three libraries land verbatim under scriptsDir/lib, 
   }
 });
 
+/** The library `commit-on-branch.sh` sources for its unit and artifact front end, under `scriptsDir`. */
+const UNIT_COMMIT_LIBRARY = 'lib/unit-commit-lib.sh';
+const UNIT_COMMIT_LIBRARY_MODE = 0o644;
+
+test("the commit wrapper's unit-commit library lands verbatim under scriptsDir/lib, and a re-run keeps it", async (t) => {
+  for (const [name, scriptsDir, config] of [
+    ["a generated config's scriptsDir", SCRIPTS_DIR, undefined],
+    ['a relocated scriptsDir', RELOCATED_SCRIPTS_DIR, seededConfig({ scriptsDir: RELOCATED_SCRIPTS_DIR })],
+  ]) {
+    await t.test(name, async (subtest) => {
+      const files = config === undefined ? nodeProjectFiles() : { ...nodeProjectFiles(), 'devscene.config.json': config };
+      const dir = await fixtureFor(subtest, { files });
+
+      await initOk(dir);
+      const first = await snapshotTree(dir);
+
+      const path = `${scriptsDir}/${UNIT_COMMIT_LIBRARY}`;
+      const template = readFileSync(join(TEMPLATE_SCRIPTS, ...UNIT_COMMIT_LIBRARY.split('/')), 'utf8');
+      assert.equal(text(dir, path), template, `${path} is not the template's bytes`);
+      assert.deepEqual(
+        copiesOf(first, UNIT_COMMIT_LIBRARY.split('/').pop()),
+        [path],
+        `${UNIT_COMMIT_LIBRARY} was written somewhere other than ${scriptsDir}/${LIB_SUBDIR}/`,
+      );
+      const mode = (await lstat(join(dir, path))).mode & 0o777;
+      assert.equal(mode, UNIT_COMMIT_LIBRARY_MODE, `${path} is mode ${mode.toString(8)}, not ${UNIT_COMMIT_LIBRARY_MODE.toString(8)}`);
+
+      await initOk(dir);
+
+      const second = await snapshotTree(dir);
+      assert.equal(second[path], first[path], `a second init rewrote ${path}`);
+    });
+  }
+});
+
 /**
  * The run-analytics script and the two `jq` programs it reads from its own `lib/`, as paths under
  * `scriptsDir` with the mode each must land with: the script is run, the programs are data.

@@ -178,6 +178,9 @@ export const TASK_OFFER_CHECK_SCRIPT_NAME = 'task-offer-check.sh';
  */
 export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze([
   Object.freeze({ file: RUN_LIBRARY_SCRIPT_NAME, subdir: 'lib', mode: 0o644, agentInvocable: false }),
+  // Sourced by `commit-on-branch.sh` from its own `lib/`, never run. Run directly, it only defines
+  // functions, so `false` is a calling convention and no `DENY_SCRIPT_BASENAMES` entry is owed.
+  Object.freeze({ file: 'unit-commit-lib.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
   Object.freeze({ file: 'commit-on-branch.sh', mode: 0o755, agentInvocable: true, runsUnsandboxed: true }),
   Object.freeze({ file: 'push-branch.sh', mode: 0o755, agentInvocable: true, runsUnsandboxed: true }),
   Object.freeze({ file: 'refresh-branch.sh', mode: 0o755, agentInvocable: true, runsUnsandboxed: true }),

@@ -5,13 +5,16 @@
 # phase's improvement-observation entries.
 #
 # The rule this library exists to enforce: each write is the one the autonomous
-# planning fork makes today, by the same two wrapper calls — the main
-# checkout's `commit-on-branch.sh --repo <worktree> <path>… -- "<subject>"`,
-# then its `push-branch.sh <worktree>`, each its own process — under the same
-# fixed subject and over the same explicit path set, in the same order
+# planning fork makes, under the same fixed subject and over the same explicit
+# path set, in the same order
 # (`plugin/instructions/task_plan_writing_instructions_autonomous.md` →
 # Overrides 3 to 6; `plugin/instructions/autonomous_pause_and_ledger.md` →
-# `### 1.6`).
+# `### 1.6`). The fork issues `commit-on-branch.sh --artifact <kind> --push` as
+# one call; this library keeps the plain form — the main checkout's
+# `commit-on-branch.sh --repo <worktree> <path>… -- "<subject>"`, then its own
+# `push-branch.sh <worktree>`, each its own process. Its subjects and path sets
+# are held equal to `lib/unit-commit-lib.sh` → `ucl_artifact`'s table by
+# `cli/test/planning-subjects-drift.test.mjs`.
 #
 # IT DECIDES NOTHING. Which `round:` or `ledger:` line fires a commit, when a
 # park, pause or hand-off happens, and what a park's body holds are
