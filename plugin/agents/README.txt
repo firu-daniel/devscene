@@ -3,7 +3,7 @@ agents/ — genericized agent definitions
 
 This directory holds the harness's agent definitions: the per-layer implementers,
 the plan writers and their plan reviewers, the per-unit and end-of-branch code
-reviewers, the skeptic, the docs writer and reviewer, the committer, the
+reviewers, the skeptic, the docs writer and reviewer, the
 prompt-injection reviewer that screens each untrusted input file before an
 autonomous run acts on it, and the interactive-test (QA) agent. Roadmap item 4 filled it. It also holds the pair the
 setup command `/devscene:analyze` dispatches — the
@@ -71,7 +71,7 @@ exactly these eleven agents:
   user-review-fix-plan-writer.md
 
 The set is every plan writer, every plan reviewer and every end-of-branch
-reviewer; the per-unit `layer-reviewer`, the implementers, the committer,
+reviewer; the per-unit `layer-reviewer`, the implementers,
 `docs-writer` and the interactive-test agents are excluded, as are
 `docs-reviewer`, `statistics-plan-writer` (which writes a report, not a plan)
 and the conventions pair `/devscene:analyze` dispatches.
@@ -142,13 +142,4 @@ Corrected against the source: the two plan-review-mode reviewers (architecture,
 business-parity) inherited a stale fix-plan index name — `<branch>_user_review_fix_plan.md`
 — from their `.claude/agents/` originals. The shipped writer and the whole
 instruction corpus emit `<branch>_fix_plan.md`, so the ported files use that name;
-the source definitions still carry the stale one. Also `committer`: its mode
-switch scoped the standard procedure to "steps 1–5" while the push in that same
-procedure is step 6, so an agent reading the range literally would stop before
-the only step that pushes — the step the autonomous orchestrators request with
-`push: true`. The ported file states the range as "steps 1–6" everywhere it
-names one (`grep -n 'steps 1–' plugin/agents/committer.md`); step 6's own
-`push == true` gate leaves every other caller's behaviour unchanged, and the
-`ui_test_pass` lettered procedure (its own push at step h) is untouched. The
-source `committer` definition has since been corrected to the same range, so
-the two sides now agree.
+the source definitions still carry the stale one.

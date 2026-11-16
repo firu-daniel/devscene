@@ -35,3 +35,8 @@
 - `test -e plugin/agents/committer.md` exits non-zero.
 - `git grep -c -F 'resolves, and a stop with its sentence when it resolves none' -- plugin/instructions/plan_orchestration_instructions_semi_autonomous.md plugin/instructions/user_review_fixes_instructions_semi_autonomous.md` reports each file once.
 - `git grep -n -F '<committer_push>' -- plugin` prints nothing, and `git grep -l -F '<commit_call>' -- plugin/instructions` lists both semi-autonomous forks.
+
+**Deviations from plan:**
+
+- `plugin/instructions/main_repo_resolution.md` → `## Who may cite this`: the sentence after the list stated *"no document beyond these 26"*. The roster went from 26 entries to 27 (one removed, two added), so it now says 27. The plan did not mention this edit. The count was taken by listing the `- ` lines under that heading after the edit.
+- `test -e plugin/agents/committer.md`: the tool did not show this command's exit status. The deletion is shown instead by `git status --short`, which lists ` D plugin/agents/committer.md`.
