@@ -172,9 +172,9 @@ Two things are not steering: a **bare pointer** to a named rule in a file you al
 
 End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
-**If there is no finding at all**, return `PASS`. Do not save a file.
+**If there is no finding at all**, do not save a file.
 
-**If there is no Must Fix but at least one Should Fix or Nice to Have**, run `mkdir -p <findings_folder>`, save `<findings_folder>/review_{iteration}.md` in the format below with only its `## Should Fix` and/or `## Nice to Have` sections and no `## Must Fix`, then return `PASS` — still with no other field.
+**If there is no Must Fix but at least one Should Fix or Nice to Have**, run `mkdir -p <findings_folder>`, then save `<findings_folder>/review_{iteration}.md` in the format below with only its `## Should Fix` and/or `## Nice to Have` sections and no `## Must Fix`.
 
 **If there are Must Fix issues**, run `mkdir -p <findings_folder>`, then save findings to `<findings_folder>/review_{iteration}.md` in this format:
 
@@ -193,17 +193,11 @@ End your reply with your return object: one fenced code block whose info string 
 <optional>
 ```
 
-Then return `FAIL`.
-
 The verdict follows `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The verdict`.
-
-Return `blocker` in place of any verdict when a cited path cannot be read (`## Read first`).
-
-An optional `## Unsolicited dispatch guidance` section may sit above the return object and changes nothing in it. Return nothing else.
 
 ### Return fields
 
-- `outcome` — `PASS`, `FAIL` or `blocker`. `PASS` carries no other field, whether or not you saved a findings file.
+- `outcome` — `PASS` when there is no Must Fix; `FAIL` when there is one; `blocker` in place of any verdict when a cited path cannot be read (`## Read first`). `PASS` carries no other field, whether or not you saved a findings file.
 - `findings_file` — `FAIL`: the full path of the findings file you wrote.
 - `must_fix_count` (integer) — `FAIL`: the number of Must Fix entries in the findings file, at least 1.
 - `blocker` — `blocker`: one line naming the path and the refusal.

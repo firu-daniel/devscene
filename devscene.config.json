@@ -96,6 +96,10 @@
     {
       "test": "test/agent-return-schemas.test.mjs",
       "covers": "plugin/schemas/**"
+    },
+    {
+      "test": "test/agent-return-schemas.test.mjs",
+      "covers": "docs/structured-agent-returns.md"
     }
   ]
 }

@@ -15,7 +15,7 @@
 Each entry resolves to a self-contained `harness-runs/user_reviews/feat_structured_planning_agent_outputs_fix_plan/finding_<K>.md` file through its `**Finding K**` reference, one-to-one with the `### K. <title>` pointers below. Entries are sorted "lowest blast-radius first" → "wider refactors last". Finding 2 depends on Finding 1.
 
 1. [x] **Finding 1** — Move each planning agent's return JSON schema into `plugin/schemas/<agent>.return.json`, read only by `pnl_load_schemas` and the suites. Keep a typed, trimmed `### Return fields` in the agent, and update the module, the docs, the suite and the tree guard. _(layer: cli, plugin, general)_
-2. [ ] **Finding 2** — Thin `agent_return_contract.md` to its runtime sections and move its authoring rules into `docs/structured-agent-returns.md`. Remove the duplicated outcome/field prose in the six agents' `## Output contract`, measured before and after. _(layer: cli, plugin, general)_
+2. [x] **Finding 2** — Thin `agent_return_contract.md` to its runtime sections and move its authoring rules into `docs/structured-agent-returns.md`. Remove the duplicated outcome/field prose in the six agents' `## Output contract`, measured before and after. _(layer: cli, plugin, general)_
 
 ---
 

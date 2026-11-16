@@ -182,17 +182,9 @@ If anything material is missing or ambiguous (a behaviour the task files describ
 
 End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
-Return `returned` after writing, augmenting or revising the plan — an augment that changed nothing included.
-
-Return `no_ui` when the No-UI determination fires, or `phases.qa` is `false`, having written no files.
-
-Return `questions` when a clarification, or an untrusted-input report, stops the work (`## Clarification questions`). An augment that wrote or revised files before stopping carries `ui_test_index`, `ui_test_files_dir` and `tests_count` as well.
-
-Return `blocker` in place of every plan file when a cited path cannot be read (`## Read first`).
-
 ### Return fields
 
-- `outcome` — `returned`, `no_ui`, `questions` or `blocker`.
+- `outcome` — `returned` after writing, augmenting or revising the plan, an augment that changed nothing included; `no_ui` when the No-UI determination fires, or `phases.qa` is `false`, having written no files; `questions` when a clarification, or an untrusted-input report, stops the work (`## Clarification questions`); `blocker` in place of every plan file when a cited path cannot be read (`## Read first`).
 - `ui_test_index` — `returned`, and `questions` after an augment wrote files: the index's full path.
 - `ui_test_files_dir` — `returned`, and `questions` after an augment wrote files: `<state_dir>/ui_test_plans/<branch>/`.
 - `tests_count` (integer) — `returned`, and `questions` after an augment wrote files: the number of readiness entries.

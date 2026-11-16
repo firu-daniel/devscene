@@ -178,23 +178,21 @@ Two things are not steering: a **bare pointer** to a named rule in a file you al
 
 End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
-An optional `## Unsolicited dispatch guidance` section may sit above the return object and changes nothing in it. Return nothing else.
-
 Both modes share the return object; they differ in **what file they write**.
 
 In plan-review mode the verdict follows `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The verdict`.
 
 ### Plan-review mode (a) and (b) PASS
 
-Run `mkdir -p <findings_folder>`, write your round file `<findings_folder>/review_{iteration}.md` carrying the `PASS` lines `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The round file` names, then return `PASS` with `findings_file`.
+Run `mkdir -p <findings_folder>`, write your round file `<findings_folder>/review_{iteration}.md` carrying the `PASS` lines `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The round file` names.
 
 ### Clean review (both modes)
 
-Sub-case (c) with no finding at all, and implemented-solution mode. Return `PASS` with no `findings_file`. Do not write any file when PASS.
+Sub-case (c) with no finding at all, and implemented-solution mode. Do not write any file when PASS.
 
 ### Sub-case (c) advisory PASS
 
-Sub-case (c) with no Must Fix and at least one Should Fix or Nice to Have. Run `mkdir -p <findings_folder>`, then `Write` `<findings_folder>/review_{iteration}.md` in sub-case (c)'s shape under `### Plan-review mode FAIL (insertion points 1, 3 and 4)` — heading `# Architecture review — iteration {iteration}`, no `verdict:` / `review_mode:` lines — carrying `## Should Fix` and/or `## Nice to Have` and no `## Must Fix`. Then return `PASS` with no `findings_file`.
+Sub-case (c) with no Must Fix and at least one Should Fix or Nice to Have. Run `mkdir -p <findings_folder>`, then `Write` `<findings_folder>/review_{iteration}.md` in sub-case (c)'s shape under `### Plan-review mode FAIL (insertion points 1, 3 and 4)` — heading `# Architecture review — iteration {iteration}`, no `verdict:` / `review_mode:` lines — carrying `## Should Fix` and/or `## Nice to Have` and no `## Must Fix`.
 
 ### Plan-review mode FAIL (insertion points 1, 3 and 4)
 
@@ -241,11 +239,9 @@ The consumer is a **per-item fix loop**, so write a **split index** in the shape
 
 **(b) One self-contained `finding_<N>.md` per finding** under `<findings_folder>`, one per `### N. Title` in the index. Each carries: the `### N. Title` heading, the site anchor (the repo-relative path plus the symbol, heading or short quoted substring that locates the change, with a quoted substring beside any symbol whose body spans more than the change and a bare path only when the change is the whole file; a line number may follow as a navigation hint, and nothing depends on it), the full problem description citing the conventions document whose rule it violates, and the concrete fix (the exact relocation or refactor). A consumer must be able to implement the fix from this one file alone. Sub-step `- [ ]` bullets inside a finding body are permitted; the committer ignores them.
 
-After writing the file(s) on either mode's FAIL, return `FAIL`. Return `blocker` in place of any verdict when a cited path cannot be read (`## Read first`).
-
 ### Return fields
 
-- `outcome` — `PASS`, `FAIL` or `blocker`.
+- `outcome` — `PASS` in each `PASS` case above; `FAIL` after writing the file(s) on either mode's FAIL; `blocker` in place of any verdict when a cited path cannot be read (`## Read first`).
 - `findings_file` — `PASS` in sub-cases (a) and (b): the full path of the round file you wrote; absent on every other `PASS`. `FAIL`: the full path of the flat `review_{iteration}.md` in plan-review mode, of the **index** in implemented-solution mode.
 - `must_fix_count` (integer) — `FAIL`: the number of Must Fix findings, at least 1.
 - `blocker` — `blocker`: one line naming the path and the refusal.

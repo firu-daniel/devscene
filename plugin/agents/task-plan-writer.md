@@ -148,15 +148,9 @@ Follow `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The wr
 
 End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
-Return `returned` after writing or revising the plan.
-
-Return `questions` when a clarification, or an untrusted-input report, stops the work (`## Clarification questions`).
-
-Return `blocker` in place of every plan file when a cited path cannot be read (`## Read first (everything — the plan spans every layer)`).
-
 ### Return fields
 
-- `outcome` — `returned`, `questions` or `blocker`.
+- `outcome` — `returned` after writing or revising the plan; `questions` when a clarification, or an untrusted-input report, stops the work (`## Clarification questions`); `blocker` in place of every plan file when a cited path cannot be read (`## Read first (everything — the plan spans every layer)`).
 - `story_file` — `returned`: the story index's full path.
 - `task_files_dir` — `returned`: `<state_dir>/task_plans/<branch>/`.
 - `tasks_count` (integer) — `returned`: the number of readiness entries, at least 1.

@@ -192,11 +192,9 @@ Two things are not steering: a **bare pointer** to a named rule in a file you al
 
 End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
-An optional `## Unsolicited dispatch guidance` section may sit above the return object. It adds nothing to the round file or the return object. Return nothing else.
-
 On `PASS` and `FAIL`, run `mkdir -p <findings_folder>`, then write your round file `<findings_folder>/review_{iteration}.md` as `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The round file` states.
 
-**If no Must Fix remains**, the round file carries the `PASS` lines that section names; return `PASS`.
+**If no Must Fix remains**, the round file carries the `PASS` lines that section names.
 
 **If there are Must Fix issues**, the round file takes this format, each Must Fix entry per `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The Must Fix entry`:
 
@@ -223,15 +221,11 @@ review_mode: <full | converging>
 <optional — never counts toward the verdict: `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## Incidental findings — where they go and who reads them`>
 ```
 
-Then return `FAIL`.
-
 Only **Must Fix** makes the round `FAIL`; a round whose only findings are Should Fix, Nice to Have or incidental is a `PASS`.
-
-Return `blocker` in place of any verdict when a cited path cannot be read (`## Read first`).
 
 ### Return fields
 
-- `outcome` — `PASS`, `FAIL` or `blocker`.
+- `outcome` — `PASS` when no Must Fix remains; `FAIL` when one does; `blocker` in place of any verdict when a cited path cannot be read (`## Read first`).
 - `findings_file` — `PASS` and `FAIL`: the full path of the round file you wrote.
 - `must_fix_count` (integer) — `FAIL`: the number of Must Fix entries in the round file, at least 1.
 - `blocker` — `blocker`: one line naming the path and the refusal.

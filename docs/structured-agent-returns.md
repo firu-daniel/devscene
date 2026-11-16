@@ -2,7 +2,7 @@
 
 **Who reads this:** a maintainer changing an agent's return, and the author of `feat_structured_outputs_remaining_agents` (#380; `ROADMAP.md` → the `Structured agent outputs` row), who adopts the mechanism for the agents that do not carry it yet.
 
-**What it owns.** The decisions of record for how an agent declares its return, how each caller reads and checks it, and what a return that fails its check costs; and what of that is measured. It restates no rule an agent or a caller follows: those are `plugin/instructions/agent_return_contract.md`'s — the block (`## The return block`), the schema dialect (`## The return schema`), the prose description (`## Return fields`), the citation form (`## Citing a field`), the routing check (`## Reading a return`), the failed-return route (`## A return that fails the check`) and the adoption steps (`## Adopting it for another agent`). The planning driver's side of it is `docs/flow-graph-walker.md` → `## 5. The two drivers`.
+**What it owns.** The decisions of record for how an agent declares its return, how each caller reads and checks it, and what a return that fails its check costs; what of that is measured; and the authoring rules an agent author follows (`## 2. Authoring an agent's return`) — the block and its canonical sentence, the schema dialect, the prose description, the citation form and the adoption steps. No agent and no orchestrating session reads this document. What an orchestrating session acts on at run time is `plugin/instructions/agent_return_contract.md`'s alone: the routing check (`## Reading a return`) and the failed-return route (`## A return that fails the check`), with the roster of the plugin documents that cite it (`## Who may cite this`). The planning driver's side of it is `docs/flow-graph-walker.md` → `## 5. The two drivers`.
 
 The mechanism was settled on `feat_structured_planning_agent_outputs` for the six agents the planning graph dispatches — `task-plan-writer`, `task-plan-reviewer`, `architecture-reviewer`, `business-parity-reviewer`, `ui-tests-plan-writer` and `ui-tests-plan-reviewer` — in every mode each runs in.
 
@@ -12,7 +12,7 @@ The mechanism was settled on `feat_structured_planning_agent_outputs` for the si
 
 ### The return shape — one fenced `json` block, last
 
-**Decision.** An agent's reply ends with its return object, one fenced `json` block holding one JSON object, with only whitespace after the closing fence; prose may sit above it (`agent_return_contract.md` → `## The return block`). The alternative weighed was the whole reply as JSON, with the human-readable part in a field.
+**Decision.** An agent's reply ends with its return object, one fenced `json` block holding one JSON object, with only whitespace after the closing fence; prose may sit above it (`### The return block`, below). The alternative weighed was the whole reply as JSON, with the human-readable part in a field.
 
 **Reason.** A node session's `result` text is the agent's final reply verbatim, fences included: the first real script-driven node's `result` ended in the writer's own fenced block (§3, the fourth row). So the driver can take the block with jq 1.5 `split` alone, with no regex: the text after the last line opening ```` ```json ````, cut at the next closing fence, with only whitespace allowed after it (`cli/templates/scripts/lib/planning-node-lib.sh` → `PNL_REAP_JQ`). An orchestrating session reads a fenced block at the end of an `Agent` result the way it read the fenced `key: value` block these agents returned before. A whole-JSON reply would put every agent's explanatory prose inside a string, escaped by the agent.
 
@@ -28,11 +28,11 @@ The mechanism was settled on `feat_structured_planning_agent_outputs` for the si
 
 ### The schema lives in its own file inside the plugin
 
-**Decision.** Each agent's return schema is the file `plugin/schemas/<agent>.return.json`, holding one draft-07 JSON Schema in the closed dialect `agent_return_contract.md` → `## The return schema` lists. It is read by the driver (`planning-node-lib.sh` → `pnl_load_schemas`) and by `cli/test/agent-return-schemas.test.mjs`, and never by the model: the agent's `## Output contract` carries `### Return fields`, the only return description it sees. Two alternatives were weighed. The first is the schema inline in the agent's definition, as a `## Return schema` section after `## Output contract` — what this branch first shipped. The second is one file per agent under the repository-root `schemas/`.
+**Decision.** Each agent's return schema is the file `plugin/schemas/<agent>.return.json`, holding one draft-07 JSON Schema in the closed dialect `### The return schema`, below, lists. It is read by the driver (`planning-node-lib.sh` → `pnl_load_schemas`) and by `cli/test/agent-return-schemas.test.mjs`, and never by the model: the agent's `## Output contract` carries `### Return fields`, the only return description it sees. Two alternatives were weighed. The first is the schema inline in the agent's definition, as a `## Return schema` section after `## Output contract` — what this branch first shipped. The second is one file per agent under the repository-root `schemas/`.
 
 **Reason.** Inline, every dispatch of the six agents carried their schemas: 12,166 characters / 1,391 words across the six `## Return schema` sections, measured with `sed -n '<range>p' <file> | wc -w -c` over each section's `grep -n '^## '` range (`harness-runs/user_reviews/feat_structured_planning_agent_outputs_fix_plan/finding_1.md`). The model acted on `### Return fields`, not on the schema. The root `schemas/` is not in the installed plugin, which carries only `plugin/`, so the pinned plugin the driver reads at run time would not hold it. `plugin/schemas/` ships with the plugin, under the same `--plugin-dir` root `pnl_init` reads `agents/` and `instructions/` from, and outside `plugin/agents/`, the component-discovery directory. The dialect is closed so the driver can validate it in jq 1.5.
 
-**Cost.** The model writes its object from prose alone. `cli/test/agent-return-schemas.test.mjs` holds that prose to the schema property for property, including each non-string property's type annotation, so the two cannot drift; it also fails a definition that re-inlines a schema and a schema file with no agent. A schema-only edit triggers that suite through its own `devscene.config.json` → `treeGuards` entry, `plugin/schemas/**`. These schemas are not under `schemas/` and `ajv` does not validate them; the suite holds them to the dialect instead. A keyword the dialect lacks is a change to the module, to `PNL_REAP_JQ`'s `vfail` and `schemafail`, and to that suite together.
+**Cost.** The model writes its object from prose alone. `cli/test/agent-return-schemas.test.mjs` holds that prose to the schema property for property, including each non-string property's type annotation, so the two cannot drift; it also fails a definition that re-inlines a schema and a schema file with no agent. A schema-only edit triggers that suite through its own `devscene.config.json` → `treeGuards` entry, `plugin/schemas/**`. These schemas are not under `schemas/` and `ajv` does not validate them; the suite holds them to the dialect instead. A keyword the dialect lacks is a change to `### The return schema`, to `PNL_REAP_JQ`'s `vfail` and `schemafail`, and to that suite together.
 
 ### One discriminator, `outcome`, held to the graph
 
@@ -44,7 +44,7 @@ The mechanism was settled on `feat_structured_planning_agent_outputs` for the si
 
 ### Validation on each path, and why no validator script
 
-**Decision.** The driver validates the whole object against the agent's schema file, `plugin/schemas/<agent>.return.json`, at reap time, in jq (`PNL_REAP_JQ`). The orchestrating session applies the lighter routing check `agent_return_contract.md` → `## Reading a return` defines. A caller names a field it reads in the citation form `` `<agent>.<field>` `` (`## Citing a field`), and `cli/test/agent-return-schemas.test.mjs` holds every such citation, and every `pd_ret_field` call in the driver, to the named agent's schema.
+**Decision.** The driver validates the whole object against the agent's schema file, `plugin/schemas/<agent>.return.json`, at reap time, in jq (`PNL_REAP_JQ`). The orchestrating session applies the lighter routing check `agent_return_contract.md` → `## Reading a return` defines. A caller names a field it reads in the citation form `` `<agent>.<field>` `` (`### Citing a field`, below), and `cli/test/agent-return-schemas.test.mjs` holds every such citation, and every `pd_ret_field` call in the driver, to the named agent's schema.
 
 **Reason.** An orchestrating session cannot run a validator for free. A validator script would need a write per dispatch to hand it the reply, and an agent-invocable row in `OUTER_LOOP_SCRIPTS` with the permission-profile entries that flag implies (`.claude/context/conventions.md` → `## What accompanies a new unit of each kind`, the outer-loop-script row); the branch's task prompt allowed no new permission. The routing check covers what the session acts on: the block, the outcome it routes on, and the fields it reads for that outcome. The static check moves a renamed field from a run-time break to a test failure on either path.
 
@@ -68,9 +68,56 @@ The mechanism was settled on `feat_structured_planning_agent_outputs` for the si
 
 ---
 
-## 2. Adopting it for another agent
+## 2. Authoring an agent's return
 
-The steps are `agent_return_contract.md` → `## Adopting it for another agent`, in that section's order; an agent with no `plugin/schemas/<agent>.return.json` is outside every check until it gains one, so agents adopt one at a time. Once an agent has the file, `cli/test/agent-return-schemas.test.mjs` holds it, with no change to the suite, to: the closed dialect; its `### Return fields` naming exactly the schema's properties, with each non-string property's type annotation agreeing with the schema; no schema re-inlined in its definition; the return-block sentence carried verbatim in its `## Output contract`; the planning graph's outcome keys, where the graph dispatches it; and every `` `<agent>.<field>` `` citation of it in the plugin. That work is #380's (`ROADMAP.md` → the `Structured agent outputs` row).
+The rules an agent author follows. No agent reads this section: an adopting agent carries the sentence `### The return block` fixes and its own `### Return fields`, and points nowhere else.
+
+### The return block
+
+An agent that adopts this contract ends its reply with its **return object**: one fenced code block whose info string is `json`, holding one JSON object, with nothing but whitespace after its closing fence. Prose may sit above it; nothing may sit below it.
+
+Every adopting agent carries this sentence verbatim in its `## Output contract`:
+
+```
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
+```
+
+### The return schema
+
+The agent's return schema is the file `plugin/schemas/<agent>.return.json`, `<agent>` being the definition's basename. The agent never reads it, and its definition carries no copy of it. The file holds one JSON object: a draft-07 JSON Schema written in this **closed dialect**.
+
+- **Top level:** `$schema` (`http://json-schema.org/draft-07/schema#`), `title`, `description`, `type: "object"`, and `oneOf`, a non-empty array of variants.
+- **Each variant:** `type: "object"`, `description`, `properties`, `required` — which always includes `outcome` — and `additionalProperties: false`.
+- **`properties.outcome`:** `{ "const": "<value>" }` plus `description`. The `const` values are distinct across the variants.
+- **Every other property:** `type`, one of `string`, `integer`, `boolean` or `array`, with `description`, and optionally `const`, `enum`, `minLength` (`string` only), `minimum` (`integer` only), `minItems` and `items` (`array` only). `items` is `{ "type": "string" }`, optionally with `minLength`.
+
+No other keyword appears anywhere in the schema.
+
+`outcome` is the one discriminator. For an agent a planning graph dispatches, its values are exactly that node's outcome keys minus `error`. `error` is never an agent's outcome: a caller records it for a return that keeps failing `agent_return_contract.md` → `## Reading a return`.
+
+### Return fields
+
+The agent's `## Output contract` carries a `### Return fields` subsection, the only return description the agent carries. It has one bullet per schema property, each opening with the property name in backticks (`` - `findings_file` — … ``), `outcome` included with its values. A property whose `type` is not `string` carries its type in parentheses right after the name, separated by one space: `(integer)`, `(boolean)` or `(array of strings)` (`` - `must_fix_count` (integer) — … ``). The prose says which outcome carries which field and states each lower bound. It never restates the schema in another form, so a fenced `key: value` or `json` block has no place in it.
+
+### Citing a field
+
+A document other than the agent's own definition names a return field it reads as `` `<agent>.<field>` `` — `` `task-plan-reviewer.findings_file` `` — and an outcome as "an `outcome` of `PASS`". A static check holds each such citation to the named agent's schema file, so this is the only spelling a caller uses.
+
+### Citing the module
+
+`plugin/instructions/agent_return_contract.md` → `## Who may cite this` lists the plugin documents that point at it, and `cli/test/agent-return-schemas.test.mjs` fails a plugin asset that points at it without being listed. An edit that rewords or moves one of the module's headings updates every listed document in the same change. The agents do not point at the module. A document outside the plugin, this one included, cites it by its repo-relative path and is not listed.
+
+### Adopting it for another agent
+
+An agent author adds, in this order:
+
+1. The file `plugin/schemas/<agent>.return.json`, per `### The return schema`.
+2. The `### Return fields` subsection, per `### Return fields`.
+3. The sentence `### The return block` carries, verbatim, in the `## Output contract`.
+
+Then rewrite every caller's citation of that agent's fields into `### Citing a field`'s form, point each caller that routes on the return at `agent_return_contract.md` → `## Reading a return` and `## A return that fails the check`, and add each new citing document to that module's `## Who may cite this`.
+
+An agent with no `plugin/schemas/<agent>.return.json` is outside every check until it gains one, so agents adopt one at a time. Once an agent has the file, `cli/test/agent-return-schemas.test.mjs` holds it, with no change to the suite, to: the closed dialect; its `### Return fields` naming exactly the schema's properties, with each non-string property's type annotation agreeing with the schema; no schema re-inlined in its definition; the return-block sentence carried verbatim in its `## Output contract`; the planning graph's outcome keys, where the graph dispatches it; and every `` `<agent>.<field>` `` citation of it in the plugin. That work is #380's (`ROADMAP.md` → the `Structured agent outputs` row).
 
 ---
 

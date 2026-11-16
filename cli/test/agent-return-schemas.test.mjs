@@ -6,8 +6,9 @@
  * non-string types — in its `### Return fields`, carries the canonical return-block sentence, never
  * re-inlines the schema in its definition, and is cited — by the planning graph, by every
  * `` `<agent>.<field>` `` in the plugin and by every `pd_ret_field` call in the driver — only for
- * outcomes and fields it declares.** The sentence and the roster are read from
- * `plugin/instructions/agent_return_contract.md`, never restated here.
+ * outcomes and fields it declares.** The sentence is read from `docs/structured-agent-returns.md`
+ * → `### The return block` and the roster from `plugin/instructions/agent_return_contract.md` →
+ * `## Who may cite this`, never restated here.
  *
  * An agent with no schema file is skipped by design, so agents adopt the mechanism one at a time
  * (#380); a schema file with no agent definition beside it fails. The suite reads this checkout's
@@ -20,8 +21,8 @@
  * findings-file template whose `## Must Fix` lines are not headings.
  *
  * Registered as a tree guard in `devscene.config.json` → `treeGuards`, once per covered glob — the
- * plugin's Markdown, `plugin/schemas/` and `cli/templates/scripts/` — so a schema-only edit still
- * runs it.
+ * plugin's Markdown, `plugin/schemas/`, `cli/templates/scripts/` and the sentence's home
+ * `docs/structured-agent-returns.md` — so a schema-only or docs-only edit still runs it.
  */
 
 import assert from 'node:assert/strict';
@@ -32,6 +33,7 @@ import test from 'node:test';
 import { WORKSPACE_ROOT } from './helpers/fixture.mjs';
 
 const MODULE = 'plugin/instructions/agent_return_contract.md';
+const AUTHORING_DOC = 'docs/structured-agent-returns.md';
 const AGENTS_DIR = 'plugin/agents';
 const SCHEMAS_DIR = 'plugin/schemas';
 const SCHEMA_SUFFIX = '.return.json';
@@ -138,12 +140,12 @@ function fencedBlocks(text) {
 // Reading the module.
 // ---------------------------------------------------------------------------------------------
 
-/** The canonical sentence: the first fenced block of `## The return block`. */
-function canonicalSentence(moduleText) {
-  const body = section(moduleText, '## The return block');
-  assert.ok(body !== null, `${MODULE} has no ## The return block`);
+/** The canonical sentence: the first fenced block of the authoring document's `### The return block`. */
+function canonicalSentence(docText) {
+  const body = section(docText, '### The return block');
+  assert.ok(body !== null, `${AUTHORING_DOC} has no ### The return block`);
   const [first] = fencedBlocks(body);
-  assert.ok(first, `${MODULE} → ## The return block carries no fenced block`);
+  assert.ok(first, `${AUTHORING_DOC} → ### The return block carries no fenced block`);
   return first.body.trim();
 }
 
@@ -411,7 +413,7 @@ export function checkRoster(moduleText, files) {
 // ---------------------------------------------------------------------------------------------
 
 const moduleText = read(MODULE);
-const SENTENCE = canonicalSentence(moduleText);
+const SENTENCE = canonicalSentence(read(AUTHORING_DOC));
 const pluginFiles = walk('plugin').map((path) => ({ path, text: read(path) }));
 const pluginMarkdown = pluginFiles.filter((f) => f.path.endsWith('.md'));
 const agentName = (path) => path.slice(AGENTS_DIR.length + 1, -'.md'.length);
@@ -429,7 +431,7 @@ for (const [name, text] of schemaTexts) {
   if (schema) SCHEMAS.set(name, schema);
 }
 
-test('the module yields a canonical sentence and a roster', () => {
+test('the authoring document yields a canonical sentence and the module a roster', () => {
   assert.match(SENTENCE, /^End your reply with your return object: /);
   assert.ok(roster(moduleText).length > 0, 'the roster is empty');
 });
