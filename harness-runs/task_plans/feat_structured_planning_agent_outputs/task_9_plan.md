@@ -30,3 +30,11 @@
 - `git grep -nE 'verdict: (PASS|FAIL)|no_ui: true|ui_test_index:|## Questions|findings_file:' -- plugin/instructions/user_review_fix_plan_writing_instructions_core.md plugin/instructions/user_review_fixes_instructions_core.md plugin/instructions/user_review_fixes_instructions_autonomous.md plugin/instructions/user_review_fixes_instructions_semi_autonomous.md plugin/instructions/qa_test_instructions.md` prints only lines about `user-review-fix-plan-writer`, `test-fix-plan-writer`, `qa-tester` or another agent outside the six, and none reading a return of the six.
 - Every `` `<agent>.<field>` `` citation in the five files names a property the story index `## Context` field table lists for that agent.
 - `git grep -ln 'agent_return_contract' -- plugin` now lists exactly the module and the six roster members of its `## Who may cite this`.
+
+**Deviations from plan:**
+
+- `user_review_fixes_instructions_core.md` → the context-discipline "Reviewers return …" bullet also gained the `architecture-reviewer` exception (mirroring Task 8's edit to `plan_orchestration_instructions_core.md`), since this flow reaches that reviewer through the cited G.2 gate and the first Verification grep would otherwise print a line about one of the six.
+- `user_review_fixes_instructions_autonomous.md` → the `<escalate>` / `<ask>` reroute's closed list gained the writer's `blocker` outcome and its third failed routing check, because the core's QA.0 now routes both to `<escalate>` and that list is closed.
+- `user_review_fix_plan_writing_instructions_core.md` → the two run-mode-gate sentences ("the join counts it exactly as a `verdict: PASS`") now read "an `outcome` of `PASS`", for the same Verification grep.
+- Verification bullet 1: `user_review_fixes_instructions_autonomous.md` → `(a) Fix-plan convergence gates` keeps "a `verdict: FAIL` line" — it describes the round file's content (`plan_review_rounds.md` → `## The round file`), not a return. The QA flow's `ui_test_index:` hit is the `qa-tester` dispatch argument.
+- Verification bullet 3: `git grep -ln 'agent_return_contract' -- plugin` lists the six roster members only; the module does not contain its own name, so it is not listed. Matches the roster in `## Who may cite this`.
