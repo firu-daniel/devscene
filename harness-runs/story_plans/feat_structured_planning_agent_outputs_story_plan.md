@@ -56,7 +56,7 @@ This branch gives the six agents the planning graph dispatches — `task-plan-wr
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_planning_agent_outputs/task_<K>_plan.md`. The entries are ordered contract before consumer, as `## Context` states, with the catch-all layer last.
 
-1. [ ] **Task 1** — Add `plugin/instructions/agent_return_contract.md`, the one owner of the return block, the schema dialect, the field citation form and the routing check _(layer: plugin)_ _(points: 15)_
+1. [x] **Task 1** — Add `plugin/instructions/agent_return_contract.md`, the one owner of the return block, the schema dialect, the field citation form and the routing check _(layer: plugin)_ _(points: 15)_
 2. [ ] **Task 2** — Give `task-plan-writer` a `## Return schema` and rewrite its `## Output contract` around it _(layer: plugin)_ _(points: 15)_
 3. [ ] **Task 3** — Give `ui-tests-plan-writer` a `## Return schema`, rewrite its `## Output contract`, and move the two planning writers' untrusted-input report into `questions` _(layer: plugin)_ _(points: 15)_
 4. [ ] **Task 4** — Give `task-plan-reviewer` and `ui-tests-plan-reviewer` a `## Return schema`, and restate the plan gates' return in `plan_review_rounds.md` _(layer: plugin)_ _(points: 15)_
