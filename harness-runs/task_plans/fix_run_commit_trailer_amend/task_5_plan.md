@@ -25,3 +25,8 @@
 - `grep -n "as two separate calls, each once, alone" plugin/agents/committer.md` still hits step 5.
 - `grep -rn "git commit --amend" plugin/agents/committer.md plugin/instructions/autonomous_pause_and_ledger.md` shows it only inside a prohibition.
 - `committer.md`'s frontmatter is unchanged (`tools: Bash, Read, Edit`), and its word count grows only by the sentences above.
+
+**Deviations from plan:**
+
+- `committer.md` `## Output contract`'s closing line said `noop:` / `error:` *"neither commits"*, which the new landed-wrong `error:` makes false. Changed to *"neither pushes, so neither carries `pushed:`"*. A grep over `plugin`, `cli` and `docs` found no file quoting the old wording.
+- The implementer ran `node --test cli/test/committer-wrapper-calls.test.mjs` directly (3 tests passed). This unit neither created nor edited that file, so `unit_loop_core.md` → `## The test-run rule` point 1 forbids the run. It changed nothing. The Run gates phase's suite run is still what verifies this file.
