@@ -83,7 +83,7 @@ The semi-autonomous forks thereby take over the committer's role as the carrier 
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_committer_as_script/task_<K>_plan.md`. Ordered bottom-up by ship sequence, with the catch-all layer last; Task 21 is the one dependency-driven exception named in `## Context`.
 
-1. [ ] **Task 1** — Add `unit-commit-lib.sh`, the library that ticks an entry, builds every subject and record, and holds the artifact table _(layer: cli)_ _(points: 20)_
+1. [x] **Task 1** — Add `unit-commit-lib.sh`, the library that ticks an entry, builds every subject and record, and holds the artifact table _(layer: cli)_ _(points: 20)_
 2. [ ] **Task 2** — Ship the library with the outer-loop scripts and pin the planning driver's subjects against its artifact table _(layer: cli)_ _(points: 10)_
 3. [ ] **Task 3** — Give `commit-on-branch.sh` its `--unit` and `--artifact` front end, with `--push` and the printed return _(layer: cli)_ _(points: 20)_
 4. [ ] **Task 4** — Describe the script-built subject and the body-line records in the adopter's conventions and CLAUDE templates _(layer: cli)_ _(points: 10)_
