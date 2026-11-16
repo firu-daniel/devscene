@@ -154,8 +154,9 @@ function graphAgents(dir) {
 }
 
 /**
- * A watcher fixture on `feat_x`, a plugin directory under the system temp directory, the agent
- * runner's records naming it under a temp `CLAUDE_CONFIG_DIR`, and the stub.
+ * A watcher fixture on `feat_x`, a plugin directory under the system temp directory holding each
+ * graph agent's `agents/<agent>.md` and `schemas/<agent>.return.json`, the agent runner's records
+ * naming it under a temp `CLAUDE_CONFIG_DIR`, and the stub.
  *
  * `key` is `execution.scriptDrivenPlanning`, committed with the fixture; `null` leaves it out.
  * `layout` is how the records name the plugin: `installed`, an `installed_plugins.json` `user` row
@@ -212,10 +213,13 @@ async function pilotFixture(t, { pluginJson = true, key = true, layout = 'instal
   const source = join(WORKSPACE_ROOT, 'plugin');
   await mkdir(join(plugin, '.claude-plugin'), { recursive: true });
   await mkdir(join(plugin, 'agents'));
+  await mkdir(join(plugin, 'schemas'));
   await mkdir(join(plugin, 'instructions'));
   if (pluginJson) await copyFile(join(source, '.claude-plugin', 'plugin.json'), join(plugin, '.claude-plugin', 'plugin.json'));
   for (const agent of graphAgents(f.dir)) {
     await copyFile(join(source, 'agents', `${agent}.md`), join(plugin, 'agents', `${agent}.md`));
+    const schemaFile = `${agent}.return.json`;
+    await copyFile(join(source, 'schemas', schemaFile), join(plugin, 'schemas', schemaFile));
   }
   await copyFile(join(source, 'instructions', CORE), join(plugin, 'instructions', CORE));
 

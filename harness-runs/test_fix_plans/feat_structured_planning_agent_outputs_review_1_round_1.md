@@ -13,7 +13,7 @@ Gate 13 (13a–13c `BLOCKED`, 13d `SKIPPED`) and gate 14d (`SKIPPED`) are report
 
 This list is the **single source of truth** for the fix loop: walk it top to bottom and take the first `[ ]` entry. `[ ]` markers anywhere else, including the `- [ ]` sub-steps inside the per-finding files, are informational only.
 
-1. [ ] **Finding 1** — Copy each graph agent's return schema into the watcher planning-driver fixture's plugin. _(layer: cli)_
+1. [x] **Finding 1** — Copy each graph agent's return schema into the watcher planning-driver fixture's plugin. _(layer: cli)_
 
 ## Must Fix
 
