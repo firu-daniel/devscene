@@ -60,3 +60,10 @@
 - `git grep -n -F '**Once, alone** means its own Bash call' -- plugin/instructions/unit_loop_core.md` shows the definition in step 5.
 - `git diff -- plugin/instructions/unit_loop_core.md` changes no `##`-level heading, and in `## The test-run rule` no line at all.
 - `git grep -n -e 'committer mode' -e 'committer extra args' -e 'commit_prefix rule' -- plugin` lists no file outside the set the **Before renaming** bullet names.
+
+**Deviations from plan:**
+
+- Step 6's sentence "This post-commit progress line is not the pre-dispatch heartbeat of step 5; both exist and neither replaces the other." was removed: step 5 no longer has a heartbeat, so the sentence pointed at nothing.
+- Exit 3's "continue" is written as "continue, returning to step 1": an exit-3 call prints no `commit_sha:` / `subject:` for step 6 to report.
+- `### Placeholder resolution`'s list of locally defined names was updated with the plan's other edits. It drops the `committer extra args` / ⚠️-note `task_heading` and `committer.md` `<mode>` entries, and adds `<K>` (step 5) and `<unit token>` / `<cause>` (the body-line forms).
+- Row `A1.5.3` / `A2.3` / `C2.4`'s index-agnostic paragraph now names `G.4` beside `C` and `E.3`, because it also passes its own index.
