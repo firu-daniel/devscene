@@ -84,6 +84,14 @@
     {
       "test": "test/untrusted-input-corpus.test.mjs",
       "covers": "plugin/**/*.md"
+    },
+    {
+      "test": "test/agent-return-schemas.test.mjs",
+      "covers": "plugin/**/*.md"
+    },
+    {
+      "test": "test/agent-return-schemas.test.mjs",
+      "covers": "cli/templates/scripts/**"
     }
   ]
 }

@@ -70,7 +70,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_planning_age
 12. [x] **Task 12** — Bring the watcher planning-driver suite's stub and the watcher's REPRO note to the return block _(layer: cli)_ _(points: 10)_
 13. [x] **Task 13** — Add `cli/test/agent-return-schemas.test.mjs`, the static check that holds every return schema to its contract, its dialect, the planning graph and every citation of its fields _(layer: cli)_ _(points: 20)_
 14. [x] **Task 14** — Record the mechanism in `docs/structured-agent-returns.md` and correct `docs/flow-graph-walker.md` → `## 5. The two drivers` _(layer: general)_ _(points: 15)_
-15. [ ] **Task 15** — Update `docs/watcher.md`, `ARCHITECTURE.md` and `docs/analyze.md`, and register the new suite in `devscene.config.json` → `treeGuards` _(layer: general)_ _(points: 10)_
+15. [x] **Task 15** — Update `docs/watcher.md`, `ARCHITECTURE.md` and `docs/analyze.md`, and register the new suite in `devscene.config.json` → `treeGuards` _(layer: general)_ _(points: 10)_
 
 ## Scope register
 
