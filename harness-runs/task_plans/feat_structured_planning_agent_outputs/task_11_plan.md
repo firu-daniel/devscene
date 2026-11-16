@@ -28,3 +28,10 @@
 - A walk that hands off logs the task count and, with `phases.qa` `false`, the no-QA variant, as before; a writer's questions park writes a question file whose body is one `## Q<k>` section per scripted item.
 - Both sides of the `findings` / `outcome` mismatch split are exercised through the driver: the `plan_review` `PASS`-mismatch case retries as infrastructure (rule 5), the `architecture_review` `PASS`-mismatch case parks at once with one dispatch (rule 7).
 - Every `pd_ret_field` call names a field the story index `## Context` field table lists for that node's agent.
+
+**Deviations from plan:**
+
+- `planning-driver-walk.test.mjs` → the old `one error in a set …` case scripted `{ outcome: 'error' }`. `error` is not a variant in any schema, so under the new stub that return fails its schema and is retried as infrastructure; it no longer tests a single agent-class error. The case was replaced by the rule-7 mismatch case the plan adds (`architecture-reviewer` `[{ outcome: 'PASS', findings: 'FAIL' }]`, reason `PASS carries no findings_file`). The `undeclared` case became `invalid` on all three attempts, reason `the return fails its schema: unknown key stub_unknown`.
+- `planning-driver-control.test.mjs` → the three-attempt case now scripts `not-success`, `no-block`, `invalid` (it was `not-success`, `no-decision`, `no-init`), so the control suite's one `invalid` use asserts Task 10's schema reason. `no-init` × 3 stays covered by the walk suite.
+- The stub writes `findings_file` into a variant only when the round file's verdict equals the outcome. It adds no other optional property, so a business-parity `PASS` carries no `reason` and a UI writer's `questions` carries no index fields.
+- After both suites passed, one phrase of the `cli/test/helpers/planning-driver.mjs` header comment (``no `structured_output` `` became `no structured field beside it`) was edited so the verification grep stays empty. The edit is inside a JSDoc comment, and the suites were not rerun after it.
