@@ -4,6 +4,8 @@ You are the **orchestrator** for the task-plan writing phase. Your job is to dis
 
 Context discipline applies just like in implementation: do not read findings files, do not echo agent output back verbatim. Pass paths between agents and summarize at the end.
 
+On the opt-in script-driven planning path no session reads this file: the watcher's planning driver (`<scripts_dir>/lib/planning-driver-lib.sh`) walks the graph itself, takes the dispatch blocks of `## Loop` and `## UI-test-plan write loop` as its prompts — filled with the walker's values, with nothing appended but a resumed writer's answers — and takes `## Setup (once per session)` step 4's `MAX_TOTAL_DISPATCHES` as its cap. `<scripts_dir>/lib/planning-node-lib.sh` keys on all of the following, so each is wire text: the `## Setup (once per session)` heading and its `MAX_TOTAL_DISPATCHES = ` line; the `## Loop` and `## UI-test-plan write loop` headings; each `###` heading under them that carries a dispatch block; and the fence count under each of those `###` headings.
+
 > **You were dispatched via a mode fork — read that fork's binding table too.** This file supplies no mode-specific values.
 
 ---

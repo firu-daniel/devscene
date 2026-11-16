@@ -158,8 +158,8 @@ test('rollup on a schema-2 document keeps .rounds and computes .run as on schema
   assert.deepEqual(two.run, rollup(schema1()).run);
 });
 
-test('schema 4, a schema-1 document carrying rounds and a schema-2 one without an array are refused', () => {
-  assert.match(failure({ ...schema1(), schema: 4 }), /schema 4 is not supported; expected 1, 2 or 3/);
+test('schema 5, a schema-1 document carrying rounds and a schema-2 one without an array are refused', () => {
+  assert.match(failure({ ...schema1(), schema: 5 }), /schema 5 is not supported; expected 1, 2, 3 or 4/);
   assert.match(failure({ ...schema1(), rounds: [] }), /schema 1 document carries \.rounds/);
   assert.match(failure({ ...schema1(), schema: 2 }), /schema 2 document's \.rounds is not an array/);
 });

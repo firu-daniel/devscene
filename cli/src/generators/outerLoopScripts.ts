@@ -1,6 +1,7 @@
 /**
  * Generator: the outer-loop scripts — the run watcher, the git wrappers, the worktree tooling, the
- * flow walker with its gate library and flow graph, the test-suite runner, the gate launcher, the
+ * flow walker with its gate library and flow graph, the planning driver's three libraries, the
+ * test-suite runner, the gate launcher, the
  * prompt-injection screen, the run-analytics script with its two `jq` programs, the change-request fence's opt-out check, and the shared library
  * they all source —
  * written into the adopter's configured `scriptsDir`.
@@ -219,6 +220,12 @@ export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze(
   // entry.
   Object.freeze({ file: 'run-analytics.sh', mode: 0o755, agentInvocable: false }),
   Object.freeze({ file: NOTIFY_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
+  // Sourced by the watcher's planning driver from its own `lib/`, never run. Run directly, each only
+  // defines functions, so `false` is a calling convention and no `DENY_SCRIPT_BASENAMES` entry is
+  // owed: the watcher that runs the driver is withheld.
+  Object.freeze({ file: 'planning-node-lib.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
+  Object.freeze({ file: 'planning-record-lib.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
+  Object.freeze({ file: 'planning-driver-lib.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
   Object.freeze({ file: WATCHER_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
   Object.freeze({ file: 'restart-watcher.sh', mode: 0o755, agentInvocable: false }),
   // Run by the watcher, the remote job or a person. Carries a `DENY_SCRIPT_BASENAMES` entry: a run that

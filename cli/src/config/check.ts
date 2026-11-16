@@ -152,7 +152,7 @@ const PARITY_KEYS = ['referenceName', 'referenceImplPath', 'toolchainCommands'] 
 const PARITY_STRING_KEYS = ['referenceName', 'referenceImplPath'] as const;
 const DEPLOY_KEYS = ['provider', 'target', 'command'] as const;
 const DESIGN_KEYS = ['source'] as const;
-const EXECUTION_KEYS = ['target', 'progressComments', 'keepAwake'] as const;
+const EXECUTION_KEYS = ['target', 'progressComments', 'keepAwake', 'scriptDrivenPlanning'] as const;
 const SANDBOX_KEYS = ['allowedDomains', 'optOut', 'passEnv'] as const;
 const SANDBOX_DOMAIN_KEYS = ['domain', 'reason'] as const;
 const SANDBOX_OPT_OUT_KEYS = ['reason'] as const;
@@ -266,7 +266,7 @@ function checkStringArray(parent: Record<string, unknown>, key: string, prefix: 
   });
 }
 
-/** A declared boolean key: the three `phases` toggles, `docs.retrieval`, `execution.progressComments` and `execution.keepAwake`. */
+/** A declared boolean key: the three `phases` toggles, `docs.retrieval`, `execution.progressComments`, `execution.keepAwake` and `execution.scriptDrivenPlanning`. */
 function checkBoolean(parent: Record<string, unknown>, key: string, prefix: string, problems: Problems): void {
   const value = parent[key];
   if (value === undefined) return;
@@ -827,6 +827,7 @@ export function checkConfigShape(value: unknown): ConfigProblem[] {
     );
     checkBoolean(execution, 'progressComments', 'execution', problems);
     checkBoolean(execution, 'keepAwake', 'execution', problems);
+    checkBoolean(execution, 'scriptDrivenPlanning', 'execution', problems);
   }
 
   const sandbox = section(value, 'sandbox', SANDBOX_KEYS, problems);

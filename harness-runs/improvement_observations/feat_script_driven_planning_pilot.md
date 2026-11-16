@@ -1,0 +1,68 @@
+## The plan writer reported two stale rules in the shared conventions document
+- **category:** tooling-gap
+- **evidence:** The `task-plan-writer` return (planning round 0) carried a `## Corpus staleness` section with two `stale-rule` entries, both against `.claude/context/conventions.md`. (1) `## The layers`, the bullet *"Neither shipped half may reach into the other at run time"*: this branch's planning driver reads the pinned plugin directory's `task_plan_writing_instructions_core.md` as data at run time and passes that directory to each node session with `--plugin-dir`. (2) `## Shell assets`, the bullet *"Never `git add -A` or `git add .`"*, whose sentence says the watcher's artifact commits commit exactly one path through `hr_commit_placed`: the planning driver now also commits multi-path sets (Overrides 3, 4 and 6, ledger flips, observations) through the main checkout's `commit-on-branch.sh`.
+- **cost this run:** Each owes a follow-up restatement of its rule. For (1): an outer-loop script may read a pinned plugin directory as data (pass it to a session, read a contract's text) but never source or execute a plugin file. For (2): the watcher's own artifact commits use `hr_commit_placed`, and its planning driver commits the planning path sets through `commit-on-branch.sh`, as the autonomous planning fork does. Route: a supervised `/devscene:analyze` re-run answered `skip` for every already-filled document, or a hand edit.
+
+## The task plan needed 3 plan-review rounds to converge
+- **category:** optimization
+- **evidence:** Three distinct round indices (0, 1, 2) across `harness-runs/architecture_reviews/feat_script_driven_planning_pilot/` and `harness-runs/task_plan_reviews/feat_script_driven_planning_pilot/` (business-parity gate skipped, `phases.parity=false`). Rounds 0 and 1 carry `verdict: FAIL`, round 2 `PASS`. Per round, by finding title against the same root's previous round: round 1, 6 net-new (architecture 2 Must Fix + 3 Should Fix, task-plan 1 Must Fix) and 3 re-raised (the architecture reviewer's two round-0 Should Fix and its Nice to Have, labelled "Carried from round 0"); round 2, 1 net-new (an architecture Should Fix) and 0 re-raised. Round 2's net-new finding is about the sentence the round-1 revision wrote for round 1's own Must Fix.
+- **cost this run:** 9 planning dispatches (3 writer, 6 gate) where a first-round pass would have cost 3.
+
+## The end-of-branch code review needed 4 meta-review dispatches before B.2 passed
+- **category:** optimization
+- **evidence:** `harness-runs/review_plan_reviews/feat_script_driven_planning_pilot/` holds `review_0.md`, `review_1.md`, `review_2.md`, each `verdict: FAIL`; the fourth dispatch (iteration 3) returned `PASS` and wrote no file. The code-review index `harness-runs/code_reviews/feat_script_driven_planning_pilot_code_review.md` is unsuffixed, so the series is this branch's first round. By Must Fix title: review_0 had 2, review_1 had 2 net-new and 0 re-raised, review_2 had 1 net-new and 0 re-raised. Every round raised a missed check the round before had not asked for (round 0: the new libraries' required accompanying files and the bounded-retry lesson; round 1: finding 3's test stub and the missing plugin-layer checks; round 2: the missing cli-layer checks). The index went from 2 findings to 5 across the adjustments.
+- **cost this run:** 8 Phase-B dispatches (4 `branch-reviewer`, 4 `review-plan-reviewer`).
+
+## A defect an implementer found in an earlier unit's file had no route to a fix, so the next unit worked around it
+- **category:** agent-contract
+- **evidence:** The Task 3 `layer-implementer` return (dispatch #7) reported that `prl_observe_flush` in `cli/templates/scripts/lib/planning-record-lib.sh` (Task 2's file) fails under bash 3.2 with `set -u`, because `needles=("${needles[@]}" -e "$wt")` reads an empty array as an unbound variable. It left the file alone because it was Task 2's, and it returned no `blocker:` line. The Task 6 return (dispatch #13) then hit the same failure (`needles[@]: unbound variable`, line 413) under the watcher's `set -u`, and turned `set -u` off around the driver in `cli/templates/scripts/autonomous-watcher.sh` instead of fixing the library. Neither the Phase A2 architecture review, the Phase B code review nor the Phase C2 skeptic review raised it, and the Run gates passed on round 2. The library line is unchanged on the branch.
+- **cost this run:** A known `set -u` defect ships in a shipped template, masked by a shell-option toggle in its one caller; any other caller under `set -u` hits it.
+- **hypothesis:** With per-unit review off, an implementer's prose note about another unit's file reaches only the orchestrator's progress line, which no later dispatch reads.
+
+## An implementer reported "no tree guard selected" for changes the plugin-corpus guards cover
+- **category:** agent-contract
+- **evidence:** The Task 7 `layer-implementer` return (dispatch #15) changed `plugin/commands/branch-start-plan-autonomous.md`, `plugin/instructions/task_plan_writing_instructions_core.md`, `plugin/instructions/improvement_observations_instructions.md` and `plugin/docs/AUTONOMOUS_FLOW.md`, and reported "Tree guards: none selected". `devscene.config.json` → `treeGuards` maps `plugin/**/*.md` to `test/main-repo-resolution-corpus.test.mjs` and `test/untrusted-input-corpus.test.mjs`, and `**/*.md` to `test/no-container-home-paths.test.mjs`. The code-review Finding 2 implementer (dispatch #31), editing the same command file, selected and ran all three.
+- **cost this run:** Task 7's plugin edits landed without their guard run; the Run gates rounds covered them later.
+
+## Plan-loop agents wrote home-directory paths into committed plan-round files, failing the first Run gates round
+- **category:** silent-failure
+- **evidence:** Run gates round 1 (`harness-runs/test_run_logs/feat_script_driven_planning_pilot/task_round_1.log`) failed gate 6a (no machine paths). The test fix plan `harness-runs/test_fix_plans/feat_script_driven_planning_pilot_task_round_1.md` → Finding 1 names the sources: `harness-runs/architecture_reviews/feat_script_driven_planning_pilot/review_1.md` (3 occurrences) and `review_2.md` (1), which cite `unit_loop_core.md` by its absolute install path, and `harness-runs/plan_revisions/feat_script_driven_planning_pilot/task_plan_revision_2.md`, which names its findings files by absolute path. All three were committed by the planning fork's Override 6 round commits (`3eaf109c`, `9adedb57`), which run no machine-path check. Fixed in `7c5f26b4`.
+- **cost this run:** One full Run gates round plus a fix loop (4 dispatches: `test-fix-plan-writer`, `architecture-reviewer`, `committer`, plus one implementer/committer pair for the finding).
+
+## Sandbox refusals left several checks unverified and one scratch file behind
+- **category:** tooling-gap
+- **evidence:** As reported in implementer returns: Task 1 (dispatch #3), `bash --version` refused, so bash 3.2 behaviour was only parse-checked; Task 2 (dispatch #5), a direct `/bin/bash` check of the helpers refused; Task 3 (dispatch #7), `pgrep -P` and `ps` both refused, so the stall kill reached only the session's wrapper subshell and the whole-tree kill went untested; the round-1 `test-fix-plan-writer` (dispatch #46), a bare `printenv HOME` refused; code-review Finding 1 (dispatch #37), deleting `harness-runs/scratch/finding1_mutation.py` refused, so the file is still in the run copy, untracked.
+- **cost this run:** The planning driver's stall kill of a node session's process tree is unverified on any host; one stray scratch file to remove by hand.
+
+## Three Python docs-retrieval gates were BLOCKED for an unsynced environment
+- **category:** tooling-gap
+- **evidence:** Run gates round 1 log `harness-runs/test_run_logs/feat_script_driven_planning_pilot/task_round_1.log`: gates 13a, 13b and 13c BLOCKED. The test fix plan `harness-runs/test_fix_plans/feat_script_driven_planning_pilot_task_round_1.md` lists them under `## Not fixable on this branch`: the Python docs-retrieval service's environment had not been set up on this machine (remedy: `bash scripts/python-service.sh sync`). Round 2 printed `pass`.
+- **cost this run:** The docs-retrieval gates did not run on this branch.
+
+# User-review fix round 1 — retry for infra-failed planning nodes, resume-gate re-runs, union-based run analytics time, config key for script-driven planning
+
+## Finding 4 needed 3 per-unit review rounds
+- **category:** optimization
+- **evidence:** `harness-runs/user_review_fix_plan_point_reviews/feat_script_driven_planning_pilot_fix_plan/item_4/` holds `review_0.md`, `review_1.md` and `review_2.md`, so the round count is 3. Split by layer: cli has 2 rounds. Round 0 (FAIL) had 2 findings; round 1 had 1 finding, net-new, with none re-raised. general has 1 round, `review_2.md` (FAIL), all net-new. The final general PASS (dispatch #13) wrote no file.
+- **cost this run:** 4 extra dispatches on Finding 4: 2 fix iterations, each an implementer and a reviewer.
+
+## Per-unit layer reviewers could not run the unit's tests, so their verdicts rest on reading the code only
+- **category:** tooling-gap
+- **evidence:** Three `layer-reviewer` returns said they could not run the tests: Finding 3 cli (dispatch #2) said "the permission mode refused the build-and-test command"; Finding 4 cli (dispatch #7) said "this session's permission mode blocked `node --test`"; Finding 1 cli (dispatch #23) said the command to build and run `plugin-runtime-root-lib`, `config-command` and `watcher-planning-driver` "was denied in this session". The implementers ran the same files through `npm test --workspace cli -- test/<name>.test.mjs` and they passed.
+- **cost this run:** Three of four cli-layer review verdicts were made with no test run by the reviewer.
+
+## Refused `rm` left stray scratch files in the run copy
+- **category:** tooling-gap
+- **evidence:** The Finding 4 cli implementer (dispatch #6) reported that its `rm` of `harness-runs/scratch/escalation_resume_cases.txt` was refused. The Finding 4 general reviewer (dispatch #11) reported that its `rm` of `harness-runs/scratch/escalation-answered-pass.mjs` was refused. Both files remain, untracked.
+- **cost this run:** Two untracked scratch files to remove by hand.
+
+## Layer reviewers returned `verdict: PASS` while reporting Should Fix findings
+- **category:** agent-contract
+- **evidence:** Four reviews reported a Should Fix and still returned `verdict: PASS`: Finding 3 cli (`item_3/review_0.md`), Finding 3 general (`item_3/review_1.md`), Finding 1 cli (`item_1/review_0.md`) and Finding 1 general (`item_1/review_1.md`); the last two each list one Should Fix. `user_review_fixes_instructions_core.md` → `### D.2 Done summary` says a review file left after PASS holds Nice to Have only ("Must Fix / Should Fix would have triggered FAIL").
+- **cost this run:** At least five Should Fix items across Findings 3 and 1 were committed without a fix iteration.
+- **hypothesis:** The reviewer contract fails only on Must Fix, while the core's D.2 wording assumes Should Fix fails too.
+
+## A general-layer implementer edited files under `cli/`
+- **category:** agent-contract
+- **evidence:** The Finding 4 general fix iteration (dispatch #12, `layer: general`) listed `cli/test/planning-driver-control.test.mjs` and `cli/templates/scripts/lib/planning-driver-lib.sh` among its modified files. Both are under the `cli` layer's `path`, whose own review had already passed (dispatch #9). Those edits were never put through a cli-layer review before commit `ed77a69e`.
+- **cost this run:** The cli-side edits to Finding 4 were reviewed only by the general-layer reviewer (dispatch #13).

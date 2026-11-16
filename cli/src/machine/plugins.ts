@@ -3,10 +3,13 @@
  * the agent runner keeps.
  *
  * **The rule this module exists to enforce: the plugin's roots are resolved here and nowhere else in
- * the CLI, and each is re-derived on every call.** The install root carries the plugin's version in
- * its path, so a value written down once — into a generated permission entry, into a document —
- * stops being true at the next plugin upgrade while still looking right. A caller that wants a root
- * asks for it now; nothing here caches, and nothing here may be persisted.
+ * the CLI's TypeScript, and each is re-derived on every call.** The one other resolver is the
+ * generated watcher's read-only shell mirror of {@link pluginRuntimeRoot}, `hr_plugin_runtime_root_var`
+ * in `cli/templates/scripts/lib/harness-run-lib.sh`, which pins a planning node session's
+ * `--plugin-dir` at launch; change the selection in both places together. The install root carries
+ * the plugin's version in its path, so a value written down once — into a generated permission
+ * entry, into a document — stops being true at the next plugin upgrade while still looking right. A
+ * caller that wants a root asks for it now; nothing here caches, and nothing here may be persisted.
  *
  * **Why there are two.** A helper named in an **instruction file** arrives as bytes and the agent
  * resolves the root itself; a helper named in an **agent definition body** has `${CLAUDE_PLUGIN_ROOT}`

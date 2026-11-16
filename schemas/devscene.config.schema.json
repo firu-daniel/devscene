@@ -352,7 +352,7 @@
     "execution": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Where an unattended run executes. Read by init (which writes the GitHub Actions workflows), by doctor, and by the run watcher (which dispatches instead of launching). Also holds two switches: progressComments, read by the run job, and keepAwake, read by the run watcher.",
+      "description": "Where an unattended run executes. Read by init (which writes the GitHub Actions workflows), by doctor, and by the run watcher (which dispatches instead of launching). Also holds three switches: progressComments, read by the run job, and keepAwake and scriptDrivenPlanning, read by the run watcher.",
       "properties": {
         "target": {
           "type": "string",
@@ -369,6 +369,11 @@
           "type": "boolean",
           "default": true,
           "description": "Whether a run the local run watcher launches holds this host awake for the life of its engine process: on macOS through caffeinate -s -i -w, which holds on AC power only; on Linux through a logind sleep and lid-switch block lock, taken only while the host is on mains power. false holds nothing. Never held in a GitHub Actions job, on a GitHub Actions runner or under WSL2, where nothing can keep Windows awake. Read at run time from the main checkout by the run watcher, and by doctor's keep-awake check; an absent key is true."
+        },
+        "scriptDrivenPlanning": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether a run the run watcher launches, locally or in a GitHub Actions job, drives the task engine's planning by script rather than by the orchestrator session: a setup session, then one headless session per planning node pinned with --plugin-dir to the plugin's runtime root, derived at every launch from the agent runner's records, then the engine session for the rest of the run. Applies to the task engine's planning only; every other phase, and a user-review run, is unchanged. Off by default. Read at run time from the main checkout by the run watcher, in local and job mode alike; an absent key is false."
         }
       }
     },

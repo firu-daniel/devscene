@@ -131,7 +131,7 @@ test('a finished round with both phases is recorded once, and a re-run changes n
   putFinished(f);
   await expectLine(f, `recorded 1 session(s) and 1 round(s) for ${BRANCH}`);
   const doc = f.doc();
-  assert.equal(doc.schema, 2);
+  assert.equal(doc.schema, 4);
   assert.deepEqual(doc.rounds.map((r) => r.round_id), [LABEL]);
   assert.deepEqual(Object.keys(doc.rounds[0].tests).sort(), ['focused', 'full']);
   assert.equal(doc.rounds[0].verdict, 'pass');
@@ -151,8 +151,8 @@ test('a running round is not recorded until a later call finds its verdict', asy
   f.put(LABEL, 'running', []);
   f.put(LABEL, 'gates.tsv', GATES.slice(0, -1));
   await expectLine(f, `recorded 1 session(s) for ${BRANCH}`);
-  assert.equal(f.doc().schema, 1);
-  assert.equal('rounds' in f.doc(), false);
+  assert.equal(f.doc().schema, 4);
+  assert.deepEqual(f.doc().rounds, []);
 
   rmSync(join(f.lane, `${LABEL}.running`));
   putFinished(f);
@@ -180,8 +180,8 @@ test('a broken record is named and never stops the write', async (t) => {
     f.put(LABEL, 'full.tests.tsv', ['bogus']);
     const r = await expectLine(f, `recorded 1 session(s) for ${BRANCH}`);
     const doc = f.doc();
-    assert.equal(doc.schema, 1);
-    assert.equal('rounds' in doc, false);
+    assert.equal(doc.schema, 4);
+    assert.deepEqual(doc.rounds, []);
     assert.deepEqual(doc.sessions.map((s) => s.session_id), ['sess-r']);
     for (const rec of ['verdict', 'gates.tsv', 'focused.tests.tsv', 'full.tests.tsv']) {
       assert.ok(r.stderr.includes(`run-analytics: round record skipped: ${LABEL}.${rec} — `), output(r));
@@ -212,37 +212,41 @@ test('a lane of logs and verdicts adds gate-log entries and no round', async (t)
   const a = bare.doc();
   const b = logs.doc();
   assert.deepEqual(a.sessions, b.sessions);
-  assert.equal(a.schema, 1);
-  assert.equal('rounds' in a, false);
-  assert.equal('gate_logs' in a, false);
-  assert.equal(b.schema, 3);
+  assert.equal(a.schema, 4);
+  assert.deepEqual(a.rounds, []);
+  assert.deepEqual(a.gate_logs, []);
+  assert.equal(b.schema, 4);
   assert.deepEqual(b.rounds, []);
   assert.deepEqual(b.gate_logs, [{ log_id: LABEL, matches: [] }]);
 });
 
-test('a schema-1 document is extended to schema 2; a schema-4 one is refused and left as it is', async (t) => {
+test('a schema-1 document is extended to schema 4; a schema-5 one is refused and left as it is', async (t) => {
   await t.test('schema 1 extended', async (t2) => {
     const f = await adopted(t2);
     await expectLine(f, `recorded 1 session(s) for ${BRANCH}`);
-    const session = JSON.stringify(f.doc().sessions[0]);
+    const written = f.doc();
+    const old = written.sessions.map(({ kind, node, ...rest }) => rest);
+    writeFileSync(f.jsonPath, `${JSON.stringify({ schema: 1, branch: BRANCH, sessions: old, run: written.run })}\n`);
+    const session = JSON.stringify(old[0]);
     putFinished(f);
     await expectLine(f, `recorded 0 session(s) and 1 round(s) for ${BRANCH}`);
     const doc = f.doc();
-    assert.equal(doc.schema, 2);
+    assert.equal(doc.schema, 4);
     assert.equal(doc.sessions.length, 1);
     assert.equal(JSON.stringify(doc.sessions[0]), session);
+    assert.equal(doc.run.engine_sessions, 1);
   });
 
-  await t.test('schema 4 refused', async (t2) => {
+  await t.test('schema 5 refused', async (t2) => {
     const f = await adopted(t2);
     mkdirSync(join(f.jsonPath, '..'), { recursive: true });
-    const text = '{"schema":4,"branch":"feat_x","sessions":[],"rounds":[]}\n';
+    const text = '{"schema":5,"branch":"feat_x","sessions":[],"rounds":[],"gate_logs":[]}\n';
     writeFileSync(f.jsonPath, text);
     putFinished(f);
     const r = await f.run();
     assert.equal(r.status, 1, output(r));
     assert.ok(
-      r.stderr.includes('is not a schema-1, schema-2 or schema-3 run-analytics document; left untouched'),
+      r.stderr.includes('is not a schema-1, schema-2, schema-3 or schema-4 run-analytics document; left untouched'),
       output(r),
     );
     assert.equal(readFileSync(f.jsonPath, 'utf8'), text);
@@ -284,7 +288,6 @@ test('recorded rounds past the per-argument limit still reach mode rounds, throu
   const f = await adopted(t);
   await expectLine(f, `recorded 1 session(s) for ${BRANCH}`);
   const doc = f.doc();
-  doc.schema = 2;
   doc.rounds = Array.from({ length: 20 }, (_, i) => ({
     round_id: `old_round_${i + 1}`,
     verdict: 'pass',
