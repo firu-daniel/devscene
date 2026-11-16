@@ -517,7 +517,7 @@ Given the opt-in and no endpoint it writes nothing at all and prints the setup i
 
 **What has been exercised, and what has not**, is not claimed here: `docs/outer-loop-verification.md` publishes it row by row — which of these scripts and paths are driven against fixtures, what each row's evidence is, and which parts of this loop ship unexercised because exercising them needs a real service manager, a real headless session or a real rate-limit window.
 
-- **The planning driver's three unmeasured facts** — `structured_output` under `--json-schema`, the `init` tools under it, and whether an installed plugin copy shadows `--plugin-dir` — and the one real planning run that measures them, are `docs/flow-graph-walker.md` → `### Not yet measured, and the hand step that measures it`.
+- **The planning driver's unmeasured facts** — the `init` tools under `--json-schema`, and whether an installed plugin copy shadows `--plugin-dir`; `structured_output` under `--json-schema` is measured on a plain session — and the one real planning run that measures them on a node session, are `docs/flow-graph-walker.md` → `### Not yet measured, and the hand step that measures it`.
 
 ---
 

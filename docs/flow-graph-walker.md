@@ -219,9 +219,24 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 
 ### Not yet measured, and the hand step that measures it
 
-Three facts the driver depends on are not measured on a real Claude Code session:
+One fact the driver depends on is measured on a plain session, outside the driver:
 
-- **whether a `stream-json` session's closing `result` event carries `structured_output` under `--json-schema`.** `pnl_reap` reads `structured_output` and, where it is not an object, the `result` text parsed as JSON; a session that carries neither is an infrastructure `error`, so if neither is ever carried, every node parks after three attempts.
+- **A `stream-json` session's closing `result` event carries `structured_output` under `--json-schema`.** Measured 2026-11-15 on Claude Code 2.1.325, a plain session with no `--agent` and no `--plugin-dir`:
+
+  ```
+  claude -p --output-format stream-json --verbose --model haiku --json-schema '{"type":"object","properties":{"outcome":{"type":"string","enum":["PASS","FAIL"]},"return":{"type":"string"}},"required":["outcome"]}' 'Reply with outcome PASS and return "probe ok".'
+  ```
+
+  whose `result` event, read with `jq -c 'select(.type=="result") | {subtype, is_error, structured_output, result}'`, was:
+
+  ```
+  {"subtype":"success","is_error":false,"structured_output":{"outcome":"PASS","return":"probe ok"},"result":"{\"outcome\":\"PASS\",\"return\":\"probe ok\"}"}
+  ```
+
+  Both of the sources `pnl_reap` reads carry the decision: `structured_output` as an object, and `result` as the same object in JSON text. A node session adds `--plugin-dir`, a scoped `--agent` and its tool flags; that it carries the object there too is the third `jq` read below.
+
+Two facts the driver depends on are not measured on a real Claude Code session:
+
 - **whether the `init` tools under `--json-schema` are the agent's allowlist and nothing more.** A tool the schema flag added to the `init` list would make every node `error`, by the tool check above.
 - **whether an installed plugin copy shadows `--plugin-dir` for a scoped `--agent`.** `docs/orchestrator-cost-measurement.md` → `## 4.` saw an installed copy listed beside the one `--plugin-dir` passed. The pinned directory is now the installed copy's own runtime root, so the copy `--plugin-dir` passes and the installed one are the same directory; whether the session then loads it once or twice is not measured. The tool check catches a shadowing definition only when its `tools:` line differs.
 
