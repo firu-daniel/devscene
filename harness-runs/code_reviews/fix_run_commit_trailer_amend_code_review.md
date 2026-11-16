@@ -38,7 +38,7 @@ Tests: this review ran no suite.
 
 1. [x] **Finding 3** — Disclose in the hooks README that a commit message's own prose costs the commit guard's `allow` _(layer: plugin)_
 2. [x] **Finding 1** — Grant a ride-along git piece only when it runs in the repository the commit guard judged _(layer: plugin)_
-3. [ ] **Finding 2** — Re-drive and record the commit-guard rows against the library-owned ride-along answer _(layer: general)_
+3. [x] **Finding 2** — Re-drive and record the commit-guard rows against the library-owned ride-along answer _(layer: general)_
 
 ---
 
