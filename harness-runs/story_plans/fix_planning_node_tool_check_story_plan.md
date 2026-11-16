@@ -25,7 +25,7 @@ The script-driven planning driver refuses a node session as an agent-class `erro
 
 Each entry resolves 1:1 to `harness-runs/task_plans/fix_planning_node_tool_check/task_<K>_plan.md`. The entries are ordered bottom-up by ship sequence, with the catch-all layer last.
 
-1. [ ] **Task 1** — Refuse a node session only on `init` tools its agent does not declare, and report the withheld ones as `withheld=` _(layer: cli)_ _(points: 15)_
+1. [x] **Task 1** — Refuse a node session only on `init` tools its agent does not declare, and report the withheld ones as `withheld=` _(layer: cli)_ _(points: 15)_
 2. [ ] **Task 2** — Log each session's withheld tools as one `[plan-drive]` line, and drive a walk whose sessions withhold `Glob, Grep` _(layer: cli)_ _(points: 15)_
 3. [ ] **Task 3** — Record the 2.1.325 `init` measurements and the one-way `init` check in `docs/flow-graph-walker.md` and `docs/watcher.md` _(layer: general)_ _(points: 15)_
 
