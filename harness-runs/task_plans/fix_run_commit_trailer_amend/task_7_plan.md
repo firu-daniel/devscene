@@ -45,3 +45,10 @@ This task changes no code.
 - `grep -n "attribution" docs/cli.md` hits the new statement, and it cites AT1.
 - Every row id this task cites — AT1, AT2, CS16, CS16 (Linux), PD32 — appears as a row in `grep -n -E "^\| (AT1|AT2|CS16|CS16 \(Linux\)|PD32) \|" docs/sandbox-verification.md`.
 - Every measured claim added carries its row id, every derived one is marked derived, and no line number appears in any citation.
+
+**Deviations from plan:**
+
+- `docs/watcher.md`, **What it adds.** clone bullet: the bubblewrap clause said *"the last three get neither…"*. Once the three ref paths follow the six, "the last three" would name `HEAD`, `refs/heads` and `packed-refs`, so the clause now names `.git/commondir`, `.git/config.worktree` and `.git/objects/info/http-alternates` outright. Its meaning is unchanged.
+- `docs/cli.md`, write-protected paragraph: two sentences outside the plan's list relied on the old count. *"leaves the other three open (row CL5)"* now names the three paths it means. The CL1–CL4 sentence, which says every sandboxed `commit`, `stash` and `switch` succeeded once the glob `.git` rules were gone, now adds that the ref entries refuse those calls again by design (derived, owed: CS16). Without that clause the paragraph would contradict residual 19.
+- `docs/cli.md`, **Four scripts…**: the CL4 citation stays, reworded as a measurement of the state before the ref entries, so the row is not lost.
+- `docs/watcher.md`: the sentence about the diverged refusal went into **Branch visibility.**, beside the lag cases it repairs. The plan gave no paragraph for it.
