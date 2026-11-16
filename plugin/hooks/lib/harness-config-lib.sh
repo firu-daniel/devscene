@@ -1981,8 +1981,14 @@ hc_piece_is_never_safe() {
 # `hc_path_anchored_patterns "<root>"` grants through `hc_matches_any_pattern`,
 # vetoes included — the leading `cd` every allow-only guard accepts. An empty
 # piece is refused. The patterns are built only for that one `cd` piece.
+#
+# A git piece rides along only when it runs in <root>: an absolute `-C`
+# resolving there, or no `-C` with <bare_root> equal to <root>, where
+# <bare_root> is the repository of the leading `cd`, else of the payload cwd.
+# Any other git global option, and a relative `-C`, is refused at one prompt,
+# as `git-rewrite-branch-guard.sh` refuses them.
 hc_commit_piece_may_ride_along() {
-  local root="${1-}" piece="${2-}" position="${3-}" p patterns
+  local root="${1-}" piece="${2-}" position="${3-}" bare_root="${4-}" p patterns
   case "$piece" in
     *'|'*|*'<'*|*'>'*|*'$'*|*'`'*) return 1 ;;
   esac
@@ -2004,5 +2010,22 @@ hc_commit_piece_may_ride_along() {
     *) return 1 ;;
   esac
   hc_piece_is_never_safe "$p" && return 1
+  # The piece must run in the repository the guard judged: rebuilt from its two
+  # parts (so `--git-dir=`, `--work-tree=` and `-c core.worktree=` spellings
+  # are refused by construction, as in git-rewrite-branch-guard.sh), with an
+  # absolute `-C` resolving to <root>, or no `-C` and <bare_root> equal to <root>.
+  case "$p" in
+    "git $HC_GIT_REST")
+      [ -n "$bare_root" ] && [ "$bare_root" = "$root" ] || return 1
+      ;;
+    "git -C $HC_GIT_DIR $HC_GIT_REST"|"git -C \"$HC_GIT_DIR\" $HC_GIT_REST"|"git -C '$HC_GIT_DIR' $HC_GIT_REST")
+      case "$HC_GIT_DIR" in
+        /*) ;;
+        *) return 1 ;;
+      esac
+      [ "$(hc_repo_root "$HC_GIT_DIR" 2>/dev/null)" = "$root" ] || return 1
+      ;;
+    *) return 1 ;;
+  esac
   return 0
 }

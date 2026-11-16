@@ -61,7 +61,10 @@
 #     (`hc_commit_piece_may_ride_along`: it rewrites a commit — `--amend` in
 #     any abbreviation, or an unexpanded token — is a git call outside the
 #     remit, is a non-git command other than a leading `cd` into the
-#     workspace, or carries a pipe, redirection or substitution) -> SILENT
+#     workspace, carries a pipe, redirection or substitution, runs in a
+#     repository other than the one judged (its own absolute `-C`, else the
+#     leading `cd` or the payload cwd), or carries a git global option other
+#     than `-C`) -> SILENT
 #   anything else (ordinary branch)     -> allow
 #
 # JURISDICTION IS A DELIBERATE SCOPING DECISION, NOT AN OVERSIGHT. A repository
@@ -101,6 +104,12 @@
 #   printf '{"tool_input":{"command":"git -C <dir> commit -m x && git -C <dir> commit --amend -m y"},"cwd":"<dir>"}' \
 #     | bash plugin/hooks/git-commit-branch-guard.sh
 #   printf '{"tool_input":{"command":"git -C <dir> commit -m x && git -C <dir> reset --hard HEAD~1"},"cwd":"<dir>"}' \
+#     | bash plugin/hooks/git-commit-branch-guard.sh
+#
+#   A piece in another repository — on an ordinary <dir> and a protected
+#   <other>: no output, exit 0:
+#
+#   printf '{"tool_input":{"command":"git -C <dir> commit -m x && git -C <other> commit -m y"},"cwd":"<dir>"}' \
 #     | bash plugin/hooks/git-commit-branch-guard.sh
 
 set -u
@@ -199,11 +208,19 @@ case $? in
     ;;
   1)
     # Only the `allow` reads the ride-along answer, so every `ask` above stands.
+    first_piece=""
+    while IFS= read -r piece; do first_piece="$piece"; break; done <<EOF
+$pieces
+EOF
+    case "$(hc_clean_piece "$first_piece")" in
+      cd\ *) bare_root=$(hc_resolve_repo_root "$first_piece" "$cwd") || bare_root="" ;;
+      *) bare_root=$(hc_resolve_repo_root "" "$cwd") || bare_root="" ;;
+    esac
     vouchable=1
     idx=0
     while IFS= read -r piece; do
       idx=$((idx + 1))
-      hc_commit_piece_may_ride_along "$root" "$piece" "$idx" || vouchable=0
+      hc_commit_piece_may_ride_along "$root" "$piece" "$idx" "$bare_root" || vouchable=0
     done <<EOF
 $pieces
 EOF
