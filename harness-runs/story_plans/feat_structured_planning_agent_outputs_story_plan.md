@@ -60,7 +60,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_planning_age
 2. [x] **Task 2** — Give `task-plan-writer` a `## Return schema` and rewrite its `## Output contract` around it _(layer: plugin)_ _(points: 15)_
 3. [x] **Task 3** — Give `ui-tests-plan-writer` a `## Return schema`, rewrite its `## Output contract`, and move the two planning writers' untrusted-input report into `questions` _(layer: plugin)_ _(points: 15)_
 4. [x] **Task 4** — Give `task-plan-reviewer` and `ui-tests-plan-reviewer` a `## Return schema`, and restate the plan gates' return in `plan_review_rounds.md` _(layer: plugin)_ _(points: 15)_
-5. [ ] **Task 5** — Give `architecture-reviewer` and `business-parity-reviewer` a `## Return schema` covering every mode _(layer: plugin)_ _(points: 20)_
+5. [x] **Task 5** — Give `architecture-reviewer` and `business-parity-reviewer` a `## Return schema` covering every mode _(layer: plugin)_ _(points: 20)_
 6. [ ] **Task 6** — Read the six returns through the routing check in `task_plan_writing_instructions_core.md` _(layer: plugin)_ _(points: 15)_
 7. [ ] **Task 7** — Read the planning writers' return fields in the semi-autonomous and autonomous planning forks _(layer: plugin)_ _(points: 10)_
 8. [ ] **Task 8** — Read the parity, architecture and plan-writer returns in the implementation core and its autonomous fork _(layer: plugin)_ _(points: 15)_
