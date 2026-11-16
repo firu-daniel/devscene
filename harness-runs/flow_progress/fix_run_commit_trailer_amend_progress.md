@@ -9,6 +9,7 @@ Source: harness-runs/task_prompts/fix_run_commit_trailer_amend_task_prompt.md â†
 ## Planning
 - [x] P0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/fix_run_commit_trailer_amend_task_prompt.md sha256=1c52dd1fb1a067dd9e3af482b61584ac6eefb6d6b98c2357b6e9cf2e6e00211e
+  - screened: harness-runs/clarifications/fix_run_commit_trailer_amend/answer_1.md sha256=01160f5ec3fccb9a6db5a3ce7c46ca29cb8f034e08c1897ae8e24cffcb64ba74
 - [ ] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) â€” or no_ui
 - [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
