@@ -258,7 +258,7 @@ pnl_agent_schema_scan() {
 # the agent file, so no session is launched against an agent with no schema.
 pnl_load_schemas() {
   local pairs node agent f text rc obj
-  pairs=$(jq -r '.nodes | to_entries[] | select(.value.kind == "dispatch") | .key + " " + (.value.agent | strings)' "$PNL_GRAPH" 2>/dev/null) \
+  pairs=$(jq -r '.nodes | to_entries[] | select(.value.kind == "dispatch") | .key + " " + (.value.agent | if type == "string" then . else "" end)' "$PNL_GRAPH" 2>/dev/null) \
     || { pnl_fail "the planning graph '$PNL_GRAPH' could not be read for its dispatch nodes"; return 2; }
   while IFS=' ' read -r node agent; do
     [ -n "$node" ] || continue

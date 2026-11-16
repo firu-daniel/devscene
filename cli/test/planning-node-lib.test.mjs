@@ -264,6 +264,18 @@ test('pnl_init refuses an agent file with no usable ## Return schema, naming it'
   }
 });
 
+test('pnl_init refuses a dispatch node that names no agent, naming the node', { skip: SKIP }, async (t) => {
+  const f = await fixture(t);
+  const graphPath = join(f.wt, 's', 'flows', 'task_plan_writing.graph.json');
+  const graph = JSON.parse(await readFile(graphPath, 'utf8'));
+  delete graph.nodes.plan_writer.agent;
+  await writeFile(graphPath, JSON.stringify(graph));
+  const r = await f.bash('pnl_init "$P" "$W"; rc=$?; printf "%s" "${PNL_TMP-}"; exit $rc');
+  assert.equal(r.status, 2, r.stderr);
+  assert.equal(r.stdout, '', 'no temporary directory is left set');
+  assert.match(r.stderr, /^planning-driver: .*names no agent for dispatch node 'plan_writer'/);
+});
+
 test('pnl_init refuses a core with one heading renamed, naming it', { skip: SKIP }, async (t) => {
   const f = await fixture(t, {
     core: (text) => text.replace('### 3. Architecture review (plan-review mode)', '### 3. Architecture review'),
