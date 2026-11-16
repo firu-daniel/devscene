@@ -2,7 +2,7 @@
 
 **Goal:** Make `init` write `lib/unit-commit-lib.sh` into every adopter's `scriptsDir` beside the wrapper that will source it. Then pin the planning driver's hardcoded fixed subjects and path sets against the library's artifact table, so the two cannot drift silently (the task prompt's **One subject, one source** constraint). The planning driver itself keeps its subjects and its plain wrapper calls.
 
-**Depends on:** Task 1, which creates `cli/templates/scripts/lib/unit-commit-lib.sh`. Task 1 exports `ucl_artifact <kind> <state_dir> <branch> <round> <iteration> <entry>`, which sets `UCL_SUBJECT` and the array `UCL_PATHS`. Its kinds `task-plan`, `plan-round`, `ui-test-plan`, `ledger-flip` and `observations` are the ones the driver's callers mirror.
+**Depends on:** Task 1, which creates `cli/templates/scripts/lib/unit-commit-lib.sh`. Task 1 exports `ucl_artifact <kind> <state_dir> <branch> <round> <iteration> <entry>`, which sets `UCL_SUBJECT` and the array `UCL_PATHS`. Its kinds `task-plan`, `plan-round`, `plan-round-partial`, `ui-test-plan`, `ledger-flip` and `observations` are the ones the driver's callers mirror.
 
 **Where this task stops.** It does not wire the library into `commit-on-branch.sh` (Task 3), and it does not change what `prl_commit` or any `prl_*` caller commits.
 
@@ -28,10 +28,11 @@
   - **How it runs.** In a `bash` subprocess it sources `lib/harness-run-lib.sh`, `lib/planning-record-lib.sh` and `lib/unit-commit-lib.sh` from `cli/templates/scripts`. It sets `PRL_BRANCH`, `PRL_STATE_DIR`, `PRL_WORKTREE` and `PRL_MAIN_REPO` to throwaway values under `os.tmpdir()`, and **redefines `prl_commit`** to print its subject and paths NUL-separated and return 0.
   - **What it compares.** It calls each of these and compares its output with the matching `ucl_artifact` call:
     - `prl_round_commit 3` → `plan-round`, round `3`
+    - `prl_partial_commit 3` → `plan-round-partial`, round `3`
     - `prl_convergence_commits yes` → `ui-test-plan`, then `task-plan`
     - `prl_ledger_flip P1` → `ledger-flip`, entry `P1`, against a ledger file holding `- [ ] P1.`
     - `prl_observe` plus `prl_observe_flush` → `observations`
-  - **Partial rounds.** `prl_partial_commit`'s `chore: Plan round <n> partial for <branch>` is driver-only, with no orchestrator commit point. The header says so and exempts it by name.
+  - **Partial rounds.** `prl_partial_commit`'s `chore: Plan round <n> partial for <branch>` is pinned like the other four, with no exemption. It is the same commit point the autonomous task-planning fork reaches through `autonomous_pause_and_ledger.md` §2.2 → **Planning artifacts only** and §2.5 step 0, which Tasks 13 and 15 move onto `--artifact plan-round-partial`.
   - **Registration.** It reads two fixed files, not a tree, so it is not a tree guard and owes no `treeGuards` entry.
 
 **Verification:**

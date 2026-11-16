@@ -21,7 +21,7 @@ commit-on-branch.sh --repo <root> --artifact <kind> [--round <n>] [--iteration <
   - An already-`[x]` UI test prints the single line `noop: UI test K already marked` and exits 0.
   - Anything that blocked the commit prints a single `error: <one line>`.
 - **Exits.** 0 means committed, a landed exit 1 already re-synced, or a `noop:`. 1 is a refusal or a failure. 2 is the protected-branch refusal. 3 is `error: nothing to commit`.
-- **`--push`.** It runs `push-branch.sh` from the wrapper's own directory after exit 0 or exit 3, so a commit point is one call.
+- **`--push`.** It runs `push-branch.sh` from the wrapper's own directory after exit 0 or exit 3, so a commit point is one call. A call carries `--push` exactly where the flow it runs in pushes its commits. In the one family-neutral module with a commit point, `dispatch_discipline_instructions.md`, the dispatch-additions call carries `--push` in a flow that pushes and none in a flow whose fork leaves its commits unpushed, stated once in its `## Push` (Task 13).
 
 **The subject**, built by Task 1's library:
 
@@ -63,7 +63,7 @@ The semi-autonomous forks thereby take over the committer's role as the carrier 
 **Settled here, so no implementer re-decides them.**
 
 - `--push` lives inside the wrapper.
-- The plan-round commit (`chore: Plan round <n> for <branch>`) and the fix-plan round commit (`chore: Fix plan <N> round <k> for <branch>`) are artifact kinds too: they are fixed-subject orchestrator commit points.
+- The plan-round commit (`chore: Plan round <n> for <branch>`) and the fix-plan round commit (`chore: Fix plan <N> round <k> for <branch>`) are artifact kinds too: they are fixed-subject orchestrator commit points. So are their planning-pause partial commits (`chore: Plan round <n> partial for <branch>`, `chore: Fix plan <N> round <k> partial for <branch>`), which each fork issues through `autonomous_pause_and_ledger.md` §2.2 → **Planning artifacts only** and §2.5 step 0: kinds `plan-round-partial` and `fix-plan-round-partial` (Tasks 1, 13, 15, 11).
 - The docs flows' `docs: …` commits are free-form and stay on the plain form.
 - The planning driver keeps its hardcoded subjects, and Task 2's test pins them against the artifact table.
 - No `excludedCommands` entry and no permission is added. The literal `allow` entry for the main checkout's `commit-on-branch.sh` already admits any argument, and the library sits in the already write-protected `lib/` directory (`cli/src/generators/writeProtection.ts` → `protectedPaths`).
@@ -154,10 +154,10 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_committer_as_script/tas
 | 17 | `plugin/docs/AUTONOMOUS_FLOW.md` ("The one agent that commits" row; the unit-loop paragraph) | — | D1 | `change` | Task 19 |
 | 18 | `plugin/docs/AUTONOMOUS_FLOW_WHITEBOARD.md` (unit-loop sketch, "same committer") | — | D1 | `change` | Task 19 |
 | 19 | `plugin/instructions/README.md` (agent list) | — | D1 | `change` | Task 18 |
-| 20 | `plugin/instructions/autonomous_pause_and_ledger.md` (`### 1.6 How to flip / create — direct `commit-on-branch.sh`, NEVER a committer dispatch`; §2.2 dirty-tracked bullets; §3 mentions) | — | D1, D3 | `change` | Task 13 |
+| 20 | `plugin/instructions/autonomous_pause_and_ledger.md` (`### 1.6 How to flip / create — direct `commit-on-branch.sh`, NEVER a committer dispatch`; §2.2 **Planning artifacts only** partial commit and dirty-tracked bullets; §3 mentions) | — | D1, D3 | `change` | Task 13 |
 | 21 | `plugin/instructions/clarification_digest_instructions.md` (the digest commit) | — | D1, D3 | `change` | Task 13 |
 | 22 | `plugin/instructions/code_review_fixes_instructions.md` (committing-role parenthesis) | — | D1 | `change` | Task 18 |
-| 23 | `plugin/instructions/dispatch_discipline_instructions.md` (`## Commit mechanics`; dispatch-class lists) | — | D1, D3 | `change` | Task 13 |
+| 23 | `plugin/instructions/dispatch_discipline_instructions.md` (`## Commit mechanics`; `## Push`; dispatch-class lists) | — | D1, D3 | `change` | Task 13 |
 | 24 | `plugin/instructions/improvement_observations_instructions.md` (Index-only row (d); `## Dispositioned units` (b); the observations commit) | — | D1, D3 | `change` | Task 14 |
 | 25 | `plugin/instructions/main_repo_resolution.md` → `## Who may cite this` | — | D1 | `change` | Task 20 |
 | 26 | `plugin/instructions/mode_contract.md` (`<committer_push>` and `<per_unit_review>` rows; `## Which files use this`) | — | D1 | `change` | Task 8 |
@@ -168,7 +168,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_committer_as_script/tas
 | 31 | `plugin/instructions/qa_test_instructions.md` (mark-pass contrast; fix-loop sentence) | — | D1 | `change` | Task 18 |
 | 32 | `plugin/instructions/task_plan_writing_instructions_autonomous.md` (Overrides 3, 4, 5, 6 commits) | — | D1, D3 | `change` | Task 15 |
 | 33 | `plugin/instructions/unit_loop_core.md` (step 5, step 6, `### The dispositioned outcome`, substitution table, named exceptions) | — | D1 | `change` | Task 9 |
-| 34 | `plugin/instructions/user_review_fix_plan_writing_instructions_autonomous.md` (Override 3, round commit, lessons commit, ledger) | — | D1, D3 | `change` | Task 15 |
+| 34 | `plugin/instructions/user_review_fix_plan_writing_instructions_autonomous.md` (Override 3, round commit, lessons commit, ledger, `## Safety scaffolding` items 2 and 3 partial commits) | — | D1, D3 | `change` | Task 15 |
 | 35 | `plugin/instructions/user_review_fixes_instructions.md` (committing-role parenthesis) | — | D1 | `change` | Task 18 |
 | 36 | `plugin/instructions/user_review_fixes_instructions_autonomous.md` (binding row and subsection, Override D, Override L, ledger flips) | — | D1, D3 | `change` | Task 12 |
 | 37 | `plugin/instructions/user_review_fixes_instructions_core.md` (binding row, Safety contract, Phase QA restatements, Stop conditions) | — | D1 | `change` | Task 8 |

@@ -70,6 +70,7 @@ It makes no git call and reads no configuration. Task 3's front end in `commit-o
     |---|---|---|
     | `task-plan` | `chore: Add task plan for <b>` | `<s>/story_plans/<b>_story_plan.md` `<s>/task_plans/<b>/` `<s>/task_plan_reviews/<b>/` `<s>/business_parity_reviews/<b>/` `<s>/architecture_reviews/<b>/` `<s>/plan_revisions/<b>/` `<s>/ui_test_plan_reviews/<b>/` |
     | `plan-round` | `chore: Plan round <round> for <b>` | the first six `task-plan` paths |
+    | `plan-round-partial` | `chore: Plan round <round> partial for <b>` | `plan-round`'s six paths, in the same order |
     | `ui-test-plan` | `chore: Add UI-test plan for <b>` | `<s>/ui_test_plans/<b>_ui_test_plan.md` `<s>/ui_test_plans/<b>/` |
     | `ledger` | `chore: Add flow-progress ledger for <b>` | `<s>/flow_progress/<b>_progress.md` |
     | `ledger-flip` | `chore: Flow progress <entry> for <b>` | `<s>/flow_progress/<b>_progress.md` |
@@ -81,8 +82,10 @@ It makes no git call and reads no configuration. Task 3's front end in `commit-o
     | `lessons` | `chore: Record lessons for <b>` | `<s>/lessons.md` |
     | `fix-plan` | `chore: Add user-review fix plan for <b>` | `<s>/user_reviews/<b>_fix_plan<sfx>.md` `<s>/user_reviews/<b>_review<sfx>.md` `<s>/user_reviews/<b>_fix_plan<sfx>/` `<s>/business_parity_user_review_reviews/<b>/` `<s>/architecture_user_review_reviews/<b>/` `<s>/plan_revisions/<b>/` |
     | `fix-plan-round` | `chore: Fix plan <round> round <iteration> for <b>` | `<s>/user_reviews/<b>_fix_plan<sfx>.md` `<s>/user_reviews/<b>_fix_plan<sfx>/` `<s>/business_parity_user_review_reviews/<b>/user_review_<round>/` `<s>/architecture_user_review_reviews/<b>/user_review_<round>/` `<s>/plan_revisions/<b>/` |
+    | `fix-plan-round-partial` | `chore: Fix plan <round> round <iteration> partial for <b>` | `fix-plan-round`'s paths, in the same order |
     | `rescreened-input` | `chore: Commit re-screened input edit for <b>` | none from the table — the caller's `--path` values |
-  - **Before writing the two fix-plan rows,** read `plugin/instructions/user_review_fix_plan_writing_instructions_autonomous.md` → `## Override 3` and the round commit after it. Confirm that `<round_suffix>` is empty for user-review round 1 and `_<N>` for round `N`. Where it is bound differently, implement what that file binds and record the difference under **Deviations from plan:**, so Task 15 spells the matching flags.
+  - **The two partial rows** are the planning-pause commit points: `plugin/instructions/autonomous_pause_and_ledger.md` §2.2 → **Planning artifacts only (the two plan-writing forks)**, reused by §2.5 step 0 on an API-overload self-pause. Today each fork spells its partial subject in prose: `task_plan_writing_instructions_autonomous.md` → `## Override 5 — pause/resume + flow-progress ledger (planning half)` spells `chore: Plan round <n> partial for <branch>`, and `user_review_fix_plan_writing_instructions_autonomous.md` → `## Safety scaffolding (delta — the core states none)` items 2 and 3 spell `chore: Fix plan <N> round <k> partial for <branch>`. Tasks 13 and 15 move both onto these kinds. `plan-round-partial` is also the subject and path set `lib/planning-record-lib.sh` → `prl_partial_commit` hardcodes, which Task 2 pins.
+  - **Before writing the three fix-plan rows,** read `plugin/instructions/user_review_fix_plan_writing_instructions_autonomous.md` → `## Override 3` and the round commit after it. Confirm that `<round_suffix>` is empty for user-review round 1 and `_<N>` for round `N`. Where it is bound differently, implement what that file binds and record the difference under **Deviations from plan:**, so Task 15 spells the matching flags.
   - **Spell the branch as `$branch`** inside each subject string of the table and of the two functions below. The fixed-form-subject probe that `cli/templates/claude/context/conventions.md` hands an adopter, and that `.claude/context/conventions.md` → `## Commit-message policy` runs over `scripts`, matches a `$branch` token. That keeps every subject reachable once the flow files stop spelling them.
   - Also export `ucl_review_kind_subject`, which returns `chore: add code review for <b>`, and `ucl_ui_pass_subject <K> <b>`, which returns `chore: Mark UI test <K> passing for <b>`. Those are the two fixed `--unit` subjects, byte-for-byte as `.claude/context/conventions.md` → `## Commit-message policy` → **Fixed-form subjects** lists them.
 - [ ] **`cli/test/unit-commit-lib.test.mjs`.**
@@ -103,10 +106,12 @@ It makes no git call and reads no configuration. Task 3's front end in `commit-o
     - a findings-folder path excluded from the work count;
     - an index-only stage set;
     - every artifact row's subject and path list byte-for-byte;
+    - `plan-round-partial` at round `3` and `fix-plan-round-partial` at round `2`, iteration `4`, each against its non-partial row: the same paths in the same order, and a subject that differs only by ` partial` before ` for `;
+    - `fix-plan-round-partial` at round `1`, whose paths carry the empty `<sfx>`;
     - the refusals for an unknown kind, a missing round and an illegal entry id.
 
 **Verification:**
 
 - `npm test --workspace cli -- test/unit-commit-lib.test.mjs`, from the repository root as one plain foreground command, exits zero with `fail 0`.
 - `grep -n 'set -' cli/templates/scripts/lib/unit-commit-lib.sh` finds no line that sets a shell option, and `grep -n '\bgit\b' cli/templates/scripts/lib/unit-commit-lib.sh` finds no git invocation, only prose.
-- Each subject in the artifact table matches the corresponding line of `.claude/context/conventions.md` → `## Commit-message policy` → **Fixed-form subjects**, read side by side. The two round kinds are the exception: that list does not carry them, and `## Corpus staleness` reports it.
+- Each subject in the artifact table matches the corresponding line of `.claude/context/conventions.md` → `## Commit-message policy` → **Fixed-form subjects**, read side by side. The four round kinds (`plan-round`, `plan-round-partial`, `fix-plan-round`, `fix-plan-round-partial`) are the exception: that list does not carry them, and `## Corpus staleness` reports it.
