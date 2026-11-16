@@ -43,3 +43,10 @@
 - `git grep -n -e 'committer' -e 'mode: review_plan_file' -e 'mode: ui_test_pass' -e 'meta_findings_folder' -- plugin/instructions/plan_orchestration_instructions_core.md` prints nothing.
 - `git grep -n -F -e '--unit review_plan_file --plan' -- plugin/instructions/plan_orchestration_instructions_core.md` lists one call per review-file phase. `git grep -n -F -e '--unit ui_test_pass --plan <ui_test_index> --id <N>' -- plugin/instructions/plan_orchestration_instructions_core.md` shows E.1.
 - `git diff -- plugin/instructions/plan_orchestration_instructions_core.md` changes no heading line, so every `→ ### A1.5.2 …` / `### G.1 Run the gates` citation elsewhere still resolves.
+
+- **Deviations from plan:**
+  - The first verification grep (`committer` prints nothing) also matched four sites the Work list did not name. They were rewritten so the grep holds:
+    - `## Setup` step 5's `MAX_TOTAL_DISPATCHES` bullet: dropped the per-passing-test `committer` dispatch and the G.3 `committer` from the dispatch accounting, and stated that both commits are Bash calls and count nothing. The `≈2–3×` multiplier was removed because it counted the mark-pass dispatch; no new figure replaces it.
+    - E.2 step 1: "`committer.md` resolves the readiness entry by that token alone" became "the commit step resolves …".
+  - "mark-pass dispatch" / "duplicate dispatch" became "mark-pass call" / "duplicate call" in E.1, E.2 and E.4, because no dispatch remains.
+  - The `<commit_call>` binding row's Phase D note now says Phase D issues no `<commit_call>` and calls the statistics commit "a fork-added operation". It no longer says "direct-`git`", which the autonomous fork's Override D no longer does.

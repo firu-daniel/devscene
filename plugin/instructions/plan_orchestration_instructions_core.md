@@ -6,7 +6,7 @@ You are the **orchestrator**. Your job is to dispatch specialist agents through 
 
 - Implementers return a short list (files + deviations + blockers). Read that, do not open the files.
 - Reviewers return 1 line (`verdict: PASS`) or 3 lines (`verdict: FAIL` + `findings_file:` + `must_fix_count:`). Read that, **do not open the findings file** — pass its path to the next implementer.
-- Committer returns 5 lines (incl. `pushed:`), plus one for each of `staged: index-only` and `index_sync: failed` it adds. Read that, do not re-verify.
+- The commit call prints 5 lines (incl. `pushed:`), plus one for each of `staged: index-only` and `index_sync: failed` it adds. Read that, do not re-verify.
 
 If any agent returns a long output, summarize it down to its contract in your own working memory before proceeding. Do not echo it back into your output.
 
@@ -45,8 +45,8 @@ The `Used at` column is load-bearing, not documentation. A flow that enters this
 | `<gate_launcher>` | `## Phase G — Run gates` → `### G.1 Run the gates` (step 2) | The launcher invocation G.1 issues before the run form — or `none`. |
 | `<repo_root>` | `## Setup` step 3 (working directory / absolute-path anchor); `## Phase E — QA testing` (E.1, where the QA credentials file lives) | Absolute root of the checkout this flow runs in. |
 | `<app_root>` | `## Setup` step 3 (where the app's own source tree sits — the configured commands themselves run from `<repo_root>`); `## Phase E — QA testing` E.0 (the app the dev server serves) | The flow's app root, `<repo_root>/<app_dir>` — the resolved root, distinct from the config token `<app_dir>` it is built from. |
-| `<per_unit_review>` | The unit loop (cited by reference — `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `### Per-unit review step`): the implement → \[review\] → commit body run by Phases A, A1.5, A2, C, C2, E and G (row `G.4`) | `on` \| `off` — whether the per-unit reviewer step (and its `iteration >= 5` convergence cap) runs between implementer and committer. |
-| `<committer_push>` | Every `committer` dispatch block — the unit loop's commit step (cited by reference — `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `## The unit loop`), plus the standalone review-file and mark-pass commits in Phases A1.5, A2, B, C2, E and G (the G.3 commit; row `G.4` reaches it through the unit loop) | The extra arg line appended to each `committer` dispatch — omitted, or `push: true`. **Phase D dispatches no `committer`:** its only dispatch is `statistics-plan-writer`, and the statistics commit is a fork-added direct-`git` operation, not a committer dispatch. |
+| `<per_unit_review>` | The unit loop (cited by reference — `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `### Per-unit review step`): the implement → \[review\] → commit body run by Phases A, A1.5, A2, C, C2, E and G (row `G.4`) | `on` \| `off` — whether the per-unit reviewer step (and its `iteration >= 5` convergence cap) runs between implementer and the commit step. |
+| `<commit_call>` | Every commit call — the unit loop's step 5 (cited by reference — `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `## The unit loop`), plus the standalone review-file and mark-pass commits in Phases A1.5, A2, B, C2, E and G (the G.3 commit; row `G.4` reaches it through the unit loop) | The wrapper prefix the fork binds, ahead of the call's `--unit` arguments. **Phase D issues no `<commit_call>`:** its only dispatch is `statistics-plan-writer`, and the statistics commit is a fork-added operation. |
 | `<reentry_command>` | `## Setup` step 4 (STOP soft-fail at launch); `## Safety contract` step 1 (pre-dispatch STOP check) | The command named in a halt message ("… re-run X to continue"). |
 | `<planning_command>` | `## Setup` step 2 — the missing-story-index rule, and nowhere else in this file | The command that produces the plan this flow expects to already exist. |
 | `<next_step_note>` | `## Phase D — Done` → D.2 Done summary (the terminal "optional next step" paragraph) | The hand-off line that closes the Done summary. |
@@ -106,14 +106,14 @@ Two rows of the table above carry rules too long for a table cell.
 4. **STOP file soft-fail at launch:** if `<state_dir>/STOP` exists, halt and report: `Halted by STOP file at <state_dir>/STOP. Delete the file and re-run <reentry_command> to continue.` Do NOT delete the STOP file yourself — it is owned by whoever created it, never by this flow. Then stop. (A STOP file is a user-initiated stop, not a flow blocker: it halts exactly as written here.)
 5. **Initialize safety counters:**
    - Run `echo 0 > <state_dir>/.dispatch_counter` to reset the persistent dispatch counter. The counter lives in `<state_dir>/.dispatch_counter` — on disk rather than in context, so it survives harness auto-compaction; re-read on every dispatch (see the safety contract below). It is a machine-local run artifact: keep it out of commits (`init`'s managed ignore block covers it), and never stage `<state_dir>/` as a directory.
-   - `MAX_TOTAL_DISPATCHES = 800` — the hard ceiling on Agent dispatches across the entire session (Phases A+A1.5+A2+B+C+C2+E+G+D). Phase D's single `statistics-plan-writer` dispatch (the first branch-statistics write) also counts against this ceiling — one extra dispatch, well within the existing headroom, so no numeric change is required for it. Raised from 600 to absorb the **per-test QA fan-out**: Phase E now dispatches the `qa-tester` once per UI test **and** a `committer` (`ui_test_pass`) once per passing test, plus per-failure fix loops, across up to `MAX_QA_ROUNDS` rounds (skip-`[x]` shrinks re-test rounds to only the still-failing tests) — so the QA phase scales with the UI-test count (≈2–3× it) rather than a single dispatch. Phase A1.5's business-parity review of the implemented branch (one `business-parity-reviewer` dispatch plus, on FAIL, a handful of fix-loop dispatches), Phase A2's architecture review of the implemented branch (one `architecture-reviewer` dispatch plus, on FAIL, a handful of fix-loop dispatches), Phase C2's adversarial skeptic review (one `skeptic-reviewer` dispatch plus, on FAIL, a meta-review loop and a handful of fix-loop dispatches), and Phase G's Run gates rounds (per failing round, one `test-fix-plan-writer` dispatch, an `architecture-reviewer` loop, one `committer` and the G.4 fix-loop dispatches, across at most `MAX_GATE_ROUNDS` rounds; the gate runs themselves are Bash commands and count nothing) also count against this ceiling — 800 already has the headroom, so no numeric change is required for them. If you hit it, halt.
+   - `MAX_TOTAL_DISPATCHES = 800` — the hard ceiling on Agent dispatches across the entire session (Phases A+A1.5+A2+B+C+C2+E+G+D). Phase D's single `statistics-plan-writer` dispatch (the first branch-statistics write) also counts against this ceiling — one extra dispatch, well within the existing headroom, so no numeric change is required for it. Raised from 600 to absorb the **per-test QA fan-out**: Phase E now dispatches the `qa-tester` once per UI test, plus per-failure fix loops, across up to `MAX_QA_ROUNDS` rounds (skip-`[x]` shrinks re-test rounds to only the still-failing tests) — so the QA phase scales with the UI-test count rather than a single dispatch; its per-test mark-pass commits are Bash calls and count nothing. Phase A1.5's business-parity review of the implemented branch (one `business-parity-reviewer` dispatch plus, on FAIL, a handful of fix-loop dispatches), Phase A2's architecture review of the implemented branch (one `architecture-reviewer` dispatch plus, on FAIL, a handful of fix-loop dispatches), Phase C2's adversarial skeptic review (one `skeptic-reviewer` dispatch plus, on FAIL, a meta-review loop and a handful of fix-loop dispatches), and Phase G's Run gates rounds (per failing round, one `test-fix-plan-writer` dispatch, an `architecture-reviewer` loop and the G.4 fix-loop dispatches, across at most `MAX_GATE_ROUNDS` rounds; the gate runs and the G.3 commit are Bash commands and count nothing) also count against this ceiling — 800 already has the headroom, so no numeric change is required for them. If you hit it, halt.
 6. **Establish the run mode — from the record where one exists, otherwise a grep; open the contract only on a hit.** Where this flow's fork maintains a flow-progress ledger carrying a `## Run mode` block, read that block: a block reading `skipped: none` with no `ignored:` line means **no run mode** — hold `none`, emit `📌 Run mode: none` where a disclosure is owed, and open nothing further — and a block that names any id **or carries an `ignored:` line** means **read `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md` and follow it**. Where the fork maintains no ledger, or its ledger carries no such block (a run created before this contract existed), run `grep -nE '^#+ *Run mode' <task_prompt_path>` and take the same two branches off it: no hit → `none`; a hit → read that file and resolve the section to its directive ids. Hold what you resolved for this session. Which of the two sources applies, and everything else about the contract, is that file's; none of it is restated here. **This half neither creates nor seeds that record.** Where a record exists it was written by the fork that owns it, at planning time; on a resumed run it already exists and is authoritative — which is exactly how a session that never dispatched a planner arrives holding the run mode. What you act on is the **re-read** each gate below performs, never a value carried forward from here.
 
 ---
 
 ## Safety contract — applies before EVERY Agent dispatch
 
-Before you spawn any sub-agent (implementer, reviewer, committer — every single one), do this:
+Before you spawn any sub-agent (implementer, reviewer — every single one), do this. A commit call is a Bash call, not a dispatch, and takes no step of this contract.
 
 1. **STOP file check.** Run `ls <state_dir>/STOP 2>/dev/null`. If the file exists, halt immediately:
    - Report: `Halted by STOP file at <state_dir>/STOP. Delete the file and re-run <reentry_command> to continue.`
@@ -131,7 +131,6 @@ Before you spawn any sub-agent (implementer, reviewer, committer — every singl
    Examples:
    - `[A · Task 3 · presentation · iter 0] → layer-implementer  (#12)`
    - `[A · Task 3 · presentation · iter 1] → layer-reviewer  (#13)`
-   - `[A · Task 3 · commit] → committer  (#14)`
    - `[B · review-plan · iter 0] → branch-reviewer  (#48)`
    - `[C · Item 5 · domain · iter 0] → layer-implementer  (#71)`
    - `[E · qa · test 3 · iter 0] → qa-tester  (#88)`
@@ -198,13 +197,10 @@ Parse the return:
 
 ### A1.5.2 Commit the parity-review file
 
-Spawn `committer` (this stages the parity-review index + all per-finding files together; no checkbox flip), exactly as Phase A2.2 commits the architecture-review file:
+Issue, as **one** Bash call, alone (this stages the parity-review index + all per-finding files together; no checkbox flip), exactly as Phase A2.2 commits the architecture-review file:
 
 ```
-plan_path: <parity_review_path>
-mode: review_plan_file
-commit_prefix: chore
-<committer_push>
+<commit_call> --unit review_plan_file --plan <parity_review_path>
 ```
 
 ### A1.5.3 Fix loop
@@ -249,13 +245,10 @@ Parse the return:
 
 ### A2.2 Commit the architecture-review file
 
-Spawn `committer` (this stages the architecture-review index + all per-finding files together; no checkbox flip), exactly as Phase B.3 commits the code-review file:
+Issue, as **one** Bash call, alone (this stages the architecture-review index + all per-finding files together; no checkbox flip), exactly as Phase B.3 commits the code-review file:
 
 ```
-plan_path: <arch_review_path>
-mode: review_plan_file
-commit_prefix: chore
-<committer_push>
+<commit_call> --unit review_plan_file --plan <arch_review_path>
 ```
 
 ### A2.3 Fix loop
@@ -311,17 +304,13 @@ A **`## Questions`** section in that return (that literal heading; omitted when 
 
 ### B.3 Commit the review file
 
-Spawn `committer` (this commits the code-review index + all per-finding files + the B.2 meta-review findings together; no checkbox flip):
+Issue, as **one** Bash call, alone (this commits the code-review index + all per-finding files + the B.2 meta-review findings together; no checkbox flip):
 
 ```
-plan_path: <code_review_path>
-mode: review_plan_file
-meta_findings_folder: <review_plan_review_folder>
-commit_prefix: chore
-<committer_push>
+<commit_call> --unit review_plan_file --plan <code_review_path> --extra <review_plan_review_folder>
 ```
 
-(`meta_findings_folder` is what gets B.2's meta-review findings committed: the committer derives the per-finding folder from `plan_path` by stripping `.md`, and `<review_plan_review_folder>` is a different tree it cannot reach that way, so this phase passes it explicitly. **The existence guard is yours** — include the key **only if** `<review_plan_review_folder>` exists and is non-empty. A B.2 meta-review that returned `PASS` on its first dispatch wrote no findings this round — on a branch's first round the folder then does not exist, so omit the key entirely and the dispatch is byte-for-byte what it was before; on a later round it may already hold an earlier round's tracked files, which the committer stages as an unchanged no-op.)
+(`--extra` is what gets B.2's meta-review findings committed: the commit step derives the per-finding folder from `--plan` by stripping `.md`, and `<review_plan_review_folder>` is a different tree it cannot reach that way, so this phase passes it explicitly. Pass it **unconditionally**: the wrapper skips an absent path with a warning (`<scripts_dir>/commit-on-branch.sh` → **STAGING POLICY, AND THE ONE TRAP IN IT**), and a folder still holding an earlier round's tracked files is staged as an unchanged no-op.)
 
 ---
 
@@ -390,17 +379,13 @@ Because the skeptic is adversarial it is the review most prone to false positive
 
 ### C2.3 Commit the skeptic-review file
 
-Spawn `committer` (stages the skeptic-review index + all per-finding files + the C2.2 meta-review findings together; no checkbox flip), exactly as Phase B.3 commits the code-review file:
+Issue, as **one** Bash call, alone (stages the skeptic-review index + all per-finding files + the C2.2 meta-review findings together; no checkbox flip), exactly as Phase B.3 commits the code-review file:
 
 ```
-plan_path: <skeptic_review_path>
-mode: review_plan_file
-meta_findings_folder: <skeptic_review_meta_folder>
-commit_prefix: chore
-<committer_push>
+<commit_call> --unit review_plan_file --plan <skeptic_review_path> --extra <skeptic_review_meta_folder>
 ```
 
-(The committer's `review_plan_file` mode is index-agnostic and derives the per-finding folder from `plan_path` by stripping `.md`, so the skeptic index works unmodified. `<skeptic_review_meta_folder>` is **not** derivable that way — it is a separate tree — so C2.2's meta-review findings are passed explicitly, exactly as B.3 passes `<review_plan_review_folder>`, and under the same caller-side existence guard: include the key **only if** the folder exists and is non-empty. A C2.2 meta-review that passed on its first dispatch wrote nothing this round: on a branch's first round the folder then does not exist, and on a later round it may already hold an earlier round's tracked files, which the committer stages as an unchanged no-op. Its fixed subject `chore: add code review for <branch>` is reused as-is — same as the QA-review commit in E.2; do not ask for a different subject, and the extra staged folder does not change it.)
+(The commit step's `review_plan_file` unit is index-agnostic and derives the per-finding folder from `--plan` by stripping `.md`, so the skeptic index works unmodified. `<skeptic_review_meta_folder>` is **not** derivable that way — it is a separate tree — so C2.2's meta-review findings are passed explicitly, exactly as B.3 passes `<review_plan_review_folder>`, and unconditionally for the same reason. Its fixed subject `chore: add code review for <branch>` is reused as-is — same as the QA-review commit in E.2; the extra staged folder does not change it.)
 
 ### C2.4 Fix loop
 
@@ -414,7 +399,7 @@ When the loop ends — every `[ ]` entry inside the skeptic-review index's `## P
 
 **Skip this phase unless `phases.qa` is `true` in `devscene.config.json`** — a skipped Phase E proceeds to **Phase G**, whichever of the skips below fired.
 
-After Phases A–C complete (implementation, end-of-branch review, review-plan fixes), drive the **running** app through the UI-test plan via the `qa-tester` agent, and — if QA finds defects — loop the fixes back through the normal implementer / reviewer / committer agents until QA passes. **You own the dev-server lifecycle**: the qa-tester never starts, polls, or stops the server (it only consumes an already-running one — see `qa-tester.md`). Start it in E.0, tear it down when QA passes or on any halt.
+After Phases A–C complete (implementation, end-of-branch review, review-plan fixes), drive the **running** app through the UI-test plan via the `qa-tester` agent, and — if QA finds defects — loop the fixes back through the normal implementer and reviewer agents and the commit step until QA passes. **You own the dev-server lifecycle**: the qa-tester never starts, polls, or stops the server (it only consumes an already-running one — see `qa-tester.md`). Start it in E.0, tear it down when QA passes or on any halt.
 
 If `<ui_test_index>` does not exist (no UI-test plan was produced for this branch), **skip Phase E entirely**, note that in the Done summary and proceed to **Phase G** — do not fail.
 
@@ -425,7 +410,7 @@ If `<ui_test_index>` does not exist (no UI-test plan was produced for this branc
 
 Where this flow keeps that record as a ledger, this phase's entry was seeded with the skipped-phase marker rather than `[ ]` under **either** of this phase's two gates — the `phases.qa` line at the head of the phase and the run-mode directive above (`${CLAUDE_PLUGIN_ROOT}/instructions/autonomous_pause_and_ledger.md` owns the marker, its seeding and the resume rule) — so a resumed run does not re-enter the phase. **Which** of the two gates closed it is read off the block that seeded it — the run-mode one from its `skipped:` line, the configuration one from its `phases:` line — and that recorded block, never a re-read of the live `devscene.config.json`, is what `### D.2`'s two gate-keyed exclusion arms report from. A fork's ledger may also seed this entry on a third, execution-environment ground — the run executes where this phase cannot run — which `${CLAUDE_PLUGIN_ROOT}/instructions/autonomous_pause_and_ledger.md` → `### 1.3` records on that same block; read off the block like the other two, it closes the phase the same way: no dev server, no browser, no `qa-tester` dispatch. A flow keeping no such ledger notes which gate fired at the moment it skips. Otherwise run the phase in full, as written below.
 
-> **Two flow-dependent vocabularies of `<…>` name appear below, and this section is written to be executed by a flow from another family too** (`mode_contract.md` rule (5) — another family's core may cite it by reference). The **Mode-contract bindings** it uses are `<escalate>`, `<repo_root>`, `<app_root>` and `<committer_push>` — plus `<per_unit_review>`, via the unit-loop row E.3 runs — and they resolve from the fork the executing flow was dispatched via. Every **other** `<…>` name here — setting aside the config-value and runtime tokens declared in `## Resolved values`, which resolve from `devscene.config.json` or the runtime identically for every flow — is a **path placeholder** and resolves from the `## Setup` of the flow's **own entry core**: this file's `## Setup` for a flow dispatched via one of this file's own forks, another family's `## Setup` for a flow that entered this section by reference. **Resolve `<qa_review_findings_dir>` and `<qa_fix_findings_root>` through that Setup every time, never as a literal** — the two Setups that reach this phase resolve their round suffix by different rules, and a baked-in literal silently lands in the folder the other flow's round resolution exists to avoid. `<qa_port>`, `base_url` (passed as `<base_url>` in E.1's dispatch block), and the counters `<round>` / `<iteration>` / the test ids `<N>` / `<T>` are neither kind: they are bound below, at their point of use. No step in this phase depends on any other phase of this file having run.
+> **Two flow-dependent vocabularies of `<…>` name appear below, and this section is written to be executed by a flow from another family too** (`mode_contract.md` rule (5) — another family's core may cite it by reference). The **Mode-contract bindings** it uses are `<escalate>`, `<repo_root>`, `<app_root>` and `<commit_call>` — plus `<per_unit_review>`, via the unit-loop row E.3 runs — and they resolve from the fork the executing flow was dispatched via. Every **other** `<…>` name here — setting aside the config-value and runtime tokens declared in `## Resolved values`, which resolve from `devscene.config.json` or the runtime identically for every flow — is a **path placeholder** and resolves from the `## Setup` of the flow's **own entry core**: this file's `## Setup` for a flow dispatched via one of this file's own forks, another family's `## Setup` for a flow that entered this section by reference. **Resolve `<qa_review_findings_dir>` and `<qa_fix_findings_root>` through that Setup every time, never as a literal** — the two Setups that reach this phase resolve their round suffix by different rules, and a baked-in literal silently lands in the folder the other flow's round resolution exists to avoid. `<qa_port>`, `base_url` (passed as `<base_url>` in E.1's dispatch block), and the counters `<round>` / `<iteration>` / the test ids `<N>` / `<T>` are neither kind: they are bound below, at their point of use. No step in this phase depends on any other phase of this file having run.
 
 ### E.0 Start the dev server
 
@@ -468,19 +453,15 @@ iteration: <iteration>
 # test_credentials — optional; omit it (the qa-tester self-reads the creds file). See below.
 ```
 
-The heartbeat names the test, e.g. `[E · qa · test 3 · iter 0] → qa-tester  (#N)`. Collect each dispatch's short return (`verdict: PASS` | `verdict: FAIL` + `findings_file:` + `must_fix_count:` | the per-test blocked line `error: blocked — test <T>: <one-line cause>` | an unmarked `error:`) keyed by test number; do not branch the **round** verdict until you have looped every still-`[ ]` test in the index (except on an unmarked `error:` — see E.2). Discriminate the two `error:` shapes on the literal prefix `error: blocked — ` alone, never on the cause's wording; an `error:` line that does not begin with that exact prefix is the unmarked kind. A blocked test gets **no** mark-pass dispatch and stays `[ ]`. Skipped `[x]` tests produce no dispatch and no return to collect.
+The heartbeat names the test, e.g. `[E · qa · test 3 · iter 0] → qa-tester  (#N)`. Collect each dispatch's short return (`verdict: PASS` | `verdict: FAIL` + `findings_file:` + `must_fix_count:` | the per-test blocked line `error: blocked — test <T>: <one-line cause>` | an unmarked `error:`) keyed by test number; do not branch the **round** verdict until you have looped every still-`[ ]` test in the index (except on an unmarked `error:` — see E.2). Discriminate the two `error:` shapes on the literal prefix `error: blocked — ` alone, never on the cause's wording; an `error:` line that does not begin with that exact prefix is the unmarked kind. A blocked test gets **no** mark-pass call and stays `[ ]`. Skipped `[x]` tests produce no dispatch and no return to collect.
 
-**On a per-test `verdict: PASS`, mark that test passing immediately.** The qa-tester is read-only on the UI-test index — it never flips checkboxes — so a passing test leaves the tree clean and would otherwise never be marked done. Right after a per-test dispatch returns `verdict: PASS`, apply the **safety contract** (STOP check → increment counter → heartbeat → compose the prompt) and dispatch `committer` to flip+commit that single test's readiness checkbox in the UI-test index:
+**On a per-test `verdict: PASS`, mark that test passing immediately.** The qa-tester is read-only on the UI-test index — it never flips checkboxes — so a passing test leaves the tree clean and would otherwise never be marked done. Right after a per-test dispatch returns `verdict: PASS`, issue, as **one** Bash call, alone — `<N>` being the passing test's `**Test N**` number — the call that flips and commits that single test's readiness checkbox in the UI-test index:
 
 ```
-plan_path: <ui_test_index>
-mode: ui_test_pass
-task_heading: <the `**Test N**` readiness entry for the test that just passed>
-commit_prefix: chore
-<committer_push>
+<commit_call> --unit ui_test_pass --plan <ui_test_index> --id <N>
 ```
 
-Heartbeat label: `[E · qa · test 3 · mark-pass] → committer  (#N)`. The committer flips that one `**Test N**` entry from `[ ]` to `[x]` in the UI-test index's `## Phase 2 Readiness — Ordered Fix List` and commits only the index (fixed subject `chore: Mark UI test N passing for <branch>`). It is **idempotent**: if the entry is already `[x]` (a re-test round where this test passed earlier — E.4), it returns `noop: UI test N already marked` and commits nothing; read the `noop:`/`commit_sha:` line and move on. Per-test FAILs are NOT marked here — they go through the E.3 fix loop and get marked when they pass on re-test (E.4). Do not let this mark-pass dispatch change the round verdict: keep collecting per-test returns and decide the round in E.2.
+The commit step flips that one `**Test N**` entry from `[ ]` to `[x]` in the UI-test index's `## Phase 2 Readiness — Ordered Fix List` and commits only the index (fixed subject `chore: Mark UI test N passing for <branch>`). It is **idempotent**: if the entry is already `[x]` (a re-test round where this test passed earlier — E.4), it prints `noop: UI test N already marked`, exits 0 and commits nothing; read the `noop:`/`commit_sha:` line and move on. Per-test FAILs are NOT marked here — they go through the E.3 fix loop and get marked when they pass on re-test (E.4). Do not let this mark-pass call change the round verdict: keep collecting per-test returns and decide the round in E.2.
 
 (The qa-tester creates `<qa_review_findings_dir>` itself only when it has findings to write — do NOT `mkdir -p` here.)
 
@@ -495,21 +476,18 @@ Heartbeat label: `[E · qa · test 3 · mark-pass] → committer  (#N)`. The com
 After the E.1 loop, fold the per-test returns into a single round outcome. The verdict is decided over **only the tests that ran** (the still-`[ ]` ones); skipped `[x]` tests are not folded in either direction:
 
 - **A per-test blocked line** (`error: blocked — test <T>: <one-line cause>`, matched on that literal prefix alone) — record `<T>` and its cause for this round, leave the test `[ ]`, and continue. It wrote no file and is neither a pass nor a failure. When the round FAILs, roll it into the merged index's `## Context` pass/fail/blocked count.
-- **Round PASS** — when **no `[ ]` entry remains** in the `<ui_test_index>` after the run **except tests that returned the per-test blocked line this round**: every other test that ran returned `verdict: PASS` and got marked `[x]` (the mark-on-pass step), and the previously-passed tests were already `[x]` and skipped. Each passing test that ran was already marked + committed **per-test during E.1** (the `mode: ui_test_pass` committer dispatch) — the round-pass branch writes **no** further index: tear down the dev server (E.0) and go to **Phase G**, carrying this round's blocked list to `### D.2 Done summary`. (No round-level QA-review index is assembled on a clean round either; that merged index only exists on a FAIL round.) A skipped (`[x]`) test is **not** a pass to recount here — it simply was not run; the PASS condition is "no remaining `[ ]` but this round's blocked tests," not "every test in the index ran and passed this round." On a FAIL round the same per-test marking already happened in E.1 for every test that ran and passed — only the *failing* tests are left `[ ]`, and they go through the E.3 fix loop and get marked when they pass on re-test (E.4).
+- **Round PASS** — when **no `[ ]` entry remains** in the `<ui_test_index>` after the run **except tests that returned the per-test blocked line this round**: every other test that ran returned `verdict: PASS` and got marked `[x]` (the mark-on-pass step), and the previously-passed tests were already `[x]` and skipped. Each passing test that ran was already marked + committed **per-test during E.1** (the commit step's `--unit ui_test_pass` call) — the round-pass branch writes **no** further index: tear down the dev server (E.0) and go to **Phase G**, carrying this round's blocked list to `### D.2 Done summary`. (No round-level QA-review index is assembled on a clean round either; that merged index only exists on a FAIL round.) A skipped (`[x]`) test is **not** a pass to recount here — it simply was not run; the PASS condition is "no remaining `[ ]` but this round's blocked tests," not "every test in the index ran and passed this round." On a FAIL round the same per-test marking already happened in E.1 for every test that ran and passed — only the *failing* tests are left `[ ]`, and they go through the E.3 fix loop and get marked when they pass on re-test (E.4).
 - **An unmarked per-test `error:`** — any `error:` line not beginning with the exact prefix `error: blocked — ` (dev server unreachable, etc.) → this is a **stop condition** the moment any dispatch returns it. Tear down the dev server, then halt and report the blocker via `<escalate>` **immediately** — do not let later per-test dispatches mask it. Do not continue. (A skipped `[x]` test never produces an `error:` — it is not dispatched.)
 - **Round FAIL** — if no dispatch returned an unmarked `error:` but **at least one** test that ran returned `verdict: FAIL`. A skipped (`[x]`) test is never a failure (it was not run). Build the merged round index, then commit it and run E.3:
-  1. **Assemble the merged round index** at `<qa_review_path>` = `<qa_review_findings_dir>/qa_review_<iteration>.md` (iteration `0`; round suffix in the folder). The qa-tester already wrote each failing test's per-dispatch index (`qa_review_<iteration>_t<T>.md`) and namespaced per-finding files (`finding_t<T>_<N>.md`) into `<qa_review_findings_dir>`. You **own** the merged index: it carries a `## Context` paragraph (branch + date + per-test pass/fail/blocked roll-up) and a single `## Phase 2 Readiness — Ordered Fix List` that enumerates **every failing test's findings exactly once**, in recommended ship order, each entry `N. [ ] **Finding K** — short description. _(layer: …)_` pointing at the corresponding `finding_t<T>_<M>.md` file. **Assign a fresh contiguous merged identity:** number the merged findings `1..n` in the order you list them and write that number as both the entry's `**Finding K**` token and its `### K. Title` pointer heading, leaving each entry's pointer aimed at its unchanged `finding_t<T>_<M>.md` file (the per-test `M` is never renumbered — only the merged `K`). **No two entries may share a token:** `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` row `E.3` passes the matching `### K. <title>` heading as `task_heading:` and `committer.md` resolves the readiness entry by that token alone, with no positional fallback. Renumber the `## Must Fix` / `## Should Fix` / `## Nice to Have` pointer headings with the entries so the index stays 1-to-1 (`**Finding K**` ↔ `### K. Title` ↔ one detail file), as the code-review index is. **Carry each per-dispatch entry's `_(layer: …)_` tag through verbatim into the merged entry — the qa-tester already tagged it (it knows the finding's fix-target layer when it authors the entry); the orchestrator copies it, it does not re-derive it** (and never opens the finding body to determine the layer). Do **not** fragment the readiness list across the per-dispatch indices — the E.3 fix loop reads **exactly one** `## Phase 2 Readiness — Ordered Fix List` as its source of truth. (Assembling the index is a plan/workflow document edit; you may write it directly here, the same way you bind and pass `<qa_review_path>` — you are not editing app code.)
+  1. **Assemble the merged round index** at `<qa_review_path>` = `<qa_review_findings_dir>/qa_review_<iteration>.md` (iteration `0`; round suffix in the folder). The qa-tester already wrote each failing test's per-dispatch index (`qa_review_<iteration>_t<T>.md`) and namespaced per-finding files (`finding_t<T>_<N>.md`) into `<qa_review_findings_dir>`. You **own** the merged index: it carries a `## Context` paragraph (branch + date + per-test pass/fail/blocked roll-up) and a single `## Phase 2 Readiness — Ordered Fix List` that enumerates **every failing test's findings exactly once**, in recommended ship order, each entry `N. [ ] **Finding K** — short description. _(layer: …)_` pointing at the corresponding `finding_t<T>_<M>.md` file. **Assign a fresh contiguous merged identity:** number the merged findings `1..n` in the order you list them and write that number as both the entry's `**Finding K**` token and its `### K. Title` pointer heading, leaving each entry's pointer aimed at its unchanged `finding_t<T>_<M>.md` file (the per-test `M` is never renumbered — only the merged `K`). **No two entries may share a token:** `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` row `E.3` passes the matching `### K. <title>` heading as `task_heading:` and the commit step resolves the readiness entry by that token alone, with no positional fallback. Renumber the `## Must Fix` / `## Should Fix` / `## Nice to Have` pointer headings with the entries so the index stays 1-to-1 (`**Finding K**` ↔ `### K. Title` ↔ one detail file), as the code-review index is. **Carry each per-dispatch entry's `_(layer: …)_` tag through verbatim into the merged entry — the qa-tester already tagged it (it knows the finding's fix-target layer when it authors the entry); the orchestrator copies it, it does not re-derive it** (and never opens the finding body to determine the layer). Do **not** fragment the readiness list across the per-dispatch indices — the E.3 fix loop reads **exactly one** `## Phase 2 Readiness — Ordered Fix List` as its source of truth. (Assembling the index is a plan/workflow document edit; you may write it directly here, the same way you bind and pass `<qa_review_path>` — you are not editing app code.)
   2. **Bind `<qa_review_path>`** to that merged index path and use it verbatim for the commit below and as the E.3 readiness source.
-  3. **Commit the QA review files first**, exactly as Phase B commits the code-review file, by spawning `committer` (this stages the merged index plus the per-dispatch artefacts in the folder):
+  3. **Commit the QA review files first**, exactly as Phase B commits the code-review file, by issuing, as **one** Bash call, alone (this stages the merged index plus the per-dispatch artefacts in its folder — for this merged index the commit step stages the index's own folder):
 
      ```
-     plan_path: <qa_review_path>
-     mode: review_plan_file
-     commit_prefix: chore
-     <committer_push>
+     <commit_call> --unit review_plan_file --plan <qa_review_path>
      ```
 
-     **Subject is fixed.** The committer's `review_plan_file` mode emits the hardcoded subject `chore: add code review for <branch>` (`committer.md` → the subject-line step of "### Standard procedure (`task` / `review_plan_file` / `review_item`)"); it is contractually forbidden to emit any other `review_plan_file` subject. Reuse that subject as-is — do **not** ask the committer to emit `chore: add qa review for <branch>`. (A distinct QA subject would require extending the committer's fixed-subject rule and is out of scope here.) Then run **E.3**.
+     **Subject is fixed.** The commit step's `review_plan_file` unit emits the fixed subject `chore: add code review for <branch>` (`<scripts_dir>/commit-on-branch.sh` → **THE SUBJECT AND ITS RECORD**), and no other. Reuse that subject as-is — there is no `chore: add qa review for <branch>`. Then run **E.3**.
 
 ### E.3 Fix loop
 
@@ -525,7 +503,7 @@ After all of this round's QA findings are `[x]`, **re-run E.1 — its per-test l
 
 **A previously blocked test is re-run too** — it is still `[ ]`, and the account it lacked may have freed. `MAX_QA_ROUNDS` counts FAIL rounds only, so a round whose only remaining `[ ]` tests are blocked ones is a Round PASS that ends the phase, never a further re-test round.
 
-**Per-test mark-pass still applies on re-test (E.1):** a still-`[ ]` test that now passes is marked + committed per-test exactly as in round 1 via the `mode: ui_test_pass` committer dispatch. (A test that already passed in an earlier round is `[x]` and is skipped by E.1, so no mark-pass dispatch fires for it — there is nothing to re-mark. The committer's idempotent `noop: UI test N already marked` remains the safety net for any duplicate dispatch.) Loop **E.1 → E.4** until the round verdict is PASS (no `[ ]` entries remain but that round's blocked tests) or the **QA re-test round cap** is hit.
+**Per-test mark-pass still applies on re-test (E.1):** a still-`[ ]` test that now passes is marked + committed per-test exactly as in round 1 via the commit step's `--unit ui_test_pass` call. (A test that already passed in an earlier round is `[x]` and is skipped by E.1, so no mark-pass call fires for it — there is nothing to re-mark. The commit step's idempotent `noop: UI test N already marked` remains the safety net for any duplicate call.) Loop **E.1 → E.4** until the round verdict is PASS (no `[ ]` entries remain but that round's blocked tests) or the **QA re-test round cap** is hit.
 
 `MAX_QA_ROUNDS = 3`. If QA still returns `FAIL` after round 3, tear down the dev server and **halt and report the blocker via `<escalate>`**: QA is oscillating / not converging — name the latest merged QA-review index (`<qa_review_path>` as bound for that round, inside that round's `<qa_review_findings_dir>`). This cap exists to prevent infinite oscillation, not to limit normal work.
 
@@ -537,7 +515,7 @@ Tear down the dev server when QA passes (E.2) or on any halt in this phase.
 
 Run this phase after Phase E — or after Phase E was skipped — and before Phase D. **It is the only place in the flow `<test_cmd>` runs, and the only place `<typecheck_cmd>` runs over the whole tree on the flow's behalf** — both through one `run-test-suite.sh` run per round, started by G.1. You never learn what the gates are and never read their output: you read the one line the wrapper prints, and hand its log path on unread. Why no unit runs the suite, and what a unit runs instead, is `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `## The test-run rule`. A `fail` opens a fix loop — a test fix plan written from the log, approved by the architecture gate, committed, then walked by the unit loop — and the gates run again, for at most `MAX_GATE_ROUNDS` gate runs.
 
-> **Two flow-dependent vocabularies of `<…>` name appear below, and this section is written to be executed by a flow from another family too** (`mode_contract.md` rule (5) — another family's core may cite it by reference). The **Mode-contract bindings** it uses are `<escalate>`, `<committer_push>`, `<park_answer_lookup>` (read at G.0's pending-answer test) and `<gate_launcher>` (read at G.1 step 2) — plus `<per_unit_review>`, via the unit-loop row G.4 runs — and they resolve from the fork the executing flow was dispatched via. Every **other** `<…>` name here — setting aside the config-value tokens declared in `## Resolved values` — is a **path placeholder** and resolves from the `## Setup` of the flow's **own entry core**: `<branch>`, `<gate_key>`, `<test_fix_plan_path>`, `<test_fix_findings_dir>`, `<test_fix_review_folder>` and `<test_fix_findings_root>`. **Resolve the four test-fix paths through that Setup every round, never as a literal** — each carries `<gate_round>`, and a path baked in on one round lands the next round's artifacts in the previous round's folder. `<gate_round>`, the wrapper's `<log>`, the counter `<iteration>`, the next-free index `<test_fix_review_index>` and the answer pairs `<question_file>` / `<answer_file>` (bound by G.0's pending-answer arm) are neither kind: they are bound below, at their point of use. No step in this phase depends on any other phase of this file having run.
+> **Two flow-dependent vocabularies of `<…>` name appear below, and this section is written to be executed by a flow from another family too** (`mode_contract.md` rule (5) — another family's core may cite it by reference). The **Mode-contract bindings** it uses are `<escalate>`, `<commit_call>`, `<park_answer_lookup>` (read at G.0's pending-answer test) and `<gate_launcher>` (read at G.1 step 2) — plus `<per_unit_review>`, via the unit-loop row G.4 runs — and they resolve from the fork the executing flow was dispatched via. Every **other** `<…>` name here — setting aside the config-value tokens declared in `## Resolved values` — is a **path placeholder** and resolves from the `## Setup` of the flow's **own entry core**: `<branch>`, `<gate_key>`, `<test_fix_plan_path>`, `<test_fix_findings_dir>`, `<test_fix_review_folder>` and `<test_fix_findings_root>`. **Resolve the four test-fix paths through that Setup every round, never as a literal** — each carries `<gate_round>`, and a path baked in on one round lands the next round's artifacts in the previous round's folder. `<gate_round>`, the wrapper's `<log>`, the counter `<iteration>`, the next-free index `<test_fix_review_index>` and the answer pairs `<question_file>` / `<answer_file>` (bound by G.0's pending-answer arm) are neither kind: they are bound below, at their point of use. No step in this phase depends on any other phase of this file having run.
 
 ### G.0 Resolve the round
 
@@ -639,17 +617,13 @@ iteration: <test_fix_review_index>
 
 ### G.3 Commit the test fix plan
 
-Apply the safety contract (heartbeat `[G · test-fix-plan · commit] → committer  (#<total_dispatches>)`), then spawn `committer` — it stages the index and its per-finding folder together, with no checkbox flip:
+Issue, as **one** Bash call, alone — it stages the index, its per-finding folder and the G.2 review folder together, with no checkbox flip:
 
 ```
-plan_path: <test_fix_plan_path>
-mode: review_plan_file
-meta_findings_folder: <test_fix_review_folder>
-commit_prefix: chore
-<committer_push>
+<commit_call> --unit review_plan_file --plan <test_fix_plan_path> --extra <test_fix_review_folder>
 ```
 
-**The existence guard on `meta_findings_folder` is yours**, exactly as in B.3: include the key **only if** `<test_fix_review_folder>` exists and is non-empty — a gate that passed on iteration 0 with no finding at all created none, and a `fixable: 0` plan may never have reached the gate. The fixed subject `chore: add code review for <branch>` is reused as-is, as in E.2. In answer mode the index is a **modified** tracked file, staged with any new per-finding files by the same block; its `Park answer consumed:` line guarantees it differs from its commit, so this path cannot yield `error: nothing to commit`. Then run **G.4** when the index has `[ ]` entries; `<escalate>` on a `fixable: 0` returned without the `Park answer:` clause; or go to **G.5** on a `fixable: 0` returned under it.
+`--extra` is passed unconditionally, as in B.3 — a gate that passed on iteration 0 with no finding at all created no `<test_fix_review_folder>`, and a `fixable: 0` plan may never have reached the gate; the wrapper skips the absent path with a warning. The fixed subject `chore: add code review for <branch>` is reused as-is, as in E.2. In answer mode the index is a **modified** tracked file, staged with any new per-finding files by the same call; its `Park answer consumed:` line guarantees it differs from its commit, so this path cannot yield `error: nothing to commit`. Then run **G.4** when the index has `[ ]` entries; `<escalate>` on a `fixable: 0` returned without the `Park answer:` clause; or go to **G.5** on a `fixable: 0` returned under it.
 
 ### G.4 Fix loop
 
@@ -729,7 +703,7 @@ Then stop. Do not push, do not open a PR, do not run a final test command unless
 - Business-parity-review fix loop (Phase A1.5.3, the implemented-branch parity phase's fix loop) hits `iteration >= 5` on any item without `PASS` — `<escalate>`, naming the latest findings file path.
 - Architecture-review fix loop (Phase A2.3) hits `iteration >= 5` on any item without `PASS` — `<escalate>`, naming the latest findings file path.
 - Skeptic-review meta-review loop (Phase C2.2) or fix loop (Phase C2.4) hits `iteration >= 5` without `PASS` — `<escalate>`, naming the latest findings file path.
-- `committer` returns `error:` — `<escalate>`.
+- a commit call prints `error:` — `<escalate>`.
 - A file path you expected to exist (story index, per-task file, task prompt) is missing — `<escalate>`.
 - **QA dev server fails to start** (E.0 `find-free-port.sh` exits non-zero / probe exhausted, the fail-loudly-on-a-taken-port start still fails after 3 attempts, or polling on `http://localhost:<qa_port>` never answers within the bound) — tear down any started server (`kill-dev-server.sh <qa_port>`), then `<escalate>`.
 - **Any per-test `qa-tester` dispatch returns an unmarked `error:`** — one not beginning with the exact prefix `error: blocked — ` (dev server unreachable, etc.); the per-test blocked line is E.2's blocked arm, not a stop — tear down the dev server, then `<escalate>` the moment it occurs; do not let later per-test dispatches mask it.
