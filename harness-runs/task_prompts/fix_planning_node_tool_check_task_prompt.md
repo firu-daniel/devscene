@@ -29,7 +29,7 @@ So in this Claude Code version a session that has `Bash` is given neither `Glob`
 
 Two more facts from the same node-1 `init` event, which `docs/flow-graph-walker.md` → `### Not yet measured, and the hand step that measures it` lists as unmeasured:
 
-- **Plugins loaded:** `devscene` once, `{"name":"devscene","path":"/Users/daniel/Work/devscene/plugin","source":"devscene@inline","version":"0.7.1"}`, beside Claude Code's built-in plugins. No installed copy was loaded beside the `--plugin-dir` one.
+- **Plugins loaded:** `devscene` once, `{"name":"devscene","path":"<main checkout>/plugin","source":"devscene@inline","version":"0.7.1"}`, beside Claude Code's built-in plugins. No installed copy was loaded beside the `--plugin-dir` one.
 - **`init` tools under `--json-schema`:** `--json-schema` added no tool. The only difference from the `tools:` line is the `Glob`/`Grep` omission above.
 
 The third fact in that section, `structured_output` under `--json-schema`, is not this issue's. It belongs to `feat_structured_agent_outputs` (#379), which replaces how a node's decision is read.

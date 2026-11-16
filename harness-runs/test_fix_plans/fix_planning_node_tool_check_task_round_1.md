@@ -12,7 +12,7 @@ The log also reports gate 13 (`13a`, `13b`, `13c`) as BLOCKED, with the remedy `
 
 This list is the **single source of truth** for the fix loop. Any `[ ]` markers elsewhere, in this index or in a per-finding file, are informational only.
 
-1. [ ] **Finding 1** — Task prompt names an absolute home-directory path. _(layer: general)_
+1. [x] **Finding 1** — Task prompt names an absolute home-directory path. _(layer: general)_
 
 ## Must Fix
 
