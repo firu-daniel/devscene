@@ -101,7 +101,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_committer_as_script/tas
 16. [x] **Task 16** — Re-point the five branch-level reviewers' readiness wording at the commit step _(layer: plugin)_ _(points: 10)_
 17. [x] **Task 17** — Re-point the sample fixtures at the commit step _(layer: plugin)_ _(points: 15)_
 18. [x] **Task 18** — Re-point the supervised flows, the QA instructions and the instructions README at the commit step _(layer: plugin)_ _(points: 10)_
-19. [ ] **Task 19** — Re-point the semi-autonomous implement commands and the flow documents at the commit step _(layer: plugin)_ _(points: 10)_
+19. [x] **Task 19** — Re-point the semi-autonomous implement commands and the flow documents at the commit step _(layer: plugin)_ _(points: 10)_
 20. [ ] **Task 20** — Delete the `committer` agent and re-home its `<MAIN_REPO>` resolution in the semi-autonomous forks _(layer: plugin)_ _(points: 20)_
 21. [ ] **Task 21** — Replace the committer's wrapper-call suite with one that pins the commit step's call shape _(layer: cli)_ _(points: 10)_
 22. [ ] **Task 22** — Close the roadmap row and document the front end and its library in the watcher and CLI references _(layer: general)_ _(points: 10)_
