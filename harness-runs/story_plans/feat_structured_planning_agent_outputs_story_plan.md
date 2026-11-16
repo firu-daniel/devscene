@@ -63,7 +63,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_planning_age
 5. [x] **Task 5** — Give `architecture-reviewer` and `business-parity-reviewer` a `## Return schema` covering every mode _(layer: plugin)_ _(points: 20)_
 6. [x] **Task 6** — Read the six returns through the routing check in `task_plan_writing_instructions_core.md` _(layer: plugin)_ _(points: 15)_
 7. [x] **Task 7** — Read the planning writers' return fields in the semi-autonomous and autonomous planning forks _(layer: plugin)_ _(points: 10)_
-8. [ ] **Task 8** — Read the parity, architecture and plan-writer returns in the implementation core and its autonomous fork _(layer: plugin)_ _(points: 15)_
+8. [x] **Task 8** — Read the parity, architecture and plan-writer returns in the implementation core and its autonomous fork _(layer: plugin)_ _(points: 15)_
 9. [ ] **Task 9** — Read the reviewers' and the UI-test writer's returns in the user-review fix-plan, user-review fix and QA flows _(layer: plugin)_ _(points: 15)_
 10. [ ] **Task 10** — Drop `--json-schema` from `planning-node-lib.sh` and decide a node's outcome from its return block validated against the agent's `## Return schema` _(layer: cli)_ _(points: 20)_
 11. [ ] **Task 11** — Read the validated return object in `planning-driver-lib.sh`, and bring the driver fixture's stub and suites to the return block _(layer: cli)_ _(points: 20)_

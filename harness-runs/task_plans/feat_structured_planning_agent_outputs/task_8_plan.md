@@ -28,3 +28,9 @@
 - `git grep -nE 'verdict: (PASS|FAIL)|## Corpus staleness' -- plugin/instructions/plan_orchestration_instructions_core.md plugin/instructions/plan_orchestration_instructions_autonomous.md` prints only lines about `layer-reviewer`, `branch-reviewer`, `skeptic-reviewer`, `review-plan-reviewer` or `test-fix-plan-writer`, none about the parity or architecture reviewer or the plan writer.
 - Every `` `<agent>.<field>` `` citation in the two files names a property the story index `## Context` field table lists for that agent.
 - Phases A1.5, A2 and the G.2 architecture gate each have an arm for `PASS`, `FAIL`, `blocker` and the failed check.
+
+**Deviations from plan:**
+
+- The first verification grep still prints three lines that mention the parity or architecture reviewer, none of them reading those agents' returns as `verdict:` lines: core `Context discipline is critical.` bullet ("Reviewers return 1 line …") now names both agents only to exempt them from the `verdict:` form; the autonomous fork's "Each `*g` flip fires once its phase reached a **recorded outcome**" sentence names an `outcome` of `PASS` for both agents and keeps `skeptic-reviewer`'s `verdict: PASS`; the fork's **(a) Plan-convergence gates** bullet ("a failed round is one whose files carry a `verdict: FAIL` line") reads round-file content, which the story index `## Context` item 2 keeps unchanged. Left as is.
+- Phases A1.5.1 and A2.1 had no `<escalate>` arm before; the new arms name the origins `Phase A1.5 business-parity-reviewer` and `Phase A2 architecture-reviewer`, mirroring the `Phase G architecture-reviewer gate` form. The `<escalate>` binding row already lists A1.5 and A2 blocker paths, so it is unchanged.
+- Out of scope, flagged: the autonomous fork's item 14 (**User-review-fix fork commits the QA.0 UI-test plan augment**) still reads `no_ui: true` and a `## Questions` section of `ui-tests-plan-writer`'s return; that is the user-review flow, Task 9's.
