@@ -7,7 +7,7 @@
  * `undelivered`, never a guess.** `pnl_reap` decides in one fixed order — 1 no `init` event, 2 an
  * `init` tool the agent does not declare, 3 no `result` (or an API overload), 4 a failed session,
  * 5 a `result` text whose return block is missing, is not one JSON object or fails the agent's
- * `schemas/<agent>.return.json`, 6 an outcome the graph does not declare, 7 `FAIL` (or `PASS` at a
+ * `schemas/<agent>.return.json` (an array's object items held to their own keys too), 6 an outcome the graph does not declare, 7 `FAIL` (or `PASS` at a
  * round gate) without a non-blank `findings_file` — and one case pins each rule, beside the declared
  * outcomes that pass. Each `error` case also pins its `class=`: `infra` for rules 1, 4, 5 and 7,
  * `agent` for the rest. `withheld=` reports the declared tools the `init` event lacks and refuses
@@ -517,6 +517,38 @@ test('rule 5: a return that fails its schema is error, infra, naming the first f
     const r = await reap(f, node, agent, [init(tools), returns(object)]);
     infraError(r, `the return fails its schema: ${failure}`);
   }
+});
+
+test('rule 5: an array of object items holds each item to its keys, naming the first failure', { skip: SKIP }, async (t) => {
+  const item = {
+    type: 'object',
+    description: 'd',
+    properties: { name: str(), count: { type: 'integer', minimum: 0, description: 'd' } },
+    required: ['name'],
+    additionalProperties: false,
+  };
+  const withItems = schema([
+    variant('returned', { story_file: str(), tasks_count: { type: 'integer', minimum: 0, description: 'd' }, items_list: { type: 'array', items: item, description: 'd' } }, ['story_file', 'tasks_count']),
+    QUESTIONS,
+    BLOCKER,
+  ]);
+  const f = await fixture(t, { schemas: { 'task-plan-writer': schemaFile(withItems) } });
+  const base = { outcome: 'returned', story_file: 's.md', tasks_count: 1 };
+  for (const [items, failure] of [
+    [['a'], 'items_list item 0 is not an object'],
+    [[{ name: 'a' }, { count: 1 }], 'items_list item 1 missing required key name'],
+    [[{ name: 'a', extra: true }], 'items_list item 0 unknown key extra'],
+    [[{ name: 'a', count: '2' }], 'items_list item 0 count is not an integer'],
+  ]) {
+    const r = await reap(f, 'plan_writer', 'task-plan-writer', [init(WRITER_TOOLS), returns({ ...base, items_list: items })]);
+    infraError(r, `the return fails its schema: ${failure}`);
+  }
+  const ok = await reap(f, 'plan_writer', 'task-plan-writer', [
+    init(WRITER_TOOLS),
+    returns({ ...base, items_list: [{ name: 'a', count: 2 }, { name: 'b' }] }),
+  ]);
+  assert.equal(ok.keys.kind, 'returned');
+  assert.equal(ok.keys.outcome, 'returned');
 });
 
 test('rule 5: prose above the block, an earlier json block and whitespace after it are accepted', { skip: SKIP }, async (t) => {

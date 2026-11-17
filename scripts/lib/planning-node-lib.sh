@@ -431,7 +431,8 @@ EOF
 # stream; `$g` the planning graph; `$sch` the node's return schema, loaded from
 # its agent's `schemas/<agent>.return.json`; `$node`; `$tools` the agent's
 # `tools:` list. `vfail` and `schemafail` hold a value to the closed dialect
-# that file is written in, and yield the first failure, or "" when there is none.
+# that file is written in, an array's object items included, and yield the first
+# failure, or "" when there is none.
 PNL_REAP_JQ='
   def blank: if type == "string" then ([explode[] | select(. != 32 and . != 9 and . != 10 and . != 13)] | length) == 0 else true end;
   def oneline: tostring | split("\r") | join(" ") | split("\n") | join(" ");
@@ -443,6 +444,15 @@ PNL_REAP_JQ='
       elif $p.type == "integer" and (($v | type) != "number" or $v != ($v | floor)) then "is not an integer"
       elif $p.type == "boolean" and ($v | type) != "boolean" then "is not a boolean"
       elif $p.type == "array" and ($v | type) != "array" then "is not an array"
+      elif $p.type == "object" and ($v | type) != "object" then "is not an object"
+      elif $p.type == "object"
+      then ($p.properties // {}) as $props
+        | [($p.required // [])[] | select(. as $k | $v | has($k) | not)] as $miss
+        | [$v | keys_unsorted[] | select(. as $k | $props | has($k) | not)] as $unknown
+        | if ($miss | length) > 0 then "missing required key " + $miss[0]
+          elif ($unknown | length) > 0 then "unknown key " + $unknown[0]
+          else [$v | keys_unsorted[] as $k | $v[$k] | vfail($props[$k]) | select(. != "") | $k + " " + .] | firstof
+          end
       elif ($p | has("enum")) and (any($p.enum[]; . == $v) | not) then "is not one of " + ($p.enum | tojson)
       elif ($p | has("minLength")) and ($v | type) == "string" and ($v | length) < $p.minLength
       then "is shorter than " + ($p.minLength | tostring)
