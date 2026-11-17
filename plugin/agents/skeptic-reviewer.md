@@ -175,6 +175,8 @@ Two things are not steering: a **bare pointer** to a named rule in a file you al
 
 There are three outcomes: `PASS`, `FAIL` and `blocker`. Pick exactly one. An optional `## Unsolicited dispatch guidance` section sits **above** the fenced block and changes neither the block nor any file.
 
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
+
 ### 1. No net-new findings — `PASS`
 
 If you have no net-new finding, **do not write any file**.
@@ -182,8 +184,6 @@ If you have no net-new finding, **do not write any file**.
 ### 2. Findings — `FAIL`
 
 `mkdir -p` the findings folder (the caller does not pre-create it), then write the index and one `finding_<N>.md` per finding with `Write` at absolute paths. Do not paste the bodies back.
-
-End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
 ### Return fields
 
