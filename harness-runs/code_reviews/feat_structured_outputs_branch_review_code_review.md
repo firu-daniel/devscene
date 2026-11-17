@@ -50,7 +50,7 @@
 Each entry resolves to `harness-runs/code_reviews/feat_structured_outputs_branch_review_code_review/finding_<K>.md` through its `**Finding K**` reference. The list is sorted with the lowest blast radius first.
 
 1. [x] **Finding 4** — Drop the redundant "returns its return object" from the two Override D trigger sentences _(layer: plugin)_
-2. [ ] **Finding 3** — Fix the singular pronoun in the autonomous fork's review-questions bullet _(layer: plugin)_
+2. [x] **Finding 3** — Fix the singular pronoun in the autonomous fork's review-questions bullet _(layer: plugin)_
 3. [ ] **Finding 1** — Cut the restated `not_written` route cases from the core's `<escalate>` row and both autonomous Override D gates _(layer: plugin)_
 4. [ ] **Finding 2** — Move `skeptic-reviewer`'s return-block sentence ahead of its per-outcome subsections _(layer: plugin)_
 
