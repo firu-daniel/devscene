@@ -22,7 +22,7 @@ What remains is one contract gap that drops a mandatory report on two of the imp
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 4** — Replace the stale "carry the marker" wording in `### The dispositioned outcome` with the outcome form _(layer: plugin)_
+1. [x] **Finding 4** — Replace the stale "carry the marker" wording in `### The dispositioned outcome` with the outcome form _(layer: plugin)_
 2. [ ] **Finding 2** — Quote `layer-implementer.cause` when an `already passing` outcome escalates on a row other than `G.4` _(layer: plugin)_
 3. [ ] **Finding 3** — Stop attaching "naming the latest findings file path" to a `layer-reviewer` blocker in both cores' stop conditions _(layer: plugin)_
 4. [ ] **Finding 1** — Let `layer-implementer` return `flags` on its `prohibited` and `already passing` outcomes _(layer: plugin)_

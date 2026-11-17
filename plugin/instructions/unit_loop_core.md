@@ -134,7 +134,7 @@ Read the reviewer's return as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_c
 
 Step 3's **third** exit for a layer, reached by an `outcome` of `prohibited`, or on row `G.4` an `outcome` of `already passing` (`#### The already-passing close` below). It is neither a success nor a stop: the unit is **closed**. The `prohibited` route applies to every row of `## Substitution table` unchanged and no row owes a cell for it; the `already passing` route is row-scoped to `G.4`. (The cause either outcome carries is `` `layer-implementer.cause` ``.)
 
-- **What it is.** This layer's work is accepted as correctly diagnosed and impossible for **any** agent in this flow. This file states the outcome; `layer-implementer`'s contract states the admissibility test that let the return carry the marker. Neither restates the other, and this loop re-runs no part of that test.
+- **What it is.** This layer's work is accepted as correctly diagnosed and impossible for **any** agent in this flow. This file states the outcome; `layer-implementer`'s contract states the admissibility test that let it return that outcome. Neither restates the other, and this loop re-runs no part of that test.
 - **What already exists on disk.** The implementer appended a `## Disposition` section to the unit's detail file before returning. The loop writes nothing itself and opens no detail file and no findings body to decide — the outcome is the whole decision.
 - **The review step is skipped.** Step 4 is not entered for this layer: there is no code to review. `iteration` is untouched.
 - **The loop continues.** This layer is finished — continue with the next layer in scope (back to step 3), or go to step 5 if it was the last.
