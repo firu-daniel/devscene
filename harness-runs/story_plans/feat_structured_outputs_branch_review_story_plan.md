@@ -102,7 +102,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_bran
 3. [x] **Task 3** — Give `skeptic-reviewer` a schema-validated return and move Phase C2 and its Done-summary lines onto it _(layer: plugin)_ _(points: 20)_
 4. [x] **Task 4** — Give `user-review-fix-plan-writer` a schema-validated return and move the user-review fix-plan flow onto it _(layer: plugin)_ _(points: 20)_
 5. [x] **Task 5** — Give `statistics-plan-writer` a schema-validated return with a non-halting `not_written` outcome and move every statistics dispatch onto it _(layer: plugin)_ _(points: 20)_
-6. [ ] **Task 6** — Record `statistics-plan-writer`'s `not_written` outcome in the decision record _(layer: general)_ _(points: 8)_
+6. [x] **Task 6** — Record `statistics-plan-writer`'s `not_written` outcome in the decision record _(layer: general)_ _(points: 8)_
 
 ## Scope register
 
