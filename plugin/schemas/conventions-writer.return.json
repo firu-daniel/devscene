@@ -8,7 +8,7 @@
       "type": "object",
       "description": "The document was written.",
       "properties": {
-        "outcome": { "const": "written", "description": "The document now stands written; carried over from the old action_taken value." },
+        "outcome": { "const": "written", "description": "The document now stands written." },
         "document_path": { "type": "string", "minLength": 1, "description": "The absolute path of the one document written." },
         "not_determined": { "type": "integer", "minimum": 0, "description": "The count of lines in the document's ## Not determined section." },
         "not_determined_lines": {
@@ -76,7 +76,7 @@
       "type": "object",
       "description": "The document was merged.",
       "properties": {
-        "outcome": { "const": "merged", "description": "The document now stands merged; carried over from the old action_taken value." },
+        "outcome": { "const": "merged", "description": "The document now stands merged." },
         "document_path": { "type": "string", "minLength": 1, "description": "The absolute path of the one document written." },
         "not_determined": { "type": "integer", "minimum": 0, "description": "The count of lines in the document's ## Not determined section." },
         "not_determined_lines": {
