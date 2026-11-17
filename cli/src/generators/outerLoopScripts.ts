@@ -2,7 +2,8 @@
  * Generator: the outer-loop scripts — the run watcher, the git wrappers, the worktree tooling, the
  * flow walker with its gate library and flow graph, the planning driver's three libraries, the
  * test-suite runner, the gate launcher, the
- * prompt-injection screen, the run-analytics script with its two `jq` programs, the change-request fence's opt-out check, and the shared library
+ * prompt-injection screen, the run-analytics script with its two `jq` programs, the change-request fence's opt-out check, the
+ * review sweep, and the shared library
  * they all source —
  * written into the adopter's configured `scriptsDir`.
  *
@@ -73,7 +74,8 @@ export interface OuterLoopScript {
    * file — the git wrappers an agent is told to commit, push and refresh its branch through, the
    * scratch runner it executes a probe or a mutation check with, the flow walker the
    * orchestrating session steps a flow with, the test-suite runner that session grades a gate
-   * round with, and the prompt-injection screen that session pre-scans task data with. The watcher, the daemon wrappers, the remote-run
+   * round with, the prompt-injection screen that session pre-scans task data with, and the review
+   * sweep the end-of-branch reviewer runs from the main checkout. The watcher, the daemon wrappers, the remote-run
    * script and the worktree and cleanup scripts are run by the watcher process (or the remote job)
    * or by a person, so they are
    * `false`: the flag records which of those two runs a script, and the profile follows it so an
@@ -238,6 +240,9 @@ export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze(
   // Run by an interactive session's fence; `false` is a calling convention, and it carries no
   // `DENY_SCRIPT_BASENAMES` entry because it is read-only and prints one path.
   Object.freeze({ file: TASK_OFFER_CHECK_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
+  // Run by `branch-reviewer` from the main checkout; no `DENY_SCRIPT_BASENAMES` entry, because it
+  // must be reachable. No `runsUnsandboxed`: it only reads.
+  Object.freeze({ file: 'review-sweep.sh', mode: 0o755, agentInvocable: true }),
 ] as const);
 
 /** The templates' subdirectory under `cli/templates/`, addressed as {@link readTemplate} wants it. */

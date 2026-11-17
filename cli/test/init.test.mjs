@@ -315,6 +315,7 @@ const OUTER_LOOP_SCRIPT_FILES = [
   'run-analytics.sh',
   'task-offer-check.sh',
   'prompt-injection-screen.sh',
+  'review-sweep.sh',
 ];
 
 /** A left-over template token — none may survive into a generated file. */

@@ -1380,6 +1380,36 @@ test('the task-offer check lands verbatim under scriptsDir, and a re-run keeps a
   assert.equal(text(dir, path), edited, `a second init rewrote the edited ${path}`);
 });
 
+/** The review sweep: run by `branch-reviewer`, so executable. */
+const REVIEW_SWEEP_SCRIPT = 'review-sweep.sh';
+const REVIEW_SWEEP_SCRIPT_MODE = 0o755;
+
+test('the review sweep lands verbatim under scriptsDir, a re-run keeps an edited copy, and --force leaves a .bak', async (t) => {
+  const dir = await fixtureFor(t, { files: nodeProjectFiles() });
+  const path = `${SCRIPTS_DIR}/${REVIEW_SWEEP_SCRIPT}`;
+
+  await initOk(dir);
+  const first = await snapshotTree(dir);
+
+  const template = readFileSync(join(TEMPLATE_SCRIPTS, REVIEW_SWEEP_SCRIPT), 'utf8');
+  assert.equal(text(dir, path), template, `${path} is not the template's bytes`);
+  assert.deepEqual(copiesOf(first, REVIEW_SWEEP_SCRIPT), [path], `${REVIEW_SWEEP_SCRIPT} was written somewhere other than ${SCRIPTS_DIR}/`);
+  const mode = (await lstat(join(dir, path))).mode & 0o777;
+  assert.equal(mode, REVIEW_SWEEP_SCRIPT_MODE, `${path} is mode ${mode.toString(8)}, not ${REVIEW_SWEEP_SCRIPT_MODE.toString(8)}`);
+
+  appendFileSync(join(dir, path), '\n# This line was added by hand.\n', 'utf8');
+  const edited = text(dir, path);
+
+  await initOk(dir);
+
+  assert.equal(text(dir, path), edited, `a second init rewrote the edited ${path}`);
+
+  await initOk(dir, ['--force']);
+
+  assert.equal(text(dir, `${path}.bak`), edited, `--force did not preserve the previous ${REVIEW_SWEEP_SCRIPT} in a .bak`);
+  assert.equal(text(dir, path), template, `--force did not regenerate ${path}`);
+});
+
 /** The Run gates phase's test-suite runner: run by the orchestrating session, so executable. */
 const TEST_SUITE_RUNNER = 'run-test-suite.sh';
 const TEST_SUITE_RUNNER_MODE = 0o755;
