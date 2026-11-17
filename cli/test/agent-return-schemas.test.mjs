@@ -2,11 +2,14 @@
  * The agent return schemas, held to their contract.
  *
  * **The rule this suite exists to enforce: every agent with a `plugin/schemas/<agent>.return.json`
- * declares its return there in the closed dialect, describes exactly that schema — names and
- * non-string types — in its `### Return fields`, carries the canonical return-block sentence, never
- * re-inlines the schema in its definition, and is cited — by the planning graph, by every
- * `` `<agent>.<field>` `` in the plugin and by every `pd_ret_field` call in the driver — only for
- * outcomes and fields it declares.** The sentence is read from `docs/structured-agent-returns.md`
+ * declares its return there in the closed dialect — an array's object items included — describes
+ * exactly that schema — names and non-string types, an object item's properties as bullets indented
+ * under its `(array of objects)` field — in its `### Return fields`, carries the canonical
+ * return-block sentence, never re-inlines the schema in its definition, and is cited — by the
+ * planning graph, by every `` `<agent>.<field>` `` and `` `<agent>.<field>.<property>` `` across the
+ * plugin's Markdown and the outer-loop scripts under `cli/templates/scripts/`, and by every
+ * `pd_ret_field` call in the driver — only for outcomes, fields and item properties it declares.**
+ * The sentence is read from `docs/structured-agent-returns.md`
  * → `### The return block` and the roster from `plugin/instructions/agent_return_contract.md` →
  * `## Who may cite this`, never restated here.
  *
@@ -37,6 +40,7 @@ const AUTHORING_DOC = 'docs/structured-agent-returns.md';
 const AGENTS_DIR = 'plugin/agents';
 const SCHEMAS_DIR = 'plugin/schemas';
 const SCHEMA_SUFFIX = '.return.json';
+const SCRIPTS_DIR = 'cli/templates/scripts';
 const GRAPH = 'cli/templates/scripts/flows/task_plan_writing.graph.json';
 const DRIVER = 'cli/templates/scripts/lib/planning-driver-lib.sh';
 const PLUGIN_ROOT_TOKEN = '${CLAUDE_PLUGIN_ROOT}/';
@@ -47,12 +51,16 @@ const VARIANT_KEYS = ['type', 'description', 'properties', 'required', 'addition
 const OUTCOME_KEYS = ['const', 'description'];
 const PROPERTY_KEYS = ['type', 'description', 'const', 'enum', 'minLength', 'minimum', 'minItems', 'items'];
 const PROPERTY_TYPES = ['string', 'integer', 'boolean', 'array'];
-/** A `### Return fields` type annotation, as written after the backticked name, to its schema `type`. */
+const ITEM_KEYS = ['type', 'description', 'properties', 'required', 'additionalProperties'];
+const ITEM_PROPERTY_KEYS = ['type', 'description', 'const', 'enum', 'minLength', 'minimum'];
+const ITEM_PROPERTY_TYPES = ['string', 'integer', 'boolean'];
+/** A `### Return fields` type annotation, as written after the backticked name, to its schema `type` and, for an array, its `items.type`. */
 const ANNOTATIONS = new Map([
-  ['string', 'string'],
-  ['integer', 'integer'],
-  ['boolean', 'boolean'],
-  ['array of strings', 'array'],
+  ['string', { type: 'string' }],
+  ['integer', { type: 'integer' }],
+  ['boolean', { type: 'boolean' }],
+  ['array of strings', { type: 'array', items: 'string' }],
+  ['array of objects', { type: 'array', items: 'object' }],
 ]);
 
 const read = (rel) => readFileSync(join(WORKSPACE_ROOT, rel), 'utf8');
@@ -193,6 +201,33 @@ export function checkNotInlined(agentText) {
   return problems;
 }
 
+/** An array's `{ "type": "object", … }` items, at `at`, in the closed dialect. */
+function checkObjectItems(items, at) {
+  const problems = [];
+  for (const k of unknownKeys(items, ITEM_KEYS)) problems.push(`${at}: keyword "${k}" is not in the dialect`);
+  if (typeof items.description !== 'string' || items.description === '') problems.push(`${at}: description is missing`);
+  if (!isPlainObject(items.properties)) problems.push(`${at}: properties is missing`);
+  if (!Array.isArray(items.required)) problems.push(`${at}: required is missing`);
+  if (items.additionalProperties !== false) problems.push(`${at}: additionalProperties is not false`);
+  const props = isPlainObject(items.properties) ? items.properties : {};
+  for (const r of Array.isArray(items.required) ? items.required : []) {
+    if (!Object.hasOwn(props, r)) problems.push(`${at}: required "${r}" is not an item property`);
+  }
+  for (const [name, prop] of Object.entries(props)) {
+    const q = `${at}.properties.${name}`;
+    if (!isPlainObject(prop)) {
+      problems.push(`${q}: not an object`);
+      continue;
+    }
+    for (const k of unknownKeys(prop, ITEM_PROPERTY_KEYS)) problems.push(`${q}: keyword "${k}" is not in the dialect`);
+    if (!ITEM_PROPERTY_TYPES.includes(prop.type)) problems.push(`${q}: type "${prop.type}" is not in the dialect`);
+    if (typeof prop.description !== 'string' || prop.description === '') problems.push(`${q}: description is missing`);
+    if ('minLength' in prop && prop.type !== 'string') problems.push(`${q}: minLength on a non-string`);
+    if ('minimum' in prop && prop.type !== 'integer') problems.push(`${q}: minimum on a non-integer`);
+  }
+  return problems;
+}
+
 /** Every keyword at every level is in the closed dialect. */
 export function checkDialect(schema) {
   const problems = [];
@@ -247,8 +282,10 @@ export function checkDialect(schema) {
       if ('items' in prop) {
         if (prop.type !== 'array') problems.push(`${p}: items on a non-array`);
         const items = prop.items;
-        if (!isPlainObject(items) || items.type !== 'string') {
-          problems.push(`${p}.items: is not { "type": "string" }`);
+        if (isPlainObject(items) && items.type === 'object') {
+          problems.push(...checkObjectItems(items, `${p}.items`));
+        } else if (!isPlainObject(items) || items.type !== 'string') {
+          problems.push(`${p}.items: is neither { "type": "string" } nor { "type": "object", … }`);
         } else {
           for (const k of unknownKeys(items, ['type', 'minLength'])) {
             problems.push(`${p}.items: keyword "${k}" is not in the dialect`);
@@ -270,18 +307,78 @@ const outcomeConsts = (schema) => schema.oneOf.map((v) => v.properties?.outcome?
 const propertyNames = (schema) =>
   new Set(schema.oneOf.flatMap((v) => (isPlainObject(v.properties) ? Object.keys(v.properties) : [])));
 
-/** Each non-`outcome` property name to the set of `type`s its variants declare it with. */
-function propertyTypes(schema) {
-  const types = new Map();
+/** Each non-`outcome` property name to the distinct `{ type, items }` its variants declare it with, `items` being `items.type`. */
+function propertyShapes(schema) {
+  const shapes = new Map();
   for (const v of schema.oneOf) {
     if (!isPlainObject(v.properties)) continue;
     for (const [name, prop] of Object.entries(v.properties)) {
       if (name === 'outcome' || !isPlainObject(prop)) continue;
-      if (!types.has(name)) types.set(name, new Set());
-      types.get(name).add(prop.type);
+      const items = isPlainObject(prop.items) ? prop.items.type : undefined;
+      if (!shapes.has(name)) shapes.set(name, new Map());
+      shapes.get(name).set(`${prop.type}|${items}`, { type: prop.type, items });
     }
   }
-  return types;
+  return new Map([...shapes].map(([name, byKey]) => [name, [...byKey.values()]]));
+}
+
+/** Each property whose items are objects, in any variant, to the union of its item properties' `type`s. */
+function itemProperties(schema) {
+  const fields = new Map();
+  for (const v of schema.oneOf) {
+    if (!isPlainObject(v.properties)) continue;
+    for (const [name, prop] of Object.entries(v.properties)) {
+      if (!isPlainObject(prop) || !isPlainObject(prop.items) || prop.items.type !== 'object') continue;
+      if (!fields.has(name)) fields.set(name, new Map());
+      const props = fields.get(name);
+      for (const [k, p] of Object.entries(isPlainObject(prop.items.properties) ? prop.items.properties : {})) {
+        if (!props.has(k)) props.set(k, new Set());
+        if (isPlainObject(p)) props.get(k).add(p.type);
+      }
+    }
+  }
+  return fields;
+}
+
+/** A bullet's annotation against every `{ type, items }` the schema declares its name with. */
+function annotationProblems(label, annotation, shapes) {
+  const annotated = ANNOTATIONS.get(annotation);
+  const problems = [];
+  for (const { type, items } of shapes) {
+    if (annotated === undefined && type !== 'string') {
+      problems.push(`### Return fields: "${label}" is a schema ${type} but its bullet carries no type annotation`);
+    } else if (annotated !== undefined && annotated.type !== type) {
+      problems.push(`### Return fields: "${label}" is annotated (${annotation}) but the schema types it ${type}`);
+    } else if (annotated?.items !== undefined && annotated.items !== items) {
+      problems.push(`### Return fields: "${label}" is annotated (${annotation}) but the schema's items are ${items ?? 'undeclared'}`);
+    }
+  }
+  return problems;
+}
+
+const FIELD_BULLET = /^- `([^`]+)`(?: \(([^)]*)\))?/;
+const ITEM_BULLET = /^ {2}- `([^`]+)`(?: \(([^)]*)\))?/;
+
+/** `### Return fields`' top-level field bullets, each with the run of nested item bullets directly under it. */
+function fieldBullets(fields) {
+  const bullets = [];
+  let current = null;
+  for (const e of scanLines(fields)) {
+    if (e.fenced) continue;
+    const top = FIELD_BULLET.exec(e.line);
+    if (top) {
+      current = { name: top[1], annotation: top[2], nested: [] };
+      bullets.push(current);
+      continue;
+    }
+    if (/^- /.test(e.line)) {
+      current = null;
+      continue;
+    }
+    const sub = ITEM_BULLET.exec(e.line);
+    if (sub && current !== null) current.nested.push({ name: sub[1], annotation: sub[2] });
+  }
+  return bullets;
 }
 
 const sorted = (iterable) => [...iterable].sort();
@@ -302,25 +399,35 @@ export function checkOutputContract(agentText, schema, sentence) {
   if (fields === null) {
     problems.push('## Output contract has no ### Return fields');
   } else {
-    const bullets = scanLines(fields)
-      .filter((e) => !e.fenced)
-      .map((e) => /^- `([^`]+)`(?: \(([^)]*)\))?/.exec(e.line))
-      .filter(Boolean)
-      .map((m) => ({ name: m[1], annotation: m[2] }));
+    const bullets = fieldBullets(fields);
     const declared = sorted(propertyNames(schema));
     const named = sorted(new Set(bullets.map((b) => b.name)));
     for (const n of declared) if (!named.includes(n)) problems.push(`### Return fields lists no bullet for "${n}"`);
     for (const n of named) if (!declared.includes(n)) problems.push(`### Return fields lists "${n}", which the schema does not declare`);
-    const types = propertyTypes(schema);
-    for (const { name, annotation } of bullets) {
-      if (!types.has(name)) continue;
-      const annotated = ANNOTATIONS.get(annotation);
-      for (const type of types.get(name)) {
-        if (annotated === undefined && type !== 'string') {
-          problems.push(`### Return fields: "${name}" is a schema ${type} but its bullet carries no type annotation`);
-        } else if (annotated !== undefined && annotated !== type) {
-          problems.push(`### Return fields: "${name}" is annotated (${annotation}) but the schema types it ${type}`);
+    const shapes = propertyShapes(schema);
+    const items = itemProperties(schema);
+    for (const { name, annotation, nested } of bullets) {
+      if (!shapes.has(name)) continue;
+      problems.push(...annotationProblems(name, annotation, shapes.get(name)));
+      const itemProps = items.get(name);
+      if (itemProps === undefined) {
+        for (const n of nested) {
+          problems.push(`### Return fields: "${name}" carries a nested bullet "${n.name}" but its items are not objects`);
         }
+        continue;
+      }
+      const declaredItems = sorted(itemProps.keys());
+      const namedItems = sorted(new Set(nested.map((n) => n.name)));
+      for (const n of declaredItems) {
+        if (!namedItems.includes(n)) problems.push(`### Return fields: "${name}" lists no nested bullet for item property "${n}"`);
+      }
+      for (const n of namedItems) {
+        if (!declaredItems.includes(n)) problems.push(`### Return fields: "${name}" lists item property "${n}", which its items do not declare`);
+      }
+      for (const n of nested) {
+        if (!itemProps.has(n.name)) continue;
+        const itemShapes = [...itemProps.get(n.name)].map((type) => ({ type, items: undefined }));
+        problems.push(...annotationProblems(`${name}.${n.name}`, n.annotation, itemShapes));
       }
     }
   }
@@ -382,15 +489,28 @@ export function checkDriverCalls(driverText, graph, schemas) {
   return { calls: calls.length, problems };
 }
 
-/** Every `` `<agent>.<field>` `` naming a schema-carrying agent names one of its properties. */
+/**
+ * Every `` `<agent>.<field>` `` naming a schema-carrying agent names one of its properties, and every
+ * `` `<agent>.<field>.<property>` `` one of that field's object-item properties. A file name — one
+ * ending `.md`, or the agent's own `<agent>.return.json` — is not a citation.
+ */
 export function checkCitations(files, schemas) {
   const problems = [];
   let seen = 0;
   for (const { path, text } of files) {
-    for (const [, agent, field] of text.matchAll(/`([a-z0-9-]+)\.([A-Za-z0-9_]+)`/g)) {
-      if (!schemas.has(agent) || field === 'md') continue;
+    for (const [, agent, field, property] of text.matchAll(/`([a-z0-9-]+)\.([A-Za-z0-9_]+)(?:\.([A-Za-z0-9_]+))?`/g)) {
+      if (!schemas.has(agent) || (property ?? field) === 'md') continue;
+      if (property !== undefined && `.${field}.${property}` === SCHEMA_SUFFIX) continue;
       seen += 1;
-      if (!propertyNames(schemas.get(agent)).has(field)) problems.push(`${path}: \`${agent}.${field}\` is not declared`);
+      const schema = schemas.get(agent);
+      const cited = property === undefined ? `${agent}.${field}` : `${agent}.${field}.${property}`;
+      if (!propertyNames(schema).has(field)) {
+        problems.push(`${path}: \`${cited}\` is not declared`);
+      } else if (property !== undefined) {
+        const itemProps = itemProperties(schema).get(field);
+        if (itemProps === undefined) problems.push(`${path}: \`${cited}\` cites an item property, but the items of ${field} are not objects`);
+        else if (!itemProps.has(property)) problems.push(`${path}: \`${cited}\` is not declared`);
+      }
     }
   }
   return { seen, problems };
@@ -422,6 +542,7 @@ const allAgentFiles = pluginFiles.filter((f) => f.path.startsWith(`${AGENTS_DIR}
 const schemaFiles = pluginFiles.filter((f) => f.path.startsWith(`${SCHEMAS_DIR}/`) && f.path.endsWith(SCHEMA_SUFFIX));
 const schemaTexts = new Map(schemaFiles.map((f) => [schemaName(f.path), f.text]));
 const agentFiles = allAgentFiles.filter((f) => schemaTexts.has(agentName(f.path)));
+const scriptFiles = walk(SCRIPTS_DIR).map((path) => ({ path, text: read(path) }));
 const graph = JSON.parse(read(GRAPH));
 const driverText = read(DRIVER);
 
@@ -475,6 +596,11 @@ test('every `<agent>.<field>` citation across plugin/**/*.md names a declared fi
   assert.deepEqual(problems, []);
 });
 
+test(`every \`<agent>.<field>\` citation across ${SCRIPTS_DIR}/** names a declared field`, () => {
+  assert.ok(scriptFiles.length > 0, `${SCRIPTS_DIR} holds no file`);
+  assert.deepEqual(checkCitations(scriptFiles, SCHEMAS).problems, []);
+});
+
 test('the plugin files naming the module equal its ## Who may cite this roster', () => {
   assert.deepEqual(checkRoster(moduleText, pluginMarkdown), []);
 });
@@ -518,6 +644,7 @@ const sampleAgent = ({
   sentence = SENTENCE,
   fields = ['outcome', 'findings_file', 'questions'],
   annotations = { questions: 'array of strings' },
+  nested = {},
   extra = '',
 } = {}) =>
   [
@@ -535,9 +662,46 @@ const sampleAgent = ({
     extra,
     '### Return fields',
     '',
-    ...fields.map((f) => `- \`${f}\`${annotations[f] ? ` (${annotations[f]})` : ''} — described.`),
+    ...fields.flatMap((f) => [
+      `- \`${f}\`${annotations[f] ? ` (${annotations[f]})` : ''} — described.`,
+      ...(nested[f] ?? []).map(([n, a]) => (n.startsWith('**') ? `  - ${n} — not a field.` : `  - \`${n}\`${a ? ` (${a})` : ''} — described.`)),
+    ]),
     '',
   ].join('\n');
+
+/** `goodSchema()` with an `items_list` array of object items on its `FAIL` variant. */
+const objectItemSchema = () => {
+  const s = goodSchema();
+  s.oneOf[1].properties.items_list = {
+    type: 'array',
+    description: 'Object items.',
+    items: {
+      type: 'object',
+      description: 'One item.',
+      properties: {
+        check_id: { type: 'string', minLength: 1, description: 'The id.' },
+        line: { type: 'integer', minimum: 1, description: 'The line.' },
+        blocking: { type: 'boolean', description: 'Whether it blocks.' },
+        severity: { type: 'string', enum: ['high', 'low'], description: 'The severity.' },
+      },
+      required: ['check_id', 'line'],
+      additionalProperties: false,
+    },
+  };
+  return s;
+};
+
+const OBJECT_ITEM_BULLETS = [['check_id'], ['line', 'integer'], ['blocking', 'boolean'], ['severity'], ['**`stale-rule`**']];
+
+/** The sample agent for `objectItemSchema()`, its item bullets overridable. */
+const objectItemAgent = (items = OBJECT_ITEM_BULLETS, annotation = 'array of objects') =>
+  sampleAgent({
+    fields: ['outcome', 'findings_file', 'questions', 'items_list'],
+    annotations: { questions: 'array of strings', items_list: annotation },
+    nested: { items_list: items },
+  });
+
+const itemsAt = 'oneOf\\[1\\]\\.properties\\.items_list\\.items';
 
 test('bad samples: the good sample passes every per-agent check', () => {
   const text = sampleAgent();
@@ -623,6 +787,77 @@ test('bad samples: a fenced key: value block in the Output contract is rejected'
   assert.match(checkOutputContract(text, goodSchema(), SENTENCE).join('\n'), /retired return form/);
 });
 
+test('bad samples: the good object-item sample passes every per-agent check', () => {
+  const text = objectItemAgent();
+  const { schema, problems } = checkSchemaBlock(JSON.stringify(objectItemSchema(), null, 2));
+  assert.deepEqual(problems, []);
+  assert.deepEqual(checkDialect(schema), []);
+  assert.deepEqual(checkNotInlined(text), []);
+  assert.deepEqual(checkOutputContract(text, schema, SENTENCE), []);
+});
+
+test('bad samples: object items missing a required keyword are rejected', () => {
+  for (const key of ['description', 'properties', 'required']) {
+    const s = objectItemSchema();
+    delete s.oneOf[1].properties.items_list.items[key];
+    assert.match(checkDialect(s).join('\n'), new RegExp(`${itemsAt}: ${key} is missing`));
+  }
+  const s = objectItemSchema();
+  delete s.oneOf[1].properties.items_list.items.additionalProperties;
+  assert.match(checkDialect(s).join('\n'), new RegExp(`${itemsAt}: additionalProperties is not false`));
+});
+
+test('bad samples: object items outside the dialect are rejected', () => {
+  const s = objectItemSchema();
+  const items = s.oneOf[1].properties.items_list.items;
+  items.minProperties = 1;
+  items.properties.check_id.pattern = '^C';
+  items.properties.blocking.type = 'array';
+  items.properties.line.minLength = 1;
+  items.properties.check_id.minimum = 0;
+  items.required.push('nope');
+  const problems = checkDialect(s).join('\n');
+  assert.match(problems, new RegExp(`${itemsAt}: keyword "minProperties" is not in the dialect`));
+  assert.match(problems, new RegExp(`${itemsAt}\\.properties\\.check_id: keyword "pattern" is not in the dialect`));
+  assert.match(problems, new RegExp(`${itemsAt}\\.properties\\.blocking: type "array" is not in the dialect`));
+  assert.match(problems, new RegExp(`${itemsAt}\\.properties\\.line: minLength on a non-string`));
+  assert.match(problems, new RegExp(`${itemsAt}\\.properties\\.check_id: minimum on a non-integer`));
+  assert.match(problems, new RegExp(`${itemsAt}: required "nope" is not an item property`));
+});
+
+test('bad samples: nested item bullets that differ from the object items are rejected', () => {
+  const schema = objectItemSchema();
+  const missing = objectItemAgent(OBJECT_ITEM_BULLETS.filter(([n]) => n !== 'blocking'));
+  assert.match(
+    checkOutputContract(missing, schema, SENTENCE).join('\n'),
+    /"items_list" lists no nested bullet for item property "blocking"/,
+  );
+  const extra = objectItemAgent([...OBJECT_ITEM_BULLETS, ['nope']]);
+  assert.match(
+    checkOutputContract(extra, schema, SENTENCE).join('\n'),
+    /"items_list" lists item property "nope", which its items do not declare/,
+  );
+  const unannotated = objectItemAgent(OBJECT_ITEM_BULLETS.map(([n, a]) => (n === 'line' ? [n] : [n, a])));
+  assert.match(
+    checkOutputContract(unannotated, schema, SENTENCE).join('\n'),
+    /"items_list\.line" is a schema integer but its bullet carries no type annotation/,
+  );
+});
+
+test('bad samples: an (array of strings) annotation on object items, and nested bullets under string items, are rejected', () => {
+  const schema = objectItemSchema();
+  const wrong = objectItemAgent(OBJECT_ITEM_BULLETS, 'array of strings');
+  assert.match(
+    checkOutputContract(wrong, schema, SENTENCE).join('\n'),
+    /"items_list" is annotated \(array of strings\) but the schema's items are object/,
+  );
+  const stringItems = sampleAgent({ nested: { questions: [['check_id']] } });
+  assert.match(
+    checkOutputContract(stringItems, goodSchema(), SENTENCE).join('\n'),
+    /"questions" carries a nested bullet "check_id" but its items are not objects/,
+  );
+});
+
 const sampleGraph = () => ({
   nodes: {
     review: {
@@ -665,6 +900,35 @@ test('bad samples: a citation of an undeclared field is rejected; a .md file nam
   const { seen, problems } = checkCitations(files, schemas);
   assert.equal(seen, 1);
   assert.deepEqual(problems, ['x.md: `sample-reviewer.review_file` is not declared']);
+});
+
+test('bad samples: a citation of an undeclared item property is rejected; the schema file name is not a citation', () => {
+  const schemas = new Map([['sample-reviewer', objectItemSchema()]]);
+  const files = [
+    {
+      path: 'x.md',
+      text: 'See `sample-reviewer.return.json`, `sample-reviewer.items_list.check_id`, `sample-reviewer.items_list.nope` and `sample-reviewer.questions.x`.',
+    },
+  ];
+  const { seen, problems } = checkCitations(files, schemas);
+  assert.equal(seen, 3);
+  assert.deepEqual(problems, [
+    'x.md: `sample-reviewer.items_list.nope` is not declared',
+    'x.md: `sample-reviewer.questions.x` cites an item property, but the items of questions are not objects',
+  ]);
+});
+
+test('bad samples: a citation inside an outer-loop script is checked like a Markdown one', () => {
+  const schemas = new Map([['sample-reviewer', objectItemSchema()]]);
+  const files = [
+    {
+      path: `${SCRIPTS_DIR}/x.sh`,
+      text: '# reads `sample-reviewer.items_list.check_id` and `sample-reviewer.verdict`\n',
+    },
+  ];
+  const { seen, problems } = checkCitations(files, schemas);
+  assert.equal(seen, 2);
+  assert.deepEqual(problems, [`${SCRIPTS_DIR}/x.sh: \`sample-reviewer.verdict\` is not declared`]);
 });
 
 test('bad samples: a roster that differs from the citing files is rejected', () => {
