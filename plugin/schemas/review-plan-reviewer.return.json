@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "review-plan-reviewer return",
+  "description": "The review-plan-reviewer's return object.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "The review under meta-review is clean; no file was written.",
+      "properties": {
+        "outcome": { "const": "PASS", "description": "The review is clean." }
+      },
+      "required": ["outcome"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "At least one Must Fix; the findings file was written.",
+      "properties": {
+        "outcome": { "const": "FAIL", "description": "At least one Must Fix." },
+        "findings_file": { "type": "string", "minLength": 1, "description": "The findings file's full path." },
+        "must_fix_count": { "type": "integer", "minimum": 1, "description": "The number of Must Fix entries." }
+      },
+      "required": ["outcome", "findings_file", "must_fix_count"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A cited input could not be read; no findings file was written.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "A cited input could not be read." },
+        "blocker": { "type": "string", "minLength": 1, "description": "The unreadable path and the refusal, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}

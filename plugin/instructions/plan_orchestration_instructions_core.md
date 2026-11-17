@@ -5,7 +5,7 @@ You are the **orchestrator**. Your job is to dispatch specialist agents through 
 **Context discipline is critical.** This loop runs across many sub-agent dispatches. Every line of detail you read into the main context costs you working room. Trust the contracts:
 
 - Implementers return a short report (files + deviations) above a return object the cited unit loop's step 3 reads. Read that, do not open the files.
-- Reviewers return 1 line (`verdict: PASS`) or 3 lines (`verdict: FAIL` + `findings_file:` + `must_fix_count:`) — except `layer-reviewer`, `business-parity-reviewer` and `architecture-reviewer`, which end in a return object (the cited unit loop's `### Per-unit review step`, Phases A1.5, A2 and the G.2 architecture gate say how each is read). Read that, **do not open the findings file** — pass its path to the next implementer.
+- Reviewers end in a return object, read as the section that dispatches each states — except where that section reads `verdict:` lines, where the reviewer returns 1 line (`verdict: PASS`) or 3 lines (`verdict: FAIL`, a path line and `must_fix_count:`). Read that, **do not open the findings file** — pass its path to the next implementer.
 - The commit call prints 5 lines (incl. `pushed:`), plus one for each of `staged: index-only` and `index_sync: failed` it adds. Read that, do not re-verify.
 
 If any agent returns a long output, summarize it down to its contract in your own working memory before proceeding. Do not echo it back into your output.
@@ -300,9 +300,10 @@ A **`## Questions`** section in that return (that literal heading; omitted when 
    ```
 
    `review_path` is the code-review **index**; `findings_dir` is the per-finding detail folder it cross-checks for index↔finding correspondence; `plan_path` is the **story index** (read for context only — what the diff was trying to do); `findings_folder` is where the meta-reviewer writes its own findings. (The `review-plan-reviewer` creates `findings_folder` itself only when it has findings to write — do NOT `mkdir -p` here.)
-2. Parse return:
-   - `PASS` → break.
-   - `FAIL` → increment `iteration`. If `>= 5`, `<escalate>`. Else spawn `branch-reviewer` again with: `Adjust the code-review index at <code_review_path> and the per-finding files in <code_review_findings_dir> per findings at <findings_file>.` Then loop.
+2. Parse the return — read it as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states:
+   - An `outcome` of `PASS` → break.
+   - An `outcome` of `FAIL` → increment `iteration`. If `>= 5`, `<escalate>`, naming `` `review-plan-reviewer.findings_file` ``. Else spawn `branch-reviewer` again with: `Adjust the code-review index at <code_review_path> and the per-finding files in <code_review_findings_dir> per findings at <findings_file>.`, where `<findings_file>` is `` `review-plan-reviewer.findings_file` ``. Then loop.
+   - An `outcome` of `blocker`, or the third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) → `<escalate>`, naming the origin `Phase B.2 review-plan-reviewer` and quoting `` `review-plan-reviewer.blocker` `` or naming the check that failed.
 
 ### B.3 Commit the review file
 
@@ -375,9 +376,10 @@ Because the skeptic is adversarial it is the review most prone to false positive
    iteration: <meta_review_index>
    ```
 
-2. Parse return:
-   - `PASS` → break.
-   - `FAIL` → increment `iteration`. If `>= 5`, `<escalate>`. Else spawn `skeptic-reviewer` again with: `Adjust the skeptic-review index at <skeptic_review_path> and the per-finding files in <skeptic_review_findings_dir> per findings at <findings_file>.` Then loop.
+2. Parse the return — read it as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states:
+   - An `outcome` of `PASS` → break.
+   - An `outcome` of `FAIL` → increment `iteration`. If `>= 5`, `<escalate>`, naming `` `review-plan-reviewer.findings_file` ``. Else spawn `skeptic-reviewer` again with: `Adjust the skeptic-review index at <skeptic_review_path> and the per-finding files in <skeptic_review_findings_dir> per findings at <findings_file>.`, where `<findings_file>` is `` `review-plan-reviewer.findings_file` ``. Then loop.
+   - An `outcome` of `blocker`, or the third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) → `<escalate>`, naming the origin `Phase C2.2 review-plan-reviewer` and quoting `` `review-plan-reviewer.blocker` `` or naming the check that failed.
 
 ### C2.3 Commit the skeptic-review file
 

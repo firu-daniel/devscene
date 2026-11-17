@@ -97,7 +97,7 @@ Every other routing caller is already on the roster. The autonomous and supervis
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_branch_review/task_<K>_plan.md`. Ordered bottom-up by ship sequence, with the catch-all layer last.
 
-1. [ ] **Task 1** — Give `review-plan-reviewer` a schema-validated return and move the B.2 and C2.2 meta-review loops onto it _(layer: plugin)_ _(points: 15)_
+1. [x] **Task 1** — Give `review-plan-reviewer` a schema-validated return and move the B.2 and C2.2 meta-review loops onto it _(layer: plugin)_ _(points: 15)_
 2. [ ] **Task 2** — Give `branch-reviewer` a schema-validated return and move Phase B and the supervised code review onto it _(layer: plugin)_ _(points: 20)_
 3. [ ] **Task 3** — Give `skeptic-reviewer` a schema-validated return and move Phase C2 and its Done-summary lines onto it _(layer: plugin)_ _(points: 20)_
 4. [ ] **Task 4** — Give `user-review-fix-plan-writer` a schema-validated return and move the user-review fix-plan flow onto it _(layer: plugin)_ _(points: 20)_
