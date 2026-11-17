@@ -19,7 +19,8 @@
       "description": "A standing prohibition or an unsatisfiable gate admitted the disposition route; the ## Disposition record is written.",
       "properties": {
         "outcome": { "const": "prohibited", "description": "The disposition route was admitted." },
-        "cause": { "type": "string", "minLength": 1, "description": "One line naming the class; the same text as the detail file's **Cause:** line." }
+        "cause": { "type": "string", "minLength": 1, "description": "One line naming the class; the same text as the detail file's **Cause:** line." },
+        "flags": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "One item per thing the orchestrator should flag to the user; omitted when empty." }
       },
       "required": ["outcome", "cause"],
       "additionalProperties": false
@@ -29,7 +30,8 @@
       "description": "Row G.4 only: the row-G.4 check closed the unit; the ## Already passing record is written.",
       "properties": {
         "outcome": { "const": "already passing", "description": "The row-G.4 check closed the unit." },
-        "cause": { "type": "string", "minLength": 1, "description": "One line; the same text as the detail file's **Cause:** line." }
+        "cause": { "type": "string", "minLength": 1, "description": "One line; the same text as the detail file's **Cause:** line." },
+        "flags": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "One item per thing the orchestrator should flag to the user; omitted when empty." }
       },
       "required": ["outcome", "cause"],
       "additionalProperties": false

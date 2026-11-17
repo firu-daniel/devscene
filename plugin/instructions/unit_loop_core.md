@@ -78,8 +78,8 @@ The steps, in order:
    Read the implementer's return as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states. The fields that check reads are `` `layer-implementer.cause` `` for an `outcome` of `prohibited` or `already passing`, `` `layer-implementer.blocker` `` for an `outcome` of `blocker`, and none beyond `outcome` for an `outcome` of `implemented`. `` `layer-implementer.flags` `` is **optional** and is not a field the check reads: an absent or empty field means nothing to flag, never a failed return, so an `implemented` return that omits it, or carries it empty, passes the check and continues.
 
    - An `outcome` of `implemented` → continue, keeping each `` `layer-implementer.flags` `` item for step 6.
-   - An `outcome` of `prohibited` → `### The dispositioned outcome` below.
-   - An `outcome` of `already passing`, on row `G.4` only → `### The dispositioned outcome`'s route, per its `#### The already-passing close`.
+   - An `outcome` of `prohibited` → `### The dispositioned outcome` below, keeping each `` `layer-implementer.flags` `` item for step 6.
+   - An `outcome` of `already passing`, on row `G.4` only → `### The dispositioned outcome`'s route, per its `#### The already-passing close`, keeping each `` `layer-implementer.flags` `` item for step 6.
    - An `outcome` of `blocker`, an `outcome` of `already passing` on any other row, or the third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) → stop the whole loop and `<escalate>`, quoting `` `layer-implementer.blocker` `` for an `outcome` of `blocker`, `` `layer-implementer.cause` `` for an `outcome` of `already passing`, or naming the check that failed.
 
    **The fail-safe direction is escalate** — an outcome the row does not admit is the escalating kind: a wrongly-escalated unit costs one hand-off, a wrongly-closed one closes a finding nobody fixed.
