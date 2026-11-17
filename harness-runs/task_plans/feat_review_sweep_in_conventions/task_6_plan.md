@@ -19,11 +19,14 @@
   - **Run.** From `<repo_root>`, run `git grep -c -E -e '<regex with each \| turned into |>' -- <each Covers path> <each excluded_paths entry as ':(exclude)<path>'>`. `Exempts` stays **inside** the count, because the owner sites are where the construct legitimately lives.
   - **Findings:** grep exits 2, so the regex does not compile; zero matching lines across the covered paths, so the regex matches nothing there; or matching lines above one half of the non-blank lines in the same paths (`git grep -c -E -e '[^[:space:]]'` over the same pathspec), so it matches nearly every line and cannot be a lead.
   - **Corrections, concrete:** re-derive the regex from a real occurrence the evidence names; or drop the row and record the class in `## Not determined` with what would settle it.
-- [ ] State, beside check (16), which of checks (1)–(15) run on `target: sweep` and which do not:
-  - **Run:** (1), (2), (3), (7), (8), (10), (11), (14) and (15). For (3), the provenance is the conventions document and heading the class came from.
-  - **Do not run:** (4) and (5), because the sweep document carries no harvested rule and no `demand_set` scope; (6), because it names no concept of its own; (9), because a row is a pattern rather than prose about the present code; (12) and (13), because it binds no actor and states no process.
+- [ ] State, beside check (16), which of checks (1)–(15) run on `target: sweep` and which do not. This restates the exceptions the writer's `## The sweep document` defines (Task 5), so the two files agree:
+  - **Run:** (1), (2), (3), (7), (8), (10), (11), (14) and (15), with these readings:
+    - **(1) runs without its example clause.** The writer's `## The sweep document` states that this target carries no example, because the skeleton has no generic example and its worked examples are removed with the `**What belongs here**` guidance. Every other clause of (1) holds: banner, no `<!-- devscene:unfilled -->`, provenance line, `## Not determined`. Its `prior_prompts` clause is answered by the rows under `## Sweep rows`, plus a `## Not determined` line for each class looked for and not settled.
+    - **(2)** grades the rule block as the writer's section bounds it: between the `**What belongs here**` guidance and `## Sweep rows`.
+    - **(3)**: the provenance is the conventions document and heading the class came from.
+  - **Do not run:** (4), because the sweep document carries no harvested rule; (5), because the sweep document has **no `demand_set` scope of its own**, the reason Task 5's section states (the caller still sends `demand_set`, and this target ignores it); (6), because it names no concept of its own; (9), because a row is a pattern rather than prose about the present code; (12) and (13), because it binds no actor and states no process.
 
-  One line, giving each its reason once.
+  One line per check, giving each its reason once.
 - [ ] Frontmatter `description:`: name that a document-pass dispatch may review the review-sweep document. No other edit there.
 
 **Verification:**

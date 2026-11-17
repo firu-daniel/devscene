@@ -24,7 +24,7 @@ The dispatch block this command sends is the existing write / review / fix block
   - the announcement and `--dry-run` report name the `sweep` target and its planned action.
 - [ ] `## Steps` → step 4: add **(4e) The `sweep` target**, which runs after (4d) has finished, or after the last document wave when (4d) does not run.
   - **Classification.** It reuses (4a)'s rule. An untouched skeleton is `action: write` without asking. A path with no file is `action: write`, the writer's compose-from-nothing case. Anything else is asked, merge by default, `skip` always available, and `--yes` takes the default. `skip` sends nothing.
-  - **Dispatch.** Send the step 3 write block with `target: sweep`, `document_path` the absolute `.claude/review-sweep.md`, and `scope` the repository root. `shared_document` takes the on-disk value step 1 states: the shared document's path when it exists and does not carry `<!-- devscene:unfilled -->`, otherwise `none`.
+  - **Dispatch.** Send the step 3 write block with `target: sweep`, `document_path` the absolute `.claude/review-sweep.md`, and `scope` the repository root. `shared_document` takes the on-disk value step 1 states: the shared document's path when it exists and does not carry `<!-- devscene:unfilled -->`, otherwise `none`. **`demand_set` is sent unchanged**, the run's one derivation, because the closed block carries it on every dispatch. State in (4e) that this target has no `demand_set` scope of its own, so the writer answers none of it and the reviewer skips check (5). That is the exception `plugin/agents/conventions-writer.md` → `## The sweep document` defines (Task 5), in the words step 4 already uses for the `project` target.
   - **Review and fix.** Then one (4c) review and at most one fix, exactly as (4c) defines them. Step 3's closed-block rule binds all three.
   - **Not a corpus member.** In (4d)'s corpus-set bullets, add one bullet: the sweep document is never a member of `corpus_documents`.
 - [ ] `## Steps` → step 4 (4b) banner rule and step 6. The setup-pending banner is deleted only when every target of a no-argument run, `sweep` included, has completed.
@@ -36,4 +36,5 @@ The dispatch block this command sends is the existing write / review / fix block
 
 - `git grep -n -F 'sweep' -- plugin/commands/analyze.md` shows the target in `## Resolved values`, `## Context`, step 1, (4d), (4e) and step 6.
 - `git grep -n -F 'three reserved' -- plugin` prints nothing.
+- `git grep -n -F 'no `demand_set` scope of its own' -- plugin/commands/analyze.md` prints the existing `project`-target line and the new (4e) line.
 - The (4e) dispatch names only fields that `plugin/agents/conventions-writer.md` → `## Invocation contract` and `plugin/agents/conventions-reviewer.md` → `## Invocation contract` already list. Check each field name by grep in those two files.
