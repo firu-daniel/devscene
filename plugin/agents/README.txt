@@ -113,8 +113,8 @@ file on the second that is missing from the first is a fixture nothing reads.
 
 One convention rides along with those pointers and, like the allowlist rule above,
 belongs to this directory rather than to any one file in it: an agent that cannot
-read a cited contract, sample or instruction file REPORTS it — through its return
-object — a `blocker` outcome, or the outcome its schema names for that case —
+read a cited contract, sample or instruction file REPORTS it in its return
+object — a `blocker` outcome, or the outcome its schema names for that case,
 naming the path and the refusal — and produces no artifact. A substitution is a
 finding, not a fallback, so no definition here may swap another document in for a
 cited one or fall back on a remembered format.
