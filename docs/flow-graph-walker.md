@@ -274,7 +274,7 @@ Two facts the driver depends on are measured on a real node session, on Claude C
 
   beside Claude Code's built-in plugins. No installed copy was loaded beside the `--plugin-dir` one.
 
-The driver's read of a node's return rests on the corrected entry's second session: a node's `result` text is the agent's own reply, ending in its fenced block. The fact the orchestrated path's routing check depends on, that an `Agent` result carries the sub-agent's reply verbatim, is not yet measured, with its hand step, in `docs/structured-agent-returns.md` → `## 3. Measured, and not yet measured`.
+The driver's read of a node's return rests on the corrected entry's second session: a node's `result` text is the agent's own reply, ending in its fenced block. The fact the orchestrated path's routing check depends on is now measured: an `Agent` result does not carry the sub-agent's reply verbatim, but wraps it between a frame line and an `agentId:` / `<usage>` trailer and indents every line of it, and the routing check's reading takes the reply out and disregards the rest. Its record is `docs/structured-agent-returns.md` → `## 3. Measured, and not yet measured`.
 
 The hand step that reads a node's return, and re-measures the facts above, is one real planning run with the key on, from a terminal outside any agent session, run from the main checkout with `<scripts_dir>` and `<state_dir>` your configured values. Turn the key on — the watcher reads it at the next launch, with no restart:
 
