@@ -55,3 +55,4 @@ It writes nothing under this repository's own `.claude/`, which is the user's af
 - `npm test --workspace cli -- test/init.test.mjs` passes. It is this task's own edited test file.
 - `bash scripts/typecheck.sh` exits zero.
 - `git grep -n -F 'review-sweep' -- cli/src/generators/claudeContext.ts` shows the path only in `REVIEW_SWEEP_PATH`'s declaration and its uses, never in a routing row.
+  - **Deviations from plan:** Also edited `cli/src/commands/init.ts` → the closing-report doc comment ("the three targets that name no layer" → "the four"), which `RESERVED_ANALYZE_TARGETS` now makes stale; not in the Targets list. A `--force`-kept review-sweep skeleton joins the existing kept-for-backup note rather than getting a note of its own. Verification ran `bash scripts/typecheck.sh` (the configured `commands.typecheck`), matching the plan's bullet.

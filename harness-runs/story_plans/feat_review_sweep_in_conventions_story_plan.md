@@ -51,7 +51,7 @@ This branch takes half (a) of the end-of-branch reviewer's Pass 0, the grep swee
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_review_sweep_in_conventions/task_<K>_plan.md`. They are ordered bottom-up by ship sequence in the configured layer order (`cli`, `plugin`, then the catch-all `general` last).
 
-1. [ ] **Task 1** — Write the `.claude/review-sweep.md` skeleton from `init` and reserve the `sweep` analyze target _(layer: cli)_ _(points: 20)_
+1. [x] **Task 1** — Write the `.claude/review-sweep.md` skeleton from `init` and reserve the `sweep` analyze target _(layer: cli)_ _(points: 20)_
 2. [ ] **Task 2** — Ship `review-sweep.sh`, which applies the sweep rows to a branch's added lines, with its test suite _(layer: cli)_ _(points: 20)_
 3. [ ] **Task 3** — Add `review-sweep.sh` to the outer-loop script table as agent-invocable _(layer: cli)_ _(points: 15)_
 4. [ ] **Task 4** — Add the `review-sweep` doctor check for a missing or unfilled sweep document _(layer: cli)_ _(points: 15)_

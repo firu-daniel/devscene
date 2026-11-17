@@ -42,6 +42,7 @@
  * | `.claude/CLAUDE.md` | `create-if-absent` | `/devscene:analyze` fills it; a re-run must not undo that. It carries neither the `<!-- devscene:unfilled -->` marker nor the `**What belongs here**` block, so its setup state is the `<!-- devscene:setup-pending -->` banner and `doctor`'s `setup-analysis` check, not the two-part test below. |
  * | `.claude/devscene-task-offer.md` | `create-if-absent` | Nothing fills it — the always-loaded file's `## Where a change request runs` fence points at it by name, so a re-run must keep the adopter's edited copy and `--force` after a `.bak` is the upgrade path. |
  * | `.claude/context/*.md` stubs | `create-if-absent` | `/devscene:analyze` fills them; a re-run must not undo that. Filled is checkable, by the two-part test `init`, `doctor` and the command all apply: a stub still carrying its `<!-- devscene:unfilled -->` marker **and** its `**What belongs here**` block is an untouched skeleton, and anything else was written — by the command or by hand. |
+ * | `.claude/review-sweep.md` | `create-if-absent` | `/devscene:analyze` fills it and the adopter maintains its rows; a re-run must not undo either. Filled is the same two-part test as a conventions stub's, and `--force` keeps it on the same per-request test as a stub's (below). |
  * | `.claude/settings.json`, `.mcp.json` | `merge-json` (missing keys only) | Shared with other tooling; the adopter's own entries survive. |
  * | `.gitignore` | `merge-lines` (a managed block, lines not already present) | Every repo already has one. |
  * | The `stateDir` tree and its per-directory READMEs | `ensure-dir` + `create-if-absent` | Creating what is missing is the whole operation; an adopter may have rewritten a contract sentence. |
@@ -63,7 +64,7 @@
  * `devscene.config.json` — `'never'` on an ordinary `init`, `'always'` on `init --reset-config` —
  * and `generators/stateDir.ts` for the two ledgers, `'never'` and nothing else, because no command
  * rebuilds a ledger. **Four more** read the tree and answer **per request**: `generators/claudeContext.ts`
- * sets `'never'` on a conventions stub that is already a skeleton whose `.bak` holds a filled
+ * sets `'never'` on a conventions stub, or the review-sweep document, that is already a skeleton whose `.bak` holds a filled
  * document, because that one write would replace the only surviving copy of the analysis with a
  * skeleton — and on `.claude/CLAUDE.md` when its bytes already are the text that run renders, because
  * that write would put nothing in the `.bak` and destroy what is in the one already there;
