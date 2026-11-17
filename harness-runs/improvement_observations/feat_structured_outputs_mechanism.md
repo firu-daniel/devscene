@@ -28,3 +28,23 @@
 - **cost this run:** 2 node session(s)
 
 # Task run (Phase D)
+
+## Sub-agents could not read the main checkout's run streams, so the Agent-result measurement was not re-run on this branch
+- **category:** tooling-gap
+- **evidence:** three dispatches reported the same refusal in their returns: the Task 6 `layer-implementer` (`[A · Task 6 · general · iter 0]`) — re-running the measurement over `harness-runs/autonomous_logs/` (main checkout) was refused with "Permission to use Bash has been denied because Claude Code is running in don't ask mode", so `docs/structured-agent-returns.md` → `## 3.` rests on the plan's quoted block (evidence downgrade noted in `harness-runs/task_plans/feat_structured_outputs_mechanism/task_6_plan.md`); the Phase B `branch-reviewer` ("the shell refused my attempts … to re-run the stream measurement"); the Phase C2 `skeptic-reviewer` ("the sandbox refused my reads there").
+- **cost this run:** the branch's recorded measurement was never independently re-verified by any agent; it is carried from the planning session's quote.
+
+## The branch-reviewer could not run jq to confirm a Must Fix it raised
+- **category:** tooling-gap
+- **evidence:** Phase B `branch-reviewer` return: "the shell refused my attempts to try jq by hand"; its Finding 1 (duplicate `outcome` key passing as `SAFE`) was graded Must Fix on jq's documented behaviour, "I could not confirm it by running it". The fix (`fcdf1f07`) added the duplicate-key row to `cli/test/prompt-injection-verdict.test.mjs`, which passed after the fix; no run showed it failing before.
+- **cost this run:** one Must Fix graded and fixed without a reproduction.
+
+## Every diff-based dispatch named `dev` as the base, which this run copy does not carry
+- **category:** agent-contract
+- **evidence:** the A2 `architecture-reviewer` dispatch block carried `diff_base: dev`; it, the B `branch-reviewer`, the C2 `skeptic-reviewer` and the D `statistics-plan-writer` each reported no local `dev` branch and fell back to `origin/dev`. At Phase D, `git log --format='%h %s%n%b' --name-only dev..HEAD` failed with `fatal: ambiguous argument 'dev..HEAD': unknown revision`.
+- **cost this run:** four agents each re-derived the base on their own; every one chose `origin/dev`, so no review was mis-scoped.
+
+## Implementers piped test runs through grep/tail against the conventions
+- **category:** agent-contract
+- **evidence:** five of the nine `layer-implementer` returns this session reported piping a test or tree-guard run through `grep` or `tail` (Tasks 1, 3, 4, 5 and code-review Finding 1); for Task 3 and code-review Finding 1 the return states the exit status was hidden by the pipe and not re-captured.
+- **cost this run:** two units' tree-guard results rest on TAP summary text rather than an exit status; the Phase G run (`task_round_1`) later passed the whole suite.
