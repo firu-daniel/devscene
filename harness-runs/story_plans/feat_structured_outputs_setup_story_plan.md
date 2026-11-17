@@ -88,7 +88,7 @@ The plan found no point where the record and the task prompt disagree. One readi
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_setup/task_<K>_plan.md`. They are ordered bottom-up by ship sequence, with the catch-all layer last.
 
 1. [x] **Task 1** — Give `conventions-reviewer` a schema-validated return and move its readers in `analyze.md` and the writer's invocation contract onto it _(layer: plugin)_ _(points: 20)_
-2. [ ] **Task 2** — Give `conventions-writer` a schema-validated return and move every read of it in `analyze.md` onto it _(layer: plugin)_ _(points: 20)_
+2. [x] **Task 2** — Give `conventions-writer` a schema-validated return and move every read of it in `analyze.md` onto it _(layer: plugin)_ _(points: 20)_
 3. [ ] **Task 3** — Record the conventions pair's outcomes and field shapes in the decision record and update `docs/analyze.md` _(layer: general)_ _(points: 10)_
 
 ## Scope register

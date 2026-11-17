@@ -45,6 +45,7 @@ Object items, every property a required string with minLength 1:
     - the divergence paragraph's *"go to `shared_document_divergences:` in your return"* and *"the field is `none`"* become the field name and *"`[]`"*.
   - **The absent-document paragraph:** *"Report it as `prior_document: absent` with `prior_prompts: n/a` and `prior_rule_block: n/a`"* is re-spelled as field values: `prior_document` `absent`, `prior_prompts` and `prior_rule_block` `n/a`.
   - Leave both `Reviewer finding not applied — ` sentences byte-identical: `## The document`'s `## Not determined` bullet and `## The fix dispatch`'s corpus paragraph.
+  - **Deviations from plan:** In the divergence paragraph, *"The lines go to"* also became *"The divergences go to"*, because the field now carries objects rather than lines. The plan named only the field-name and `[]` changes in that sentence.
 - [ ] `plugin/commands/analyze.md`, (4a) and (4c):
   - **(4a), the pointer.** Before *"Keep every `shared_document_divergences:` line …"*, add one paragraph. It says to read every `conventions-writer` return this command receives — write, document fix, reconciliation and corpus fix — as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states:
     - an `outcome` of `written` or `merged` routes;

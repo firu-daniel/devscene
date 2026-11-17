@@ -63,7 +63,7 @@ You are dispatched by `${CLAUDE_PLUGIN_ROOT}/commands/analyze.md`, on the axis t
 
 **The prefix is the discriminator.** An object carrying `check_id` is a corpus review finding, and a line carrying that prefix is a forwarded divergence. Anything else is a malformed dispatch, not a third origin to guess at. Both origins are applied identically, and both are recorded identically when declined.
 
-**Stop condition — a missing value, never a missing key spelling.** The dispatch is prose, not a keyed block: read the values out of it however they are worded. If any required value is **absent**, return a blocker naming which value is missing, and stop. Never guess a layer, never widen the scope, never substitute another document.
+**Stop condition — a missing value, never a missing key spelling.** The dispatch is prose, not a keyed block: read the values out of it however they are worded. If any required value is **absent**, return outcome `blocker`, naming which value is missing, and stop. Never guess a layer, never widen the scope, never substitute another document.
 
 ## Scope
 
@@ -71,7 +71,7 @@ You are dispatched by `${CLAUDE_PLUGIN_ROOT}/commands/analyze.md`, on the axis t
 
 **`pass: corpus` widens none of that.** A corpus finding against the always-loaded project file is applied by the session that dispatched you and never reaches you, and the sibling **read** permission of `## Resolved values` is no licence to write.
 
-**Evidence comes from `scope` only**, never from `excluded_paths`. On a repository too large to read whole, **sample it and record what was sampled and what was not in your return's `evidence:` field** — never in the document: size is never a reason to decline.
+**Evidence comes from `scope` only**, never from `excluded_paths`. On a repository too large to read whole, **sample it and record what was sampled and what was not in your return's `evidence` field** — never in the document: size is never a reason to decline.
 
 **Reconciling `harvested_sources` against the code.** Code decides what *is*: a prose rule the code contradicts is **not written as a rule** — it goes to `## Not determined` carrying both sides, what the prose says and what the code does. A rule about intent the code can neither corroborate nor contradict — a prohibition, a security rule, a policy — is carried over **attributed to its source**.
 
@@ -110,14 +110,14 @@ On every dispatch:
 - **A rule governing more than one layer is owned by the shared cross-layer document**. A layer document states this layer's own consequence of it and cites the owner — never restates the rule, even in the same terms.
 - For the shared cross-layer document only: it additionally owns the cross-layer flow, the testing bar, the commit-message policy, and — **only when `parity` is present** — how the project stays in step with it.
 - **Provenance on every rule**: the files it was read off in `existing` mode, `proposed` in `greenfield`. A source file supports a claim about code shape; it cannot establish history, process, intent or exhaustiveness — a rule of one of those classes citing source files is unsourced however many are listed. **Before citing a source file for a rule about code shape, grep that file for the construct the rule asserts** — the API, symbol, annotation, type or literal the rule says the code uses — and grep the cited scope too where the rule is scope-wide. Write the rule only where the file shows it. Where the cited file shows the **opposite** convention — occurrences of a competing construct where the rule's own construct has none — the rule is what the tree shows. **A claim about build or generated output is read off the build configuration or an emitted artifact**, never off an ignore rule, which anticipates output rather than evidencing it. Where which of the two the project intends is the open question, it is not a rule: it goes to `## Not determined` naming the pattern observed and what would settle it, the entry an unsourced intent claim already takes. **`mode: greenfield` exempts this clause whole:** there is no source to grep.
-- **Every count, quantity or "N files" statement is the output of a command you ran in this dispatch.** It binds wherever you state one — the document, `evidence:`, `not_determined_lines:`, and any material you hand back for the session to record. Never carry a quantity over from earlier session text you did not re-run. Where a quantity is not worth a command, name what was read instead of counting it. A number that *is* a rule stays admissible under **Never a census** and is measured like any other.
+- **Every count, quantity or "N files" statement is the output of a command you ran in this dispatch.** It binds wherever you state one — the document, `evidence`, `not_determined_lines`, and any material you hand back for the session to record. Never carry a quantity over from earlier session text you did not re-run. Where a quantity is not worth a command, name what was read instead of counting it. A number that *is* a rule stays admissible under **Never a census** and is measured like any other.
 - Write **one whole document**, never a document assembled in place, so an interrupted run lands on a document boundary.
 
-**Where the shared document disagrees with this scope's code, record the divergence.** You read `shared_document` as your vocabulary anchor; where that document states something this document's own scope contradicts, write one line naming what the shared document says, what this scope's code shows, and the file plus the symbol or quoted substring you read it off. You do **not** edit that document, and you do **not** write the contradicting rule into your own: recording it is the whole of the obligation. It applies on every **`pass: document`** dispatch carrying a `shared_document` **path** — write, merge or fix — and on **no** dispatch carrying `shared_document: none`, where there is no anchor to disagree with. **On `pass: corpus` it does not apply and the field is `none`.** The lines go to `shared_document_divergences:` in your return, never into the document.
+**Where the shared document disagrees with this scope's code, record the divergence.** You read `shared_document` as your vocabulary anchor; where that document states something this document's own scope contradicts, write one line naming what the shared document says, what this scope's code shows, and the file plus the symbol or quoted substring you read it off. You do **not** edit that document, and you do **not** write the contradicting rule into your own: recording it is the whole of the obligation. It applies on every **`pass: document`** dispatch carrying a `shared_document` **path** — write, merge or fix — and on **no** dispatch carrying `shared_document: none`, where there is no anchor to disagree with. **On `pass: corpus` it does not apply and the field is `[]`.** The divergences go to `shared_document_divergences` in your return, never into the document.
 
 **On `action: merge`:** keep the adopter's rules, add what is missing, and list every contradiction in `## Not determined`.
 
-**On an `action: write` dispatch whose `document_path` names no existing file.** This is a path a layer profile accepted during the run newly names, and nothing is on disk. Compose the document **to the same shape from nothing**: the `> **Read this when:** … **Skip when:** …` banner written for the real target; this target's actual rules under the headings a shipped skeleton carries; a real example from this repository; the document-level provenance line; and the `## Not determined` section. It carries **no `<!-- devscene:unfilled -->` marker** — the marker is a seeding artifact and this document was written rather than seeded. Report it as `prior_document: absent` with `prior_prompts: n/a` and `prior_rule_block: n/a`, never as `skeleton`. Everything else is unchanged: same one-whole-document write, same per-rule provenance, same `demand_set` coverage, same reconciliation rule.
+**On an `action: write` dispatch whose `document_path` names no existing file.** This is a path a layer profile accepted during the run newly names, and nothing is on disk. Compose the document **to the same shape from nothing**: the `> **Read this when:** … **Skip when:** …` banner written for the real target; this target's actual rules under the headings a shipped skeleton carries; a real example from this repository; the document-level provenance line; and the `## Not determined` section. It carries **no `<!-- devscene:unfilled -->` marker** — the marker is a seeding artifact and this document was written rather than seeded. Report it with `prior_document` `absent` and `prior_prompts` and `prior_rule_block` `n/a`, never as `skeleton`. Everything else is unchanged: same one-whole-document write, same per-rule provenance, same `demand_set` coverage, same reconciliation rule.
 
 **Two document-level obligations close the write, on both `write` and `merge`, unconditionally:**
 
@@ -139,25 +139,37 @@ On every dispatch:
 
 ## Output contract
 
-Your final message IS your return value (not a human chat). Field names byte-stable:
+Your final message IS your return value (not a human chat). Field names byte-stable.
 
-- `document_path:`
-- `action_taken:` — `written` or `merged`, and no other value: declining a document is not among your options.
-- `not_determined:` — count.
-- `not_determined_lines:` — every line of the document's `## Not determined` section, verbatim, one per line, including each `Reviewer finding not applied — ` line; or `none`.
-- `conflicts:` — one line per contradiction found between the adopter's harvested prose and the code (what the prose says, what the code does), or `none`.
-- `shared_document_divergences:` — one line per divergence between `shared_document` and this scope's code, shaped as `## The document` states, or `none`. **The two fields do not overlap and neither absorbs the other:** `conflicts:` carries **adopter prose vs code** inside this document's own scope; this field carries **the shared document vs this scope's code**. **Always emitted** — `none` on any `pass: corpus` dispatch, where `## The document` states the check does not apply; `none` when the dispatch carried `shared_document: none`; `none` when nothing was found; an omitted field is what the caller's stop condition fires on.
-- `findings_applied:` — count, or `n/a` on a write dispatch.
-- `findings_declined:` — one line each (the finding, and the reason), or `none`.
-- `evidence:` — one line naming what was read, and on a sampled repository what was **not**.
-- `prior_document:` — `skeleton`, `filled` or `absent`: what stood at `document_path` **when the dispatch arrived**. `skeleton` — an untouched seeded skeleton, which is what an `action: write` dispatch normally finds. `filled` — the adopter's own filled or hand-edited document, which is what an `action: merge` dispatch finds. `absent` — no file at all, which only an `action: write` dispatch on a newly named path finds.
-- `prior_prompts:` — every `**What belongs here**` item that file carried, verbatim, one per line; `none` when it carried no such block; `n/a` when `prior_document: absent`.
-- `prior_rule_block:` — the stack-independent rule block that file carried between `**What belongs here**` and the example, verbatim; `none` when it carried none (the shipped generic-layer and shared cross-layer skeletons carry none, so `none` is an ordinary answer and not a defect); `n/a` when `prior_document: absent`.
-- `notes:`
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
+
+### Return fields
+
+- `outcome` — `written` or `merged`, the document as it now stands, or `blocker`. Declining a document is not among your options.
+- `document_path` — `written` and `merged`: the document written.
+- `not_determined` (integer) — `written` and `merged`: the count of `## Not determined` lines, at least 0.
+- `not_determined_lines` (array of strings) — `written` and `merged`: every line of the document's `## Not determined` section, verbatim, one per item, including each `Reviewer finding not applied — ` line; one or more items, omitted when there is none.
+- `conflicts` (array of objects) — `written` and `merged`: one item per contradiction found between the adopter's harvested prose and the code; one or more items, omitted when there is none.
+  - `prose` — what the prose says, naming its source.
+  - `code` — what the code does, naming the file and the symbol or quoted substring.
+- `shared_document_divergences` (array of objects) — `written` and `merged`: one item per divergence between `shared_document` and this scope's code, as `## The document` states. **The two fields do not overlap and neither absorbs the other:** `conflicts` carries **adopter prose vs code** inside this document's own scope; this field carries **the shared document vs this scope's code**. **Always emitted** — `[]` on any `pass: corpus` dispatch, where `## The document` states the check does not apply; `[]` when the dispatch carried `shared_document: none`; `[]` when nothing was found.
+  - `shared_document_says` — what the shared document says.
+  - `code_shows` — what this scope's code shows.
+  - `source` — the file plus the symbol or quoted substring you read it off.
+- `findings_applied` (integer) — `written` and `merged`, on a fix dispatch only: the count of findings applied, at least 0; omitted on a write dispatch.
+- `findings_declined` (array of objects) — `written` and `merged`: one item per finding you did not apply; one or more items, omitted when there is none.
+  - `finding` — a forwarded divergence's line verbatim, its `Layer-writer divergence — ` prefix intact, or a reviewer finding's `check_id` where it has one followed by its `claim`.
+  - `reason` — your reason.
+- `evidence` — `written` and `merged`: one line naming what was read, and on a sampled repository what was **not**.
+- `prior_document` — `written` and `merged`: `skeleton`, `filled` or `absent`: what stood at `document_path` **when the dispatch arrived**. `skeleton` — an untouched seeded skeleton, which is what an `action: write` dispatch normally finds. `filled` — the adopter's own filled or hand-edited document, which is what an `action: merge` dispatch finds. `absent` — no file at all, which only an `action: write` dispatch on a newly named path finds.
+- `prior_prompts` — `written` and `merged`: every `**What belongs here**` item that file carried, verbatim, one per line; `none` when it carried no such block; `n/a` when `prior_document` is `absent`.
+- `prior_rule_block` — `written` and `merged`: the stack-independent rule block that file carried between `**What belongs here**` and the example, verbatim; `none` when it carried none (the shipped generic-layer and shared cross-layer skeletons carry none, so `none` is an ordinary answer and not a defect); `n/a` when `prior_document` is `absent`.
+- `notes` — `written` and `merged`, optional.
+- `blocker` — `blocker` only: one line naming the missing value, or the `findings` entry that is neither origin.
 
 **The three `prior_*` fields are the pre-write state, so read and quote them off the file before you replace it**. Quote, never paraphrase. On a fix dispatch, re-emit all three with **exactly the values the dispatch handed you**; never reconstruct them.
 
-The caller builds its report **from this return alone and does not re-read your document**, so every `## Not determined` line, prose/code conflict and sampling gap goes in it. Do not paste the document body. On a fix dispatch, re-emit the whole block describing the document as it now stands.
+The caller builds its report **from this return alone and does not re-read your document**, so every `## Not determined` line, prose/code conflict and sampling gap goes in it. Do not paste the document body. On a fix dispatch, re-emit the whole return object describing the document as it now stands.
 
 ## House rules
 
