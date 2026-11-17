@@ -25,7 +25,11 @@ The tokens below are neither Mode-contract **bindings** (this file declares none
 
    The `branch-reviewer` agent's system prompt already covers diff-fetching, full file reads (no further sub-agent delegation for file reads), parity checks against the reference implementation (`<parity_vocabulary>`, at `<reference_impl>`), the Must Fix / Should Fix / Nice to Have format, the high-yield checklist, and the **split output** it produces — a thin **code-review index** plus one self-contained per-finding file per finding, with the `## Phase 2 Readiness — Ordered Fix List` section placed in the index (after Context, before the finding pointers). Do not duplicate or override those instructions in your prompt to it. *The parity item in that list applies only when `phases.parity` is `true` in `devscene.config.json`; when it is `false` the agent has no reference implementation to compare against and the rest of its coverage is unchanged.*
 
-3. **Present the review findings** returned by the agent to the user.
+3. **Read every `branch-reviewer` return in this flow** — step 2's and any step-4 re-spawn's — as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states:
+   - An `outcome` of `returned` → present `` `branch-reviewer.index_path` ``, `` `branch-reviewer.findings_dir` ``, `` `branch-reviewer.finding_count` `` and each `` `branch-reviewer.questions` `` item to the user. `questions` is optional: absent or empty means none.
+   - An `outcome` of `blocker`, or the third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) → report `` `branch-reviewer.blocker` `` or the check that failed, and stop.
+
+   This dispatch is single-pass, so it reads no reconciliation field.
 
 4. **If anything is unclear or seems off** in the review, do not patch over it — ask clarification questions. If the user wants a deeper pass on a specific area, re-spawn the `branch-reviewer` agent with a focused prompt (e.g., "re-review only the files under one layer's configured `path` from `<layer_path_map>`, narrowed to a single feature subtree of it, with extra attention to the checks that layer's `layers[].conventions` document defines — for a user-facing layer that is its component-size threshold and its rules on styling tokens and the localized-copy source").
 

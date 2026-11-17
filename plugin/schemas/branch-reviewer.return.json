@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "branch-reviewer return",
+  "description": "The branch-reviewer's return object, in single-pass and two-pass mode alike.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "The split review was written: the index and one file per finding.",
+      "properties": {
+        "outcome": { "const": "returned", "description": "The split review was written." },
+        "index_path": { "type": "string", "minLength": 1, "description": "The index path the caller supplied." },
+        "findings_dir": { "type": "string", "minLength": 1, "description": "The per-finding folder, with the round suffix mirrored." },
+        "finding_count": { "type": "integer", "minimum": 0, "description": "The number of finding_<N>.md files written." },
+        "carried_over": { "type": "integer", "minimum": 0, "description": "Two-pass mode only, required there: Pass 2's real-and-missed items carried over." },
+        "skipped_covered": { "type": "integer", "minimum": 0, "description": "Two-pass mode only, required there: Pass 2's items skipped as already covered." },
+        "skipped_stale": { "type": "integer", "minimum": 0, "description": "Two-pass mode only, required there: Pass 2's items skipped as stale." },
+        "questions": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "One item per decision a finding could not take, naming the decision owed and who owes it; omitted when none." }
+      },
+      "required": ["outcome", "index_path", "findings_dir", "finding_count"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A cited input could not be read; no review file was written.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "A cited input could not be read." },
+        "blocker": { "type": "string", "minLength": 1, "description": "The unreadable path and the refusal, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}
