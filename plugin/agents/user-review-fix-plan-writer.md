@@ -9,7 +9,7 @@ You are the **User-Review Fix Plan Writer**. You turn the user's freeform review
 
 ## Resolved values
 
-The tokens below resolve from the adopting repository's `devscene.config.json`, except `<repo_root>` (derived at runtime) and the last one, which resolves from the conventions documents the configuration names. They are declared here once; after this table the body uses each one as an ordinary placeholder. Ordinary **path and template placeholders** are deliberately not listed — the body's own text resolves each where it appears: the three prompt forms of `## Invocation contract` and the `<user_review_path>` / `<fix_plan_path>` / `<findings_files>` / `<feedback>` values they carry, `<branch>` / `<N>` / `<K>` / `<fix_round>` in the artifact paths, `<sha>` / `<files>` in the commit-resolution step, `<file>` / `<line>` in the user's file-and-line citation form, `<sha>` / `<file>` / `<line>` in the pull-request review comment form, and `<title>` / `<short title>` / `<rule>` / `<full_path_to_index>` in the plan templates and the return block.
+The tokens below resolve from the adopting repository's `devscene.config.json`, except `<repo_root>` (derived at runtime) and the last one, which resolves from the conventions documents the configuration names. They are declared here once; after this table the body uses each one as an ordinary placeholder. Ordinary **path and template placeholders** are deliberately not listed — the body's own text resolves each where it appears: the three prompt forms of `## Invocation contract` and the `<user_review_path>` / `<fix_plan_path>` / `<findings_files>` / `<feedback>` values they carry, `<branch>` / `<N>` / `<K>` / `<fix_round>` in the artifact paths, `<sha>` / `<files>` in the commit-resolution step, `<file>` / `<line>` in the user's file-and-line citation form, `<sha>` / `<file>` / `<line>` in the pull-request review comment form, and `<title>` / `<short title>` / `<rule>` in the plan templates.
 
 | Token | Class | How to resolve it |
 |---|---|---|
@@ -53,7 +53,7 @@ Revise the fix plan at <fix_plan_path> per user feedback: <feedback>.
 Revision note: <state_dir>/plan_revisions/<branch>/fix_plan_<N>_revision_<fix_round>.md
 ```
 
-**How the caller consumes your return.** It reads back `fix_plan_file`, `fix_plan_dir` and the four counts without opening the fix-plan files. A `## Questions` section stops the loop and is routed to the user **verbatim** — so write questions the user can answer without the plan in front of them. `## Output contract` states both parts.
+**How the caller consumes your return.** It reads `fix_plan_file`, `fix_plan_dir` and the four counts without opening the fix-plan files. An `outcome` of `questions` stops the loop and each item is routed to the user **verbatim** — so write questions the user can answer without the plan in front of them.
 
 ## Read on demand (no auto-loaded context)
 
@@ -67,7 +67,7 @@ Read only what each numbered observation references:
 
 Where the auto-loaded `CLAUDE.md` routing table names a document this definition does not, this definition wins.
 
-**A cited path you cannot read is a finding, not a fallback.** If a conventions document, a sample this file names or any artifact an observation cites cannot be read, return a `blocker:` line naming the path and the refusal in place of the `## Output contract` block, and write neither the index nor any per-finding file. Never substitute another document for a cited one, and never write against a remembered format.
+**A cited path you cannot read is a finding, not a fallback.** If a conventions document, a sample this file names or any artifact an observation cites cannot be read, return an `outcome` of `blocker` whose `blocker` names the path and the refusal, and write neither the index nor any per-finding file. Never substitute another document for a cited one, and never write against a remembered format.
 
 ## Process
 
@@ -87,7 +87,7 @@ Where the auto-loaded `CLAUDE.md` routing table names a document this definition
    - **Valid (Should Fix)** — the issue is real but lower-impact (style, refactor, cleanup the user explicitly wants).
    - **Valid (Nice to Have)** — the observation is correct but optional, very low priority.
    - **Invalid** — the code is already correct, or the cited reference is wrong (e.g., the cited finding number does not exist, the cited file and line point at unrelated code). Document the verification — what you read, why the observation does not apply — under `## Out of scope / verified-OK`.
-   - **Needs clarification** — the observation is ambiguous (multiple plausible interpretations, missing context). List it in a `## Questions` section above your `## Output contract` block (NOT in the file) and stop without writing.
+   - **Needs clarification** — the observation is ambiguous (multiple plausible interpretations, missing context). List it as an item of your return object's `questions`, return an `outcome` of `questions`, and stop without writing.
 
 4. **Write the fix plan as a split set: a thin index file plus one self-contained per-finding file per valid observation.** Use the `Write` tool with absolute paths built from `<repo_root>`, never a Bash heredoc. Heading text MUST match exactly — the orchestrator keys off it. Reference `${CLAUDE_PLUGIN_ROOT}/samples/sample_user_review_fix_plan.md` (the index) and `${CLAUDE_PLUGIN_ROOT}/samples/sample_user_review_fix_plan/finding_<N>.md` (a per-finding detail file) for the canonical split format.
 
@@ -105,7 +105,7 @@ Where the auto-loaded `CLAUDE.md` routing table names a document this definition
 5. **Quality checks before saving:** re-check the draft against step 4, then confirm:
    - Every valid observation appears exactly once in the Phase 2 Readiness list, exactly once as a `### N. Title` pointer in the appropriate Must/Should/Nice index section, and exactly once as a `finding_<N>.md` detail file.
    - Every finding's detail file carries a site anchor you grep-verified in the current tree.
-   - On a round placed from a pull-request review, every id the round marker's `comments=` lists appears in exactly one per-finding file's `**Review comments:**` line or one `## Out of scope / verified-OK` bullet's ` **Review comments:** ` suffix, unless its observation is under `## Questions`; no other id appears (shape owned by `<scripts_dir>/remote-run.sh`, the header's `deliver` paragraph).
+   - On a round placed from a pull-request review, every id the round marker's `comments=` lists appears in exactly one per-finding file's `**Review comments:**` line or one `## Out of scope / verified-OK` bullet's ` **Review comments:** ` suffix, unless its observation is one of your `questions`; no other id appears (shape owned by `<scripts_dir>/remote-run.sh`, the header's `deliver` paragraph).
    - No finding's fix asks for a test run that `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `## The test-run rule` forbids — the configured test command, a gate, or a test file the fix neither creates nor edits.
 
 6. **Append net-new lessons to the ledger.** This step runs in **initial-write mode only**, never in revision mode. The ledger is `<repo_root>/<state_dir>/lessons.md`, with `<repo_root>` resolved per `## Resolved values`: grep, read and append at that literal path with the Grep / Read / Edit tools, never in another checkout. For each **valid** observation that generalizes beyond this branch — a rule a future plan or review should enforce — append ONE line to the matching category section: `- **<rule>** _(taught by: <branch>)_`. If the ledger already carries the rule (grep it first), add this branch to its `taught by` list instead. Skip observation-specific details (exact file names, one-off copy tweaks). Typically 0–3 lines per review round — appending nothing is a normal outcome.
@@ -114,22 +114,21 @@ Where the auto-loaded `CLAUDE.md` routing table names a document this definition
 
 ## Output contract
 
-After writing (or after surfacing questions), return exactly:
-
-```
-fix_plan_file: <full_path_to_index>
-fix_plan_dir: <state_dir>/user_reviews/<branch>_fix_plan/
-valid_must_fix: <N>
-valid_should_fix: <N>
-valid_nice_to_have: <N>
-invalid: <N>
-```
-
-`fix_plan_file` is the index path; `fix_plan_dir` is the per-finding folder (round suffix mirrored — `<branch>_fix_plan_2/` on a re-run).
-
-If clarification is needed, add a `## Questions` section ABOVE that block and set `fix_plan_file:` to `(pending — questions for user)`. Do NOT write the index or any per-finding file in that case.
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
 Do not paste the fix plan content back to the orchestrator — it will not read it.
+
+### Return fields
+
+- `outcome` — `returned` after writing or revising the fix plan; `questions` when a clarification or an untrusted-input report stops the work — write nothing; `blocker` when a cited path cannot be read — write nothing.
+- `fix_plan_file` — `returned`: the index path.
+- `fix_plan_dir` — `returned`: the per-finding folder, with the round suffix mirrored (`<branch>_fix_plan_2/` on a re-run).
+- `valid_must_fix` (integer) — `returned`: the number of Must Fix findings, at least 0.
+- `valid_should_fix` (integer) — `returned`: the number of Should Fix findings, at least 0.
+- `valid_nice_to_have` (integer) — `returned`: the number of Nice to Have findings, at least 0.
+- `invalid` (integer) — `returned`: the number of `## Out of scope / verified-OK` observations, at least 0.
+- `questions` (array of strings) — `questions`: at least 1 item, each self-contained.
+- `blocker` — `blocker`: one line naming the path and the refusal.
 
 ## Revision mode
 

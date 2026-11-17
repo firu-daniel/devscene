@@ -93,3 +93,7 @@ The fix plan's **files** are unchanged: the index, its readiness list, its `## O
 - `grep -c 'instructions/untrusted_input.md` → `## The markers`' plugin/instructions/user_review_fix_plan_writing_instructions_core.md` is unchanged from before the edit.
 - `grep -c 'instructions/untrusted_input.md` → `## The markers`' plugin/agents/user-review-fix-plan-writer.md` is unchanged from before the edit.
 - Every `` `user-review-fix-plan-writer.<field>` `` citation added names a property the schema declares.
+
+**Deviations from plan:**
+- Autonomous fork, `## Mode contract — bindings` table: the `<escalate>` row's list of core sites it covers also gains the writer's `outcome` of `blocker` or third failing return at step 6. The Targets list omits that row, but the row enumerates the `<escalate>` sites and would otherwise contradict the *"Both bindings resolve …"* paragraph and the core's new `<escalate>` site.
+- Autonomous fork convergence summary: the old text named `fix_plan_path`, which is not a return field; the citation-form edit names `` `user-review-fix-plan-writer.fix_plan_file` `` in its place.
