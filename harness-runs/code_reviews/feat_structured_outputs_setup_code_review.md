@@ -14,7 +14,7 @@ Headline conclusions:
 ## Phase 2 Readiness — Ordered Fix List
 
 1. [x] **Finding 1** — Drop the old `action_taken` name from the writer schema's outcome descriptions _(layer: plugin)_
-2. [ ] **Finding 2** — Treat an empty `conventions-reviewer.findings` as none in `analyze.md` (4c) _(layer: plugin)_
+2. [x] **Finding 2** — Treat an empty `conventions-reviewer.findings` as none in `analyze.md` (4c) _(layer: plugin)_
 3. [ ] **Finding 3** — Describe a shared-document divergence as an item with three parts, not "one line" _(layer: plugin)_
 4. [ ] **Finding 5** — Reword the writer's corpus-`findings` lead-in, which still says "the line itself" _(layer: plugin)_
 5. [ ] **Finding 6** — Align the writer's return-value sentence with the return-block contract _(layer: plugin)_

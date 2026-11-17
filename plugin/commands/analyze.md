@@ -317,11 +317,11 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    Read every `conventions-reviewer` return, in this step and in (4d), as
    `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states: an `outcome`
    of `document_reviewed` routes a document-axis review, and an `outcome` of `corpus_reviewed` routes a corpus
-   review; `conventions-reviewer.findings` is optional, absent meaning none. An `outcome` of `blocker`, or the
+   review; `conventions-reviewer.findings` is optional, absent or empty meaning none. An `outcome` of `blocker`, or the
    third consecutive return that fails the check (`## A return that fails the check`), stops the run and
    reports `conventions-reviewer.blocker` or the check that failed, naming the document.
 
-   Take `conventions-reviewer.findings`. If it is absent, that document is done. Otherwise re-dispatch
+   Take `conventions-reviewer.findings`. If it is absent or empty, that document is done. Otherwise re-dispatch
    `conventions-writer` **once**, with the same fields — `pass: document` among them — plus those finding
    objects verbatim as `findings`,
    and forward the same three `prior_*` fields on that fix dispatch too. **No verdict, no cap, no re-review, and
