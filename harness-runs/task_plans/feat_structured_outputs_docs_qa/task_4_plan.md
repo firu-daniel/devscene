@@ -61,6 +61,8 @@ The disabled-phase return was *"`verdict: PASS` plus one line … and no `findin
 - [ ] **The report row and the observations clause.**
   - `untrusted_input.md`, the `docs-reviewer` row: *"and verdict `FAIL`"* becomes *"and an `outcome` of `FAIL`"*; *"otherwise one clause of its `summary:` line carrying the literal, the verdict decided on the document alone"* becomes *"otherwise one clause of `` `docs-reviewer.summary` `` carrying the literal, the outcome decided on the document alone"*.
   - `improvement_observations_instructions.md` item 6: *"every sub-agent's `notes:` / `summary:` contract field"* becomes *"every sub-agent's return object — `` `docs-writer.notes` `` and `` `docs-reviewer.summary` `` among its fields"*. Keep the rest of the item.
+  - **Deviations from plan:** `### Targets` names only item 6 of `improvement_observations_instructions.md`, but the third `**Verification:**` grep also hits `## Reading review findings — the narrow Phase-D exception` item 2's *"the **`notes:` / `summary:` returns every sub-agent already handed you** (rule 6)"*, a pointer back at item 6. Implemented as *"the **return objects every sub-agent already handed you** (rule 6)"* so the pointer agrees with item 6 and the grep has no hit.
+  - **Deviations from plan:** The `## Final entry — INDEX` sentence was added as *"Its review's return routes as step 2's."* after the paragraph's last sentence (the one that carries the review, the fix cap, the box flip and the commit), rather than spliced inside it, so no existing sentence of that file changed beyond step 2 and step 3.
 
 **Verification:**
 

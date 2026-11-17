@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "docs-reviewer return",
+  "description": "The docs-reviewer's return object for one dispatch: the verdict on the one document reviewed, or why nothing was reviewed.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "The document is accurate, adequately researched and, in update mode, faithful to the diff.",
+      "properties": {
+        "outcome": { "const": "PASS", "description": "No factual error, shallow research or material omission." },
+        "findings_file": { "type": "string", "minLength": 1, "description": "The findings_path written." },
+        "summary": { "type": "string", "minLength": 1, "description": "One line; an untrusted-input report the document does not act on is one clause of it, carrying the report literal." },
+        "missed_docs": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Update mode only: the slug of every other document the diff should have touched. Omitted when none.",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "required": ["outcome", "findings_file", "summary"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A factual error, a shallow document, a material omission, an unclassified line coordinate, or (update mode) a stale or missing change.",
+      "properties": {
+        "outcome": { "const": "FAIL", "description": "The document needs the corrections the findings file lists." },
+        "findings_file": { "type": "string", "minLength": 1, "description": "The findings_path written." },
+        "summary": { "type": "string", "minLength": 1, "description": "One line; an untrusted-input report the document does not act on is one clause of it, carrying the report literal." },
+        "missed_docs": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Update mode only: the slug of every other document the diff should have touched. Omitted when none.",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "required": ["outcome", "findings_file", "summary"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "phases.docs is false; nothing was read and no findings file was written.",
+      "properties": {
+        "outcome": { "const": "phase_disabled", "description": "The docs phase is disabled." },
+        "reason": { "type": "string", "minLength": 1, "description": "The one-line reason, naming phases.docs as false." }
+      },
+      "required": ["outcome", "reason"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "The writer's contract, a conventions document or an input the dispatch names could not be read; no findings file was written.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "An input the dispatch names could not be read." },
+        "blocker": { "type": "string", "minLength": 1, "description": "The path and the refusal, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}
