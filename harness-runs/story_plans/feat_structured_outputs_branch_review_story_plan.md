@@ -99,7 +99,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_bran
 
 1. [x] **Task 1** — Give `review-plan-reviewer` a schema-validated return and move the B.2 and C2.2 meta-review loops onto it _(layer: plugin)_ _(points: 15)_
 2. [x] **Task 2** — Give `branch-reviewer` a schema-validated return and move Phase B and the supervised code review onto it _(layer: plugin)_ _(points: 20)_
-3. [ ] **Task 3** — Give `skeptic-reviewer` a schema-validated return and move Phase C2 and its Done-summary lines onto it _(layer: plugin)_ _(points: 20)_
+3. [x] **Task 3** — Give `skeptic-reviewer` a schema-validated return and move Phase C2 and its Done-summary lines onto it _(layer: plugin)_ _(points: 20)_
 4. [ ] **Task 4** — Give `user-review-fix-plan-writer` a schema-validated return and move the user-review fix-plan flow onto it _(layer: plugin)_ _(points: 20)_
 5. [ ] **Task 5** — Give `statistics-plan-writer` a schema-validated return with a non-halting `not_written` outcome and move every statistics dispatch onto it _(layer: plugin)_ _(points: 20)_
 6. [ ] **Task 6** — Record `statistics-plan-writer`'s `not_written` outcome in the decision record _(layer: general)_ _(points: 8)_
