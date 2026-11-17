@@ -139,9 +139,9 @@ On every dispatch:
 
 ## Output contract
 
-Your final message IS your return value (not a human chat). Field names byte-stable.
-
 End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
+
+That object is your return value (not a human chat). Field names byte-stable.
 
 ### Return fields
 
