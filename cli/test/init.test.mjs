@@ -943,6 +943,28 @@ test('a second init keeps an edited review-sweep document, and --force regenerat
   );
 });
 
+/**
+ * The review-sweep document's conditional `--force` keep: a second forced pass over an untouched
+ * skeleton whose `.bak` holds filled rows keeps the document, so the rescued rows are not spent.
+ */
+test('a second --force keeps an already-skeletal review-sweep document whose .bak holds the filled rows', async (t) => {
+  const dir = await fixtureFor(t, { files: nodeProjectFiles() });
+  await initOk(dir);
+  const filled = '# The review sweep\n\n## Sweep rows\n\n| Escape class | Regex | Covers | Exempts | A hit is a candidate for |\n|---|---|---|---|---|\n| Raw console | `console\\.log` | `.` | — | the logger |\n';
+  writeFileSync(join(dir, REVIEW_SWEEP_FILE), filled, 'utf8');
+
+  // Pass 1: the filled document goes back to a skeleton, its rows in the .bak.
+  await initOk(dir, ['--force']);
+  assert.ok(text(dir, REVIEW_SWEEP_FILE).includes(UNFILLED_MARKER), 'the first --force did not put the document back to a skeleton');
+  assert.equal(text(dir, `${REVIEW_SWEEP_FILE}.bak`), filled, 'the first --force did not rescue the filled rows into the .bak');
+
+  // Pass 2: nothing is left to rescue, so the .bak must not be spent.
+  const { stdout } = await initOk(dir, ['--force']);
+  assert.equal(text(dir, `${REVIEW_SWEEP_FILE}.bak`), filled, 'the second --force overwrote the rescued rows with a skeleton');
+  const note = keptForBackupNote(stdout);
+  assert.ok(note.includes(REVIEW_SWEEP_FILE), `the run kept ${REVIEW_SWEEP_FILE} and the note does not name it:\n${note}`);
+});
+
 test('a first init writes the pre-push guard, executable and rendered', async (t) => {
   const dir = await fixtureFor(t, { files: nodeProjectFiles() });
 
