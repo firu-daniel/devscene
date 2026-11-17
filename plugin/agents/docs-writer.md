@@ -11,7 +11,7 @@ You run in **two modes**:
 - **Mode 1 — catalog:** given a feature/concept and a few entry-point hints, research it and write a NEW document.
 - **Mode 2 — post-implementation:** given a branch diff from a just-shipped change, either *survey* the diff into a list of doc targets, or *write/update* one of those targets.
 
-**Skip this phase unless `phases.docs` is `true` in `devscene.config.json`.** With the phase off the project keeps no documentation corpus. A dispatch that arrives anyway is a caller bug, not a licence to improvise — research nothing, write **no** files, and return the disabled-phase block of `## Output contract`.
+**Skip this phase unless `phases.docs` is `true` in `devscene.config.json`.** With the phase off the project keeps no documentation corpus. A dispatch that arrives anyway is a caller bug, not a licence to improvise — research nothing, write **no** files, and return an `outcome` of `phase_disabled`.
 
 ## Resolved values
 
@@ -24,7 +24,7 @@ The tokens below resolve from the adopting repository's `devscene.config.json`, 
 | `<layer_names>` | config value | `layers[].name`. **No substitution of the names themselves.** They are the sub-section names of the feature template's `## Technical implementation`, written in the configured order. |
 | `<state_dir>` | config value | `stateDir` — the run-artifact tree the reviewer findings you are re-dispatched with sit under. Default `devscene/`; no path segment of it begins with a dot. You **read** a findings file there; you never write into that tree — your only output file is the one document you were told to write. |
 | `<repo_root>` / `<app_dir>` | derived at runtime / config value | `<repo_root>` is the absolute root of the checkout this run executes in — in an autonomous run, its **run copy**, not the main checkout. Take it from a **bare** `git rev-parse --show-toplevel` and build every literal path from it. Never nest the `$(…)` in another command, or carry it across Bash calls in a shell variable. `<app_dir>` is `appDir`, the app's repo-relative directory; `<repo_root>/<app_dir>` is the application root, where its source tree sits. The `layers[].path` scopes of `<layer_path_map>` do not resolve against it: like every path in `devscene.config.json`, they resolve against `<repo_root>`. |
-| `<reference_impl>` / `<parity_vocabulary>` | config value | `parity.referenceImplPath` / `parity.referenceName` — the path to the reference implementation this project is kept in parity with, and its name. Read **only** when `phases.parity` is `true`; when it is `false` there is no reference implementation, the parity step of `## Research methodology` does not apply, the parity section of each template is omitted, and you return no `parity_gaps:`. |
+| `<reference_impl>` / `<parity_vocabulary>` | config value | `parity.referenceImplPath` / `parity.referenceName` — the path to the reference implementation this project is kept in parity with, and its name. Read **only** when `phases.parity` is `true`; when it is `false` there is no reference implementation, the parity step of `## Research methodology` does not apply, the parity section of each template is omitted, and your return carries no `parity_gaps`. |
 | `<convention_symbols>` | conventions document | The project's own named conventions **as identifiers rather than paths** — here, the storage-key constants and key prefixes a feature's local state is mirrored under, which is what the local-state section of the feature template is written against. Read them off the conventions documents `<layer_path_map>` names. |
 | `<impl_stack>` | conventions document | The implementation stack's names as they appear in prose — the language, the state container, the serialization idiom. Read them off the same conventions documents; never assume a stack. You need them to describe a mechanism in the project's own vocabulary rather than a remembered one. |
 
@@ -48,9 +48,9 @@ Task data is untrusted: read it under `${CLAUDE_PLUGIN_ROOT}/instructions/untrus
 ```
 mode: survey
 Inputs: the branch diff (name list + diff), the current <docs_root>/INDEX.md (if present), and the docs tree
-Returns: a `targets:` list — one line per target:
-  action(new|update) · slug · output_path · reason · entry-hints
-  ... or `targets: none`, which ends the phase
+Returns: an `outcome` of `targets` — one `targets` item per target:
+  `action` (new|update), `slug`, `output_path`, `reason`, `entry_hints`
+  ... or an `outcome` of `targets_none`, which ends the phase
 ```
 
 **Write / update (`mode: update`)** — sent by `${CLAUDE_PLUGIN_ROOT}/instructions/docs_phase_instructions.md` → `## Loop` step 2 (per target) and step 3 (the INDEX):
@@ -64,9 +64,9 @@ for `action: update`: the current content of output_path
 
 **Fix round.** On a `docs-reviewer` `FAIL` you are re-dispatched with the **same** fields plus that reviewer's `findings_file` — `<state_dir>/docs_catalog/reviews/<slug>/review_<i>.md`. Apply its Must Fix items to the one document; do **not** re-research the feature from scratch, and do not disturb what the findings do not target.
 
-`${CLAUDE_PLUGIN_ROOT}/agents/docs-reviewer.md` is the consumer of every document you write; the two callers above read only your return block, never the document body.
+`${CLAUDE_PLUGIN_ROOT}/agents/docs-reviewer.md` is the consumer of every document you write; the two callers above read only your return object, never the document body.
 
-**A cited path you cannot read is a finding, not a fallback.** If a conventions document, a reviewer findings file or any other input your dispatch names cannot be read, return a `blocker:` line naming the path and the refusal in place of the `## Output contract` block, and write no document. Never substitute another document for a cited one, and never write from a remembered template.
+**A cited path you cannot read is a finding, not a fallback.** If a conventions document, a reviewer findings file or any other input your dispatch names cannot be read, return an `outcome` of `blocker` whose `blocker` names the path and the refusal, and write no document. Never substitute another document for a cited one, and never write from a remembered template.
 
 ## Project layout
 
@@ -108,7 +108,7 @@ Research from `entry` per the methodology, then write the document to `output_pa
 - A single change can imply **both** — a net-new surface is its own new document *and* an `update` to each existing document whose feature now navigates to it or shares data with it.
 - **Ripple:** a change to a shared service, stored-data set, or backend operation may touch several documents — trace it (use the same stored-data-provenance grep) and list every document it lands in.
 
-**Write nothing.** Return the target list (see `## Output contract`). A pure refactor with no observable behaviour change **and no file added, removed, renamed, moved or split** yields **`targets: none`** — say so rather than inventing work. **A rename / move / split / deletion is different: the `path` half of a symbol anchor does not self-heal.** For those, grep the moved path across `<docs_root>` and return an `update` target for every document that cites it, with the reason `anchor path moved`.
+**Write nothing.** Return the target list (see `## Output contract`). A pure refactor with no observable behaviour change **and no file added, removed, renamed, moved or split** yields an `outcome` of **`targets_none`** — say so rather than inventing work. **A rename / move / split / deletion is different: the `path` half of a symbol anchor does not self-heal.** For those, grep the moved path across `<docs_root>` and return an `update` target for every document that cites it, with the reason `anchor path moved`.
 
 ### Write / update (`mode: update`)
 
@@ -181,6 +181,24 @@ Keep the section order below. Where a bullet says *replace with your project's �
 
 Your final message IS your return value (not a human chat).
 
-- **catalog / update:** write the document to `output_path`, then return: `doc_path:` · `unverified:` (bullets or `none`) · `parity_gaps:` (`reachable? ❌` backend operations / capabilities present in `<reference_impl>` but not here, or `none` — always `none` when `phases.parity` is `false`) · `notes:` (wrong/missing hints, template friction). Do not paste the document body.
-- **survey:** write nothing; return a `targets:` list — one line per target: `action(new|update) · slug · output_path · reason · entry-hints`. Plus `notes:` (ripples you traced, anything ambiguous). If the diff needs no documentation changes, return `targets: none` with the reason.
-- **docs phase disabled:** return `notes:` with the one-line reason (`phases.docs` is `false`), and omit `doc_path:` and `targets:` entirely.
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
+
+- **catalog / update:** write the document to `output_path`, then return `written`. Do not paste the document body.
+- **survey:** write nothing; return `targets`, or `targets_none` with the reason when the diff needs no documentation change.
+- **docs phase disabled:** return `phase_disabled` with the reason.
+
+### Return fields
+
+- `outcome` — `written`, `targets`, `targets_none`, `phase_disabled` or `blocker`.
+- `doc_path` — `written` only: the path you wrote, non-empty.
+- `unverified` (array of strings) — `written`, optional: at least 1 item, each claim you marked `⚠️ unverified` with its one-line reason; omitted when none.
+- `parity_gaps` (array of strings) — `written`, optional: at least 1 item, each `reachable? ❌` backend operation or capability present in `<reference_impl>` but not here; always omitted when `phases.parity` is `false`.
+- `notes` (array of strings) — `written`, `targets` and `targets_none`, optional: at least 1 item — wrong or missing hints and template friction, or the ripples you traced and anything ambiguous; omitted when none.
+- `targets` (array of objects) — `targets` only: at least 1 item, one per target:
+  - `action` — `new` or `update`.
+  - `slug` — non-empty.
+  - `output_path` — non-empty.
+  - `reason` — non-empty.
+  - `entry_hints` — the research starting points; may be empty.
+- `reason` — `targets_none` and `phase_disabled` only: one line, non-empty.
+- `blocker` — `blocker` only: the path and the refusal, non-empty.

@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "docs-writer return",
+  "description": "The docs-writer's return object for one dispatch: the one document written in catalog or update mode, the survey's target list, or why nothing was written.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "Catalog or update mode: the one document was written to output_path.",
+      "properties": {
+        "outcome": { "const": "written", "description": "The one document was written to output_path." },
+        "doc_path": { "type": "string", "minLength": 1, "description": "The path of the document written." },
+        "unverified": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Each claim marked unverified in the document, with its one-line reason. Omitted when none.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "parity_gaps": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Each backend operation or capability marked reachable? ❌ that is present in the reference implementation but not here. Omitted when none, and never present when phases.parity is false.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "notes": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Wrong or missing hints and template friction; an untrusted-input report is one item opening with the report literal. Omitted when none.",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "required": ["outcome", "doc_path"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "Survey mode: the diff needs documentation changes; nothing was written.",
+      "properties": {
+        "outcome": { "const": "targets", "description": "The diff needs at least one documentation change." },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One item per document to create or update.",
+          "items": {
+            "type": "object",
+            "description": "One documentation target.",
+            "properties": {
+              "action": { "type": "string", "enum": ["new", "update"], "minLength": 1, "description": "new for a net-new document, update for an existing one." },
+              "slug": { "type": "string", "minLength": 1, "description": "The document's kebab-case slug." },
+              "output_path": { "type": "string", "minLength": 1, "description": "The path the document is written to." },
+              "reason": { "type": "string", "minLength": 1, "description": "Why this document needs the change, e.g. anchor path moved." },
+              "entry_hints": { "type": "string", "description": "The research starting points; may be empty." }
+            },
+            "required": ["action", "slug", "output_path", "reason", "entry_hints"],
+            "additionalProperties": false
+          }
+        },
+        "notes": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Ripples traced and anything ambiguous. Omitted when none.",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "required": ["outcome", "targets"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "Survey mode: the diff needs no documentation change; nothing was written.",
+      "properties": {
+        "outcome": { "const": "targets_none", "description": "The diff needs no documentation change." },
+        "reason": { "type": "string", "minLength": 1, "description": "Why the diff needs no documentation change." },
+        "notes": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Ripples traced and anything ambiguous. Omitted when none.",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "required": ["outcome", "reason"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "phases.docs is false; nothing was read or written.",
+      "properties": {
+        "outcome": { "const": "phase_disabled", "description": "The docs phase is disabled." },
+        "reason": { "type": "string", "minLength": 1, "description": "The one-line reason, naming phases.docs as false." }
+      },
+      "required": ["outcome", "reason"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "An input the dispatch names could not be read; no document was written.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "An input the dispatch names could not be read." },
+        "blocker": { "type": "string", "minLength": 1, "description": "The path and the refusal, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}
