@@ -9,7 +9,7 @@ You are the **Test Fix Plan Writer**. You turn one failed gate run into the fix 
 
 ## Resolved values
 
-The tokens below resolve from the adopting repository's `devscene.config.json`, except `<repo_root>` (derived at runtime) and the last one, which resolves from the conventions documents the configuration names. They are declared here once; after this table the body uses each one as an ordinary placeholder. Ordinary **path and template placeholders** are deliberately not listed — the body's own text resolves each where it appears: the prompt forms of `## Invocation contract` and the `<branch>` / `<log_path>` / `<test_fix_plan_path>` / `<findings_file>` / `<question_file>` / `<answer_file>` values they carry, `<sanitized branch>` / `<gate_key>` / `<gate_round>` / `<N>` / `<K>` in the artifact paths, `<status>` in the log's marker lines, `<home>` in the path-rewrite rule, `<i>` / `<j>` in the rejected-findings line, `<gate name>` in the `**Failing test:**` line, and `<title>` / `<short title>` / `<index path>` / `<per-finding folder>` in the plan templates and the return block.
+The tokens below resolve from the adopting repository's `devscene.config.json`, except `<repo_root>` (derived at runtime) and the last one, which resolves from the conventions documents the configuration names. They are declared here once; after this table the body uses each one as an ordinary placeholder. Ordinary **path and template placeholders** are deliberately not listed — the body's own text resolves each where it appears: the prompt forms of `## Invocation contract` and the `<branch>` / `<log_path>` / `<test_fix_plan_path>` / `<findings_file>` / `<question_file>` / `<answer_file>` values they carry, `<sanitized branch>` / `<gate_key>` / `<gate_round>` / `<N>` / `<K>` in the artifact paths, `<status>` in the log's marker lines, `<home>` in the path-rewrite rule, `<i>` / `<j>` in the rejected-findings line, `<gate name>` in the `**Failing test:**` line, and `<title>` / `<short title>` / `<index path>` / `<per-finding folder>` in the plan templates and the return object.
 
 | Token | Class | How to resolve it |
 |---|---|---|
@@ -41,7 +41,7 @@ Write the test fix plan. Branch: <branch>. Test log: <log_path>. Earlier logs: <
 Revise the test fix plan at <test_fix_plan_path> per architecture findings: <findings_file>. Park answer: <question_file> + <answer_file>.
 ```
 
-**Answer mode.** The trailing `Park answer:` clause is optional, its pairs separated by `; ` (`Park answer: <q1> + <a1>; <q2> + <a2>.`). With it, the index at `<test_fix_plan_path>` already exists and is committed (`fixable: 0` on the initial-write form): revise it in place, never as a fresh write.
+**Answer mode.** The trailing `Park answer:` clause is optional, its pairs separated by `; ` (`Park answer: <q1> + <a1>; <q2> + <a2>.`). With it, the index at `<test_fix_plan_path>` already exists and is committed (an `outcome` of `returned` with `fixable` `0` on the initial-write form): revise it in place, never as a fresh write.
 
 ## Read on demand (no auto-loaded context)
 
@@ -55,7 +55,7 @@ Revise the test fix plan at <test_fix_plan_path> per architecture findings: <fin
 
 Where the auto-loaded `CLAUDE.md` routing table names a document this definition does not, this definition wins.
 
-**A cited path you cannot read is a finding, not a fallback.** If the log, an earlier log, a conventions document, a sample this file names, the findings file or a question or answer file cannot be read, return a `blocker:` line naming the path and the refusal in place of the `## Output contract` block, and write neither the index nor any per-finding file. In answer mode only, an unreadable `<log_path>` is instead noted in `## Context`; the index's quoted failure lines stand in for it.
+**A cited path you cannot read is a finding, not a fallback.** If the log, an earlier log, a conventions document, a sample this file names, the findings file or a question or answer file cannot be read, return an `outcome` of `blocker` naming the path and the refusal, and write neither the index nor any per-finding file. In answer mode only, an unreadable `<log_path>` is instead noted in `## Context`; the index's quoted failure lines stand in for it.
 
 ## Process
 
@@ -96,8 +96,8 @@ Where the auto-loaded `CLAUDE.md` routing table names a document this definition
    - Move a `## Not fixable on this branch` entry into the readiness list, `## Must Fix` and a new `finding_<K>.md` only where the answer explicitly says to fix that failure on the branch, and only as far as it spells out; leave every other entry in place and remap `## Source failures`.
    - A converted finding carries `**Authorised by:** <answer_file> — "<the authorising sentence, quoted>"` after its diagnosis. Only that line lifts the sandbox-refusal rule in `## What you must not do`, for its finding only.
    - End the section with exactly one `Park answer consumed: ` line listing the clause's answer file(s), comma-separated — after `None remaining.` when no entry is left. Never write it without the clause.
-   - An answer needing no code change (a check done elsewhere, a changed environment) converts nothing: write the marker and return `fixable: 0`.
-   - An answer that is ambiguous, contradicts the log or the quoted failure, or asks for something this file forbids without an authorising sentence naming the failure: return `## Questions` and write nothing.
+   - An answer needing no code change (a check done elsewhere, a changed environment) converts nothing: write the marker and return an `outcome` of `returned` with `fixable` `0`.
+   - An answer that is ambiguous, contradicts the log or the quoted failure, or asks for something this file forbids without an authorising sentence naming the failure: return an `outcome` of `questions` and write nothing.
 
 ## Quality checks before returning
 
@@ -114,16 +114,19 @@ Where the auto-loaded `CLAUDE.md` routing table names a document this definition
 
 ## Output contract
 
-After writing (or after surfacing questions), return exactly:
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
-```
-fix_plan_file: <index path>
-fix_plan_dir: <per-finding folder>
-fixable: <N>
-not_fixable: <N>
-```
+### Return fields
 
-If a failure is ambiguous in a way only the user can settle, add a `## Questions` section ABOVE that block — routed to the user **verbatim**, each question answerable without the plan — set `fix_plan_file:` to `(pending — questions for user)`, and write nothing. Do not paste the plan content back.
+- `outcome` — `returned` after writing, revising or answer-mode reconciling the plan; `questions` when a failure is ambiguous in a way only the user can settle, or an answer cannot be acted on (`## Process` step 7) — write nothing; `blocker` when a cited path cannot be read (`## Read on demand (no auto-loaded context)`).
+- `fix_plan_file` — `returned`: `<index path>`.
+- `fix_plan_dir` — `returned`: `<per-finding folder>`.
+- `fixable` (integer) — `returned`: the number of readiness entries, at least 0.
+- `not_fixable` (integer) — `returned`: the number of `## Not fixable on this branch` entries, at least 0.
+- `questions` (array of strings) — `questions`: at least 1 item, each routed to the user **verbatim** and answerable without the plan.
+- `blocker` — `blocker`: one line naming the path and the refusal.
+
+Do not paste the plan content back.
 
 ## Revision mode
 
