@@ -16,7 +16,7 @@ an ordinary placeholder.
 | Token | Class | How to resolve it |
 |---|---|---|
 | `<layer_path_map>` | config value | Every `layers[]` entry's `path` together with its `conventions` — the directory that layer's source lives in, and the document this command writes for it. The **entire** map is in scope: a no-argument run covers every document in it, and each layer's evidence is gathered from its own `path`. |
-| `<layer_names>` | config value | `layers[].name`. **No substitution of the names themselves** — the configured names travel through this file unchanged. They are the targets `$ARGUMENTS` may name, beside the three reserved words. |
+| `<layer_names>` | config value | `layers[].name`. **No substitution of the names themselves** — the configured names travel through this file unchanged. They are the targets `$ARGUMENTS` may name, beside the four reserved words. |
 | `<app_dir>` | config value | `appDir` — the app's directory inside the checkout, repo-relative. Mode detection in step 1 reads it: source present outside that directory's harness-generated paths is what makes the mode `existing`. |
 | `<state_dir>` | config value | `stateDir` — the run-artifact tree. **Excluded from evidence gathering:** it is the harness's own tree, and a rule derived from it describes this package rather than the adopter's code. |
 | `<scripts_dir>` | config value | `scriptsDir` — the directory the generated wrapper scripts live in. **Excluded from evidence gathering** for the same reason; this file invokes none of them. |
@@ -41,8 +41,8 @@ e.g. `/devscene:analyze <target> --existing`.
 **Targets are read from `devscene.config.json` at invocation time, and this file enumerates none of them:** the
 `<layer_names>` values, plus the reserved `project` (the always-loaded file), `conventions` (the shared
 cross-layer document at `<shared_conventions_path>`, part of every no-argument run whether or not a `layers[]`
-row names it) and `layers` (the layer profile). Refuse an unknown target and print the resolved list. A layer
-whose name is one of the three reserved words **loses the bare word** to the reserved meaning: name that layer
+row names it), `layers` (the layer profile) and `sweep` (the review-sweep document `.claude/review-sweep.md`).
+Refuse an unknown target and print the resolved list. A layer whose name is one of the four reserved words **loses the bare word** to the reserved meaning: name that layer
 in the refusal, and cover its document in the no-argument run.
 
 **Supervised, first-session command.** It is not part of any unattended flow. Step 5's hand-off shells the
@@ -66,8 +66,9 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
 ## Steps
 
 1. **Resolve and announce, before writing anything.** Take the target set from `$ARGUMENTS`; with no argument
-   it is every target, in the order `layers`, `project`, `conventions`, then each `layers[]` row in order —
-   the profile first, because every target after it is one of its rows — **skipping any row whose
+   it is every target, in the order `layers`, `project`, `conventions`, each `layers[]` row in order, then
+   `sweep` — the profile first, because every target after it is one of its rows, and `sweep` last, because its
+   rows are derived from the finished conventions documents — **skipping any row whose
    `conventions` value names a document an earlier target in this run already covered. Every configuration
    this CLI generates carries a catch-all row pointing at `<shared_conventions_path>`, so that row is normally
    the `conventions` target under another name: one document, one write, per run.** Take the mode from
@@ -76,7 +77,8 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
 
    Also derive this run's **document set**: every `layers[].conventions` value the target set reaches,
    normalized and deduplicated, plus `<shared_conventions_path>` when the target set contains `conventions`,
-   which every no-argument run does. **Dispatch is keyed by document, not by target**, so the dedup rule above
+   which every no-argument run does. The sweep document is **not** a member of the document set, so neither this
+   derivation nor the `shared_document` rule below counts it. **Dispatch is keyed by document, not by target**, so the dedup rule above
    now holds by construction rather than by a walk: two targets naming one document produce one dispatch, and
    step 6 names the pair once.
 
@@ -102,11 +104,12 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
 
    Print the target list (naming, for a skipped row, the target that covers its document), the mode with how
    it was decided, the planned action per target, and the **dispatch plan**: per document, which agent writes
-   it, and which targets this session keeps for itself.
+   it, and which targets this session keeps for itself — naming the `sweep` target and its planned action, as
+   (4e) classifies it, last.
    Under `--dry-run`, gather (step 2) and stop there, reporting the mode and how it was decided, the
    repo-level harvest inventory, the demand set, the `project`-target survey, the document set and the
    dispatch plan (per document, which agent would write it with which `action`, and which targets the session
-   would keep) — and **no per-layer rule-deriving evidence**, because no writer is dispatched and each writer
+   would keep, ending with the `sweep` target and its planned action) — and **no per-layer rule-deriving evidence**, because no writer is dispatched and each writer
    gathers that from its own `scope`.
 2. **Gather what the whole run shares, and what the targets this session writes itself need.** Never read
    `<state_dir>`, `<scripts_dir>` or `<githooks_dir>` as evidence about the adopter's code. The per-layer,
@@ -180,8 +183,8 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    **It binds (4d)'s two corpus dispatch shapes identically, and hardest on the corpus review**, which carries
    exactly the fields (4d) names — no named flaw classes, and no scope narrowing beyond the `corpus_documents`
    set itself. A divergence the run already holds rides a **fix** dispatch and never the review one.
-4. **Classify every document, then dispatch, then review each written one once, then review the corpus as a set.
-   This step sends every dispatch in the run.** Every write is **one whole document**, never a document
+4. **Classify every document, then dispatch, then review each written one once, then review the corpus as a set,
+   then write the sweep document. This step sends every dispatch in the run.** Every write is **one whole document**, never a document
    assembled in place — the writer's obligation on every dispatch it receives — so an interrupted run still
    lands on document boundaries, though no longer on a prefix of the announced order. A document written but not
    yet reviewed reads as filled, so a re-run asks about it.
@@ -295,7 +298,7 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    not which sections are filled. Its absence (an unforced `devscene init` re-run over a
    pre-existing file writes no banner, and an adopter may delete the block by hand) changes nothing above and
    is never a reason to skip this target. Delete the banner, `<!-- devscene:setup-pending -->` through
-   `<!-- /devscene:setup-pending -->` inclusive, **only** when every target of a no-argument run has completed;
+   `<!-- /devscene:setup-pending -->` inclusive, **only** when every target of a no-argument run, `sweep` included, has completed;
    a single-target run leaves it alone.
 
    The rest of that file — the generated routing table, the ledger-path block, the agent-authoring section, the `## Where a change request runs` section —
@@ -336,9 +339,9 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    The two targets this session writes itself — `project` and the `layers` proposal — are **not** reviewed here;
    the `layers` proposal is reviewed by the person who says yes to it.
 
-   **(4d) The corpus pass — the set as a whole, two fixed iterations.** It runs **last inside step 4**, after
+   **(4d) The corpus pass — the set as a whole, two fixed iterations.** It runs after
    every document wave has completed **and** after (4b) has written its sections: `.claude/CLAUDE.md` is a
-   member, so a pass that ran before (4b) would grade a skeleton.
+   member, so a pass that ran before (4b) would grade a skeleton. Only (4e) follows it.
 
    **(4d.0) Reconcile the shared cross-layer document first — one fix-only dispatch, and no review.** Before the
    corpus review below: when this run **wrote** the shared cross-layer document and the
@@ -384,6 +387,7 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
      wrote neither section** — (4b) classifies that file per section with skip available on each, so a run in
      which the adopter skips both leaves it written by nobody this run: still on disk, still evidence, and
      nothing in it this run may fix.
+   - **The sweep document is never a member of `corpus_documents`**, on any classification and in any role.
    - **One exclusion from the set, the same one `${CLAUDE_PLUGIN_ROOT}/agents/conventions-reviewer.md` →
      `## Invocation contract` states for `shared_document`:** a document (4a) classified `skip` that **still
      carries `<!-- devscene:unfilled -->`** is left out of `corpus_documents` entirely. A half-edited file
@@ -423,6 +427,22 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    does. **Iteration 2 does not run** when iteration 1's return carried no `conventions-reviewer.findings`, or when every finding was
    declined so no member changed: the narrowed set is empty. **There is no third iteration and no verdict gates
    either one.**
+
+   **(4e) The `sweep` target, `.claude/review-sweep.md`.** It runs after (4d) has finished, or after the last
+   document wave when (4d) does not run, and is the last thing step 4 sends.
+
+   - **Classification** is (4a)'s rule: an untouched skeleton is `action: write` without asking; a path with no
+     file is `action: write`, the writer's compose-from-nothing case; anything else is asked, with merge the
+     default and `skip` always available, and `--yes` takes the default. `skip` sends nothing.
+   - **The write dispatch** is step 3's write block with `target: sweep`, `document_path` the absolute
+     `.claude/review-sweep.md` and `scope` the repository root. `shared_document` takes step 1's on-disk value:
+     the shared cross-layer document's path when a file exists there and does not carry
+     `<!-- devscene:unfilled -->`, otherwise `none`. `demand_set` is sent unchanged, the run's one derivation,
+     because the closed block carries it on every dispatch — **but this target has
+     no `demand_set` scope of its own**: the writer answers none of it and the reviewer skips check (5)
+     (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` → `## The sweep document`).
+   - **Then one (4c) review and at most one fix**, exactly as (4c) defines them. Step 3's closed-block rule binds
+     all three dispatches.
 5. **The `layers` target proposes and never writes.** Show the current and proposed `layers` arrays as a diff, and
    name what in the tree each added or changed row was read off. Keep **at least one** row with `path: "."`. Apply
    only on an explicit yes or `--apply-layers` — never on `--yes` alone — by running
@@ -464,8 +484,9 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    every `## Not determined` line collected across the documents; every conflict found between the adopter's
    existing prose and the code; the corpus pass's own outcome, including every outstanding cross-document
    item, in the shape the corpus block below sets out; and the next action —
-   `npx devscene doctor` to confirm nothing is left unfilled, and `/devscene:analyze <target>`
-   to redo one document. A run that wrote nothing says so explicitly. Report in the **announced target order
+   `npx devscene doctor` to confirm nothing is left unfilled, the sweep document included;
+   `/devscene:analyze <target>` to redo one document; and committing `.claude/review-sweep.md` on the default
+   branch, which is what makes the reviewer's sweep read it. A run that wrote nothing says so explicitly. Report in the **announced target order
    regardless of completion order**, so concurrency changes nothing a reader sees.
 
    **The report is built from the returns for every delegated document, and from this session's own record for
@@ -473,13 +494,14 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    through a fix dispatch, take the fields from the **fix** return, which describes the document as it finally
    stands.
 
-   - **A delegated document** — every conventions document step 4 dispatched: the **action taken** is the
+   - **A delegated document** — every conventions document step 4 dispatched, and the `sweep` target when (4e)
+     dispatched it, reported last from its own write and fix returns with its review line: the **action taken** is the
      writer's outcome, `written` or `merged`; the **evidence sampled**, including what was not read on a
      large repository, is its `conventions-writer.evidence`, printed per document as returned; every
      **`## Not determined` line** is its `conventions-writer.not_determined_lines`; every **conflict** between
      the adopter's existing prose and the code is its `conventions-writer.conflicts`, each printed as its
      `prose` and `code`.
-   - **A document (4a) classified `skip`** is reported **`skipped`** from that classification, naming the
+   - **A document (4a) or (4e) classified `skip`** is reported **`skipped`** from that classification, naming the
      reason it was skipped and printing no evidence, `## Not determined` or conflict lines, because nothing
      was written.
    - **The `project` target** is reported **per section**, written or merged, from (4b)'s own per-section
