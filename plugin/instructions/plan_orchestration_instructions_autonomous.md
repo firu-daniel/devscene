@@ -113,7 +113,7 @@ Phase D's `statistics-plan-writer` dispatch and the Done summary remain **purely
 
 **Why a commit is needed here.** D.1 dispatches `statistics-plan-writer` to write `<state_dir>/branch_statistics/<branch>/statistics.md` (the **first**, pre-user-review statistics file, per D.1's own wording), but Phase D never commits it. So at "branch ready for review" the file dangles untracked in the run copy and is lost at PR time. This override commits that first file once, after the writer returns and before the Done summary.
 
-**Trigger / ordering.** The commit fires **after** the D.1 `statistics-plan-writer` dispatch returns its return object and **before** the D.2 Done summary. Run it once, at that single point.
+**Trigger / ordering.** The commit fires **after** the D.1 `statistics-plan-writer` dispatch returns and **before** the D.2 Done summary. Run it once, at that single point.
 
 **`not_written` gate (skip on failed write).** If D.1 took its `not_written` route (an `outcome` of `not_written`, or a third failing return — the core's `### D.1`) (e.g., the story index is missing) — the path the existing Phase D already handles by skipping the statistics summary bullet and not inventing numbers — **skip this commit entirely**: do not commit a missing/partial file, do not create an empty commit, do not error. The skip is consistent with the existing "omit the statistics summary bullet" behavior.
 
