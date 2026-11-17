@@ -30,7 +30,7 @@ No parity review exists (`phases.parity` is `false`), and no architecture branch
 ## Phase 2 Readiness — Ordered Fix List
 
 1. [x] **Finding 1** — Commit the docs-phase INDEX without the review the new pointer drags in _(layer: plugin)_
-2. [ ] **Finding 2** — Commit and flag, not skip, a doc whose fix-loop writer re-dispatch takes the `error` route _(layer: plugin)_
+2. [x] **Finding 2** — Commit and flag, not skip, a doc whose fix-loop writer re-dispatch takes the `error` route _(layer: plugin)_
 
 ---
 
