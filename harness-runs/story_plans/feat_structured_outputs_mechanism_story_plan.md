@@ -85,7 +85,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_mech
 1. [x] **Task 1** — Validate array-of-object items in the planning driver's return check _(layer: cli)_ _(points: 15)_
 2. [x] **Task 2** — Hold object items, nested return fields and nested citations in the return-schema check _(layer: cli)_ _(points: 20)_
 3. [x] **Task 3** — Read the screen agent's return object in the screen script's verdict verb _(layer: cli)_ _(points: 20)_
-4. [ ] **Task 4** — Reword Reading a return for the measured Agent result and point the screen at it _(layer: plugin)_ _(points: 10)_
+4. [x] **Task 4** — Reword Reading a return for the measured Agent result and point the screen at it _(layer: plugin)_ _(points: 10)_
 5. [ ] **Task 5** — Adopt the return mechanism for prompt-injection-reviewer _(layer: plugin)_ _(points: 20)_
 6. [ ] **Task 6** — Record the three decisions and the measured Agent result in the decision record _(layer: general)_ _(points: 20)_
 7. [ ] **Task 7** — Bring the measured-fact pointers and the screen eval's counting to the new return _(layer: general)_ _(points: 10)_
