@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "statistics-plan-writer return",
+  "description": "The statistics-plan-writer's return object.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "statistics.md was written.",
+      "properties": {
+        "outcome": { "const": "written", "description": "statistics.md was written." },
+        "statistics_file": { "type": "string", "minLength": 1, "description": "The full path written." },
+        "story_points_total": { "type": "integer", "minimum": 0, "description": "The story-point denominator." },
+        "issue_cost_total": { "type": "integer", "minimum": 0, "description": "The severity-weighted user-review issue cost." },
+        "story_plan_tasks": { "type": "integer", "minimum": 0, "description": "The number of story-index task entries." },
+        "user_review_issues": { "type": "integer", "minimum": 0, "description": "The number of user-review observations." },
+        "success_rate": { "type": "string", "minLength": 1, "description": "The headline rate as a percentage, or n/a." },
+        "status": { "type": "string", "enum": ["pre-user-review", "post-user-review"], "description": "The status written, per the invocation." }
+      },
+      "required": ["outcome", "statistics_file", "story_points_total", "issue_cost_total", "story_plan_tasks", "user_review_issues", "success_rate", "status"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A required input was missing or unreadable, and no file was written.",
+      "properties": {
+        "outcome": { "const": "not_written", "description": "A required input was missing or unreadable, and no file was written." },
+        "cause": { "type": "string", "minLength": 1, "description": "One line naming the reason and the missing or unreadable path." }
+      },
+      "required": ["outcome", "cause"],
+      "additionalProperties": false
+    }
+  ]
+}

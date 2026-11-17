@@ -49,7 +49,9 @@ The tokens below are neither Mode-contract **bindings** (this file declares none
       Write branch statistics. Branch: <branch>. Story index: <state_dir>/story_plans/<branch>_story_plan.md. Output: <state_dir>/branch_statistics/<branch>/statistics.md.
       ```
 
-      Dispatch with the first-write (pre-user-review) prompt above — the `statistics-plan-writer` agent owns the counting and the output format. Relay the returned `success_rate` / `statistics_file` to the user.
+      Dispatch with the first-write (pre-user-review) prompt above — the `statistics-plan-writer` agent owns the counting and the output format. Read its return as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states:
+      - An `outcome` of `written` → relay `` `statistics-plan-writer.success_rate` `` and `` `statistics-plan-writer.statistics_file` `` to the user. Never open the file to verify.
+      - An `outcome` of `not_written`, or the third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) → tell the user the statistics were not written and why — `` `statistics-plan-writer.cause` ``, or the check that failed — invent no numbers, and stop: the write is this step's last act. This is this dispatch's `error` route, and it is not a blocker.
 
    **If there ARE findings to fix, do NOT write statistics here.** The statistics write for a non-clean review happens after the fixes land — in the `/devscene:branch-implement-review` fix flow (`${CLAUDE_PLUGIN_ROOT}/instructions/code_review_fixes_instructions.md`), once every review item is `[x]`. Writing here as well would double-write.
 
