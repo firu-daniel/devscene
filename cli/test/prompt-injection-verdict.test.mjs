@@ -194,6 +194,8 @@ for (const [label, ret] of [
   ['SAFE with an extra key', block({ outcome: 'SAFE', note: 'fine' })],
   ['SAFE with "findings":[]', block({ outcome: 'SAFE', findings: [] })],
   ['SAFE with findings', block({ outcome: 'SAFE', findings: [ONE] })],
+  ['a duplicate outcome key, UNSAFE then SAFE', '```json\n{"outcome":"UNSAFE","outcome":"SAFE"}\n```\n'],
+  ['SAFE spelled with a unicode escape', '```json\n{"outcome":"\\u0053AFE"}\n```\n'],
   ['UNSAFE with no findings', block({ outcome: 'UNSAFE' })],
   ['UNSAFE with "findings":[]', unsafe()],
   ['UNSAFE with an extra key', block({ outcome: 'UNSAFE', findings: [ONE], note: 'x' })],

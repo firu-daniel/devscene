@@ -139,7 +139,9 @@
 # block, a trailer, an indented fence — is malformed. The lines between parse
 # as exactly one JSON object, of one of these shapes:
 #
-#   {"outcome":"SAFE"}                     key set exactly `outcome`
+#   {"outcome":"SAFE"}                     key set exactly `outcome`, and the
+#                                          block's text exactly that object,
+#                                          whitespace aside
 #   {"outcome":"UNSAFE","findings":[…]}    key set exactly `findings`, `outcome`;
 #                                          one or more items
 #   item {"check_id","excerpt","reason"}   key set exactly those three, each a
@@ -1030,7 +1032,11 @@ pis_parse_verdict() {
   out=$(printf '%s' "$body" | jq -r -s --arg ids "$PI_CHECK_IDS" "$PIS_JQ_VERDICT" 2>/dev/null) \
     || return 0
   case "$out" in
-    SAFE) PIS_VERDICT=SAFE; return 0 ;;
+    SAFE)
+      # jq keeps the last of a duplicate key: the text itself must be the object.
+      [ "${body//[[:space:]]/}" = '{"outcome":"SAFE"}' ] && PIS_VERDICT=SAFE
+      return 0
+      ;;
     UNSAFE"$PIS_NL"*) out=${out#UNSAFE"$PIS_NL"} ;;
     *) return 0 ;;
   esac
