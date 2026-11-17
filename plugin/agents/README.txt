@@ -20,15 +20,15 @@ value, but exposes ONE dispatchable name. Flows dispatch `qa-tester` by name, so
 dispatch always reaches `qa-tester.md` — the `web-playwright` variant, the only one
 implemented in this release and the only file in this directory that drives a
 browser. It opens with a driver gate: when `qa.driver` is not `web-playwright` it
-reads no plan, drives nothing, writes no files and returns its blocked `error:`
-line naming the configured driver. So a non-`web-playwright` configuration stops
+reads no plan, drives nothing, writes no files and returns a `blocker` outcome
+naming the configured driver. So a non-`web-playwright` configuration stops
 loudly with a blocker instead of silently driving a browser at an application that
 is not there. The other two files — `qa-tester-mobile-maestro.md` (device-runner
 CLI) and `qa-tester-mobile-mcp.md` (device-automation MCP server) — are DECLARED
 BUT NOT IMPLEMENTED in this release: each carries valid frontmatter, its own
 allowlist, a statement of what it would drive, and a pointer to `qa-tester.md` for
-the driver-neutral half of the operating contract, and each returns the same
-blocked `error:` on every dispatch rather than running a test.
+the driver-neutral half of the operating contract, and each returns that same
+`blocker` outcome on every dispatch rather than running a test.
 
 One convention survives packaging verbatim and belongs to this directory rather
 than to any one file in it: every agent definition MUST declare a `tools:`
@@ -113,10 +113,11 @@ file on the second that is missing from the first is a fixture nothing reads.
 
 One convention rides along with those pointers and, like the allowlist rule above,
 belongs to this directory rather than to any one file in it: an agent that cannot
-read a cited contract, sample or instruction file REPORTS it — through its own
-`error:` / blocker return, naming the path and the refusal — and produces no
-artifact. A substitution is a finding, not a fallback, so no definition here may
-swap another document in for a cited one or fall back on a remembered format.
+read a cited contract, sample or instruction file REPORTS it — through its return
+object — a `blocker` outcome, or the outcome its schema names for that case —
+naming the path and the refusal — and produces no artifact. A substitution is a
+finding, not a fallback, so no definition here may swap another document in for a
+cited one or fall back on a remembered format.
 
 Port-time corrections
 ---------------------
