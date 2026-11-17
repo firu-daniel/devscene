@@ -101,5 +101,8 @@
       "test": "test/agent-return-schemas.test.mjs",
       "covers": "docs/structured-agent-returns.md"
     }
-  ]
+  ],
+  "execution": {
+    "scriptDrivenPlanning": true
+  }
 }
