@@ -78,7 +78,7 @@ test('(a) the unit loop step 5 issues the commit call once, alone', () => {
 });
 
 test('(b) the ledger §1.6 states the once, alone rule for its ledger-flip call', () => {
-  const s16 = section(LEDGER, '### 1.6 How to flip / create — direct `commit-on-branch.sh`, NEVER a committer dispatch');
+  const s16 = section(LEDGER, '### 1.6 How to flip / create — direct `commit-on-branch.sh`, never a bare `git commit`');
   assert.ok(s16.text.includes('Call each wrapper once, alone.'), `${s16.where}: "Call each wrapper once, alone." not found`);
   assert.ok(collapse(s16.text).includes(DEFINITION), `${s16.where}: the "Once, alone" definition not found`);
   assert.ok(!s16.text.includes('newline-separated'), `${s16.where}: still carries "newline-separated"`);
