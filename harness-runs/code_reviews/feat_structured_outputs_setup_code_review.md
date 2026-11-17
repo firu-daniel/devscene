@@ -18,7 +18,7 @@ Headline conclusions:
 3. [x] **Finding 3** — Describe a shared-document divergence as an item with three parts, not "one line" _(layer: plugin)_
 4. [x] **Finding 5** — Reword the writer's corpus-`findings` lead-in, which still says "the line itself" _(layer: plugin)_
 5. [x] **Finding 6** — Align the writer's return-value sentence with the return-block contract _(layer: plugin)_
-6. [ ] **Finding 4** — Re-spell Gate 8's corpus-review `findings:` references as `conventions-reviewer.findings` _(layer: general)_
+6. [x] **Finding 4** — Re-spell Gate 8's corpus-review `findings:` references as `conventions-reviewer.findings` _(layer: general)_
 
 ## Must Fix
 
