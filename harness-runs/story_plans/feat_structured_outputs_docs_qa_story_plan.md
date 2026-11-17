@@ -76,7 +76,7 @@ Tasks 1 and 2 share no file. The opening *"Reviewers … return …"* bullet of 
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_docs_qa/task_<K>_plan.md`. Ordered by ship sequence, with the catch-all layer last; the `cli` task follows the `plugin` tasks it depends on, as `## Context` states.
 
-1. [ ] **Task 1** — Give `qa-tester` a schema-validated return with a non-halting `blocked` outcome and move Phase E, Phase QA and the supervised QA flow onto it _(layer: plugin)_ _(points: 20)_
+1. [x] **Task 1** — Give `qa-tester` a schema-validated return with a non-halting `blocked` outcome and move Phase E, Phase QA and the supervised QA flow onto it _(layer: plugin)_ _(points: 20)_
 2. [ ] **Task 2** — Give the two mobile `qa-tester` stubs a `blocker`-only schema and an `## Output contract`, and retire the semi-autonomous commands' "1-3 line contract" _(layer: plugin)_ _(points: 12)_
 3. [ ] **Task 3** — Give `docs-writer` a schema-validated return and move the docs phase and the docs catalog onto it _(layer: plugin)_ _(points: 20)_
 4. [ ] **Task 4** — Give `docs-reviewer` a schema-validated return and move the docs phase and the docs catalog onto it _(layer: plugin)_ _(points: 15)_

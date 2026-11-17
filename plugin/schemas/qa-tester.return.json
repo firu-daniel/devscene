@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "qa-tester return",
+  "description": "The qa-tester's return object for one dispatch: one test case, or every test case in the ad-hoc full-run mode.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "Every assertion held and no part of the test was blocked; no file was written.",
+      "properties": {
+        "outcome": { "const": "PASS", "description": "Every assertion held and no part of the test was blocked." }
+      },
+      "required": ["outcome"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "The test produced at least one finding, of any severity; the QA review index and its per-finding files were written.",
+      "properties": {
+        "outcome": { "const": "FAIL", "description": "At least one finding, of any severity." },
+        "findings_file": { "type": "string", "minLength": 1, "description": "The full path of the index written: qa_review_<iteration>_t<T>.md per single test, qa_review_<iteration>.md in the full-run mode." },
+        "must_fix_count": { "type": "integer", "minimum": 0, "description": "The number of Must Fix findings; 0 when only Should Fix or Nice to Have findings were written." }
+      },
+      "required": ["outcome", "findings_file", "must_fix_count"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "No finding, and a part of the run was blocked for a reason confined to that test; no file was written and the caller continues the phase.",
+      "properties": {
+        "outcome": { "const": "blocked", "description": "A test could not be driven for a reason confined to that test." },
+        "blocked_tests": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One item per blocked test: one per single test, one per blocked test in the full-run mode.",
+          "items": {
+            "type": "object",
+            "description": "One blocked test.",
+            "properties": {
+              "test_id": { "type": "integer", "minimum": 1, "description": "The blocked test's number." },
+              "cause": { "type": "string", "minLength": 1, "description": "Why the test could not be driven, on one line." }
+            },
+            "required": ["test_id", "cause"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["outcome", "blocked_tests"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "Nothing in the run can proceed; the caller halts.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "Nothing in the run can proceed." },
+        "blocker": { "type": "string", "minLength": 1, "description": "Why the run cannot proceed, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}
