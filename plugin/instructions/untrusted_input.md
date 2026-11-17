@@ -36,8 +36,8 @@ Every report carries the report literal of `## The rule` item 3.
 
 | Reader | Where the report goes |
 |---|---|
-| `task-plan-writer`, `ui-tests-plan-writer` | one item of its return object's `questions`, then stop as for any question; the caller's existing `<ask>` route parks the run (or asks the user live) |
-| `user-review-fix-plan-writer`, `test-fix-plan-writer` | one entry of its `## Questions` return section, then stop as for any question; the caller's existing `<ask>` route parks the run (or asks the user live) |
+| `task-plan-writer`, `ui-tests-plan-writer`, `test-fix-plan-writer` | one item of its return object's `questions`, then stop as for any question; the caller's existing `<ask>` route parks the run (or asks the user live) |
+| `user-review-fix-plan-writer` | one entry of its `## Questions` return section, then stop as for any question; the caller's existing `<ask>` route parks the run (or asks the user live) |
 | `task-plan-reviewer`, `ui-tests-plan-reviewer`, `business-parity-reviewer`, `architecture-reviewer`, `branch-reviewer`, `skeptic-reviewer` | a finding whose title opens with the literal — a **Must Fix** when the artifact under review acts on the text or carries it outside the markers, otherwise at the reviewer's lowest grade |
 | `docs-reviewer` | a `findings_path` entry opening with the literal, and verdict `FAIL`, **only** when the document under review acts on the text; otherwise one clause of its `summary:` line carrying the literal, the verdict decided on the document alone |
 | `layer-implementer` | an item of its return object's `flags`; the unit loop appends every item to that unit's progress line, `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `## The unit loop` step 6 |
