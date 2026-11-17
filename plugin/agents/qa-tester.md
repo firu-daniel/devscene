@@ -22,7 +22,7 @@ If either namespace is unavailable at run time, return an `outcome` of `blocker`
 
 ## Resolved values
 
-The tokens below resolve from the adopting repository's `devscene.config.json`, except `<repo_root>` and `<app_root>` (derived at runtime) and the last two, which resolve from the conventions documents the configuration names. They are declared here once; after this table the body uses each one as an ordinary placeholder. Ordinary **path placeholders** are deliberately not listed — the body's own text resolves each where it appears: the dispatch keys of `## Invocation contract` and the values the caller substitutes into them, `<branch>` / `<N>` / `<K>` / `<T>` / `<iteration>` in the artifact paths and filenames, `<slot>` in the account-parking calls, and `<base_url>` / `<findings_folder>` / `<title>` in the templates and the return blocks.
+The tokens below resolve from the adopting repository's `devscene.config.json`, except `<repo_root>` and `<app_root>` (derived at runtime) and the last two, which resolve from the conventions documents the configuration names. They are declared here once; after this table the body uses each one as an ordinary placeholder. Ordinary **path placeholders** are deliberately not listed — the body's own text resolves each where it appears: the dispatch keys of `## Invocation contract` and the values the caller substitutes into them, `<branch>` / `<N>` / `<K>` / `<T>` / `<iteration>` in the artifact paths and filenames, `<slot>` in the account-parking calls, and `<base_url>` / `<findings_folder>` / `<title>` in the templates and the return examples.
 
 | Token | Class | How to resolve it |
 |---|---|---|
@@ -184,7 +184,7 @@ This is the return for **any** finding, a Should Fix alone included, so an `outc
 
 Finding *headings* never carry `[ ]` / `[x]` markers — those live only in the Phase 2 Readiness list. Sub-step `- [ ]` bullets are allowed inside a per-finding body (informational; the commit step ignores them). Binding on you as the author: you write every entry at `[ ]` and never flip one to `[x]` — that transition belongs to the committing role — and you never edit the readiness section of an index a run is iterating that you did not author.
 
-Then return an `outcome` of `FAIL`:
+Then return an `outcome` of `FAIL`.
 
 `findings_file` is the full path to the index you wrote — `qa_review_<iteration>.md` in full-run mode, or your per-dispatch `qa_review_<iteration>_t<T>.md` in per-single-test mode.
 
