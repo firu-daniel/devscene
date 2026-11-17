@@ -133,14 +133,29 @@
 #
 # VERDICT — parse prompt-injection-reviewer's return, which the orchestrator
 # wrote to <verdict-file>, for the one file <path>. Fails closed: only the exact
-# SAFE block passes. After one surrounding code fence is stripped (when the
-# whole text is one fenced block) and blank lines are dropped:
+# SAFE object passes. After whitespace-only lines at either end are dropped, the
+# text is one fenced block: the first line exactly ```json, the last exactly ```,
+# no line between beginning with ```. Anything else outside it — prose, a second
+# block, a trailer, an indented fence — is malformed. The lines between parse
+# as exactly one JSON object, of one of these shapes:
 #
-#   verdict: SAFE                          and no other line
-#   verdict: UNSAFE                        then one or more lines
-#   finding: <id> | <excerpt> | <reason>   split on the first and the last ` | `,
-#                                          <id> in PI_CHECK_IDS, the other two
-#                                          non-empty
+#   {"outcome":"SAFE"}                     key set exactly `outcome`
+#   {"outcome":"UNSAFE","findings":[…]}    key set exactly `findings`, `outcome`;
+#                                          one or more items
+#   item {"check_id","excerpt","reason"}   key set exactly those three, each a
+#                                          non-empty string with no CR or LF,
+#                                          `check_id` in PI_CHECK_IDS
+#
+#   The fields read are `prompt-injection-reviewer.outcome`,
+#   `prompt-injection-reviewer.findings`,
+#   `prompt-injection-reviewer.findings.check_id`,
+#   `prompt-injection-reviewer.findings.excerpt` and
+#   `prompt-injection-reviewer.findings.reason`, mirroring
+#   plugin/schemas/prompt-injection-reviewer.return.json. The check is this
+#   script's own (PIS_JQ_VERDICT), never that file loaded: the copied script is
+#   never told the plugin's location, and its check is narrower than the schema
+#   — an exact SAFE object, a closed id set. A schema-valid
+#   `{"outcome":"blocker",…}` is malformed here.
 #
 #   SAFE      prints `verdict: SAFE <path> sha256 <hex>`, hashed now.
 #   UNSAFE    parks the findings for <path> through pis_park_write, then prints
@@ -180,6 +195,7 @@
 #
 # FLOORS. Bash 3.2; no `jq` for `prescan`, which reads no configuration, while
 # `plan` reads `stateDir` and needs it; every `mktemp` names an explicit template.
+# jq 1.5 for PIS_JQ_VERDICT: no regex builtin, every `if` with an `else`.
 #
 # REPRO — in a throwaway fixture wired by `devscene init`:
 #
@@ -964,49 +980,65 @@ PI_CHECK_IDS="destructive-intent attack authority-claim unrelated-request foreig
 
 PIS_MALFORMED_REASON="the screen's verdict did not match its closed format"
 
-pis_is_check_id() {
-  case "${1-}" in ''|*[!a-z-]*) return 1 ;; esac
-  case " $PI_CHECK_IDS " in
-    *" $1 "*) return 0 ;;
-    *) return 1 ;;
-  esac
-}
+# Decide the verdict object (input slurped, `-s`) against PI_CHECK_IDS (`--arg
+# ids`): print SAFE; or UNSAFE then one `check_id<TAB>excerpt<TAB>reason` line
+# per finding, a tab in excerpt or reason as a space; or MALFORMED.
+PIS_JQ_VERDICT='
+def line1: type == "string" and length > 0
+  and (split("\n") | length) == 1 and (split("\r") | length) == 1;
+def flat: split("\t") | join(" ");
+($ids | split(" ")) as $set
+| if length != 1 then "MALFORMED"
+  else .[0]
+  | if type != "object" then "MALFORMED"
+    elif keys == ["outcome"] and .outcome == "SAFE" then "SAFE"
+    elif keys == ["findings", "outcome"] and .outcome == "UNSAFE"
+      and (.findings | type) == "array" and (.findings | length) > 0
+      and all(.findings[]; type == "object"
+        and keys == ["check_id", "excerpt", "reason"]
+        and (.check_id | line1) and (.excerpt | line1) and (.reason | line1)
+        and (.check_id as $c | any($set[]; . == $c)))
+    then "UNSAFE", (.findings[] | "\(.check_id)\t\(.excerpt | flat)\t\(.reason | flat)")
+    else "MALFORMED"
+    end
+  end'
 
-# Parse the verdict lines in PIS_VLINES (non-blank, fence stripped). Set
-# PIS_VERDICT to SAFE, UNSAFE or MALFORMED and append one findings record per
-# `finding:` line to PIS_VFINDINGS, for <path> <sha>.
+# Decide the verdict from PIS_VLINES (the verdict file's lines, blank ones
+# kept). Set PIS_VERDICT to SAFE, UNSAFE or MALFORMED and append one findings
+# record per finding to PIS_VFINDINGS, for <path> <sha>.
 pis_parse_verdict() {
-  local path="$1" sha="$2" i=1 rest id mid ex rs
+  local path="$1" sha="$2" first=0 last i body="" out line
   PIS_VERDICT=MALFORMED
   PIS_VFINDINGS=""
-  [ "${#PIS_VLINES[@]}" -gt 0 ] || return 0
-  case "${PIS_VLINES[0]}" in
-    'verdict: SAFE')
-      [ "${#PIS_VLINES[@]}" -eq 1 ] && PIS_VERDICT=SAFE
-      return 0
-      ;;
-    'verdict: UNSAFE') [ "${#PIS_VLINES[@]}" -gt 1 ] || return 0 ;;
-    *) return 0 ;;
-  esac
-  while [ "$i" -lt "${#PIS_VLINES[@]}" ]; do
-    case "${PIS_VLINES[$i]}" in
-      'finding: '*) rest=${PIS_VLINES[$i]#finding: } ;;
-      *) PIS_VFINDINGS=""; return 0 ;;
-    esac
-    case "$rest" in *' | '*' | '*) ;; *) PIS_VFINDINGS=""; return 0 ;; esac
-    id=${rest%%' | '*}
-    mid=${rest#*' | '}
-    ex=${mid%' | '*}
-    rs=${mid##*' | '}
-    if ! pis_is_check_id "$id" || [ -z "$ex" ] || [ -z "$rs" ]; then
-      PIS_VFINDINGS=""
-      return 0
-    fi
-    ex=${ex//$PIS_TAB/ }
-    rs=${rs//$PIS_TAB/ }
-    PIS_VFINDINGS="$PIS_VFINDINGS$path$PIS_TAB$sha$PIS_TAB$id$PIS_TAB$PIS_TAB$ex$PIS_TAB$rs$PIS_NL"
+  last=$((${#PIS_VLINES[@]} - 1))
+  while [ "$first" -le "$last" ] && [ -z "${PIS_VLINES[$first]//[[:space:]]/}" ]; do
+    first=$((first + 1))
+  done
+  while [ "$last" -gt "$first" ] && [ -z "${PIS_VLINES[$last]//[[:space:]]/}" ]; do
+    last=$((last - 1))
+  done
+  [ "$last" -gt "$first" ] || return 0
+  [ "${PIS_VLINES[$first]}" = '```json' ] || return 0
+  [ "${PIS_VLINES[$last]}" = '```' ] || return 0
+  i=$((first + 1))
+  while [ "$i" -lt "$last" ]; do
+    case "${PIS_VLINES[$i]}" in '```'*) return 0 ;; esac
+    body="$body${PIS_VLINES[$i]}$PIS_NL"
     i=$((i + 1))
   done
+  # A jq parse failure is MALFORMED, never exit 2.
+  out=$(printf '%s' "$body" | jq -r -s --arg ids "$PI_CHECK_IDS" "$PIS_JQ_VERDICT" 2>/dev/null) \
+    || return 0
+  case "$out" in
+    SAFE) PIS_VERDICT=SAFE; return 0 ;;
+    UNSAFE"$PIS_NL"*) out=${out#UNSAFE"$PIS_NL"} ;;
+    *) return 0 ;;
+  esac
+  while IFS= read -r line; do
+    PIS_VFINDINGS="$PIS_VFINDINGS$path$PIS_TAB$sha$PIS_TAB${line%%"$PIS_TAB"*}$PIS_TAB$PIS_TAB${line#*"$PIS_TAB"}$PIS_NL"
+  done <<EOF
+$out
+EOF
   PIS_VERDICT=UNSAFE
 }
 
@@ -1048,21 +1080,9 @@ pis_verdict() {
   PIS_VLINES=()
   n=0
   while IFS= read -r line || [ -n "$line" ]; do
-    [ -n "${line//[[:space:]]/}" ] || continue
     PIS_VLINES[$n]="$line"
     n=$((n + 1))
   done < "$vf_abs" || pis_fault "verdict: cannot read '$vfile'"
-  # One surrounding fence: an opener line of three backticks (an info string
-  # allowed) and a closer of exactly three, around the whole text.
-  if [ "$n" -ge 2 ]; then
-    case "${PIS_VLINES[0]}" in
-      '```'*)
-        if [ "${PIS_VLINES[$((n - 1))]}" = '```' ]; then
-          PIS_VLINES=("${PIS_VLINES[@]:1:$((n - 2))}")
-        fi
-        ;;
-    esac
-  fi
 
   pis_parse_verdict "$path" "$sha"
   if [ "$PIS_VERDICT" = SAFE ]; then
