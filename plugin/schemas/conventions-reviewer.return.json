@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "conventions-reviewer return",
+  "description": "The conventions-reviewer's return object on either axis. The reviewer writes no file, so this object is the only carrier of its findings.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "A pass: document dispatch was reviewed.",
+      "properties": {
+        "outcome": { "const": "document_reviewed", "description": "The document axis was reviewed; names the axis, never a judgement." },
+        "document_path": { "type": "string", "minLength": 1, "description": "The absolute path of the document reviewed." },
+        "findings": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One item per finding; omitted when there is none.",
+          "items": {
+            "type": "object",
+            "description": "One finding against the reviewed document.",
+            "properties": {
+              "claim": { "type": "string", "minLength": 1, "description": "The claim or omission found." },
+              "evidence": { "type": "string", "minLength": 1, "description": "The file and the symbol or quoted substring that contradicts it, never a line coordinate." },
+              "correction": { "type": "string", "minLength": 1, "description": "The concrete correction." }
+            },
+            "required": ["claim", "evidence", "correction"],
+            "additionalProperties": false
+          }
+        },
+        "summary": { "type": "string", "minLength": 1, "description": "One line." }
+      },
+      "required": ["outcome", "document_path", "summary"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A pass: corpus dispatch was reviewed.",
+      "properties": {
+        "outcome": { "const": "corpus_reviewed", "description": "The corpus axis was reviewed; names the axis, never a judgement." },
+        "findings": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One item per finding; omitted when there is none.",
+          "items": {
+            "type": "object",
+            "description": "One finding, naming the member its correction lands in and the check it fires under.",
+            "properties": {
+              "document_path": { "type": "string", "minLength": 1, "description": "The corpus member the correction lands in." },
+              "check_id": { "type": "string", "minLength": 1, "description": "C1-C6 for a corpus check, or a document-pass check number for a finding against the target: project member." },
+              "claim": { "type": "string", "minLength": 1, "description": "The claim or omission found." },
+              "evidence": { "type": "string", "minLength": 1, "description": "The sibling document and a quoted anchor in it, never a line coordinate." },
+              "correction": { "type": "string", "minLength": 1, "description": "The concrete correction." }
+            },
+            "required": ["document_path", "check_id", "claim", "evidence", "correction"],
+            "additionalProperties": false
+          }
+        },
+        "summary": { "type": "string", "minLength": 1, "description": "One line." }
+      },
+      "required": ["outcome", "summary"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "The reviewer stopped without reviewing.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "A missing dispatch value, a re-dispatch for an already-reviewed document, or a corpus dispatch with an out-of-range iteration." },
+        "blocker": { "type": "string", "minLength": 1, "description": "One line naming the cause." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}

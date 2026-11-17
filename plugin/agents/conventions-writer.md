@@ -58,10 +58,10 @@ You are dispatched by `${CLAUDE_PLUGIN_ROOT}/commands/analyze.md`, on the axis t
 
 `findings` on this axis has **two admissible origins, and the line itself tells you which one you are reading**:
 
-- **Corpus review findings** — verbatim as `conventions-reviewer` returned them, each naming this `document_path`, the **corpus check id** it fires under (`C1`–`C6`; a document-pass check number can only belong to the `target: project` member, which is never dispatched to you), the evidence and the concrete correction.
+- **Corpus review findings** — the reviewer's finding objects, verbatim, each naming this document in `conventions-reviewer.findings.document_path` and the **corpus check id** it fires under in `conventions-reviewer.findings.check_id` (`C1`–`C6`; a document-pass check number can only belong to the `target: project` member, which is never dispatched to you), and carrying `claim`, `evidence` and `correction`.
 - **Forwarded layer-writer divergences** — each carrying the exact literal prefix `Layer-writer divergence — ` and **no check id**, sent by the fix-only reconciliation dispatch of the shared cross-layer document.
 
-**The prefix is the discriminator.** A line carrying neither a check id nor that prefix is a malformed dispatch, not a third origin to guess at. Both origins are applied identically, and both are recorded identically when declined.
+**The prefix is the discriminator.** An object carrying `check_id` is a corpus review finding, and a line carrying that prefix is a forwarded divergence. Anything else is a malformed dispatch, not a third origin to guess at. Both origins are applied identically, and both are recorded identically when declined.
 
 **Stop condition — a missing value, never a missing key spelling.** The dispatch is prose, not a keyed block: read the values out of it however they are worded. If any required value is **absent**, return a blocker naming which value is missing, and stop. Never guess a layer, never widen the scope, never substitute another document.
 

@@ -23,6 +23,7 @@ After the **third** consecutive failing return for the same dispatch, take the d
 
 These documents point at a section of this file:
 
+- `${CLAUDE_PLUGIN_ROOT}/commands/analyze.md`
 - `${CLAUDE_PLUGIN_ROOT}/docs/AUTONOMOUS_FLOW.md`
 - `${CLAUDE_PLUGIN_ROOT}/instructions/task_plan_writing_instructions_core.md`
 - `${CLAUDE_PLUGIN_ROOT}/instructions/plan_orchestration_instructions_core.md`

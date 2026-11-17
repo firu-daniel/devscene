@@ -305,8 +305,16 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    pre-write file. `harvested_sources` is the same inventory, spelled identically, that the write dispatch sent,
    and it is not optional.
 
-   Take the reviewer's `findings:` return. If it is `none`, that document is done. Otherwise re-dispatch
-   `conventions-writer` **once**, with the same fields — `pass: document` among them — plus `findings` verbatim,
+   Read every `conventions-reviewer` return, in this step and in (4d), as
+   `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states: an `outcome`
+   of `document_reviewed` routes a document-axis review, and an `outcome` of `corpus_reviewed` routes a corpus
+   review; `conventions-reviewer.findings` is optional, absent meaning none. An `outcome` of `blocker`, or the
+   third consecutive return that fails the check (`## A return that fails the check`), stops the run and
+   reports `conventions-reviewer.blocker` or the check that failed, naming the document.
+
+   Take `conventions-reviewer.findings`. If it is absent, that document is done. Otherwise re-dispatch
+   `conventions-writer` **once**, with the same fields — `pass: document` among them — plus those finding
+   objects verbatim as `findings`,
    and forward the same three `prior_*` fields on that fix dispatch too. **No verdict, no cap, no re-review, and
    no adjudication on this axis:** the writer applies what it judges genuine and records every finding it
    declines, and the run moves on. The corpus axis (4d) adds a **fixed** two iterations over the set as a whole
@@ -381,7 +389,8 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    **Iteration 1 — one review dispatch, then a per-document fix fan-out.** Dispatch `conventions-reviewer`
    **once** with `pass: corpus`, `corpus_documents` (the set above), `mode`, `excluded_paths`,
    `harvested_sources`, `demand_set` and `iteration: 1`. The three `prior_*` fields and `shared_document` are
-   **not sent** on this axis. Take its `findings:` and group them by the `document_path` each names:
+   **not sent** on this axis. Take `conventions-reviewer.findings` and group them by
+   `conventions-reviewer.findings.document_path`:
 
    - A group whose member is `role: fixable` **and is not `.claude/CLAUDE.md`** — dispatch
      `conventions-writer` with `pass: corpus`, that document's **same write-dispatch values** (the write table
@@ -401,7 +410,7 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    **changed** — a `fixable` member whose fix return reports at least one finding applied, or `.claude/CLAUDE.md`
    where this session applied one — **plus** every member those findings' evidence cited. Dispatch the reviewer
    once more with that narrowed `corpus_documents` and `iteration: 2`, then fan out fixes exactly as iteration 1
-   does. **Iteration 2 does not run** when iteration 1 returned `findings: none`, or when every finding was
+   does. **Iteration 2 does not run** when iteration 1's return carried no `conventions-reviewer.findings`, or when every finding was
    declined so no member changed: the narrowed set is empty. **There is no third iteration and no verdict gates
    either one.**
 5. **The `layers` target proposes and never writes.** Show the current and proposed `layers` arrays as a diff, and
