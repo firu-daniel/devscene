@@ -140,7 +140,7 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
      project paragraph needs what the project is, who uses it and what an agent must know before touching a
      file; the file-naming table needs the recurring name patterns **and one real file per pattern** for its
      third column. On a repository too large to survey whole, sample it and record what was sampled and what
-     was not — that record is the `evidence:` clause step 6 prints for the `project` rows.
+     was not — that record is the evidence clause step 6 prints for the `project` rows.
 3. **What is delegated, to whom, and in what order. This step sends nothing.** It is the reference **step 4
    fills**, and step 4 is the sole sender of every dispatch in this run — write, review and fix alike — because
    the `action` a write dispatch carries is decided by (4a), and a document (4a) classifies as `skip` must never
@@ -221,11 +221,20 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    all fixes — one message per wave, so each wave runs concurrently**, each dispatch filling the argument block
    step 3 spells out. A run that serializes the waves produces the same documents and the same report.
 
-   **Keep every `shared_document_divergences:` line these returns carry**, from the write returns and the
-   document-axis fix returns alike — the only returns that carry one, `pass: corpus` returning `none` by the
-   writer's own rule — exactly as `${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` → `## Output contract`
-   returns them (`none` is an ordinary answer and contributes nothing). They are session state, spent by
-   (4d.0) and by nothing else.
+   Read every `conventions-writer` return this command receives — write, document fix, reconciliation and
+   corpus fix — as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return`
+   states: an `outcome` of `written` or `merged` routes; `conventions-writer.not_determined_lines`,
+   `conventions-writer.conflicts`, `conventions-writer.findings_declined` and
+   `conventions-writer.shared_document_divergences` are optional for the check, absent or empty meaning none;
+   `conventions-writer.findings_applied` is read on fix returns only. An `outcome` of `blocker`, or the third
+   consecutive return that fails the check (`## A return that fails the check`), stops the run and reports
+   `conventions-writer.blocker` or the check that failed, naming the document.
+
+   **Keep every `conventions-writer.shared_document_divergences` item these returns carry**, from the write
+   returns and the document-axis fix returns alike — the only returns that carry one, `pass: corpus` returning
+   `[]` by the writer's own rule — exactly as `${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` →
+   `## Output contract` returns them (`[]` is an ordinary answer and contributes nothing). They are session
+   state, spent by (4d.0) and by nothing else.
 
    **(4b) The `project` target, `.claude/CLAUDE.md`.** That file carries neither half of (4a)'s test, so it is
    **classified per section, not per file**, and (4a)'s marker-and-footer sentence does not apply to it: there
@@ -300,13 +309,21 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    `document_path`, `target`, `scope`, `mode`, `excluded_paths`, `harvested_sources`, `shared_document` (the
    same value the write dispatch carried — `none` when the document under review is it, and `none` in the
    on-disk cases step 1 names), `demand_set`, **and the three `prior_*` fields taken verbatim from that
-   document's write return**: `prior_document` (`skeleton` | `filled` | `absent`), `prior_prompts` and
-   `prior_rule_block`. This step **forwards** those three and never gathers them: only the writer saw the
+   document's write return**: `conventions-writer.prior_document`, `conventions-writer.prior_prompts` and
+   `conventions-writer.prior_rule_block`, forwarded verbatim. This step **forwards** those three and never gathers them: only the writer saw the
    pre-write file. `harvested_sources` is the same inventory, spelled identically, that the write dispatch sent,
    and it is not optional.
 
-   Take the reviewer's `findings:` return. If it is `none`, that document is done. Otherwise re-dispatch
-   `conventions-writer` **once**, with the same fields — `pass: document` among them — plus `findings` verbatim,
+   Read every `conventions-reviewer` return, in this step and in (4d), as
+   `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states: an `outcome`
+   of `document_reviewed` routes a document-axis review, and an `outcome` of `corpus_reviewed` routes a corpus
+   review; `conventions-reviewer.findings` is optional, absent or empty meaning none. An `outcome` of `blocker`, or the
+   third consecutive return that fails the check (`## A return that fails the check`), stops the run and
+   reports `conventions-reviewer.blocker` or the check that failed, naming the document.
+
+   Take `conventions-reviewer.findings`. If it is absent or empty, that document is done. Otherwise re-dispatch
+   `conventions-writer` **once**, with the same fields — `pass: document` among them — plus those finding
+   objects verbatim as `findings`,
    and forward the same three `prior_*` fields on that fix dispatch too. **No verdict, no cap, no re-review, and
    no adjudication on this axis:** the writer applies what it judges genuine and records every finding it
    declines, and the run moves on. The corpus axis (4d) adds a **fixed** two iterations over the set as a whole
@@ -325,11 +342,12 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
 
    **(4d.0) Reconcile the shared cross-layer document first — one fix-only dispatch, and no review.** Before the
    corpus review below: when this run **wrote** the shared cross-layer document and the
-   `shared_document_divergences:` set the layer wave collected is non-empty, dispatch `conventions-writer` once
+   `conventions-writer.shared_document_divergences` items the layer wave collected are non-empty, dispatch `conventions-writer` once
    with `pass: corpus`, that document's **same write-dispatch values** (the write table step 3 spells out,
    **minus** `pass`, which this dispatch carries as `pass: corpus`), the three `prior_*` fields **taken verbatim
-   from that document's own write return**, and `findings` = the collected lines, **each prefixed with the exact
-   literal `Layer-writer divergence — `** — the discriminator the writer's own `## Invocation contract` names.
+   from that document's own write return**, and `findings` = the collected items, **each sent as one line: the
+   exact literal `Layer-writer divergence — `, then its `shared_document_says`, `code_shows` and `source`** — that
+   prefix being the discriminator the writer's own `## Invocation contract` names.
    **Fix-only:** no review dispatch accompanies it, the one-pass rule stands for review, and step 3's closed-block
    rule binds it like every other dispatch.
 
@@ -346,7 +364,7 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    whole gate — the set-size clause below governs the review iterations, not this dispatch.
 
    **A divergence the writer declines** lands on that document's `## Not determined` under the existing
-   literal `Reviewer finding not applied — ` and in its `findings_declined:` return, exactly as a reviewer
+   literal `Reviewer finding not applied — ` and in its `conventions-writer.findings_declined`, exactly as a reviewer
    finding does, the `Layer-writer divergence — ` prefix carrying its origin.
 
    **The corpus set** is assembled from this run's own record, one entry per member carrying `document_path`
@@ -381,14 +399,15 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    **Iteration 1 — one review dispatch, then a per-document fix fan-out.** Dispatch `conventions-reviewer`
    **once** with `pass: corpus`, `corpus_documents` (the set above), `mode`, `excluded_paths`,
    `harvested_sources`, `demand_set` and `iteration: 1`. The three `prior_*` fields and `shared_document` are
-   **not sent** on this axis. Take its `findings:` and group them by the `document_path` each names:
+   **not sent** on this axis. Take `conventions-reviewer.findings` and group them by
+   `conventions-reviewer.findings.document_path`:
 
    - A group whose member is `role: fixable` **and is not `.claude/CLAUDE.md`** — dispatch
      `conventions-writer` with `pass: corpus`, that document's **same write-dispatch values** (the write table
      **minus** `pass`, which this dispatch carries as `pass: corpus`), `findings` (its group, verbatim), and
      the three `prior_*` fields **taken verbatim from that document's own write return**, forwarded and never
      re-gathered. `shared_document` travels with those write-dispatch values as the writer's read-only anchor,
-     and **the corpus-fix return carries `shared_document_divergences: none` by that axis's own rule**
+     and **the corpus-fix return carries an empty `conventions-writer.shared_document_divergences` by that axis's own rule**
      (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` → `## The document`), so nothing is collected here.
    - A group whose member is `.claude/CLAUDE.md` is applied **by this session**, (4b) being that file's only
      writer.
@@ -398,10 +417,10 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    The fixes go out as **one wave**, concurrently, like every other wave in this step.
 
    **Iteration 2 — narrowed, fixed, and skippable on its own evidence.** Its set is the members iteration 1's fixes
-   **changed** — a `fixable` member whose fix return reports at least one finding applied, or `.claude/CLAUDE.md`
+   **changed** — a `fixable` member whose fix return's `conventions-writer.findings_applied` is at least 1, or `.claude/CLAUDE.md`
    where this session applied one — **plus** every member those findings' evidence cited. Dispatch the reviewer
    once more with that narrowed `corpus_documents` and `iteration: 2`, then fan out fixes exactly as iteration 1
-   does. **Iteration 2 does not run** when iteration 1 returned `findings: none`, or when every finding was
+   does. **Iteration 2 does not run** when iteration 1's return carried no `conventions-reviewer.findings`, or when every finding was
    declined so no member changed: the narrowed set is empty. **There is no third iteration and no verdict gates
    either one.**
 5. **The `layers` target proposes and never writes.** Show the current and proposed `layers` arrays as a diff, and
@@ -455,10 +474,11 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    stands.
 
    - **A delegated document** — every conventions document step 4 dispatched: the **action taken** is the
-     writer's `action_taken:` (`written` or `merged`); the **evidence sampled**, including what was not read
-     on a large repository, is its `evidence:` line, printed per document as returned; every
-     **`## Not determined` line** is its `not_determined_lines:`; every **conflict** between the adopter's
-     existing prose and the code is its `conflicts:` line-set.
+     writer's outcome, `written` or `merged`; the **evidence sampled**, including what was not read on a
+     large repository, is its `conventions-writer.evidence`, printed per document as returned; every
+     **`## Not determined` line** is its `conventions-writer.not_determined_lines`; every **conflict** between
+     the adopter's existing prose and the code is its `conventions-writer.conflicts`, each printed as its
+     `prose` and `code`.
    - **A document (4a) classified `skip`** is reported **`skipped`** from that classification, naming the
      reason it was skipped and printing no evidence, `## Not determined` or conflict lines, because nothing
      was written.
@@ -474,8 +494,9 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
      say so in the same place: a silent run must never leave a reader to infer that something was recorded.
 
    **The review lines are delegated-document rows only:** per document, whether it was **reviewed**, how many
-   findings were applied (the fix return's `findings_applied:`) and how many were not, then every declined
-   finding listed once with the writer's reason (`findings_declined:`). A skipped document, the `project` sections and the `layers` proposal carry
+   findings were applied (the fix return's `conventions-writer.findings_applied`) and how many were not, then
+   every declined finding listed once with the writer's reason (`conventions-writer.findings_declined`, each
+   printed as its `finding` and `reason`). A skipped document, the `project` sections and the `layers` proposal carry
    no review line at all. Every declined finding also stands in that document's `## Not determined` under the
    literal `Reviewer finding not applied — `: the report is the run-time view, the document is the durable
    one.
@@ -488,11 +509,11 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    - **Whether (4d.0)'s reconciliation dispatch ran or was skipped**, and on a skip which of its two reasons
      applied.
    - **Per iteration, how many findings were raised**, then per document how many were applied and how many
-     were not — for a delegated member, that document's corpus fix return (`findings_applied:` and
-     `findings_declined:`); for **`.claude/CLAUDE.md`**, this session's own record of what it applied and what
+     were not — for a delegated member, that document's corpus fix return (`conventions-writer.findings_applied`
+     and `conventions-writer.findings_declined`); for **`.claude/CLAUDE.md`**, this session's own record of what it applied and what
      it declined, that member having no writer and no fix return per (4b) — with every declined one listed once
      with the reason, the writer's or this session's, and the `Layer-writer divergence — ` prefix printed
-     intact where the line carries one, that prefix being what names the finding's origin. A finding this
+     intact where the declined item's `finding` carries one, that prefix being what names the finding's origin. A finding this
      session declined against `.claude/CLAUDE.md` is entered here **as** that target's step-6 conflict line
      from (4b), printed once — not once here and again among the `project` row's conflicts.
    - **A finding whose correction lands in a `role: context` member, one against a `.claude/CLAUDE.md` section

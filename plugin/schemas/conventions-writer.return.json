@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "conventions-writer return",
+  "description": "The conventions-writer's return object on either axis and every action. The caller builds its report from this object alone and never re-reads the document.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "The document was written.",
+      "properties": {
+        "outcome": { "const": "written", "description": "The document now stands written." },
+        "document_path": { "type": "string", "minLength": 1, "description": "The absolute path of the one document written." },
+        "not_determined": { "type": "integer", "minimum": 0, "description": "The count of lines in the document's ## Not determined section." },
+        "not_determined_lines": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Every ## Not determined line, verbatim, each Reviewer finding not applied line included; omitted when there is none.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "conflicts": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One item per contradiction between the adopter's harvested prose and the code inside this document's scope; omitted when there is none.",
+          "items": {
+            "type": "object",
+            "description": "One adopter-prose-versus-code contradiction.",
+            "properties": {
+              "prose": { "type": "string", "minLength": 1, "description": "What the adopter's harvested prose says, naming its source." },
+              "code": { "type": "string", "minLength": 1, "description": "What the code does, naming the file and the symbol or quoted substring." }
+            },
+            "required": ["prose", "code"],
+            "additionalProperties": false
+          }
+        },
+        "shared_document_divergences": {
+          "type": "array",
+          "description": "One item per divergence between shared_document and this scope's code; always emitted, [] on pass: corpus, on shared_document: none and when nothing was found.",
+          "items": {
+            "type": "object",
+            "description": "One shared-document-versus-code divergence.",
+            "properties": {
+              "shared_document_says": { "type": "string", "minLength": 1, "description": "What the shared document says." },
+              "code_shows": { "type": "string", "minLength": 1, "description": "What this scope's code shows." },
+              "source": { "type": "string", "minLength": 1, "description": "The file plus the symbol or quoted substring it was read off." }
+            },
+            "required": ["shared_document_says", "code_shows", "source"],
+            "additionalProperties": false
+          }
+        },
+        "findings_applied": { "type": "integer", "minimum": 0, "description": "Fix dispatches only: the count of findings applied; omitted on a write dispatch." },
+        "findings_declined": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One item per finding not applied; omitted when there is none.",
+          "items": {
+            "type": "object",
+            "description": "One declined finding.",
+            "properties": {
+              "finding": { "type": "string", "minLength": 1, "description": "A forwarded divergence's line verbatim, its Layer-writer divergence prefix intact, or a reviewer finding's check_id where it has one followed by its claim." },
+              "reason": { "type": "string", "minLength": 1, "description": "Why it was not applied." }
+            },
+            "required": ["finding", "reason"],
+            "additionalProperties": false
+          }
+        },
+        "evidence": { "type": "string", "minLength": 1, "description": "One line naming what was read, and on a sampled repository what was not." },
+        "prior_document": { "type": "string", "enum": ["skeleton", "filled", "absent"], "description": "What stood at document_path when the dispatch arrived." },
+        "prior_prompts": { "type": "string", "minLength": 1, "description": "Every What belongs here item that file carried, verbatim, one per line; none or n/a." },
+        "prior_rule_block": { "type": "string", "minLength": 1, "description": "The stack-independent rule block that file carried, verbatim; none or n/a." },
+        "notes": { "type": "string", "minLength": 1, "description": "Anything else the caller reports." }
+      },
+      "required": ["outcome", "document_path", "not_determined", "shared_document_divergences", "evidence", "prior_document", "prior_prompts", "prior_rule_block"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "The document was merged.",
+      "properties": {
+        "outcome": { "const": "merged", "description": "The document now stands merged." },
+        "document_path": { "type": "string", "minLength": 1, "description": "The absolute path of the one document written." },
+        "not_determined": { "type": "integer", "minimum": 0, "description": "The count of lines in the document's ## Not determined section." },
+        "not_determined_lines": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Every ## Not determined line, verbatim, each Reviewer finding not applied line included; omitted when there is none.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "conflicts": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One item per contradiction between the adopter's harvested prose and the code inside this document's scope; omitted when there is none.",
+          "items": {
+            "type": "object",
+            "description": "One adopter-prose-versus-code contradiction.",
+            "properties": {
+              "prose": { "type": "string", "minLength": 1, "description": "What the adopter's harvested prose says, naming its source." },
+              "code": { "type": "string", "minLength": 1, "description": "What the code does, naming the file and the symbol or quoted substring." }
+            },
+            "required": ["prose", "code"],
+            "additionalProperties": false
+          }
+        },
+        "shared_document_divergences": {
+          "type": "array",
+          "description": "One item per divergence between shared_document and this scope's code; always emitted, [] on pass: corpus, on shared_document: none and when nothing was found.",
+          "items": {
+            "type": "object",
+            "description": "One shared-document-versus-code divergence.",
+            "properties": {
+              "shared_document_says": { "type": "string", "minLength": 1, "description": "What the shared document says." },
+              "code_shows": { "type": "string", "minLength": 1, "description": "What this scope's code shows." },
+              "source": { "type": "string", "minLength": 1, "description": "The file plus the symbol or quoted substring it was read off." }
+            },
+            "required": ["shared_document_says", "code_shows", "source"],
+            "additionalProperties": false
+          }
+        },
+        "findings_applied": { "type": "integer", "minimum": 0, "description": "Fix dispatches only: the count of findings applied; omitted on a write dispatch." },
+        "findings_declined": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One item per finding not applied; omitted when there is none.",
+          "items": {
+            "type": "object",
+            "description": "One declined finding.",
+            "properties": {
+              "finding": { "type": "string", "minLength": 1, "description": "A forwarded divergence's line verbatim, its Layer-writer divergence prefix intact, or a reviewer finding's check_id where it has one followed by its claim." },
+              "reason": { "type": "string", "minLength": 1, "description": "Why it was not applied." }
+            },
+            "required": ["finding", "reason"],
+            "additionalProperties": false
+          }
+        },
+        "evidence": { "type": "string", "minLength": 1, "description": "One line naming what was read, and on a sampled repository what was not." },
+        "prior_document": { "type": "string", "enum": ["skeleton", "filled", "absent"], "description": "What stood at document_path when the dispatch arrived." },
+        "prior_prompts": { "type": "string", "minLength": 1, "description": "Every What belongs here item that file carried, verbatim, one per line; none or n/a." },
+        "prior_rule_block": { "type": "string", "minLength": 1, "description": "The stack-independent rule block that file carried, verbatim; none or n/a." },
+        "notes": { "type": "string", "minLength": 1, "description": "Anything else the caller reports." }
+      },
+      "required": ["outcome", "document_path", "not_determined", "shared_document_divergences", "evidence", "prior_document", "prior_prompts", "prior_rule_block"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "The writer stopped without writing.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "A missing dispatch value, or a corpus-axis findings entry that is neither origin." },
+        "blocker": { "type": "string", "minLength": 1, "description": "One line naming the cause." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}

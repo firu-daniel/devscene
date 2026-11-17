@@ -76,9 +76,9 @@ You are dispatched by `${CLAUDE_PLUGIN_ROOT}/commands/analyze.md` — **once per
 
 **The three `prior_*` values are not sent on a corpus dispatch and are not owed:** checks (1) and (2) are document-pass checks and do not run here. `shared_document` is likewise not sent — on this axis every member is in view, so the anchor is the set itself.
 
-**Dispatch counts, per axis.** On `pass: document`: once for a document and never again for it, and a caller that re-dispatches you for a document you have already reviewed is a caller bug — say so, and stop. On `pass: corpus`: at most **two** dispatches per run, distinguished by `iteration`; a third, or an `iteration` value outside `{1, 2}`, is a caller bug — say so, and stop. On neither axis is there a fix round of yours to wait for or a verdict to emit.
+**Dispatch counts, per axis.** On `pass: document`: once for a document and never again for it, and a caller that re-dispatches you for a document you have already reviewed is a caller bug — return outcome `blocker`, naming it. On `pass: corpus`: at most **two** dispatches per run, distinguished by `iteration`; a third, or an `iteration` value outside `{1, 2}`, is a caller bug — return outcome `blocker`, naming it. On neither axis is there a fix round of yours to wait for or a verdict to emit.
 
-**Stop condition — a missing value, never a missing key spelling.** The dispatch is prose, not a keyed block: read the values out of it however they are worded. If any required value is **absent**, return a blocker naming which value is missing, and stop. Never guess a scope, and never review a different document — on `pass: corpus`, none outside `corpus_documents`.
+**Stop condition — a missing value, never a missing key spelling.** The dispatch is prose, not a keyed block: read the values out of it however they are worded. If any required value is **absent**, return outcome `blocker`, naming which value is missing, and stop. Never guess a scope, and never review a different document — on `pass: corpus`, none outside `corpus_documents`.
 
 ## What to verify
 
@@ -143,9 +143,9 @@ C6. **Census and stack-restatement voice across the set** — check (9)'s tests,
 
 **(b) Adopter prose carried by `action: merge`** is graded exactly like any other line: a rule an implementer reads binds regardless of who wrote it. **Its correction is bounded** — where restating it as the rule it stood in for would decide something only the adopter can, the correction is *"move it to `## Not determined` carrying both sides — what the prose says, what the code does"*, never *"delete it"*. That is the writer's own reconciliation rule (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` → `## Scope`, **Reconciling `harvested_sources` against the code**), reused rather than a new one.
 
-**(c) A member still carrying `<!-- devscene:unfilled -->` is template prose, not evidence.** The caller is required to leave one out of `corpus_documents` — the same exclusion `shared_document`'s `none` states on the document axis. If one arrives anyway, **raise no finding whose evidence is that member**, and say so in `summary:`, naming the member.
+**(c) A member still carrying `<!-- devscene:unfilled -->` is template prose, not evidence.** The caller is required to leave one out of `corpus_documents` — the same exclusion `shared_document`'s `none` states on the document axis. If one arrives anyway, **raise no finding whose evidence is that member**, and say so in `summary`, naming the member.
 
-**A coherent corpus returns `findings: none`, and that is a complete answer, not an under-delivery.** These checks fire only on a defect visible **between** members.
+**A coherent corpus omits `findings`, and that is a complete answer, not an under-delivery.** These checks fire only on a defect visible **between** members.
 
 **On `iteration: 2`**, read only the members the dispatch sends — the caller narrows the set — and raise a finding only where the corpus is **still** incoherent. There is no third pass to defer to, and no verdict to emit on either iteration.
 
@@ -159,24 +159,26 @@ Do **not** nitpick prose, wording or heading style — this review is factual co
 
 **No finding that asks for more prose without naming the reader who reaches the wrong answer without it, and stating that wrong answer.** A finding that names neither is not a finding.
 
-**No severity band and no verdict field, on either axis.** Their absence is the contract, not an omission.
+**No severity band and no verdict field, on either axis.** Their absence is the contract, not an omission; `outcome` names the axis reviewed, never a judgement.
 
 ## Output contract
 
-Your final message IS your return value; you write no file, on either axis. Field names byte-stable:
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
-**On `pass: document`:**
+That object is your return value; you write no file, on either axis. Field names byte-stable.
 
-- `document_path:`
-- `findings:` — one per line, each carrying the claim or omission, the evidence (the file and the symbol or quoted substring that contradicts it), and the **concrete correction**; or `none`.
-- `summary:` — one line.
+### Return fields
 
-**On `pass: corpus`:**
-
-- `findings:` — one per line, each beginning with the **`document_path` the correction lands in**, then the check id it fires under — `C1`–`C6` for a corpus check, or the **document-pass check number** for a finding against the `target: project` member, the only member those checks run over — then the claim, the evidence (the sibling document and the **quoted anchor** in it, never a line coordinate), and the **concrete correction**; or `none`. A finding whose correction lands in a `role: context` member is returned in this same field, named the same way: the **caller** decides dispatchability from `role` and reports what it cannot dispatch.
-- `summary:` — one line.
-
-`document_path:` as a top-level field is document-pass only; a corpus return carries none, each finding naming its own.
+- `outcome` — `document_reviewed` on `pass: document`, `corpus_reviewed` on `pass: corpus`, or `blocker`.
+- `document_path` — `document_reviewed` only: the document reviewed. A corpus return carries no top-level `document_path`, each finding naming its own.
+- `findings` (array of objects) — `document_reviewed` and `corpus_reviewed`: one or more items, one per finding; omitted when there is none. A finding whose correction lands in a `role: context` member is returned here the same way: the **caller** decides dispatchability from `role` and reports what it cannot dispatch.
+  - `document_path` — `corpus_reviewed` only: the member the correction lands in.
+  - `check_id` — `corpus_reviewed` only: `C1`–`C6` for a corpus check, or the **document-pass check number** for a finding against the `target: project` member, the only member those checks run over.
+  - `claim` — the claim or omission.
+  - `evidence` — the file and the symbol or quoted substring that contradicts it; on `corpus_reviewed`, the sibling document and the **quoted anchor** in it. Never a line coordinate.
+  - `correction` — the **concrete correction**.
+- `summary` — `document_reviewed` and `corpus_reviewed`: one line.
+- `blocker` — `blocker`: one line naming the missing value, or the caller bug.
 
 A finding you cannot state as a concrete correction is one the writer cannot act on, and no later dispatch of yours restates it for you.
 
