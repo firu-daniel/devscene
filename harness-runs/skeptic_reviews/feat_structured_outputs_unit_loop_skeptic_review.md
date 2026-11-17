@@ -33,7 +33,7 @@ No parity review exists, because `phases.parity` is `false`. No architecture bra
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Add the off-row `already passing` escalation to the autonomous user-review fork's closed `<escalate>` list _(layer: plugin)_
+1. [x] **Finding 1** — Add the off-row `already passing` escalation to the autonomous user-review fork's closed `<escalate>` list _(layer: plugin)_
 
 ---
 
