@@ -60,7 +60,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_review_sweep_in_convent
 7. [x] **Task 7** — Run the `sweep` target last in `/devscene:analyze` _(layer: plugin)_ _(points: 20)_
 8. [x] **Task 8** — Make `branch-reviewer` take its Pass 0 grep sweep from `review-sweep.sh` _(layer: plugin)_ _(points: 20)_
 9. [x] **Task 9** — Self-adopt `scripts/review-sweep.sh` and list it in the watcher's script table _(layer: general)_ _(points: 10)_
-10. [ ] **Task 10** — Document the sweep document, the `sweep` target and the `review-sweep` check _(layer: general)_ _(points: 20)_
+10. [x] **Task 10** — Document the sweep document, the `sweep` target and the `review-sweep` check _(layer: general)_ _(points: 20)_
 
 ## Scope register
 
