@@ -115,7 +115,7 @@ Phase D's `statistics-plan-writer` dispatch and the Done summary remain **purely
 
 **Trigger / ordering.** The commit fires **after** the D.1 `statistics-plan-writer` dispatch returns and **before** the D.2 Done summary. Run it once, at that single point.
 
-**`not_written` gate (skip on failed write).** If D.1 took its `not_written` route (an `outcome` of `not_written`, or a third failing return — the core's `### D.1`) (e.g., the story index is missing) — the path the existing Phase D already handles by skipping the statistics summary bullet and not inventing numbers — **skip this commit entirely**: do not commit a missing/partial file, do not create an empty commit, do not error. The skip is consistent with the existing "omit the statistics summary bullet" behavior.
+**`not_written` gate (skip on failed write).** If D.1 took its `not_written` route (the core's `### D.1`; e.g., the story index is missing) — the path the existing Phase D already handles by skipping the statistics summary bullet and not inventing numbers — **skip this commit entirely**: do not commit a missing/partial file, do not create an empty commit, do not error. The skip is consistent with the existing "omit the statistics summary bullet" behavior.
 
 **Commit mechanism (the `statistics` artifact kind).** Commit through `<commit_call>` with the wrapper's `statistics` artifact kind. The wrapper's artifact table fixes both the one path it stages — `<state_dir>/branch_statistics/<branch>/statistics.md`, the path the writer reports as `` `statistics-plan-writer.statistics_file` `` — and the subject, so the call names neither; never a direct `git add` / `git commit` here.
 
