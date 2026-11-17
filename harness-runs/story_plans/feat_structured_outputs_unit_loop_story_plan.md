@@ -36,7 +36,7 @@ This branch is the second of five that give every plugin agent a declared, schem
 
 - **A caller left reading the old prose form.** The literals are quoted across the corpus, so a missed sentence is a silent break. Each task's `Verification:` re-derives that agent's old return literals by grep across `plugin/`, and the `## Scope register` below closes the site set.
 - **The returned `cause` drifting from the detail file's `**Cause:**` line,** which would break goal 3 for the commit body. Task 2 owns both sentences in `layer-implementer.md` and verifies they name the same field.
-- **`cli/test/run-gates-park-answer.test.mjs` pins exact text.** It pins G.2's two prompt forms, the `Phase G test-fix-plan-writer` origin, the agent's `## Invocation contract` and the `fixable: 0` literal in G.5's cap paragraph. Task 3 rewrites G.2's return parse and leaves every one of those strings byte-identical.
+- **`cli/test/run-gates-park-answer.test.mjs` pins exact text.** It pins G.2's two prompt forms, the `Phase G test-fix-plan-writer` origin, the two prompt-form lines in the agent's `## Invocation contract`, and the `fixable: 0` literal in G.5's cap paragraph. Task 3 rewrites G.2's return parse and leaves every one of those strings byte-identical.
 
 ## Phase 2 Readiness — Ordered Fix List
 

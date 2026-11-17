@@ -60,12 +60,14 @@
     - In the paragraph **"The third unit outcome adds none either."**, *"Its second marker, `already passing — `,"* becomes *"Its second outcome, `already passing`,"*.
   - (b) `## The unit loop` step 3, the paragraph opening *"Receive its return and read a blocker line in **three arms**"*. Rewrite it to read the return as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states:
     - An `outcome` of `implemented`: continue, keeping each `` `layer-implementer.flags` `` item for step 6.
+    - State once, here, that `` `layer-implementer.flags` `` is **optional**: an absent or empty field means nothing to flag, never a failed return, and it is not a field the routing check reads for `implemented`. An `implemented` return that omits `flags` passes `## Reading a return` and continues. Model the wording on `plan_orchestration_instructions_autonomous.md`'s *"(an absent or empty field means no corpus debt, never "the planner did not check")"*.
+    - Name the fields the check does read, per outcome: `cause` for `prohibited` and `already passing`, `blocker` for `blocker`, none beyond `outcome` for `implemented`.
     - An `outcome` of `prohibited`: takes `### The dispositioned outcome`.
     - An `outcome` of `already passing` on row `G.4` only: takes `#### The already-passing close`.
     - An `outcome` of `blocker`, an `outcome` of `already passing` on any other row, or the third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) `<escalate>`s, quoting `` `layer-implementer.blocker` `` or naming the check that failed.
     - Keep the fail-safe sentence, reworded: an outcome the row does not admit escalates.
   - (c) Step 6:
-    - *"every line an implementer of this unit returned under its `## Output contract` item 7"* becomes *"every item of `` `layer-implementer.flags` `` an implementer of this unit returned"*.
+    - *"every line an implementer of this unit returned under its `## Output contract` item 7"* becomes *"every item of `` `layer-implementer.flags` `` an implementer of this unit returned (none when the field was absent or empty, as step 3 states)"*. Point back at step 3's optional-field sentence; do not restate it.
     - Replace the **by position** sentence (*"The cause is taken from the implementer's return **by position, not by judgement**: …"*) with: the cause is `` `layer-implementer.cause` ``, carried verbatim and never re-worded.
     - Keep *"One clause, one cause"* and the clause names `dispositioned: ` / `already passing: `.
   - (d) `### The dispositioned outcome`, its opening paragraph and **What already exists on disk**: *"reached by a blocker line carrying the `prohibited — ` marker, or on row `G.4` the `already passing — ` marker"* becomes *"reached by an `outcome` of `prohibited`, or on row `G.4` an `outcome` of `already passing`"*. The parenthetical about `<one-line cause>` becomes the `cause` field. *"the marker on the return is the whole decision"* becomes *"the outcome is the whole decision"*.
@@ -82,6 +84,7 @@
 **Verification:**
 
 - `jq empty plugin/schemas/layer-implementer.return.json` exits 0.
+- `unit_loop_core.md` → `## The unit loop` step 3, read after the edit: the rewritten arms name `cause` as the field the routing check reads for `prohibited` / `already passing` and `blocker` for `blocker`, and state that an `implemented` return with an absent or empty `flags` passes the check and continues. Step 6 reads `flags` as optional by pointing back at that sentence. `flags` is not in the schema's `required` list for `implemented`.
 - `git grep -nE 'blocker: (prohibited|already passing)|; (disposition|record) appended to |prohibited — |item-7|item 7' -- plugin` prints nothing.
 - `git grep -n 'already passing — ' -- plugin`: every hit is the commit-body line form `mark <…> already passing — <cause>`.
 - `git grep -nE 'reports .blocker:|reporting .blocker:|returns an .error:' -- plugin/instructions/plan_orchestration_instructions_core.md plugin/instructions/user_review_fixes_instructions_core.md plugin/instructions/user_review_fixes_instructions_autonomous.md`: no hit names an implementer.

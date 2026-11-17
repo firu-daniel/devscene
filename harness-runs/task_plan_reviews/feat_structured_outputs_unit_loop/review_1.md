@@ -1,0 +1,17 @@
+# Task plan review — round 1
+
+verdict: PASS
+review_mode: full
+
+## Should Fix
+1. **`task_2_plan.md` — the escalation arm for `already passing` on a row other than `G.4` quotes a field that outcome does not carry.** Work (b)'s last arm reads *"An `outcome` of `blocker`, an `outcome` of `already passing` on any other row, or the third consecutive return that fails the check … `<escalate>`s, quoting `` `layer-implementer.blocker` `` or naming the check that failed."* Under **The return this task defines**, an `already passing` return carries `cause` and never `blocker`. The bullet just above it also says the routing check reads `cause` for `already passing`. So for that arm the orchestrator is told to quote a field that is absent. **Fix:** make the arm quote `` `layer-implementer.cause` `` for an `already passing` return on a non-`G.4` row, and `` `layer-implementer.blocker` `` for an `outcome` of `blocker`.
+2. **`task_3_plan.md` — `## Resolved values` still declares `<index path>`, which loses its only use** (carried from round 0's Should Fix 1, not acted on, as `plan_review_rounds.md` → `## The writer's revision` item 3 requires). The task changes *"… in the plan templates and the return block"* to *"… return object"*. But `<index path>` appears only in the fenced `fix_plan_file: <index path>` block this task deletes. **Fix:** drop `<index path>` from that list. Keep `<per-finding folder>`, which `## Process` step 6 still uses, and attribute it to the plan templates.
+
+## Nice to Have
+1. **`task_1_plan.md` — where the closing `## Unsolicited dispatch guidance` line sits relative to `### Return fields`.** The Work bullet says to *"End the section with `### Return fields`"*. The next sub-bullet keeps the closing line about `## Unsolicited dispatch guidance`. Taken together, that line would sit inside `### Return fields` as a trailing paragraph. Say whether it moves above `### Return fields` or stays as the last line of the subsection.
+2. **`task_3_plan.md` — the `## Output contract` lead-in.** `test-fix-plan-writer.md` → `## Output contract` opens *"After writing (or after surfacing questions), return exactly:"* above the fenced block this task replaces. The Work bullet replaces the block and the `## Questions` paragraph but does not mention the lead-in, which would then introduce the canonical sentence. Name it among the replaced text.
+
+## Notes (not findings)
+- Round 0's two Must Fix items are resolved. Task 2 now states once, in step 3, that `flags` is optional and not read by the routing check, and step 6 points back at that statement. Task 3 narrows the `## Invocation contract` prohibition to the two prompt lines case (a) pins (`lineStarting(contract, prefix).endsWith(…)`) and rewords the **Answer mode.** parenthesis.
+- Scope register: C1 and C2 re-run verbatim, and every file either one reaches is a row. P1 and P2 re-walked: every path and ledger rule they reach is a row. Positions hold: `## Phase 2 Readiness — Ordered Fix List` sits directly after `## Context`, and `## Scope register` follows it.
+- Every literal the Verification greps of Tasks 1–3 must clear sits at a site that task's `**Work:**` names. Each hit that stays is the park name or G.5's pinned paragraph (Task 3), or the commit-body line (Task 2). No backticked `` `<agent>.<field>` `` citation of the three agents exists yet. After Task 1, `unit_loop_core.md` is the only new file naming `agent_return_contract.md`, and it joins the roster in the same task, so `checkRoster` holds at the end of each task.

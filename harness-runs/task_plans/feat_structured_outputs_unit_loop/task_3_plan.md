@@ -24,7 +24,7 @@
 ### Targets
 
 - `plugin/schemas/test-fix-plan-writer.return.json` (new)
-- `plugin/agents/test-fix-plan-writer.md`
+- `plugin/agents/test-fix-plan-writer.md` — `## Invocation contract`'s two prompt-form lines excepted
 - `plugin/instructions/plan_orchestration_instructions_core.md` — `### G.0 Resolve the round`, `### G.2 Write and review the test fix plan`, `### G.3 Commit the test fix plan`, and the two `test-fix-plan-writer` bullets of `## Stop conditions` only
 - `plugin/instructions/user_review_fixes_instructions_autonomous.md` — the G.2 phrase of the closed list only
 - `plugin/instructions/untrusted_input.md` — `## Where a report goes`, the two rows named below only
@@ -47,7 +47,9 @@
     - Replace the fenced `fix_plan_file:` … `not_fixable:` block and its `## Questions` paragraph with the canonical sentence from `docs/structured-agent-returns.md` → `### The return block`, verbatim.
     - Follow it with `### Return fields`, per `docs/structured-agent-returns.md` → `### Return fields`. It has bullets for `outcome` (naming `returned`, `questions` and `blocker`, with when each applies), `fix_plan_file`, `fix_plan_dir`, `fixable` (integer), `not_fixable` (integer), `questions` (array of strings) and `blocker`.
     - Carry over: questions are routed to the user verbatim, each answerable without the plan, and nothing is written on `questions`; *"Do not paste the plan content back."*
-  - Do **not** edit `## Invocation contract`: `cli/test/run-gates-park-answer.test.mjs` case (a) pins both prompt forms there.
+  - `## Invocation contract`:
+    - Do **not** edit the two fenced prompt-form lines, the one starting `Write the test fix plan.` and the one starting `Revise the test fix plan at`. `cli/test/run-gates-park-answer.test.mjs` case (a) pins exactly those two lines (`lineStarting(contract, prefix).endsWith(…)`).
+    - In the **Answer mode.** paragraph, the parenthesis *"(`fixable: 0` on the initial-write form)"* becomes *"(an `outcome` of `returned` with `fixable` `0` on the initial-write form)"*. Change nothing else in that paragraph. Case (a) does not read it.
   - Add no pointer to `agent_return_contract.md`.
 - [ ] **`plan_orchestration_instructions_core.md` → `### G.2 Write and review the test fix plan`.** Replace *"Parse the return — on this dispatch and on every revision dispatch below alike."* and its five bullets.
   - The lead-in becomes *"Read the return — on this dispatch and on every revision dispatch below alike — as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states."* Keep *"Every escalation below names the origin `Phase G test-fix-plan-writer`"* byte-identical: case (c) of the same suite pins the origin in G.2.
@@ -81,5 +83,5 @@
 - `git grep -n 'fixable: 0' -- plugin`: every hit uses it as the name *the `fixable: 0` park* or sits in G.5's **An answered park never buys a fresh cap.** paragraph. None reads a `fixable:` line of a return.
 - `git grep -nE 'Questions. (section|return)' -- plugin/instructions/plan_orchestration_instructions_core.md plugin/instructions/user_review_fixes_instructions_autonomous.md plugin/instructions/untrusted_input.md`: no hit names `test-fix-plan-writer`.
 - `git grep -noE 'test-fix-plan-writer\.[a-z_]+' -- plugin`: every hit is a file name (`test-fix-plan-writer.md`, `test-fix-plan-writer.return`) or a property the new schema declares.
-- `git diff -U0 -- plugin/agents/test-fix-plan-writer.md` shows no change inside `## Invocation contract`, and `git diff -U0 -- plugin/instructions/plan_orchestration_instructions_core.md` shows no change inside `### G.5 Re-run, and the round cap`.
+- `git diff -U0 -- plugin/agents/test-fix-plan-writer.md` shows no change to the two `## Invocation contract` lines starting `Write the test fix plan.` and `Revise the test fix plan at`. The only change inside that section is the **Answer mode.** parenthesis. And `git diff -U0 -- plugin/instructions/plan_orchestration_instructions_core.md` shows no change inside `### G.5 Re-run, and the round cap`.
 - `git grep -n 'agent_return_contract' -- plugin/agents/test-fix-plan-writer.md` prints nothing.
