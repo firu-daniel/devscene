@@ -105,7 +105,7 @@ There is no navigation surface in this project; its analogue is the set of table
 - **A guard hook uses `set -u` and never `set -e`**, plus `set -f` where it handles an unquoted target: a guard that aborts mid-decision emits nothing useful, and failing open into the permission system is the designed outcome (`plugin/hooks/README.md` → `## Prerequisites`).
 - **A sourced library sets no shell options at all** — `plugin/hooks/lib/harness-config-lib.sh` and `cli/templates/scripts/lib/harness-run-lib.sh` both leave the sourcing script's shell exactly as they found it.
 - **Never shell out to a recursive removal.** A user-level `permissions.deny` on `rm -rf` is realistic, deny is evaluated before any allow and cannot be overridden, so a teardown implemented as a shelled-out `rm -rf` is silently blocked with no useful error. Use an in-process removal (`cli/src/cli.ts` header; `cli/src/core/writer.ts`, whose single removal is called without `recursive`).
-- **Never `git add -A` or `git add .`.** Staging is always an explicit repo-relative path set. A dispatched agent's commit point passes it to the commit wrapper, which stages exactly those paths (`plugin/agents/committer.md`); the run watcher's and `remote-run.sh`'s artifact commits commit exactly one path, through `hr_commit_placed`, which builds the commit in a temporary index from the branch tip plus that one entry — leaving whatever the run has staged out of it — and runs no hook (`cli/templates/scripts/lib/harness-run-lib.sh`); `refresh-branch.sh` stages nothing — its merge commit is built by `git merge-tree --write-tree` and `commit-tree`, and runs no hook either.
+- **Never `git add -A` or `git add .`.** Staging is always an explicit repo-relative path set. A flow's commit point names a unit or an artifact kind and the commit wrapper derives the path set itself — the artifact table's paths, or the unit's changed paths with its findings folder kept apart — and stages exactly those (`cli/templates/scripts/commit-on-branch.sh` → THE STAGE SET; `lib/unit-commit-lib.sh` → `ucl_stage_set`); a plain-form call passes its explicit paths, which the wrapper stages and nothing else; the run watcher's and `remote-run.sh`'s artifact commits commit exactly one path, through `hr_commit_placed`, which builds the commit in a temporary index from the branch tip plus that one entry — leaving whatever the run has staged out of it — and runs no hook (`cli/templates/scripts/lib/harness-run-lib.sh`); `refresh-branch.sh` stages nothing — its merge commit is built by `git merge-tree --write-tree` and `commit-tree`, and runs no hook either.
 - **A command an unattended run issues must be spellable as a literal.** For a wrapper the script-allowlist guard vouches for — one under the session's own scripts directory — a `$(…)`, a backtick, a pipe, a `<`, a `>` that is not a descriptor duplication or `/dev/null`, or a braced expansion other than a bare `${IDENT}` anywhere in the command string withdraws the guard's permit, as does a `$` in any spelling inside the `.sh` path itself, and the call, left without one, is refused at once in an unattended run (`plugin/hooks/autonomous-script-allowlist-guard.sh`). **A call to a main-checkout wrapper — `commit-on-branch.sh`, `push-branch.sh`, `refresh-branch.sh` and `launch-sandboxed-gates.sh` under `<MAIN_REPO>` — carries no `$` at all**, a bare `${IDENT}` and the commit subject included: from a run copy the guard does not vouch for the main checkout's copy, so the permission profile's literal `allow` entry is the call's only grant, and any shell expansion loses the match (`plugin/instructions/autonomous_pause_and_ledger.md` §1.6; `plugin/instructions/dispatch_discipline_instructions.md` → `## Commit mechanics`; for the launcher, the `<gate_launcher>` row of `plugin/instructions/plan_orchestration_instructions_autonomous.md`).
 
 ## Plugin asset authoring
@@ -173,13 +173,21 @@ There is no navigation surface in this project; its analogue is the set of table
 
 `none` never arises: every class above carries a token.
 
-**Capitalisation.** The first word after the prefix is capitalized (`fix: Add foo`, not `fix: add foo`). It binds the committer's `record disposition of ` / `mark … done — ` subject templates too (`fix: Record disposition of Task 3 — <cause>`), whose reader matches that leading word case-insensitively; a body line stays lower-case.
+**Unit subjects are built, never written.** A unit commit — a story task, a review or test-fix finding, a user-review finding — is made by `scripts/commit-on-branch.sh --unit`, and its subject is `<prefix>: <unit label> — <short title>`, built by `cli/templates/scripts/lib/unit-commit-lib.sh` from the readiness index:
+
+- `<prefix>` is the class's token from the table above (`ucl_unit_prefix`); `--prefix refactor|chore` is taken only for a user-review Should Fix.
+- `<unit label>` names the unit and, for a finding, the review it came from, because finding numbers repeat across reviews: `Task 3`, `Code review finding 2`, `Parity review finding 1`, `Architecture review finding 1`, `Skeptic review finding 1`, `QA finding 1`, `Test fix 1`, `User review finding 4` (`ucl_unit_label`).
+- `<short title>` is the readiness entry's title with its `_(layer: …)_` / `_(points: …)_` markers removed, `` ` ``, `$`, `|`, `<` and `>` dropped, and cut at the last word boundary that keeps the whole subject within 72 bytes; when no word fits, the title and its ` — ` are dropped (`ucl_short_title`, `ucl_subject`). The unit label always survives.
+
+**A unit's record goes on one body line, never in the subject.** At most one, in this precedence, lower-case: `record disposition of <token> — <cause>`, `mark <token> already passing — <cause>`, or `mark <token> done — <set>` when no work file was staged (`ucl_body_record`). `<token>` is `Task K` or `Finding K`; the cause is read from the `**Cause:** ` line of the unit's detail file, never from a command line. `statistics-plan-writer` and `improvement_observations_instructions.md` read these substrings on any line of the message.
+
+**Capitalisation.** The first word after the prefix is capitalized (`fix: Add foo`, not `fix: add foo`). The built unit subject satisfies it because the unit label leads (`fix: Code review finding 2 — …`); a body record line stays lower-case, and its readers match its leading word case-insensitively.
 
 **Attribution trailers are forbidden** — no `Co-Authored-By:`, no `Claude-Session:`, no trailer naming an agent, a model or a session.
 
 **Merge commits.** A merge commit `refresh-branch.sh` writes is bound by the trailer ban only: its message is `Merge branch '<base>' into <branch>` or `Merge remote-tracking branch 'origin/<base>' into <branch>`, as `git merge` spells it.
 
-**Fixed-form subjects — passed byte-for-byte by the commit point that owns each, exempt from the capitalisation rule and the length cap.** `<branch>`, `<entry-id>` and `K` are substituted verbatim; re-casing or truncating one breaks that commit point.
+**Fixed-form subjects — exempt from the capitalisation rule and the length cap.** Every one a flow commit point emits is declared once, in `cli/templates/scripts/lib/unit-commit-lib.sh` → `ucl_artifact`'s table (with `ucl_review_kind_subject` and `ucl_ui_pass_subject` for the two non-ticking units), and reached through `commit-on-branch.sh --artifact <kind>` or `--unit`; the planning driver reads the same table (`lib/planning-record-lib.sh` → `prl_artifact_commit`). The rest are written by the watcher and the commands that drop inbox files. `<branch>`, `<entry-id>`, `K`, `<n>` and `<k>` are substituted verbatim; re-casing or truncating one breaks the commit point that owns it.
 
 - `chore: Add branch statistics for <branch>`
 - `chore: Add flow-progress ledger for <branch>`
@@ -191,17 +199,19 @@ There is no navigation surface in this project; its analogue is the set of table
 - `chore: add task prompt for <branch>`
 - `chore: add user review for <branch>`
 - `chore: Commit re-screened input edit for <branch>`
+- `chore: Fix plan <n> round <k> for <branch>` and `chore: Fix plan <n> round <k> partial for <branch>`
 - `chore: Flow progress <entry-id> for <branch>`
 - `chore: Log dispatch additions for <branch>`
 - `chore: Log improvement observations for <branch>`
 - `chore: Mark UI test K passing for <branch>` — `plugin/instructions/plan_orchestration_instructions_core.md` spells the test number `N`; both are the same subject
+- `chore: Plan round <n> for <branch>` and `chore: Plan round <n> partial for <branch>`
 - `chore: Record clarification digest for <branch>`
 - `chore: Record lessons for <branch>`
 - `chore: Update branch statistics for <branch>`
 
 **Re-derive that list, never carry it over:** probe `${CLAUDE_PLUGIN_ROOT}` and `scripts` for `docs`/`feat`/`fix`/`refactor`/`chore`/`test`/`research` subjects carrying a `<branch>` / `$branch` / `${branch}` / `<entry-id>` / `K passing` token. A new fixed subject without one of those tokens is outside the probe; widen it. Leave out `chore: add qa review for <branch>` (its flow forbids emitting it) and the worked examples `chore: Add branch statistics for ${branch}` (a comment in `plugin/hooks/autonomous-script-allowlist-guard.sh`) and `chore: Flow progress A1.5f for <branch>` (an `e.g.` in `plugin/instructions/autonomous_pause_and_ledger.md`).
 
-**Changing any fixed subject is a multi-file edit.** Edit the commit point that owns it and every flow file that quotes it.
+**Changing any fixed subject is a multi-file edit.** Edit its row in `ucl_artifact` (or the script that owns it), both copies of the library (`cli/templates/scripts/lib/` and the self-adopted `scripts/lib/`), and every flow file that quotes it.
 
 ## Reference implementation
 

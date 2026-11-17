@@ -708,7 +708,7 @@ Then stop. Do not push, do not open a PR, do not run a final test command unless
 - Business-parity-review fix loop (Phase A1.5.3, the implemented-branch parity phase's fix loop) hits `iteration >= 5` on any item without `PASS` — `<escalate>`, naming the latest findings file path.
 - Architecture-review fix loop (Phase A2.3) hits `iteration >= 5` on any item without `PASS` — `<escalate>`, naming the latest findings file path.
 - Skeptic-review meta-review loop (Phase C2.2) or fix loop (Phase C2.4) hits `iteration >= 5` without `PASS` — `<escalate>`, naming the latest findings file path.
-- a commit call prints `error:` — `<escalate>`.
+- A commit call exits 1 or 2 (its `error:` line) — `<escalate>`. Exit 3 (`error: nothing to commit`) is no stop, and a landed exit 1 the wrapper re-synced reports exit 0.
 - A file path you expected to exist (story index, per-task file, task prompt) is missing — `<escalate>`.
 - **QA dev server fails to start** (E.0 `find-free-port.sh` exits non-zero / probe exhausted, the fail-loudly-on-a-taken-port start still fails after 3 attempts, or polling on `http://localhost:<qa_port>` never answers within the bound) — tear down any started server (`kill-dev-server.sh <qa_port>`), then `<escalate>`.
 - **Any per-test `qa-tester` dispatch returns an unmarked `error:`** — one not beginning with the exact prefix `error: blocked — ` (dev server unreachable, etc.); the per-test blocked line is E.2's blocked arm, not a stop — tear down the dev server, then `<escalate>` the moment it occurs; do not let later per-test dispatches mask it.

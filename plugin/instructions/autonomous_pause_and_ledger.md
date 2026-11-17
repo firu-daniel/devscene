@@ -309,7 +309,7 @@ was switched off destroys the one record a reader consults to tell a real comple
 strictly worse than leaving the entry `[ ]`, which at least reads as unfinished. An eligible entry that
 should have been `[-]` and was seeded `[ ]` is corrected by fixing the **seeding**, never by flipping it.
 
-### 1.6 How to flip / create — direct `commit-on-branch.sh`, NEVER a committer dispatch
+### 1.6 How to flip / create — direct `commit-on-branch.sh`, never a bare `git commit`
 Each flip is: **Edit the ledger file, then issue
 `bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root> --artifact ledger-flip --entry <entry-id> --push`**
 — or, for the initial creation, `bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root> --artifact ledger --push`.
@@ -339,10 +339,12 @@ entry stages no diff → the wrapper prints `error: nothing to commit` and exits
 the same call still pushes. This makes every flip safe to re-run on a resumed run. If a flip is ever refused,
 treat the commit as **not landed** and re-run it as a plain single-statement command.
 
-**A landed commit is never repaired.** A wrapper commit that landed with a subject, body line or trailer the
-commit point did not mean stays as it landed: no `git commit --amend`, `git reset`, `git rebase`,
-`git update-ref` or second commit in its place. The commit point halts and hands off through the flow's
-**existing** `<escalate>` binding, naming the commit and what is wrong with it.
+**A landed commit is never repaired.** A flip, a creation, or any artifact commit that cites this section, that
+landed stays as it landed, whatever is wrong with it — the rule
+`${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `## The unit loop` step 5 states for every commit
+through the main checkout's wrapper: no amend, reset, rebase, `git update-ref` or second commit in its place.
+The commit point halts and hands off through the flow's **existing** `<escalate>` binding, naming the commit and
+what is wrong with it.
 
 ### 1.7 Resume-from-ledger (every fork, on every (re-)entry)
 1. Read `<state_dir>/flow_progress/<branch>_progress.md`.
