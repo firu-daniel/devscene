@@ -34,7 +34,7 @@ The three findings below are what is left: one Should Fix about citation form an
 
 1. [x] **Finding 2** — Drop the two line-form leftovers in `qa-tester.md` _(layer: plugin)_
 2. [x] **Finding 3** — Un-nest the report-don't-substitute sentence in `plugin/agents/README.txt` _(layer: plugin)_
-3. [ ] **Finding 1** — Cite the three bare return-field reads as `<agent>.<field>` _(layer: plugin)_
+3. [x] **Finding 1** — Cite the three bare return-field reads as `<agent>.<field>` _(layer: plugin)_
 
 ---
 
