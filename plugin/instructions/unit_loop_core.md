@@ -29,13 +29,13 @@ The three names below are Mode-contract **bindings**. This file states behaviour
 
 | Binding | Used at | Meaning (short) |
 |---|---|---|
-| `<escalate>` | `## The unit loop` step 3 (the implementer returns an `outcome` of `blocker`, an `outcome` of `already passing` on a row other than `G.4`, or a return that fails the routing check a third time; an `outcome` of `prohibited`, or of `already passing` on row `G.4`, takes `### The dispositioned outcome` and never reaches this binding); `### Per-unit review step` (the review loop does not converge, the reviewer returns an `outcome` of `blocker`, or its return fails the routing check a third time); `## The unit loop` step 5 (the commit call exits 1 or 2, or a landed commit is wrong) | This flow's path for halting and reporting an **agent/flow blocker**. |
+| `<escalate>` | `## The unit loop` step 3 (the implementer returns an `outcome` of `blocker`, an `outcome` of `already_passing` on a row other than `G.4`, or a return that fails the routing check a third time; an `outcome` of `prohibited`, or of `already_passing` on row `G.4`, takes `### The dispositioned outcome` and never reaches this binding); `### Per-unit review step` (the review loop does not converge, the reviewer returns an `outcome` of `blocker`, or its return fails the routing check a third time); `## The unit loop` step 5 (the commit call exits 1 or 2, or a landed commit is wrong) | This flow's path for halting and reporting an **agent/flow blocker**. |
 | `<per_unit_review>` | `## The unit loop` step 4 (the extension point); the whole of `### Per-unit review step`, including its `iteration >= 5` convergence cap; `## Layer routing table` (its `Reviewer` column); `## The unit loop` step 5 (whether `--findings` is passed); the row `A` and `review_item` **Commit staging** bullets (whether the unit's findings folder is staged) | `on` \| `off` — whether the per-unit reviewer step runs between implementer and commit. |
 | `<commit_call>` | `## The unit loop` step 5 (the commit call) | The wrapper prefix the fork binds, ahead of the call's `--unit` arguments. |
 
 This file declares no other binding. Every remaining `<…>` name it uses is a **config value** (`## Resolved values`), a **path placeholder**, or a locally-defined name — see `### Placeholder resolution`.
 
-**The third unit outcome adds none either.** `### The dispositioned outcome` is deliberately **not** a fourth binding: it takes no per-fork value, and a fourth row here would halt every fork that has not bound it — the mechanism rule stated above. Its second outcome, `already passing`, adds no binding either, for the same reason.
+**The third unit outcome adds none either.** `### The dispositioned outcome` is deliberately **not** a fourth binding: it takes no per-fork value, and a fourth row here would halt every fork that has not bound it — the mechanism rule stated above. Its second outcome, `already_passing`, adds no binding either, for the same reason.
 
 ---
 
@@ -75,12 +75,12 @@ The steps, in order:
 
    Either prompt may carry one optional trailing `context_notes:` line, as `${CLAUDE_PLUGIN_ROOT}/instructions/dispatch_discipline_instructions.md` defines it, and **nothing else may be appended** to it. Step 5's commit call takes no `context_notes:`.
 
-   Read the implementer's return as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states. The fields that check reads are `` `layer-implementer.cause` `` for an `outcome` of `prohibited` or `already passing`, `` `layer-implementer.blocker` `` for an `outcome` of `blocker`, and none beyond `outcome` for an `outcome` of `implemented`. `` `layer-implementer.flags` `` is **optional**.
+   Read the implementer's return as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states. The fields that check reads are `` `layer-implementer.cause` `` for an `outcome` of `prohibited` or `already_passing`, `` `layer-implementer.blocker` `` for an `outcome` of `blocker`, and none beyond `outcome` for an `outcome` of `implemented`. `` `layer-implementer.flags` `` is **optional**.
 
    - An `outcome` of `implemented` → continue, keeping each `` `layer-implementer.flags` `` item for step 6.
    - An `outcome` of `prohibited` → `### The dispositioned outcome` below, keeping each `` `layer-implementer.flags` `` item for step 6.
-   - An `outcome` of `already passing`, on row `G.4` only → `### The dispositioned outcome`'s route, per its `#### The already-passing close`, keeping each `` `layer-implementer.flags` `` item for step 6.
-   - An `outcome` of `blocker`, an `outcome` of `already passing` on any other row, or the third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) → stop the whole loop and `<escalate>`, quoting `` `layer-implementer.blocker` `` for an `outcome` of `blocker`, `` `layer-implementer.cause` `` for an `outcome` of `already passing`, or naming the check that failed.
+   - An `outcome` of `already_passing`, on row `G.4` only → `### The dispositioned outcome`'s route, per its `#### The already-passing close`, keeping each `` `layer-implementer.flags` `` item for step 6.
+   - An `outcome` of `blocker`, an `outcome` of `already_passing` on any other row, or the third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) → stop the whole loop and `<escalate>`, quoting `` `layer-implementer.blocker` `` for an `outcome` of `blocker`, `` `layer-implementer.cause` `` for an `outcome` of `already_passing`, or naming the check that failed.
 
    **The fail-safe direction is escalate** — an outcome the row does not admit is the escalating kind: a wrongly-escalated unit costs one hand-off, a wrongly-closed one closes a finding nobody fixed.
 4. **Per-unit review — extension point, governed by `<per_unit_review>`.** When it is `on`, run `### Per-unit review step` below before continuing. When it is `off`, skip the review: `iteration` stays `0`, the per-unit convergence cap does not apply, and the implementer's own blocker report (step 3) is the only per-unit stop. **Either way, when this layer finishes cleanly, continue with the next layer in scope (back to step 3); go to step 5 only after the last in-scope layer has finished** — the commit lands **once per unit**, never once per layer.
@@ -132,7 +132,7 @@ Read the reviewer's return as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_c
 
 ### The dispositioned outcome
 
-Step 3's **third** exit for a layer, reached by an `outcome` of `prohibited`, or on row `G.4` an `outcome` of `already passing` (`#### The already-passing close` below). It is neither a success nor a stop: the unit is **closed**. The `prohibited` route applies to every row of `## Substitution table` unchanged and no row owes a cell for it; the `already passing` route is row-scoped to `G.4`. (The cause either outcome carries is `` `layer-implementer.cause` ``.)
+Step 3's **third** exit for a layer, reached by an `outcome` of `prohibited`, or on row `G.4` an `outcome` of `already_passing` (`#### The already-passing close` below). It is neither a success nor a stop: the unit is **closed**. The `prohibited` route applies to every row of `## Substitution table` unchanged and no row owes a cell for it; the `already_passing` route is row-scoped to `G.4`. (The cause either outcome carries is `` `layer-implementer.cause` ``.)
 
 - **What it is.** This layer's work is accepted as correctly diagnosed and impossible for **any** agent in this flow. This file states the outcome; `layer-implementer`'s contract states the admissibility test that let it return that outcome. Neither restates the other, and this loop re-runs no part of that test.
 - **What already exists on disk.** The implementer appended a `## Disposition` section to the unit's detail file before returning. The loop writes nothing itself and opens no detail file and no findings body to decide — the outcome is the whole decision.
@@ -146,7 +146,7 @@ Step 3's **third** exit for a layer, reached by an `outcome` of `prohibited`, or
 
 #### The already-passing close
 
-A row-`G.4` layer that returns an `outcome` of `already passing` takes this outcome's route. `layer-implementer`'s contract owns the check that admits it (`## The test-run rule` point 1's row-`G.4` exception).
+A row-`G.4` layer that returns an `outcome` of `already_passing` takes this outcome's route. `layer-implementer`'s contract owns the check that admits it (`## The test-run rule` point 1's row-`G.4` exception).
 
 - **Shared with the dispositioned route:** the review step is skipped, the loop continues to the next layer or to step 5, it never parks or escalates, and the readiness entry flips `[ ]`→`[x]`.
 - **What it means.** The finding's named test already passes after an earlier unit's fix — not *impossible for any agent*.
@@ -299,7 +299,7 @@ Stated once here and cited by all three rows: the commit step's `--unit review_i
 
 - **A new index each round.** Each Run gates round writes its own test fix plan index and finding folder, so this row resolves both, and its per-item findings folder, through `<test_fix_plan_path>`, `<test_fix_findings_dir>` and `<test_fix_findings_root>` — never as a literal path.
 - **Index writer.** The index and its finding files are written by `test-fix-plan-writer`.
-- **A finding an earlier unit's fix already cleared.** The unit may run its finding's named test file(s) (`## The test-run rule` point 1) and close on an `outcome` of `already passing` (`### The dispositioned outcome` → `#### The already-passing close`).
+- **A finding an earlier unit's fix already cleared.** The unit may run its finding's named test file(s) (`## The test-run rule` point 1) and close on an `outcome` of `already_passing` (`### The dispositioned outcome` → `#### The already-passing close`).
 
 #### Shared — multi-layer fixes run bottom-up
 

@@ -29,7 +29,7 @@
       "type": "object",
       "description": "Row G.4 only: the row-G.4 check closed the unit; the ## Already passing record is written.",
       "properties": {
-        "outcome": { "const": "already passing", "description": "The row-G.4 check closed the unit." },
+        "outcome": { "const": "already_passing", "description": "The row-G.4 check closed the unit." },
         "cause": { "type": "string", "minLength": 1, "description": "One line; the same text as the detail file's **Cause:** line." },
         "flags": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "One item per thing the orchestrator should flag to the user; omitted when empty." }
       },

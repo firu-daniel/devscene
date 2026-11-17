@@ -15,7 +15,7 @@
 Each entry resolves to a self-contained `harness-runs/user_reviews/feat_structured_outputs_unit_loop_fix_plan/finding_<K>.md` file through its `**Finding K**` reference. Entries are sorted from lowest blast radius first to wider refactors last.
 
 1. [x] **Finding 2** — State the optional-field rule once in `agent_return_contract.md` → `## Reading a return` step 4. Reduce the local exceptions in `unit_loop_core.md`, `plan_orchestration_instructions_autonomous.md` and `task_plan_writing_instructions_core.md` to that wording. _(layer: plugin)_
-2. [ ] **Finding 1** — Rename the `layer-implementer` outcome `already passing` to `already_passing` in the schema, in `layer-implementer.md` and in every caller that routes on it. Keep the commit-body line and the progress clause as they are. _(layer: plugin)_
+2. [x] **Finding 1** — Rename the `layer-implementer` outcome `already passing` to `already_passing` in the schema, in `layer-implementer.md` and in every caller that routes on it. Keep the commit-body line and the progress clause as they are. _(layer: plugin)_
 
 ---
 
