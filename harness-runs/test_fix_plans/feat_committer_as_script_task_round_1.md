@@ -14,7 +14,7 @@ The log also reports gates 13a–13c as `BLOCKED`, because the Python environmen
 
 This list is the **single source of truth** for the fix loop. `[ ]` markers anywhere else in this plan or its per-finding files are informational only.
 
-1. [ ] **Finding 1** — Gate-12 full-run suite looks for the commit wrapper's refusals in their old `echo … >&2` spelling. _(layer: cli)_
+1. [x] **Finding 1** — Gate-12 full-run suite looks for the commit wrapper's refusals in their old `echo … >&2` spelling. _(layer: cli)_
 
 ## Must Fix
 
