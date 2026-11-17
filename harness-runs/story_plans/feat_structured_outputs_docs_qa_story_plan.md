@@ -14,7 +14,7 @@ Every caller that reads one of these returns moves onto the field-citation form 
 
 **Where the plan and the task prompt differ, and why.** The plan found no point where the decision record and the task prompt disagree. It differs from the prompt in two places, both read off the corpus:
 
-- **The two mobile stubs have no dispatching caller today.** The prompt says *"the same callers dispatch whichever variant `qa.driver` names"*. `plugin/agents/README.txt` says otherwise — *"Flows dispatch `qa-tester` by name, so a dispatch always reaches `qa-tester.md`"* — and no instruction file names either stub as a dispatch target. So the stubs' schema is the `blocker` subset of `qa-tester`'s, with the same field name, and the callers Task 1 moves already route that outcome. Task 2 changes no caller.
+- **The two mobile stubs have no dispatching caller today.** The prompt says *"the same callers dispatch whichever variant `qa.driver` names"*. `plugin/agents/README.txt` says otherwise — *"Flows dispatch `qa-tester` by name, so a dispatch always reaches `qa-tester.md`"* — and no instruction file names either stub as a dispatch target. So the stubs' schema is the `blocker` subset of `qa-tester`'s, with the same field name, and the callers Task 1 moves already route that outcome. Task 2 changes no caller of the stubs. It also rewrites the two semi-autonomous implement commands' *"1-3 line contract"* clause, which names no single agent.
 - **The docs pair's disabled-phase return becomes its own outcome, `phase_disabled`.** The prompt describes `docs-reviewer`'s as *"`verdict: PASS` plus a one-line reason and no `findings_file:`"*. A schema's `outcome` consts must be distinct across variants, and `PASS` carries a required `findings_file`, so a disabled `PASS` cannot be a second variant. `docs-writer`'s disabled-phase `notes:`-only return takes the same outcome. Task 6 records the choice.
 
 **The outcomes and fields.** None of these agents is dispatched by the planning graph, so none is held to graph outcome keys. Every name below is one token (`harness-runs/lessons.md` → `## Agent prose`).
@@ -77,7 +77,7 @@ Tasks 1 and 2 share no file. The opening *"Reviewers … return …"* bullet of 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_docs_qa/task_<K>_plan.md`. Ordered by ship sequence, with the catch-all layer last; the `cli` task follows the `plugin` tasks it depends on, as `## Context` states.
 
 1. [ ] **Task 1** — Give `qa-tester` a schema-validated return with a non-halting `blocked` outcome and move Phase E, Phase QA and the supervised QA flow onto it _(layer: plugin)_ _(points: 20)_
-2. [ ] **Task 2** — Give the two mobile `qa-tester` stubs a `blocker`-only schema and an `## Output contract` _(layer: plugin)_ _(points: 10)_
+2. [ ] **Task 2** — Give the two mobile `qa-tester` stubs a `blocker`-only schema and an `## Output contract`, and retire the semi-autonomous commands' "1-3 line contract" _(layer: plugin)_ _(points: 12)_
 3. [ ] **Task 3** — Give `docs-writer` a schema-validated return and move the docs phase and the docs catalog onto it _(layer: plugin)_ _(points: 20)_
 4. [ ] **Task 4** — Give `docs-reviewer` a schema-validated return and move the docs phase and the docs catalog onto it _(layer: plugin)_ _(points: 15)_
 5. [ ] **Task 5** — Make the schema suite fail an agent definition with no return schema _(layer: cli)_ _(points: 10)_
@@ -91,7 +91,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_docs
 `git grep -lE 'docs-writer|docs-reviewer|qa-tester' -- 'plugin/*.md' 'plugin/*.txt' 'cli/templates/*.md' 'harness-runs/*/README.md' '.claude/*.md' 'docs/*.md' 'README.md' 'ARCHITECTURE.md' 'ROADMAP.md' 'CONTRIBUTING.md' ':(exclude)docs/work-report-research/*' ':(exclude)docs/rag-extraction-research/*'`
 
 **Derivation entry C2 — corpus files carrying one of the five agents' old return literals (command).** Re-run verbatim from the checkout root:
-``git grep -lE 'error: blocked|unmarked .?error|run-level .?error|targets: none|`targets:`|doc_path:|missed_docs:|parity_gaps:`|`notes:`|`summary:`|`blocker:`|Reviewers return 1 line|reads `verdict:` lines|blocked `error:`|`error:` / blocker' -- 'plugin/*.md' 'plugin/*.txt' 'cli/templates/*.md' 'harness-runs/*/README.md' '.claude/*.md' 'docs/*.md' 'README.md' 'ARCHITECTURE.md' 'ROADMAP.md' 'CONTRIBUTING.md' ':(exclude)docs/work-report-research/*' ':(exclude)docs/rag-extraction-research/*'``
+``git grep -lE 'error: blocked|unmarked [^.]*error|run-level [^.]*error|targets: none|`targets:`|doc_path:|missed_docs:|parity_gaps:`|`notes:`|`summary:`|`blocker:`|Reviewers return 1 line|reads `verdict:` lines|blocked `error:`|`error:` / blocker|1-3 line contract' -- 'plugin/*.md' 'plugin/*.txt' 'cli/templates/*.md' 'harness-runs/*/README.md' '.claude/*.md' 'docs/*.md' 'README.md' 'ARCHITECTURE.md' 'ROADMAP.md' 'CONTRIBUTING.md' ':(exclude)docs/work-report-research/*' ':(exclude)docs/rag-extraction-research/*'``
 
 **Derivation entry C3 — the closing work's wording (command).** Re-run verbatim from the checkout root:
 `git grep -nE 'one at a time|outside every check until|#380|remaining_agents|Structured agent outputs' -- docs/structured-agent-returns.md ROADMAP.md`
@@ -117,9 +117,9 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_docs
 |---|---|---|---|---|---|
 | 1 | `plugin/schemas/qa-tester.return.json` (new) | — | P1, `## The goal` item 1 | `change` | Task 1 |
 | 2 | `plugin/agents/qa-tester.md` | — | C1, C2 (`error: blocked`, `run-level`) | `change` | Task 1 |
-| 3 | `plugin/instructions/plan_orchestration_instructions_core.md` | — | C1, C2 (`reads `verdict:` lines`, `error: blocked`, `unmarked`) | `change` | Task 1 (the opening *"Reviewers end in a return object …"* bullet, `### E.1`'s collect and mark-pass paragraphs and its credentials paragraph's blocked clause, `### E.2`'s four arms, `### D.2`'s **QA** bullet's blocked clause, the `## Stop conditions` `qa-tester` bullet) |
+| 3 | `plugin/instructions/plan_orchestration_instructions_core.md` | — | C1, C2 (`reads `verdict:` lines`, `error: blocked`, `unmarked`) | `change` | Task 1 (the opening *"Reviewers end in a return object …"* bullet, the `<qa_review_path>` paragraph's *"per-dispatch `findings_file:` returns"* parenthesis, `### E.1`'s collect and mark-pass paragraphs and its credentials paragraph's blocked clause, `### E.2`'s four arms, `### D.2`'s **QA** bullet's blocked clause, the `## Stop conditions` `qa-tester` bullet) |
 | 4 | `plugin/instructions/qa_test_instructions.md` | — | C1, C2 (`error: blocked`, `unmarked`) | `change` | Task 1 |
-| 5 | `plugin/instructions/user_review_fixes_instructions_core.md` | — | C1, C2 (`Reviewers return 1 line`, `error: blocked`, `unmarked`) | `change` | Task 1 (the opening *"Reviewers return 1 line …"* bullet, `### QA.1+`'s mark-pass clause and round-PASS sentence, `### D.2`'s **QA** bullet's blocked clause, the `## Stop conditions` `qa-tester` bullet) |
+| 5 | `plugin/instructions/user_review_fixes_instructions_core.md` | — | C1, C2 (`Reviewers return 1 line`, `error: blocked`, `unmarked`) | `change` | Task 1 (the opening *"Reviewers return 1 line …"* bullet, the `<escalate>` binding row's *"an unmarked per-test `qa-tester` `error:`"* clause, the `## Phase QA` lead note's *"the `verdict: FAIL` → commit-the-QA-review-then-fix-loop sequence"*, `### QA.1+`'s mark-pass clause and round-PASS sentence, `### D.2`'s **QA** bullet's blocked clause, the `## Stop conditions` `qa-tester` bullet) |
 | 6 | `plugin/instructions/user_review_fixes_instructions_autonomous.md` | — | C1, C2 (`unmarked`) | `change` | Task 1 (the closed list's `qa-tester` clause) |
 | 7 | `plugin/schemas/qa-tester-mobile-maestro.return.json` (new) | — | P1, `## The goal` item 1 | `change` | Task 2 |
 | 8 | `plugin/schemas/qa-tester-mobile-mcp.return.json` (new) | — | P1, `## The goal` item 1 | `change` | Task 2 |
@@ -139,7 +139,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_docs
 | 22 | `ROADMAP.md` → the `Structured agent outputs` row and its index row | — | C3, P1 (`## Closing the work`) | `change` | Task 6. Its *"one at a time"* in the `Parallel dispatch in waves` row is about dispatch, not adoption, and is unchanged |
 | 23 | `.claude/context/plugin.md` → `## The sections an asset carries`; `## Wires: dispatch in, return out`; `## Not determined` | — | C1 | `no-change` | A conventions document, never a plannable target. Task 2 falsifies *"A declared-but-unimplemented variant carries neither"* and Task 5 leaves no agent the sentence *"An agent with no schema file yet still returns a fenced block of `key: value` lines"* describes; recorded as a `stale-rule` entry in `corpus_staleness` |
 | 24 | `.claude/context/conventions.md` → `## Plugin asset authoring` | — | C2 (`` `error:` / blocker ``) | `no-change` | A conventions document. Task 1 removes the last agent `error:` return its *"through its own `error:` / blocker return"* describes; recorded as a `stale-rule` entry |
-| 25 | `ARCHITECTURE.md` | — | C1 | `no-change` | It names the three `qa-tester` files and the browser-tool grant; no return |
+| 25 | `ARCHITECTURE.md` | — | C1, C2 (`unmarked [^.]*error`, a false match on its status-marker rule) | `no-change` | It names the three `qa-tester` files and the browser-tool grant; no return |
 | 26 | `docs/analyze.md` | — | C1 | `no-change` | Why `/devscene:analyze` does not reuse the docs pair; *"returns a clean no-op"* stays true of `phase_disabled` |
 | 27 | `docs/cli.md` | — | C1 | `no-change` | The `--qa` driver question; no return |
 | 28 | `docs/copilot-foundry-research.md` | — | C1 | `no-change` | A research record of the tool closure |
@@ -151,8 +151,8 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_docs
 | 34 | `docs/github-run-control.md` | — | C2 (`` `summary:` ``) | `no-change` | A `read-mention` measurement; not one of the five agents |
 | 35 | `plugin/agents/ui-tests-plan-writer.md` | — | C1 | `no-change` | It names `qa-tester` as the consumer of the plan **file**; no return |
 | 36 | `plugin/agents/ui-tests-plan-reviewer.md` | — | C1 | `no-change` | as row 35 |
-| 37 | `plugin/commands/branch-implement-plan-semi-autonomous.md` | — | C1 | `no-change` | A Phase E summary that dispatches `qa-tester` and reads no return |
-| 38 | `plugin/commands/branch-implement-user-review-semi-autonomous.md` | — | C1 | `no-change` | as row 37 |
+| 37 | `plugin/commands/branch-implement-plan-semi-autonomous.md` | — | C1, C2 (`1-3 line contract`) | `change` | Task 2 (the orchestrator paragraph's *"beyond reading the 1-3 line contract each agent returns"*, which tells the session to read every dispatched agent's return, `qa-tester` included, in the old line form) |
+| 38 | `plugin/commands/branch-implement-user-review-semi-autonomous.md` | — | C1, C2 (`1-3 line contract`) | `change` | Task 2 (the same clause of its orchestrator paragraph) |
 | 39 | `plugin/commands/branch-qa-test.md` | — | C1 | `no-change` | Its driver statement and story-index check; it loads `qa_test_instructions.md`, which reads the return |
 | 40 | `plugin/commands/branch-start-docs-autonomous.md` | — | C1 | `no-change` | It loads `docs_orchestration_instructions_autonomous.md`, which reads the returns |
 | 41 | `plugin/docs/AUTONOMOUS_FLOW.md` | — | C1 | `no-change` | Its roster table and the Phase E summary; it parses no return and is already on the module's roster |
