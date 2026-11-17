@@ -46,3 +46,7 @@
 - `git grep -n -F '| `<MAIN_REPO>` | derived at runtime |' -- plugin/agents/branch-reviewer.md plugin/docs/AUTONOMOUS_FLOW.md` prints the two rows, byte-identical after the path prefix.
 - The roster's stated count equals the number of `- ` entries under `## Who may cite this`.
 - `plugin/schemas/branch-reviewer.return.json` is unchanged from `dev`, and `### Return fields` lists the same fields as before.
+
+**Deviations from plan:**
+- The `## Resolved values` lead sentence's derived-at-runtime exception was widened from `<repo_root>` to `<repo_root>` and `<MAIN_REPO>`, because the new `<MAIN_REPO>` row is derived at runtime and the old sentence would have classed it as a config value.
+- The schema verification bullet's `dev` was run as `origin/dev`: this checkout has no local `dev` branch (`git diff --stat dev` → `fatal: bad revision 'dev'`). `git diff --stat origin/dev -- plugin/schemas/branch-reviewer.return.json` printed nothing.

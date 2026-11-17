@@ -58,7 +58,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_review_sweep_in_convent
 5. [x] **Task 5** — Teach `conventions-writer` the `sweep` target and the sweep row format _(layer: plugin)_ _(points: 15)_
 6. [x] **Task 6** — Teach `conventions-reviewer` the `sweep` target and the regex-grounding check _(layer: plugin)_ _(points: 15)_
 7. [x] **Task 7** — Run the `sweep` target last in `/devscene:analyze` _(layer: plugin)_ _(points: 20)_
-8. [ ] **Task 8** — Make `branch-reviewer` take its Pass 0 grep sweep from `review-sweep.sh` _(layer: plugin)_ _(points: 20)_
+8. [x] **Task 8** — Make `branch-reviewer` take its Pass 0 grep sweep from `review-sweep.sh` _(layer: plugin)_ _(points: 20)_
 9. [ ] **Task 9** — Self-adopt `scripts/review-sweep.sh` and list it in the watcher's script table _(layer: general)_ _(points: 10)_
 10. [ ] **Task 10** — Document the sweep document, the `sweep` target and the `review-sweep` check _(layer: general)_ _(points: 20)_
 

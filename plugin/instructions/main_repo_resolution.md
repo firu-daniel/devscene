@@ -48,6 +48,7 @@ The outer loop's clone check is `cli/templates/scripts/lib/harness-run-lib.sh` �
 
 These documents point at `## The fallback`:
 
+- `${CLAUDE_PLUGIN_ROOT}/agents/branch-reviewer.md`
 - `${CLAUDE_PLUGIN_ROOT}/agents/qa-tester.md`
 - `${CLAUDE_PLUGIN_ROOT}/commands/branch-answer.md`
 - `${CLAUDE_PLUGIN_ROOT}/commands/branch-pause.md`
@@ -76,4 +77,4 @@ These documents point at `## The fallback`:
 - `docs/sandbox-verification.md` — the dated note **2026-10-29: AN5–AN6 are owed measurements, not results, …**
 - `cli/test/main-root-fallback.test.mjs` — the header's *Not covered* paragraph
 
-A citer **points and never restates**, and **no document beyond these 27 points at `## The fallback`.** A document not on this list does not point here. An edit that rewords or moves the heading updates every roster member in the same change.
+A citer **points and never restates**, and **no document beyond these 28 points at `## The fallback`.** A document not on this list does not point here. An edit that rewords or moves the heading updates every roster member in the same change.
