@@ -11,7 +11,7 @@ An orchestrating caller applies this **routing check** to a return before acting
 1. Take the reply out of the `Agent` result. The result can carry column-0 text before the reply — a frame line opening `[Subagent hand-back]` — then the reply, every line of it indented by the same two spaces, then column-0 text after it: a line opening `agentId: ` and a `<usage>` … `</usage>` block. The reply is the indented lines with those two spaces removed; the frame and the trailer are disregarded. A result with none of them is the reply as it stands.
 2. The reply's last fenced block opened with `json` exists, has only whitespace after its closing fence, and parses as one JSON object.
 3. Its `outcome` is one the dispatching section routes on for this dispatch.
-4. Every field that section reads for that outcome is present and not empty.
+4. Every field that section reads for that outcome is present and not empty — except a field that section names as optional, which is not part of the check: absent or empty means none.
 
 ## A return that fails the check
 
