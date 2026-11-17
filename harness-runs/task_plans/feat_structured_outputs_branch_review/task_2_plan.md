@@ -74,6 +74,9 @@ In the schema, the `returned` variant's `required` is exactly `outcome`, `index_
 - `grep -n '## Questions' plugin/agents/branch-reviewer.md` has no hit.
 - `grep -nF 'End your reply with your return object:' plugin/agents/branch-reviewer.md` has exactly one hit, inside `## Output contract`.
 - `grep -n 'reconciliation summary' plugin/instructions/plan_orchestration_instructions_core.md` has no hit.
-- `grep -n '## Questions' plugin/instructions/plan_orchestration_instructions_core.md plugin/instructions/plan_orchestration_instructions_autonomous.md` shows only the `skeptic-reviewer` clauses that Task 3 rewrites: one in `### C2.1`, one in `### D.2`'s **Review questions** bullet and one in the autonomous observation bullet.
+- `grep -n '## Questions' plugin/instructions/plan_orchestration_instructions_core.md plugin/instructions/plan_orchestration_instructions_autonomous.md` shows only these expected hits, none of them this task's:
+  - the `skeptic-reviewer` clauses that Task 3 rewrites: one in `### C2.1`, one in `### D.2`'s **Review questions** bullet and one in the autonomous observation bullet;
+  - the autonomous fork's closed-list entry 13 (*"… before any `## Questions` park …"*), which Task 4 rewrites;
+  - the autonomous fork's closed-list entry 14 (*"… on a writer return that also carries `## Questions` it fires before the `<ask>` park."*), which is `ui-tests-plan-writer`'s, outside this branch's five agents, and which no task edits.
 - Every `` `branch-reviewer.<field>` `` citation added names a property the schema declares.
 - `grep -l 'agent_return_contract.md' plugin/instructions/code_review_instructions.md` hits, and the module's `## Who may cite this` lists that file.

@@ -16,7 +16,7 @@
 - [ ] **The record of this branch's choice.** After *"This branch renames no agent's return; the outcome each such agent takes is decided by the branch that adopts it."*, add the decision `feat_structured_outputs_branch_review` took, in two or three sentences:
   - `statistics-plan-writer`'s `error:` return, which every caller treated as non-halting, became the outcome `not_written`, with its cause in `cause` (`plugin/schemas/statistics-plan-writer.return.json`).
   - The rule's *"The literal a caller matched before becomes the outcome value it routes on"* could not apply, because the old literal was the bare `error:`. *"named for the result it reports and never `error` or `blocker`"* decided the name.
-  - Every dispatch site names that same non-halting route as its `error` route under `plugin/instructions/agent_return_contract.md` → `## A return that fails the check`, so a third failing return does not halt the flow either.
+  - Every dispatch site names that same non-halting route as its own `error` route. `plugin/instructions/agent_return_contract.md` → `## A return that fails the check`, as Task 5 amended it, takes a route the dispatching section names ahead of the `flow-walker.sh` and blocker-route fallbacks, so a third failing return does not halt the flow either.
 
   Cite the agent's schema file and the module by repo-relative path, the form a document outside the plugin uses (`### Citing the module`).
 - Leave `### Cost`'s sentence on a caller matching *"a prefix such as `error: blocked — `"* unchanged: that is `qa-tester`'s, which a later branch adopts.

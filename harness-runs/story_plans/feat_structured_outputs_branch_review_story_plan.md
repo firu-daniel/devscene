@@ -51,7 +51,12 @@ The plan found no point where the record and the task prompt disagree. One sente
 
 `## Unsolicited dispatch guidance` stays prose above the block, and its byte-identical block in the three reviewers is not edited.
 
-**A failed statistics write still never halts (goal 3).** `agent_return_contract.md` → `## A return that fails the check` sends a third failing return down *"the dispatching section's `error` route"*, which falls back to the blocker route only where a section names none. Every `statistics-plan-writer` dispatch site therefore names its `error` route as the same non-halting route that `not_written` takes: report, omit the statistics line, continue. Task 5 owns every such site.
+**A failed statistics write still never halts (goal 3).** As it stands, `agent_return_contract.md` → `## A return that fails the check` defines a third failing return's `error` route as `--outcome error` where the section passes outcomes to `flow-walker.sh`, otherwise the flow's blocker route. Neither orchestration core runs on `flow-walker.sh` and both bind `<escalate>`, so a sentence at the dispatch site alone would be overridden and the flow would halt. Task 5 therefore does two things:
+
+- it amends that section so a dispatching section that names its own `error` route has that route taken, ahead of the `flow-walker.sh` and blocker-route fallbacks — runtime content the orchestrating session acts on, as the ledger's shared-module rule requires;
+- it names, at every `statistics-plan-writer` dispatch site, that `error` route as the same non-halting route `not_written` takes: report, omit the statistics line, continue.
+
+The non-halting outcome then follows from the module's own wording. Task 6 records that mechanism.
 
 **Why each agent and its callers land in one task, and how the shared files are split.** The constraint *"No caller is left reading a field its agent no longer returns, at the end of any task"* means each agent's schema, its definition and every caller of it change together. Callers of different agents share files. Each task owns named sentences in them, listed in its own file, and no task edits a sentence another task owns. Each task `**Depends on:**` the one before it.
 
@@ -80,7 +85,7 @@ Every other routing caller is already on the roster. The autonomous and supervis
 **Top risks:**
 
 - **A caller left reading the old prose form.** The literals are quoted across the corpus, so a missed sentence is a silent break. Each task's `Verification:` re-derives its agent's old literals by grep across `plugin/`, and the `## Scope register` below closes the site set.
-- **A statistics failure that halts.** Without an explicitly named non-halting `error` route, a third failing `statistics-plan-writer` return would fall through to `<escalate>`. Task 5 names that route at all five dispatch sites and verifies each one by grep.
+- **A statistics failure that halts.** Under the module's current wording, a third failing `statistics-plan-writer` return would fall through to `<escalate>`. Task 5 amends `## A return that fails the check` so a section's own named `error` route is taken first, names that route at all five dispatch sites, and verifies the amended sentence by reading it and each site by grep.
 - **A shared sentence edited twice into an incoherent state.** Tasks 2 and 3 each carry the exact intermediate and final wording of the two clause-shared sentences, so Task 3's edit replaces exactly what Task 2 left.
 
 ## Phase 2 Readiness — Ordered Fix List
@@ -139,7 +144,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_bran
 | 5 | `plugin/schemas/branch-reviewer.return.json` (new) | — | P1, `## The goal` item 1 | `change` | Task 2 |
 | 6 | `plugin/agents/branch-reviewer.md` | — | C1, C2 (`Pass 2 carried over`, `` `## Questions` ``) | `change` | Task 2 |
 | 7 | `plugin/instructions/code_review_instructions.md` | — | C1, C2 (`statistics_file`, `success_rate`) | `change` | Task 2 (`## Flow` steps 3–4 and the module pointer), Task 5 (step 6.2) |
-| 8 | `plugin/instructions/agent_return_contract.md` → `## Who may cite this` | — | P1, `## Why` | `change` | Task 2 (adds `code_review_instructions.md`), Task 5 (adds `code_review_fixes_instructions.md` and `user_review_fixes_instructions.md`) |
+| 8 | `plugin/instructions/agent_return_contract.md` → `## A return that fails the check`; `## Who may cite this` | — | P1, `## Why` | `change` | Task 2 (adds `code_review_instructions.md` to the roster), Task 5 (amends the `error`-route sentence of `## A return that fails the check` so a dispatching section's own named `error` route is taken ahead of the fallbacks; adds `code_review_fixes_instructions.md` and `user_review_fixes_instructions.md` to the roster) |
 | 9 | `plugin/schemas/skeptic-reviewer.return.json` (new) | — | P1, `## The goal` item 1 | `change` | Task 3 |
 | 10 | `plugin/agents/skeptic-reviewer.md` | — | C1, C2 (`verdict: PASS`, `index_path:`, `` `## Questions` ``) | `change` | Task 3 |
 | 11 | `plugin/schemas/user-review-fix-plan-writer.return.json` (new) | — | P1, `## The goal` item 1 | `change` | Task 4 |
@@ -209,5 +214,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_bran
 | 75 | `harness-runs/lessons.md` → *"State a new behaviour once, in the section that decides it, and cite it from everywhere else …"* | — | P2, `## Agent prose` | `no-change` | It binds this plan. Each route is stated once, at its dispatch site, and every other mention — the Done summary, the autonomous overrides, the forks — names the route without restating it |
 | 76 | `harness-runs/lessons.md` → *"When an agent definition has to give back words to hold its word count, cut restatement or rationale …"* | — | P2, `## Agent prose` | `no-change` | It binds Tasks 1–5's agent edits: no definition or edge case is dropped |
 | 77 | `harness-runs/lessons.md` → *"Keep a machine-read contract the model never acts on … in a plugin file outside the agent definition …"* | — | P2, `## Agent prose` | `no-change` | It binds this plan: each schema lives in `plugin/schemas/`, never in a definition |
-| 78 | `harness-runs/lessons.md` → *"A shared instruction module carries only what its runtime reader acts on …"* | — | P2, `## Agent prose` | `no-change` | It binds Tasks 2 and 5, which add only roster lines to `agent_return_contract.md` |
+| 78 | `harness-runs/lessons.md` → *"A shared instruction module carries only what its runtime reader acts on …"* | — | P2, `## Agent prose` | `no-change` | It binds Tasks 2 and 5. They add roster lines to `agent_return_contract.md`, and Task 5's amendment of `## A return that fails the check` is a routing rule the orchestrating session acts on at run time, never an authoring rule |
 | 79 | `harness-runs/lessons.md` → *"A value a script or graph may route on (an outcome, a key, an id) is one token with no space …"* | — | P2, `## Agent prose`, names an outcome | `no-change` | It binds every outcome this plan names: `PASS`, `FAIL`, `blocker`, `returned`, `questions`, `written`, `not_written` |
+| 80 | `harness-runs/lessons.md` → `## Adopter-facing documentation` → *"Name an adopter-facing surface with the term adopters already arrive with … never the configuration key, tool name, check id or any other wire identifier."* | — | P2, names a rename | `no-change` | It constrains renames of adopter-facing surfaces. This branch renames no adopter-facing surface: every return it changes is read by the plugin's own orchestrating sessions |
+| 81 | `harness-runs/lessons.md` → `## Evidence and measurement` → *"A decision rule's outcome is a proposal to the maintainer, not a settled future …"* | — | P2, names an outcome | `no-change` | It constrains how a measurement verdict is recorded. This branch makes no measurement and records no verdict; Task 6 records a decision of record the task prompt asks for |

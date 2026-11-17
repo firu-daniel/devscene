@@ -28,7 +28,7 @@ The fix plan's **files** are unchanged: the index, its readiness list, its `## O
 - `plugin/agents/user-review-fix-plan-writer.md` — `## Resolved values`' lead paragraph, `## Invocation contract`'s *"How the caller consumes your return."* paragraph, `## Read on demand`'s report-don't-substitute paragraph, `## Process` step 3's **Needs clarification** bullet and step 5's pull-request-id bullet, and `## Output contract`.
 - `plugin/instructions/user_review_fix_plan_writing_instructions_core.md` — the `<escalate>` and `<ask>` rows of `## Mode contract — bindings this file uses`; `## Flow` step 6; the *"no outstanding `## Questions`"* phrases of steps 7 and 8; the *"re-check for `## Questions`"* phrases of steps 8 and 11; and `## Convergence`'s `fix_plan_file` / `fix_plan_dir` / counts bullets.
 - `plugin/instructions/user_review_fix_plan_writing_instructions.md` (the supervised fork) — the `<ask>` binding row, step 9's contract-summary sentence, and the *"`## Flow` steps 5 and 6 — … the `## Questions` handling body"* line of its not-redefined list.
-- `plugin/instructions/user_review_fix_plan_writing_instructions_autonomous.md` — the `<ask>` binding row; the *"Both bindings resolve to the **same** file-based channel …"* paragraph; the **Headless / watcher entry point** bullet's trigger clause; the convergence-summary bullet's counts; Override 5's **Trigger** paragraph.
+- `plugin/instructions/user_review_fix_plan_writing_instructions_autonomous.md` — the opening paragraph's not-restated clause *"the `## Questions` handling (step 6)"*; the `<ask>` binding row; the *"Both bindings resolve to the **same** file-based channel …"* paragraph; the **Headless / watcher entry point** bullet's trigger clause; the convergence-summary bullet's counts; Override 5's **Trigger** paragraph.
 - `plugin/commands/branch-start-user-review-fix-plan.md` — step 4's *"the live `## Questions` surface"*.
 - `plugin/instructions/plan_orchestration_instructions_autonomous.md` — the closed list's entry 13 (*"… before any `## Questions` park …"*). **No other sentence of this file.**
 - `plugin/instructions/untrusted_input.md` → `## Where a report goes` — the `user-review-fix-plan-writer` row and the `statistics-plan-writer`, `qa-tester` row. This task owns both rows; Task 5 does not edit this file.
@@ -70,6 +70,7 @@ The fix plan's **files** are unchanged: the index, its readiness list, its `## O
     - Step 9 presents `` `user-review-fix-plan-writer.fix_plan_file` ``, `` `user-review-fix-plan-writer.fix_plan_dir` `` and the four counts in citation form.
     - Its not-redefined line says *"the writer's return handling"* in place of *"the `## Questions` handling body"*.
   - **Autonomous fork, `user_review_fix_plan_writing_instructions_autonomous.md`.**
+    - Its opening paragraph's *"the `## Questions` handling (step 6)"* becomes *"the writer's return handling (step 6)"*, matching the supervised fork's not-redefined line.
     - Its `<ask>` row, the *"Both bindings resolve …"* paragraph and the **Headless / watcher entry point** bullet say *"when the writer returns an `outcome` of `questions`"*.
     - The *"Both bindings resolve …"* paragraph's list of `<escalate>` triggers adds the writer's `blocker` or third failing return (the core's step 6).
     - The convergence summary names the fields in citation form.
@@ -85,7 +86,8 @@ The fix plan's **files** are unchanged: the index, its readiness list, its `## O
 
 - `jq -e . plugin/schemas/user-review-fix-plan-writer.return.json` exits 0, and the `outcome` consts are exactly `returned`, `questions` and `blocker`.
 - `grep -rn 'pending — questions for user' plugin/` has no hit.
-- `grep -n '## Questions' plugin/agents/user-review-fix-plan-writer.md plugin/instructions/user_review_fix_plan_writing_instructions_core.md plugin/instructions/user_review_fix_plan_writing_instructions.md plugin/instructions/user_review_fix_plan_writing_instructions_autonomous.md plugin/commands/branch-start-user-review-fix-plan.md plugin/instructions/untrusted_input.md plugin/instructions/plan_orchestration_instructions_autonomous.md` has no hit.
+- `grep -n '## Questions' plugin/agents/user-review-fix-plan-writer.md plugin/instructions/user_review_fix_plan_writing_instructions_core.md plugin/instructions/user_review_fix_plan_writing_instructions.md plugin/instructions/user_review_fix_plan_writing_instructions_autonomous.md plugin/commands/branch-start-user-review-fix-plan.md plugin/instructions/untrusted_input.md` has no hit.
+- `grep -n '## Questions' plugin/instructions/plan_orchestration_instructions_autonomous.md` has exactly one expected hit, the closed list's entry 14 (*"… on a writer return that also carries `## Questions` it fires before the `<ask>` park."*): it is `ui-tests-plan-writer`'s, outside this branch's five agents, and no task edits it. Entry 13 reads *"before any `questions` park"*.
 - `grep -nE '^(fix_plan_file|fix_plan_dir|valid_[a-z_]+|invalid):' plugin/agents/user-review-fix-plan-writer.md` has no hit.
 - `grep -nF 'End your reply with your return object:' plugin/agents/user-review-fix-plan-writer.md` has exactly one hit.
 - `grep -c 'instructions/untrusted_input.md` → `## The markers`' plugin/instructions/user_review_fix_plan_writing_instructions_core.md` is unchanged from before the edit.
