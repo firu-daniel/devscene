@@ -1,8 +1,8 @@
 /**
  * The agent return schemas, held to their contract.
  *
- * **The rule this suite exists to enforce: every agent with a `plugin/schemas/<agent>.return.json`
- * declares its return there in the closed dialect — an array's object items included — describes
+ * **The rule this suite exists to enforce: every agent under `plugin/agents/` has a
+ * `plugin/schemas/<agent>.return.json`, declares its return there in the closed dialect — an array's object items included — describes
  * exactly that schema — names and non-string types, an object item's properties as bullets indented
  * under its `(array of objects)` field — in its `### Return fields`, carries the canonical
  * return-block sentence, never re-inlines the schema in its definition, and is cited — by the
@@ -13,9 +13,9 @@
  * → `### The return block` and the roster from `plugin/instructions/agent_return_contract.md` →
  * `## Who may cite this`, never restated here.
  *
- * An agent with no schema file is skipped by design, so agents adopt the mechanism one at a time
- * (#380); a schema file with no agent definition beside it fails. The suite reads this checkout's
- * files and creates nothing in it.
+ * An agent definition with no schema file fails, as does a schema file with no agent definition
+ * beside it, so a new agent lands with its schema. The suite reads this checkout's files and
+ * creates nothing in it.
  *
  * Every check is a function over text, and each is also run once on an inline bad sample it must
  * reject, so none can pass vacuously on the real tree.
@@ -188,6 +188,13 @@ export function checkSchemaOwners(schemaNames, agentNames) {
   return schemaNames
     .filter((n) => !agentNames.includes(n))
     .map((n) => `${SCHEMAS_DIR}/${n}${SCHEMA_SUFFIX} has no ${AGENTS_DIR}/${n}.md`);
+}
+
+/** Every agent definition has a schema file. */
+export function checkSchemaCoverage(agentNames, schemaNames) {
+  return agentNames
+    .filter((n) => !schemaNames.includes(n))
+    .map((n) => `${AGENTS_DIR}/${n}.md has no ${SCHEMAS_DIR}/${n}${SCHEMA_SUFFIX}`);
 }
 
 /** The definition carries no `## Return schema` section and no fenced `json` block in `## Output contract`. */
@@ -557,8 +564,9 @@ test('the authoring document yields a canonical sentence and the module a roster
   assert.ok(roster(moduleText).length > 0, 'the roster is empty');
 });
 
-test(`at least one agent has a ${SCHEMAS_DIR}/<agent>${SCHEMA_SUFFIX}`, () => {
-  assert.ok(agentFiles.length > 0, `no agent under ${AGENTS_DIR} has a schema file under ${SCHEMAS_DIR}`);
+test(`every agent definition has a ${SCHEMAS_DIR}/<agent>${SCHEMA_SUFFIX}`, () => {
+  assert.ok(allAgentFiles.length > 0, `${AGENTS_DIR} holds no agent definition`);
+  assert.deepEqual(checkSchemaCoverage(allAgentFiles.map((f) => agentName(f.path)), [...schemaTexts.keys()]), []);
 });
 
 test('every schema file belongs to an agent definition', () => {
@@ -723,6 +731,13 @@ test('bad samples: a schema file with no agent definition is rejected', () => {
   assert.deepEqual(checkSchemaOwners(['sample'], ['sample']), []);
   assert.deepEqual(checkSchemaOwners(['orphan'], ['sample']), [
     `${SCHEMAS_DIR}/orphan${SCHEMA_SUFFIX} has no ${AGENTS_DIR}/orphan.md`,
+  ]);
+});
+
+test('bad samples: an agent definition with no schema file is rejected', () => {
+  assert.deepEqual(checkSchemaCoverage(['sample-agent'], ['sample-agent']), []);
+  assert.deepEqual(checkSchemaCoverage(['sample-agent', 'unschemaed-agent'], ['sample-agent']), [
+    `${AGENTS_DIR}/unschemaed-agent.md has no ${SCHEMAS_DIR}/unschemaed-agent${SCHEMA_SUFFIX}`,
   ]);
 });
 

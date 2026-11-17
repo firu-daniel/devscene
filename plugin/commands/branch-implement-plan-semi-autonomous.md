@@ -31,7 +31,7 @@ This is the **semi-autonomous** variant of `/devscene:branch-implement-plan`. Un
 - **Phase G:** Run gates. Run the whole-tree type check and the test command through one `run-test-suite.sh` call; if either fails, loop the failure through a test fix plan and re-run, capped at five gate runs (`plan_orchestration_instructions_core.md` → `## Phase G — Run gates`).
 - **Phase D:** Notify the user and stop. They do the final hands-on review and open the PR.
 
-You are the **orchestrator** for this entire session. You do not edit code, you do not commit, and you do not review specialist output beyond reading the 1-3 line contract each agent returns. The whole flow is built on context discipline — never read findings files, never re-verify implementer output, never bundle commits.
+You are the **orchestrator** for this entire session. You do not edit code, you do not commit, and you do not review specialist output beyond reading the return object each agent ends in, as the instruction section that dispatches it states. The whole flow is built on context discipline — never read findings files, never re-verify implementer output, never bundle commits.
 
 ## Steps
 

@@ -27,40 +27,39 @@ Nothing here is a schedule or a promise. **The index below is the intended order
 | 15 | [GraphScene](#scene-products) |
 | 16 | [Docs-catalog retrieval](#engines-environments-and-integrations) — kept opt-in by maintainer decision after a withdrawn verdict; improving it and measuring where it pays is open |
 | 17 | [Citation groundedness gate](#quality-and-testing) |
-| 18 | [Structured agent outputs](#quality-and-testing) |
-| 19 | [Golden-task eval suite](#quality-and-testing) |
-| 20 | [Trace export](#planning-artifacts-and-reporting) |
-| 21 | [Engine / provider abstraction](#engines-environments-and-integrations) |
-| 22 | [Model-change drift gate](#quality-and-testing) |
-| 23 | [Budget governor](#engines-environments-and-integrations) |
-| 24 | [Other issue trackers](#engines-environments-and-integrations) |
-| 25 | [First published eval result](#evidence-and-adoption) |
-| 26 | [Outcome-graded eval case](#evidence-and-adoption) |
-| 27 | [Measuring the lessons ledger](#evidence-and-adoption) |
-| 28 | [MCP servers](#engines-environments-and-integrations) |
-| 29 | [Cross-repo tasks](#flow-and-orchestration) |
-| 30 | [Watcher settings surface](#flow-and-orchestration) |
-| 31 | [`branch-summary.md`](#planning-artifacts-and-reporting) |
-| 32 | [Task breakdown and estimates file](#planning-artifacts-and-reporting) |
-| 33 | [User flow diagram](#planning-artifacts-and-reporting) |
-| 34 | [Business (data) flow diagram](#planning-artifacts-and-reporting) |
-| 35 | [Integration tests](#quality-and-testing) |
-| 36 | [Regression tests](#quality-and-testing) |
-| 37 | [Fix-plan structure review](#quality-and-testing) |
-| 38 | [Deploy to a test environment](#engines-environments-and-integrations) |
-| 39 | [Cloud QA](#engines-environments-and-integrations) |
-| 40 | [Mobile QA drivers](#engines-environments-and-integrations) |
-| 41 | [Design-source ingestion](#engines-environments-and-integrations) |
-| 42 | [Second end-to-end capture](#evidence-and-adoption) |
-| 43 | [Interactive session vs harness run](#evidence-and-adoption) |
-| 44 | [`init` warns when there is no remote](#evidence-and-adoption) |
-| 45 | [OS-level sandbox in the autonomous profile](#security-and-containment) |
-| 46 | [`doctor` sandbox checks](#security-and-containment) |
-| 47 | [Threat model](#documentation) |
-| 48 | [Suggested protected branches at `init`](#security-and-containment) |
-| 49 | [Guided default-branch change](#evidence-and-adoption) |
-| 50 | [Release tags in the protected set](#security-and-containment) |
-| 51 | [Notifications settings command](#flow-and-orchestration) |
+| 18 | [Golden-task eval suite](#quality-and-testing) |
+| 19 | [Trace export](#planning-artifacts-and-reporting) |
+| 20 | [Engine / provider abstraction](#engines-environments-and-integrations) |
+| 21 | [Model-change drift gate](#quality-and-testing) |
+| 22 | [Budget governor](#engines-environments-and-integrations) |
+| 23 | [Other issue trackers](#engines-environments-and-integrations) |
+| 24 | [First published eval result](#evidence-and-adoption) |
+| 25 | [Outcome-graded eval case](#evidence-and-adoption) |
+| 26 | [Measuring the lessons ledger](#evidence-and-adoption) |
+| 27 | [MCP servers](#engines-environments-and-integrations) |
+| 28 | [Cross-repo tasks](#flow-and-orchestration) |
+| 29 | [Watcher settings surface](#flow-and-orchestration) |
+| 30 | [`branch-summary.md`](#planning-artifacts-and-reporting) |
+| 31 | [Task breakdown and estimates file](#planning-artifacts-and-reporting) |
+| 32 | [User flow diagram](#planning-artifacts-and-reporting) |
+| 33 | [Business (data) flow diagram](#planning-artifacts-and-reporting) |
+| 34 | [Integration tests](#quality-and-testing) |
+| 35 | [Regression tests](#quality-and-testing) |
+| 36 | [Fix-plan structure review](#quality-and-testing) |
+| 37 | [Deploy to a test environment](#engines-environments-and-integrations) |
+| 38 | [Cloud QA](#engines-environments-and-integrations) |
+| 39 | [Mobile QA drivers](#engines-environments-and-integrations) |
+| 40 | [Design-source ingestion](#engines-environments-and-integrations) |
+| 41 | [Second end-to-end capture](#evidence-and-adoption) |
+| 42 | [Interactive session vs harness run](#evidence-and-adoption) |
+| 43 | [`init` warns when there is no remote](#evidence-and-adoption) |
+| 44 | [OS-level sandbox in the autonomous profile](#security-and-containment) |
+| 45 | [`doctor` sandbox checks](#security-and-containment) |
+| 46 | [Threat model](#documentation) |
+| 47 | [Suggested protected branches at `init`](#security-and-containment) |
+| 48 | [Guided default-branch change](#evidence-and-adoption) |
+| 49 | [Release tags in the protected set](#security-and-containment) |
+| 50 | [Notifications settings command](#flow-and-orchestration) |
 
 ## Flow and orchestration
 
@@ -97,7 +96,7 @@ Nothing here is a schedule or a promise. **The index below is the intended order
 |---|---|---|
 | Line-number citations never block | Review findings anchor on symbols; a stale line number in a citation is no longer a blocking finding. | Done |
 | Citation groundedness gate | Every citation in a plan, a review finding or a justification is checked against the file and symbol it names, so a fabricated or miscited reference fails the gate instead of reaching a reviewer. | Open |
-| Structured agent outputs | Every agent's return validated against a declared schema at the seam — reviewer verdicts, writer file paths and counts, the statistics block. The contracts already exist in prose and callers parse those lines word for word, so renaming one breaks a caller silently today. | Open |
+| Structured agent outputs | Every agent under `plugin/agents/` declares its return in `plugin/schemas/<agent>.return.json`, and its callers read fields rather than lines. A new agent without a schema file fails `cli/test/agent-return-schemas.test.mjs`. The mechanism and its decisions are recorded in [`docs/structured-agent-returns.md`](docs/structured-agent-returns.md). | Done |
 | Golden-task eval suite | A frozen set of task prompts with rubrics, re-run whenever the harness's own instructions change, graded per task class. `evals/` holds one provisional case. | Open |
 | Model-change drift gate | Pin the model a flow runs on, and re-run the golden-task suite when that pin changes, so a model upgrade or deprecation surfaces as a measured diff rather than as drift discovered mid-branch. | Open |
 | Integration tests | The pipeline writes integration tests for the change — and widget/component tests where the stack has them. | Open |
