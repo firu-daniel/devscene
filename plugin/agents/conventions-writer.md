@@ -56,7 +56,7 @@ You are dispatched by `${CLAUDE_PLUGIN_ROOT}/commands/analyze.md`, on the axis t
 
 **Fix dispatch, `pass: corpus`** — `pass: corpus`, and the same write-dispatch values for this one document (the write table **minus** `pass`, which this dispatch carries as `pass: corpus`), **plus** `findings`, **plus** the same three `prior_*` fields, forwarded unchanged; applying a corpus finding must leave `prior_rule_block`'s content present, verbatim or restated.
 
-`findings` on this axis has **two admissible origins, and the line itself tells you which one you are reading**:
+`findings` on this axis has **two admissible origins, and each entry itself tells you which one you are reading**:
 
 - **Corpus review findings** — the reviewer's finding objects, verbatim, each naming this document in `conventions-reviewer.findings.document_path` and the **corpus check id** it fires under in `conventions-reviewer.findings.check_id` (`C1`–`C6`; a document-pass check number can only belong to the `target: project` member, which is never dispatched to you), and carrying `claim`, `evidence` and `correction`.
 - **Forwarded layer-writer divergences** — each carrying the exact literal prefix `Layer-writer divergence — ` and **no check id**, sent by the fix-only reconciliation dispatch of the shared cross-layer document.
