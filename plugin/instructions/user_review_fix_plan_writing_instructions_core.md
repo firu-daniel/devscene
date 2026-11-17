@@ -28,8 +28,8 @@ The `Used at` column is load-bearing, not documentation — it is what tells a f
 
 | Binding | Used at | Meaning (short) |
 |---|---|---|
-| `<escalate>` | `## Flow` step 2 (no user-review file exists for this branch); step 8's round close, at the `fix_round` cap and on a held binding at the join | This flow's path for halting and reporting an **agent/flow blocker**. This core states no `<state_dir>/STOP` check and no dispatch cap of its own, so neither halt appears here. Where a fork adds them: a STOP-file halt is a **user-initiated stop, not a blocker**, and is **never** routed through `<escalate>` — it halts as that fork words it — while this family's dispatch-cap halt **is** routed through it (`mode_contract.md` → `<escalate>`). |
-| `<ask>` | `## Flow` step 6 (the writer returns a `## Questions` section) — re-entered from step 8's round close and from step 11, each of which routes back through step 6 | This flow's clarification path — what to do when the flow **needs an answer before it can continue**. Distinct from `<escalate>`: an answer can bring the flow back. |
+| `<escalate>` | `## Flow` step 2 (no user-review file exists for this branch); `## Flow` step 6 (the writer returns an `outcome` of `blocker`, or fails the check a third time); step 8's round close, at the `fix_round` cap and on a held binding at the join | This flow's path for halting and reporting an **agent/flow blocker**. This core states no `<state_dir>/STOP` check and no dispatch cap of its own, so neither halt appears here. Where a fork adds them: a STOP-file halt is a **user-initiated stop, not a blocker**, and is **never** routed through `<escalate>` — it halts as that fork words it — while this family's dispatch-cap halt **is** routed through it (`mode_contract.md` → `<escalate>`). |
+| `<ask>` | `## Flow` step 6 (the writer returns an `outcome` of `questions`) — re-entered from step 8's round close and from step 11, each of which routes back through step 6 | This flow's clarification path — what to do when the flow **needs an answer before it can continue**. Distinct from `<escalate>`: an answer can bring the flow back. |
 | `<terminal_handoff>` | `## Flow` step 4's **stop** outcome (the existing plan is good — this loop has nothing to do); the steps 9–10 line in `## Flow`; `## Convergence`; step 11's trigger — this binding's rejection-with-feedback branch is the **first of the two entries step 11's own opening line names** (the second is a fork's own resumability rule; step 4's **extend** outcome also routes into step 11, from outside that line, so "two" counts that line's enumeration, not every route in) | What happens when both gates converge — present-and-stop, or emit-a-summary-and-fall-through — and, at step 4's stop outcome, what happens when there is nothing to converge. |
 | `<existing_artifact_decision>` | `## Flow` step 4 | How this flow decides what to do when a fix-plan index already exists at the round-matched output path. |
 | `<repo_root>` | `## Flow` steps 2–3 and both gate dispatch blocks — every `<state_dir>/…` path in this file is written relative and resolves against this anchor | Absolute root of the checkout this flow runs in. |
@@ -95,11 +95,15 @@ Every **other** `<…>` name in this file is either a **config value** declared 
    - `<review_mode>` is `full` while `fix_round − cap_base < 2`, and `converging` from 2.
    - `<revision_note>` is `<state_dir>/plan_revisions/<branch>/fix_plan_<N>_revision_<fix_round>.md` — the note of the revision that feeds round `fix_round`.
 
-6. **If the writer returns a `## Questions` section** above its output contract: **stop and route the questions through `<ask>` verbatim**. If answers come back, redispatch the writer with each answer appended to the prompt between the markers of `${CLAUDE_PLUGIN_ROOT}/instructions/untrusted_input.md` → `## The markers` and go back to step 6. Do not invent answers and do not paraphrase the questions.
+6. **Read every writer return** — step 5's, and the revisions of steps 8 and 11, which route back here — as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states, and route it:
+
+   - **An `outcome` of `returned`** → go on to the round's gates (steps 7–8).
+   - **An `outcome` of `questions`** → **stop and route each `` `user-review-fix-plan-writer.questions` `` item through `<ask>` verbatim**. If answers come back, redispatch the writer with each answer appended to the prompt between the markers of `${CLAUDE_PLUGIN_ROOT}/instructions/untrusted_input.md` → `## The markers` and go back to step 6. Do not invent answers and do not paraphrase the questions.
+   - **An `outcome` of `blocker`, or the third consecutive return that fails the check** (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) → `<escalate>`, quoting `` `user-review-fix-plan-writer.blocker` `` or naming the check that failed.
 
 7. **Business-parity-review gate (plan-review mode).** **Skip this gate unless `phases.parity` is `true` in `devscene.config.json`.** A skipped gate dispatches nothing, writes no round file and is not among the round's due gates: the join counts it as passed, and `## Convergence` reports no verdict for it.
 
-   Once the writer has returned a real plan with no outstanding `## Questions`, review the *drafted* fix plan for `<parity_vocabulary>` business-logic parity problems **before** the hand-off — catching a parity deviation in the planned fixes before the plan is acted on. Steps 7 and 8 are review round `fix_round`'s set, and the join decides what follows. Do NOT pause between rounds — the plan is handed off only once a round closes with no `FAIL` (or the cap trips).
+   Once the writer has returned an `outcome` of `returned`, review the *drafted* fix plan for `<parity_vocabulary>` business-logic parity problems **before** the hand-off — catching a parity deviation in the planned fixes before the plan is acted on. Steps 7 and 8 are review round `fix_round`'s set, and the join decides what follows. Do NOT pause between rounds — the plan is handed off only once a round closes with no `FAIL` (or the cap trips).
 
    **The round's set — due gates, join, held binding.** The **due gates** are steps 7 and 8, each unless its phase flag or the run mode passes it — each step's own skip rule, read once before the set goes out. Once step 6 has cleared, dispatch the due gates **together, in one message**, so they run concurrently; a run that dispatches them one after another produces the same round. Record each return as it is read, in any order. A gate's `outcome` of `blocker`, or its third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`), is a **held binding**: record it — `` `business-parity-reviewer.blocker` `` / `` `architecture-reviewer.blocker` ``, or the check that failed — and act on none until the join. The **join** is the round close at the end of step 8, reached once every due gate has recorded an `outcome` of `PASS` or `FAIL`, or a held binding, and every skip or exclusion is noted. At the join a held binding is `<escalate>`d once, naming every gate that returned one, instead of closing the round; the round files of the recorded `PASS` and `FAIL` outcomes stand.
 
@@ -121,7 +125,7 @@ Every **other** `<…>` name in this file is either a **config value** declared 
 
    Parse the return — read it as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states: on an `outcome` of `PASS` or `FAIL`, record the `outcome` and `<findings_file>`, which is `` `business-parity-reviewer.findings_file` ``; the round closes at the join.
 
-8. **Architecture-review gate (plan-review mode).** Once the writer has returned a real plan with no outstanding `## Questions`, review the *drafted* fix plan for architecture problems **before** the hand-off. Do NOT pause between rounds — the plan is handed off only once a round closes with no `FAIL` (or the cap trips).
+8. **Architecture-review gate (plan-review mode).** Once the writer has returned an `outcome` of `returned`, review the *drafted* fix plan for architecture problems **before** the hand-off. Do NOT pause between rounds — the plan is handed off only once a round closes with no `FAIL` (or the cap trips).
 
    **Gate — re-read the run mode.** Before this step's first action — before anything is dispatched — re-read the run mode from the record `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md` → `## The durable record` defines for this flow. If `architecture` is among the skipped ids, **do not dispatch `architecture-reviewer`**: no dispatch, no round file, no findings folder. Note the skip for the convergence disclosure and leave the gate out of the round's due gates; **the join counts it exactly as an `outcome` of `PASS`** — a gate a run mode excludes is *passed by exclusion*, not pending, so this flow's convergence condition is unchanged. Otherwise run the step in full, as written below.
 
@@ -153,7 +157,7 @@ Every **other** `<…>` name in this file is either a **config value** declared 
 
      `<findings_files>` is every `<findings_file>` the round's gates recorded, `PASS` and `FAIL` alike, listed in gate order — business parity, then architecture, a listing order and never the order the gates ran — joined by `, `; `<revision_note>` is step 5's path at the incremented `fix_round`. The writer revises per `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The writer's revision`.
 
-     Then go back to **step 6** — re-check for `## Questions` on the revised plan, then (if none) run the next round's set (steps 7 and 8).
+     Then go back to **step 6** — read the revised plan's return as step 6 states, then (on an `outcome` of `returned`) run the next round's set (steps 7 and 8).
 
 **Steps 9–10 are `<terminal_handoff>` — see the fork you were dispatched via.** They are where the writer's contract summary is delivered and where the flow acts on the response; `## Convergence` below states the facts they carry. Their numbers are not reused for anything else.
 
@@ -168,7 +172,7 @@ Every **other** `<…>` name in this file is either a **config value** declared 
 
     Before dispatching, set `fix_round += 1` and then `cap_base = fix_round`; `<revision_note>` is step 5's path at that `fix_round`. Where this session has not set `fix_round` — step 4's **extend** outcome, or a fork's resumability rule that enters here — first set it to the highest `review_<k>.md` index in the two `user_review_<N>/` gate folders, read with an `ls` (names only, never contents), or `-1` when neither holds one.
 
-    Then go back to step 6 — re-check for `## Questions` on the revised plan, then re-run its due gates on it as one round's set — steps 7 and 8 together — and the join before it is re-presented.
+    Then go back to step 6 — read the revised plan's return as step 6 states, then re-run its due gates on it as one round's set — steps 7 and 8 together — and the join before it is re-presented.
 
     This step is mode-free and stays here: only its **trigger** differs by mode, and each fork names its own entry into it.
 
@@ -182,9 +186,9 @@ The flow has converged when **both** gates PASS — business-parity (step 7) and
 
 At that point hand off via `<terminal_handoff>`. Carry these facts into the hand-off — they are what it reports. Every value comes from the writer's own return: **do not paste the fix plan's content**, and do not open the fix-plan files to produce them.
 
-- `fix_plan_file` — the fix-plan **index** path (`<fix_plan_path>`).
-- `fix_plan_dir` — the **per-finding folder** path (`<fix_finding_dir>`).
-- The four counts: `valid_must_fix`, `valid_should_fix`, `valid_nice_to_have`, `invalid`.
+- `` `user-review-fix-plan-writer.fix_plan_file` `` — the fix-plan **index** path (`<fix_plan_path>`).
+- `` `user-review-fix-plan-writer.fix_plan_dir` `` — the **per-finding folder** path (`<fix_finding_dir>`).
+- The four counts: `` `user-review-fix-plan-writer.valid_must_fix` ``, `` `user-review-fix-plan-writer.valid_should_fix` ``, `` `user-review-fix-plan-writer.valid_nice_to_have` ``, `` `user-review-fix-plan-writer.invalid` ``.
 - The mandatory `📌 Dispatch additions: …` disclosure line, in the exact form `${CLAUDE_PLUGIN_ROOT}/instructions/dispatch_discipline_instructions.md` → `## The disclosure line` gives it (including its `none` form, which is a normal outcome). This one value is **yours**, not the writer's: `<N>` is your own count of the blocks you wrote at the record step above, so producing it opens no fix-plan file and leaves this core's path-only discipline intact.
 - The mandatory `📌 Run mode: …` disclosure line, in the exact form `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md` → `## The disclosure line` gives it, including its `none` form (a prompt carrying no such section at all — a normal outcome) and its ignored-directive suffix. Like the line above it, this value is **yours**, not the writer's: it is the run mode you re-read at the two gates, so producing it opens no fix-plan file either. Because this flow's hand-off is a fork-held `<terminal_handoff>` value that **re-enumerates** the convergence facts, the line is **emitted** at each fork's own disclosure site — the autonomous fork's convergence summary and the supervised fork's step 9, so a supervised round discloses it to the user too. This section owns the obligation and the form; the fork owns the emission.
 

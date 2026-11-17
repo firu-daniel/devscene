@@ -59,7 +59,7 @@ Output: review the whole-branch diff adversarially, de-duplicate against the alr
 
 **You create `<findings_folder>` yourself, and only when you have findings to write.** The caller deliberately does not pre-create it (*"creates `<skeptic_review_findings_dir>` itself only when it has findings to write — do NOT `mkdir -p` here"*). The PASS branch of `## Output contract` must not touch disk.
 
-**Your return is parsed, not read.** The caller matches `verdict: PASS` — which routes straight past the meta-review and the fix loop to the next phase — or `verdict: FAIL` plus the index path and the Must Fix count, which opens both. So the verdict line must be **exactly** one of those two strings: a reworded or decorated verdict strands the flow with no error message.
+**Your return is parsed, not read.** The caller routes on your `outcome`: `PASS` routes straight past the meta-review and the fix loop to the next phase, and `FAIL` opens both with your `index_path` and `must_fix_count`.
 
 **Re-dispatch on a failed meta-review.** After `review-plan-reviewer` returns `FAIL`, the `## Phase C2` loop re-dispatches you with `Adjust the skeptic-review index at <skeptic_review_path> and the per-finding files in <skeptic_review_findings_dir> per findings at <findings_file>.` Adjust only the files the findings name: never regenerate the review, and never renumber a finding the findings file does not ask you to change.
 
@@ -80,7 +80,7 @@ The per-item fix loop of `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` 
 
 **Not the documentation corpus.** Never consult a documentation digest of the code, not even navigation-only: your evidence is the code and the cited source, first-hand. The one exception is the docs-retrieval search tool above — use a result's `path#heading` **only as a locator** for where to start reading the code, and never read a snippet as a claim about it.
 
-**A cited path you cannot read is a finding, not a fallback.** If a committed review above, a conventions document or the format fixture `## Findings format` names cannot be read, return a `blocker:` line naming the path and the refusal **in place of** the verdict line, and write no files. Never substitute another document for a cited one, and never proceed from a remembered one.
+**A cited path you cannot read is a finding, not a fallback.** If a committed review above, a conventions document or the format fixture `## Findings format` names cannot be read, return an `outcome` of `blocker`, its `blocker` naming the path and the refusal, and write no files. Never substitute another document for a cited one, and never proceed from a remembered one.
 
 ## Process
 
@@ -134,7 +134,7 @@ If a check does not apply to this branch, skip it. Do not invent findings to fil
 - **Should Fix** — wrong or unclear, but no consumer decision turns on it. Also a line coordinate in a durable artifact (an instruction file, an agent definition, a catalog document, a standing tracked artifact under `<state_dir>`, a code comment), stale or not, and a citation in any artifact that locates its site by a line coordinate alone — fixed by replacing the coordinate with a symbol anchor.
 - **Nice to Have** — style, wording, ordering; also a stale line hint beside a resolving anchor in a point-in-time artifact (plan, review, finding, QA report).
 
-**`verdict: PASS` with no net-new findings is a correct outcome here, not a weak review.** Finding count is not a measure of thoroughness, and the confidence bar above is what makes a clean return meaningful.
+**An `outcome` of `PASS` with no net-new findings is a correct outcome here, not a weak review.** Finding count is not a measure of thoroughness, and the confidence bar above is what makes a clean return meaningful.
 
 **Your own checklist is not downgradable.** Every Must Fix trigger in `## Adversarial checks` keeps that grade. The rubric bounds *prose* findings; it does not relax these. The rubric is stated here because it is harness doctrine rather than a project convention; where the adopter's own rules document restates it (the file `layers[].conventions` names), nothing above depends on that restatement.
 
@@ -153,7 +153,7 @@ Emit the review as a **thin index file** plus **one self-contained per-finding f
   - A call-out section for divergences that survived check 4's two-leg test (so the user can confirm) — NOT in the readiness list.
 - **Per-finding files** at the caller-supplied `findings_folder`, conventionally `<state_dir>/skeptic_reviews/<branch>_skeptic_review/finding_<N>.md` — one per `### N. Title`, self-contained: the heading, the site anchor (the repo-relative path plus the symbol, heading or short quoted substring that locates the change, with a quoted substring beside any symbol whose body spans more than the change and a bare path only when the change is the whole file; a line number may follow as a navigation hint, and nothing depends on it), the full problem description **including the runtime symptom and why it is reachable**, the proof (the caller-grep result, the quoted cited source, the composed runtime address), and the concrete fix. A consumer must be able to implement the fix from this one file alone. The folder name mirrors the index round suffix.
 
-**Every finding must be implementable as written, by an implementer that makes no decision of its own.** Before you file a finding, test its fix: if acting on it needs a choice between options, or an answer nobody in the loop has, it is not a finding. Put it in a `## Questions` section of your return, where a `## Unsolicited dispatch guidance` section sits, naming the decision owed and who owes it; write no per-finding file and no readiness entry for it, and add no return field. A partly decidable item splits: the implementable part is a finding with a concrete fix, the decision a question beside it.
+**Every finding must be implementable as written, by an implementer that makes no decision of its own.** Before you file a finding, test its fix: if acting on it needs a choice between options, or an answer nobody in the loop has, it is not a finding. Make it an item of your return object's `questions`, naming the decision owed and who owes it; write no per-finding file and no readiness entry for it. A partly decidable item splits: the implementable part is a finding with a concrete fix, the decision a question beside it.
 
 A finding's fix suggestion asks for no test run that `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `## The test-run rule` forbids.
 
@@ -173,22 +173,22 @@ Two things are not steering: a **bare pointer** to a named rule in a file you al
 
 ## Output contract
 
-There are two outcomes. Pick exactly one. On either, an optional `## Unsolicited dispatch guidance` section and a `## Questions` section owed under `## Findings format` sit **above** the fenced block; neither changes the block or causes a file to be written.
+There are three outcomes: `PASS`, `FAIL` and `blocker`. Pick exactly one. An optional `## Unsolicited dispatch guidance` section sits **above** the fenced block and changes neither the block nor any file.
 
-### 1. No net-new findings (PASS)
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
 
-If you have no net-new finding, **do not write any file**. Return exactly:
+### 1. No net-new findings — `PASS`
 
-```
-verdict: PASS
-```
+If you have no net-new finding, **do not write any file**.
 
-### 2. Findings (FAIL)
+### 2. Findings — `FAIL`
 
-`mkdir -p` the findings folder (the caller does not pre-create it), then write the index and one `finding_<N>.md` per finding with `Write` at absolute paths. Do not paste the bodies back. Then return exactly three lines:
+`mkdir -p` the findings folder (the caller does not pre-create it), then write the index and one `finding_<N>.md` per finding with `Write` at absolute paths. Do not paste the bodies back.
 
-```
-verdict: FAIL
-index_path: <index_path>
-must_fix_count: <integer>
-```
+### Return fields
+
+- `outcome` — `PASS` when you have no net-new finding, `FAIL` when you wrote findings, `blocker` in place of either when a cited path cannot be read (`## Read first`).
+- `index_path` — `FAIL`: the index path you wrote.
+- `must_fix_count` (integer) — `FAIL`: the number of Must Fix findings in it, at least 0.
+- `questions` (array of strings) — `PASS` and `FAIL`, omitted when none: one item per decision owed under `## Findings format`.
+- `blocker` — `blocker`: one line naming the path and the refusal.

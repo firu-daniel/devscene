@@ -17,7 +17,7 @@ An orchestrating caller applies this **routing check** to a return before acting
 
 A return that fails `## Reading a return` is **not a return**. Record nothing for it, and send the same dispatch again through the dispatching flow's safety contract — a heartbeat and a counted dispatch like any other.
 
-After the **third** consecutive failing return for the same dispatch, take the dispatching section's `error` route: `--outcome error` where that section passes outcomes to `flow-walker.sh`; otherwise the flow's blocker route — `<escalate>` where the flow binds it, else stop and report. Name the agent and the check that failed.
+After the **third** consecutive failing return for the same dispatch, take the dispatching section's `error` route: the route that section names as its `error` route, where it names one; otherwise `--outcome error` where that section passes outcomes to `flow-walker.sh`; otherwise the flow's blocker route — `<escalate>` where the flow binds it, else stop and report. Name the agent and the check that failed.
 
 ## Who may cite this
 
@@ -29,6 +29,9 @@ These documents point at a section of this file:
 - `${CLAUDE_PLUGIN_ROOT}/instructions/user_review_fix_plan_writing_instructions_core.md`
 - `${CLAUDE_PLUGIN_ROOT}/instructions/user_review_fixes_instructions_core.md`
 - `${CLAUDE_PLUGIN_ROOT}/instructions/qa_test_instructions.md`
+- `${CLAUDE_PLUGIN_ROOT}/instructions/code_review_instructions.md`
+- `${CLAUDE_PLUGIN_ROOT}/instructions/code_review_fixes_instructions.md`
+- `${CLAUDE_PLUGIN_ROOT}/instructions/user_review_fixes_instructions.md`
 - `${CLAUDE_PLUGIN_ROOT}/instructions/prompt_injection_screen.md`
 - `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md`
 

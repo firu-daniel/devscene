@@ -56,12 +56,14 @@ The mechanism was settled on `feat_structured_planning_agent_outputs` for the si
 
 ### An agent's own `error:` return becomes an outcome, never `error`
 
-**Decision.** `error` stays reserved for a caller recording a return that keeps failing its check. An agent that returns `error:` today — `qa-tester` and `statistics-plan-writer` among them — has that return renamed, when it adopts this mechanism, by what its caller does with it:
+**Decision.** `error` stays reserved for a caller recording a return that keeps failing its check. An agent that returns `error:` today — `qa-tester` among them — has that return renamed, when it adopts this mechanism, by what its caller does with it:
 
 - One that halts the caller's step becomes outcome `blocker`, with its cause in a `blocker` string field, as every schema under `plugin/schemas/` already does; the planning graph routes `blocker` to `<escalate>`.
 - One the caller treats as non-halting becomes an outcome of its own, named for the result it reports and never `error` or `blocker`, with its cause in a field.
 
 The literal a caller matched before becomes the outcome value it routes on. This branch renames no agent's return; the outcome each such agent takes is decided by the branch that adopts it.
+
+`feat_structured_outputs_branch_review` decided it for `statistics-plan-writer`: its `error:` return, which every caller treated as non-halting, became the outcome `not_written`, with its cause in `cause` (`plugin/schemas/statistics-plan-writer.return.json`). The rule's carry-over of the old literal could not apply, because that literal was the bare `error:`; the name comes from *"named for the result it reports and never `error` or `blocker`"*. Every site that dispatches it names that same non-halting route as its own `error` route, and `plugin/instructions/agent_return_contract.md` → `## A return that fails the check` takes a route the dispatching section names ahead of the `flow-walker.sh` and blocker-route fallbacks, so a third failing return does not halt the flow either.
 
 **Reason.** One reserved meaning for `error` across both validation paths, and no caller halting on a return that should not halt it.
 
