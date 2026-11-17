@@ -9,7 +9,7 @@ Source: harness-runs/task_prompts/feat_structured_outputs_branch_review_task_pro
 ## Planning
 - [x] P0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_structured_outputs_branch_review_task_prompt.md sha256=1d4bfc88dbe5ab1b8b3093133ce282b96007e14b908b2d5f5ec89d6f222bcf1b
-- [ ] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
+- [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
 - [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
