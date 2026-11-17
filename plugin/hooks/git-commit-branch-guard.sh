@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 # git-commit-branch-guard.sh — PreToolUse guard for `git commit`: auto-allow the
-# commit when the repository it names is on an ordinary branch, and ask for
-# confirmation when that branch is one the repository's own
-# `devscene.config.json` protects, when HEAD is detached, or when the protected
-# set cannot be resolved at all. No branch name is baked into this file: a
-# repository whose default branch is not the usual one gets its own answer.
+# commit when the repository it names is on an ordinary branch and EVERY piece
+# of the command is within this guard's remit and none rewrites a commit — stay
+# silent there otherwise — and ask for confirmation when that branch is one the
+# repository's own `devscene.config.json` protects, when HEAD is detached, or
+# when the protected set cannot be resolved at all. No branch name is baked into
+# this file: a repository whose default branch is not the usual one gets its own
+# answer.
+#
+# WHY "EVERY PIECE". A hook `allow` covers the WHOLE command and short-circuits
+# the permission profile's `deny` and `ask` entries (`docs/guard-verification.md`
+# WK30), so an `allow` on `git commit -m x && git reset --hard HEAD~1`, or on
+# `git commit --amend`, would bypass the profile's `Bash(git commit --amend:*)`
+# deny and its `git reset` / `git rebase` asks.
 #
 # SELF-VERIFYING — it reads the command out of the hook payload and stays SILENT
 # (exit 0, no output) unless a piece of that command really is a `git … commit`.
@@ -49,7 +57,15 @@
 #     (within jurisdiction)                       document, no `defaultBranch`)
 #   payload unparsable, or `jq` absent -> SILENT (no command to judge)
 #   no config, or one that cannot be read -> SILENT (both out of jurisdiction)
-#   anything else                       -> allow
+#   ordinary branch, and any piece fails the library's ride-along answer
+#     (`hc_commit_piece_may_ride_along`: it rewrites a commit — `--amend` in
+#     any abbreviation, or an unexpanded token — is a git call outside the
+#     remit, is a non-git command other than a leading `cd` into the
+#     workspace, carries a pipe, redirection or substitution, runs in a
+#     repository other than the one judged (its own absolute `-C`, else the
+#     leading `cd` or the payload cwd), or carries a git global option other
+#     than `-C`) -> SILENT
+#   anything else (ordinary branch)     -> allow
 #
 # JURISDICTION IS A DELIBERATE SCOPING DECISION, NOT AN OVERSIGHT. A repository
 # with no `devscene.config.json` at its resolved root has not adopted the
@@ -79,6 +95,22 @@
 #
 #   printf '{"tool_input":{"command":"git commit -m x"},"cwd":"<worktree>"}' \
 #     | bash plugin/hooks/git-commit-branch-guard.sh
+#
+#   A rewrite, or a ref move beside the commit — on an ordinary branch: no
+#   output, exit 0; on a protected branch or a detached HEAD: `ask`, unchanged:
+#
+#   printf '{"tool_input":{"command":"git -C <dir> commit --amend -m x"},"cwd":"<dir>"}' \
+#     | bash plugin/hooks/git-commit-branch-guard.sh
+#   printf '{"tool_input":{"command":"git -C <dir> commit -m x && git -C <dir> commit --amend -m y"},"cwd":"<dir>"}' \
+#     | bash plugin/hooks/git-commit-branch-guard.sh
+#   printf '{"tool_input":{"command":"git -C <dir> commit -m x && git -C <dir> reset --hard HEAD~1"},"cwd":"<dir>"}' \
+#     | bash plugin/hooks/git-commit-branch-guard.sh
+#
+#   A piece in another repository — on an ordinary <dir> and a protected
+#   <other>: no output, exit 0:
+#
+#   printf '{"tool_input":{"command":"git -C <dir> commit -m x && git -C <other> commit -m y"},"cwd":"<dir>"}' \
+#     | bash plugin/hooks/git-commit-branch-guard.sh
 
 set -u
 
@@ -103,10 +135,11 @@ case "$cmd" in
   *) exit 0 ;;
 esac
 
-# Walk the compound looking for a real `git … commit`, and remember that piece
-# together with its own `-C` argument. A piece whose command word is not `git`
-# is skipped, which is what keeps `echo "git commit"` and a wrapper script named
-# on the command line out of scope.
+# Walk the compound looking for a real `git … commit`, and remember the FIRST
+# such piece together with its own `-C` argument. A piece whose command word is
+# not `git` cannot be that piece, which is what keeps `echo "git commit"` and a
+# wrapper script named on the command line out of scope.
+pieces=$(hc_split_command "$cmd")
 found=0
 commit_piece=""
 commit_dir=""
@@ -116,14 +149,15 @@ while IFS= read -r piece; do
   hc_git_piece_parts "$p" || continue
   case "$HC_GIT_REST" in
     commit|commit\ *)
-      found=1
-      commit_piece="$p"
-      commit_dir="$HC_GIT_DIR"
-      break
+      if [ "$found" -eq 0 ]; then
+        found=1
+        commit_piece="$p"
+        commit_dir="$HC_GIT_DIR"
+      fi
       ;;
   esac
 done <<EOF
-$(hc_split_command "$cmd")
+$pieces
 EOF
 
 [ "$found" -eq 1 ] || exit 0
@@ -173,6 +207,24 @@ case $? in
     emit ask "Branch $branch is protected ($patterns_desc) or detached — confirm commit manually"
     ;;
   1)
+    # Only the `allow` reads the ride-along answer, so every `ask` above stands.
+    first_piece=""
+    while IFS= read -r piece; do first_piece="$piece"; break; done <<EOF
+$pieces
+EOF
+    case "$(hc_clean_piece "$first_piece")" in
+      cd\ *) bare_root=$(hc_resolve_repo_root "$first_piece" "$cwd") || bare_root="" ;;
+      *) bare_root=$(hc_resolve_repo_root "" "$cwd") || bare_root="" ;;
+    esac
+    vouchable=1
+    idx=0
+    while IFS= read -r piece; do
+      idx=$((idx + 1))
+      hc_commit_piece_may_ride_along "$root" "$piece" "$idx" "$bare_root" || vouchable=0
+    done <<EOF
+$pieces
+EOF
+    [ "$vouchable" -eq 1 ] || exit 0
     emit allow "Auto-allowed commit on branch $branch"
     ;;
   *)

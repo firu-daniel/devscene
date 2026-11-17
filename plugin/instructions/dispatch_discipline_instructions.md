@@ -116,7 +116,7 @@ The block is finished when a reader holding **only the committed artifacts** can
 
 ## Commit mechanics
 
-Commit through the main checkout's copy of the wrapper — `bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root>`, as its own Bash command — passing the record file as the **single explicit path**, with the fixed subject exactly as the block below spells it (no variant, no suffix, no round number). No `Co-Authored-By:` / trailer and no `--no-verify` — the wrapper enforces both.
+Commit through the main checkout's copy of the wrapper — `bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root>`, as its own Bash command — passing the record file as the **single explicit path**, with the fixed subject exactly as the block below spells it (no variant, no suffix, no round number). No `Co-Authored-By:` / trailer and no `--no-verify` — the wrapper adds neither and validates no message, so a trailer passed after `--` lands on the commit.
 
 ```zsh
 bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root> "<state_dir>/dispatch_additions/<branch>.md" -- "chore: Log dispatch additions for <branch>"

@@ -1165,7 +1165,7 @@ test('every path that runs outside the sandbox is write-protected on both sides'
   }
   // A nearer `.git` between the main checkout and the scripts directory would redirect the wrappers.
   assertProtected(profile, join(dir, SCRIPTS_DIR, '.git'), 'entry');
-  // Under the glob only the run copy's trust files: a whole `.git` there would close a clone to its
+  // Under the glob only the run copy's trust files and branch-ref store: a whole `.git` there would close a clone to its
   // own sandboxed git.
   assert.deepEqual(
     COPY_GIT_PATHS.map(({ path, kind }) => [path, kind]),
@@ -1176,6 +1176,9 @@ test('every path that runs outside the sandbox is write-protected on both sides'
       ['.git/commondir', 'entry'],
       ['.git/config.worktree', 'entry'],
       ['.git/objects/info/http-alternates', 'entry'],
+      ['.git/HEAD', 'file'],
+      ['.git/refs/heads', 'directory'],
+      ['.git/packed-refs', 'file'],
     ],
   );
   for (const { path, kind } of COPY_GIT_PATHS) assertProtected(profile, join(glob, ...path.split('/')), kind);
@@ -1201,7 +1204,7 @@ test('every path that runs outside the sandbox is write-protected on both sides'
     profile._README.some((line) => line.startsWith('WHAT RUNS OUTSIDE THE SANDBOX CANNOT BE WRITTEN') && line.includes('Linux')),
     'no _README line names the write-protected set and its Linux residual',
   );
-  // The per-run copy on a bubblewrap host leaves these rows out of denyWrite; the base keeps all six.
+  // The per-run copy on a bubblewrap host leaves these rows out of denyWrite; the base keeps all nine.
   assert.deepEqual(
     COPY_GIT_PATHS.filter(({ bubblewrapDenyWrite }) => bubblewrapDenyWrite === false).map(({ path }) => path),
     ['.git/commondir', '.git/config.worktree', '.git/objects/info/http-alternates'],

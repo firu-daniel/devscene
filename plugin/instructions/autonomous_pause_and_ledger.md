@@ -323,7 +323,7 @@ in the command: never `"$REPO_ROOT"`, `${branch}` or any other variable. From a 
 guard does not vouch for the main checkout's copy, so the profile's literal `allow` entry is each call's only
 grant, and a command carrying a shell expansion does not match it. Fixed subject `chore: Flow progress <entry-id> for <branch>`
 (e.g. `chore: Flow progress A1.5f for <branch>`; for creation, `chore: Add flow-progress ledger for
-<branch>`). No `Co-Authored-By:` / trailer, no `--no-verify` — the wrapper enforces both.
+<branch>`). No `Co-Authored-By:` / trailer, no `--no-verify` — the wrapper adds neither and validates no message, so a trailer passed after `--` lands on the commit.
 
 ⚠️ **Run the commit and the push as two separate, literal single-statement Bash commands — do NOT gate the
 push on the commit's exit code with a shell conditional** (`commit … ; if [ "$?" -eq 0 ]; then push … ; fi`).
@@ -369,6 +369,11 @@ committed paths. Count the write as landed and **never revert it** — the file 
 revert dirties the tree. Issue the identical wrapper call once more, alone and spelled literally, to re-sync the
 index: it is expected to exit 3, and any other status is surfaced. The push that follows is unchanged. Every other
 exit 1 is a refusal or a git failure, with no commit made.
+
+**A landed commit is never repaired.** A wrapper commit that landed with a subject, body line or trailer the
+commit point did not mean stays as it landed: no `git commit --amend`, `git reset`, `git rebase`,
+`git update-ref` or second commit in its place. The commit point halts and hands off through the flow's
+**existing** `<escalate>` binding, naming the commit and what is wrong with it.
 
 ### 1.7 Resume-from-ledger (every fork, on every (re-)entry)
 1. Read `<state_dir>/flow_progress/<branch>_progress.md`.
