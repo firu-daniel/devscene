@@ -5,7 +5,7 @@ You are the **orchestrator**. Your job is to dispatch specialist agents through 
 **Context discipline is critical.** This loop runs across many sub-agent dispatches. Every line of detail you read into the main context costs you working room. Trust the contracts:
 
 - Implementers return a short list (files + deviations + blockers). Read that, do not open the files.
-- Reviewers return 1 line (`verdict: PASS`) or 3 lines (`verdict: FAIL` + `findings_file:` + `must_fix_count:`) — except `business-parity-reviewer` and `architecture-reviewer`, which end in a return object (Phases A1.5, A2 and the G.2 architecture gate say how each is read). Read that, **do not open the findings file** — pass its path to the next implementer.
+- Reviewers return 1 line (`verdict: PASS`) or 3 lines (`verdict: FAIL` + `findings_file:` + `must_fix_count:`) — except `layer-reviewer`, `business-parity-reviewer` and `architecture-reviewer`, which end in a return object (the cited unit loop's `### Per-unit review step`, Phases A1.5, A2 and the G.2 architecture gate say how each is read). Read that, **do not open the findings file** — pass its path to the next implementer.
 - The commit call prints 5 lines (incl. `pushed:`), plus one for each of `staged: index-only` and `index_sync: failed` it adds. Read that, do not re-verify.
 
 If any agent returns a long output, summarize it down to its contract in your own working memory before proceeding. Do not echo it back into your output.
@@ -704,7 +704,7 @@ Then stop. Do not push, do not open a PR, do not run a final test command unless
 - **STOP file present** at `<state_dir>/STOP` (checked before every dispatch — see `## Safety contract` above). It halts exactly as that step words it: a plain report naming `<reentry_command>`, then stop — **never** routed through `<escalate>`, because a STOP file is a user-initiated stop, not a flow blocker.
 - **`total_dispatches > MAX_TOTAL_DISPATCHES`** — global session ceiling exceeded. It halts exactly as `## Safety contract` step 2 words it: a plain report + stop, **not** an escalation — this flow does not park on a cap hit.
 - Any implementer reports `blocker:` or returns an `error:` — halt and report the blocker via `<escalate>`. **One exclusion:** a blocker the unit loop closes the unit on under `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `### The dispositioned outcome` — the `prohibited — ` marker, or on row `G.4` the `already passing — ` one — that loop continues past it, so this condition is not reached and nothing is escalated. Every other blocker halts here, and an `error:` return halts either way.
-- Any review loop hits `iteration >= 5` without `PASS` — `<escalate>`, naming the latest findings file path.
+- Any review loop hits `iteration >= 5` without `PASS`, or a per-unit `layer-reviewer` returns an `outcome` of `blocker` or fails the routing check a third time — `<escalate>`, naming the latest findings file path.
 - Business-parity-review fix loop (Phase A1.5.3, the implemented-branch parity phase's fix loop) hits `iteration >= 5` on any item without `PASS` — `<escalate>`, naming the latest findings file path.
 - Architecture-review fix loop (Phase A2.3) hits `iteration >= 5` on any item without `PASS` — `<escalate>`, naming the latest findings file path.
 - Skeptic-review meta-review loop (Phase C2.2) or fix loop (Phase C2.4) hits `iteration >= 5` without `PASS` — `<escalate>`, naming the latest findings file path.

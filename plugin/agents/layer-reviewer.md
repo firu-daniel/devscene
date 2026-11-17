@@ -36,7 +36,7 @@ You are dispatched **once per layer**, by `${CLAUDE_PLUGIN_ROOT}/instructions/un
 | this layer's `layers[].path` | The path scope under review; changes outside it belong to another dispatch of this agent. |
 | this layer's `layers[].conventions` | The conventions document that supplies this layer's rules and its Must Fix triggers. |
 
-**Stop condition — a missing value, never a missing key spelling.** Read the three values out of the prose however they are worded. If one is absent, return a blocker naming it and stop: never guess a layer, widen the path scope or substitute a conventions file.
+**Stop condition — a missing value, never a missing key spelling.** Read the three values out of the prose however they are worded. If one is absent, return an `outcome` of `blocker` naming it and stop: never guess a layer, widen the path scope or substitute a conventions file.
 
 The unit arrives in a fenced block with four fixed keys:
 
@@ -57,13 +57,11 @@ iteration: <review_index>
 
 **You create `<findings_folder>` yourself, and only when you have findings to write.** Branch 1 of `## Output contract` touches no disk.
 
-**Your return is parsed, not read.** The caller matches the verdict line as either `verdict: PASS` or `verdict: FAIL`, and nothing else routes. Return exactly one of those two strings, never reworded or decorated.
-
 ## Read first
 
 Read the file the dispatched `layers[].conventions` value names and review against it as this layer's rules: where files go and what they are named, the shapes and idioms this layer uses, what must accompany a change, and which identifiers are mandated. It is authoritative: never re-derive it from memory or substitute another layer's document.
 
-**A cited path you cannot read is a finding, not a fallback.** If that document or any other input your dispatch names cannot be read, return a blocker naming the path and the refusal, in place of the verdict line, write no findings file, and stop.
+**A cited path you cannot read is a finding, not a fallback.** If that document or any other input your dispatch names cannot be read, return an `outcome` of `blocker` naming the path and the refusal, write no findings file, and stop.
 
 ## Process
 
@@ -152,25 +150,19 @@ Two things are not steering: a **bare pointer** to a named rule in a file you al
 
 ## Output contract
 
-Pick exactly one of the three outcomes below.
+End your reply with your return object: one fenced code block whose info string is `json`, holding one JSON object with exactly the fields `### Return fields` below lists for your outcome, with nothing after its closing fence.
+
+Pick exactly one of the three cases below.
 
 **Branches 2 and 3 write a findings file:** run `mkdir -p <findings_folder>` before the `Write` — the caller does not pre-create it. Branch 1 touches no disk.
 
 ### 1. No findings at all
 
-Save no file. Return exactly:
-
-```
-verdict: PASS
-```
+Save no file. Return an `outcome` of `PASS`.
 
 ### 2. Only Should Fix and/or Nice to Have findings (no Must Fix)
 
-Save `<findings_folder>/review_{iteration}.md` with only the Should Fix and/or Nice to Have sections of branch 3's template — no `## Must Fix`. Then return exactly:
-
-```
-verdict: PASS
-```
+Save `<findings_folder>/review_{iteration}.md` with only the Should Fix and/or Nice to Have sections of branch 3's template — no `## Must Fix`. Then return an `outcome` of `PASS`.
 
 The caller does not loop on this verdict. `branch-reviewer`'s Pass 2 reads these files: **skip the file and the items are lost.**
 
@@ -193,14 +185,13 @@ Save `<findings_folder>/review_{iteration}.md` in this format. Each finding's lo
 <same shape, optional>
 ```
 
-Then return exactly:
+Then return an `outcome` of `FAIL`. The caller passes the findings path on without reading the file.
 
-```
-verdict: FAIL
-findings_file: <full_path>
-must_fix_count: <N>
-```
+An optional `## Unsolicited dispatch guidance` section precedes your return object and changes nothing in it.
 
-Return 1 line on PASS, 3 on FAIL. The caller passes the findings path on without reading the file.
+### Return fields
 
-An optional `## Unsolicited dispatch guidance` section precedes whichever fixed return applies and changes nothing in it.
+- `outcome` — `PASS` in cases 1 and 2; `FAIL` after writing the findings file in case 3; `blocker` in place of any case when a dispatch value is missing (`## Invocation contract`) or a cited input cannot be read (`## Read first`).
+- `findings_file` — `FAIL` only: the findings file's full path, non-empty.
+- `must_fix_count` (integer) — `FAIL` only: the number of Must Fix findings, at least 1.
+- `blocker` — `blocker` only: one line naming the missing value, or the path and the refusal, non-empty.

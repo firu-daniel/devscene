@@ -47,7 +47,7 @@ This branch is the second of five that give every plugin agent a declared, schem
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_unit_loop/task_<K>_plan.md`.
 
-1. [ ] **Task 1** — Give `layer-reviewer` a schema-validated return and move the per-unit review step onto it _(layer: plugin)_ _(points: 20)_
+1. [x] **Task 1** — Give `layer-reviewer` a schema-validated return and move the per-unit review step onto it _(layer: plugin)_ _(points: 20)_
 2. [ ] **Task 2** — Give `layer-implementer` a schema-validated return and move the unit loop and stop conditions onto it _(layer: plugin)_ _(points: 20)_
 3. [ ] **Task 3** — Give `test-fix-plan-writer` a schema-validated return and move Phase G onto it _(layer: plugin)_ _(points: 15)_
 

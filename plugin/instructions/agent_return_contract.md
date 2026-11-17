@@ -30,5 +30,6 @@ These documents point at a section of this file:
 - `${CLAUDE_PLUGIN_ROOT}/instructions/user_review_fixes_instructions_core.md`
 - `${CLAUDE_PLUGIN_ROOT}/instructions/qa_test_instructions.md`
 - `${CLAUDE_PLUGIN_ROOT}/instructions/prompt_injection_screen.md`
+- `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md`
 
 A citer points and never restates; a new citer joins this list.

@@ -29,7 +29,7 @@ The three names below are Mode-contract **bindings**. This file states behaviour
 
 | Binding | Used at | Meaning (short) |
 |---|---|---|
-| `<escalate>` | `## The unit loop` step 3 (the implementer reports an **escalating** blocker — one whose line carries neither the `prohibited — ` marker nor, on row `G.4`, the `already passing — ` marker; a marked one takes `### The dispositioned outcome` and never reaches this binding); `### Per-unit review step` (the review loop does not converge); `## The unit loop` step 5 (the commit call exits 1 or 2, or a landed commit is wrong) | This flow's path for halting and reporting an **agent/flow blocker**. |
+| `<escalate>` | `## The unit loop` step 3 (the implementer reports an **escalating** blocker — one whose line carries neither the `prohibited — ` marker nor, on row `G.4`, the `already passing — ` marker; a marked one takes `### The dispositioned outcome` and never reaches this binding); `### Per-unit review step` (the review loop does not converge, the reviewer returns an `outcome` of `blocker`, or its return fails the routing check a third time); `## The unit loop` step 5 (the commit call exits 1 or 2, or a landed commit is wrong) | This flow's path for halting and reporting an **agent/flow blocker**. |
 | `<per_unit_review>` | `## The unit loop` step 4 (the extension point); the whole of `### Per-unit review step`, including its `iteration >= 5` convergence cap; `## Layer routing table` (its `Reviewer` column); `## The unit loop` step 5 (whether `--findings` is passed); the row `A` and `review_item` **Commit staging** bullets (whether the unit's findings folder is staged) | `on` \| `off` — whether the per-unit reviewer step runs between implementer and commit. |
 | `<commit_call>` | `## The unit loop` step 5 (the commit call) | The wrapper prefix the fork binds, ahead of the call's `--unit` arguments. |
 
@@ -71,7 +71,7 @@ The steps, in order:
 2. **Route.** Read the entry's `_(layer: …)_` tag and map it via `## Layer routing table`. **Never open the detail file to route.**
 3. **Per layer in scope.** On entering a layer, `iteration = 0`. **Apply the pre-dispatch rule**, then dispatch `layer-implementer` — with `<layer>` and its `<layer_path_map>` values as dispatch arguments, per `## Layer routing table` — carrying the row's prompt:
    - First iteration: `Implement <heading> from <detail_file>.` — plus the row's `Implementer prompt extras`, if any.
-   - Fix iteration: `Fix <heading> per <findings_file> from <detail_file>.` where `<findings_file>` is the `findings_file:` value **this layer's** reviewer returned on its most recent `verdict: FAIL` — never a listing of the row's `Per-item findings folder`, which every layer of a multi-layer unit shares, so its highest-numbered file may be another layer's.
+   - Fix iteration: `Fix <heading> per <findings_file> from <detail_file>.` where `<findings_file>` is `` `layer-reviewer.findings_file` `` from **this layer's** reviewer's most recent `outcome` of `FAIL` — never a listing of the row's `Per-item findings folder`, which every layer of a multi-layer unit shares, so its highest-numbered file may be another layer's.
 
    Either prompt may carry one optional trailing `context_notes:` line, as `${CLAUDE_PLUGIN_ROOT}/instructions/dispatch_discipline_instructions.md` defines it, and **nothing else may be appended** to it. Step 5's commit call takes no `context_notes:`.
 
@@ -115,10 +115,11 @@ Anything added to this block outside that last line is a violation the record `$
 
 (The reviewer creates the findings folder itself only when it has findings to write — do **NOT** `mkdir -p` here.)
 
-Parse the reviewer's return:
+Read the reviewer's return as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states:
 
-- `verdict: PASS` → leave this layer and continue the loop (the next layer in scope, or step 5 if this was the last).
-- `verdict: FAIL` → increment `iteration`. **If `iteration >= 5`, `<escalate>`** with the `findings_file:` path this return carries and a one-paragraph summary of the situation — `5 review iterations on …, layer X, did not converge`, naming the unit with the row's `Heartbeat unit label` (row `A`: `5 review iterations on Task N, layer X, did not converge`). Otherwise loop back to **step 3's implementer dispatch** with the fix prompt, its `<findings_file>` being that same returned path — step 3's `iteration = 0` reset is per layer, per unit, and is **not** re-applied on a fix iteration.
+- An `outcome` of `PASS` → leave this layer and continue the loop (the next layer in scope, or step 5 if this was the last).
+- An `outcome` of `FAIL` → increment `iteration`. **If `iteration >= 5`, `<escalate>`** with the `` `layer-reviewer.findings_file` `` path this return carries and a one-paragraph summary of the situation — `5 review iterations on …, layer X, did not converge`, naming the unit with the row's `Heartbeat unit label` (row `A`: `5 review iterations on Task N, layer X, did not converge`). Otherwise loop back to **step 3's implementer dispatch** with the fix prompt, its `<findings_file>` being that same `` `layer-reviewer.findings_file` `` path — step 3's `iteration = 0` reset is per layer, per unit, and is **not** re-applied on a fix iteration.
+- An `outcome` of `blocker`, or the third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) → `<escalate>`, quoting `` `layer-reviewer.blocker` `` or naming the check that failed.
 
 **Ownership.** A fork binds `<per_unit_review>` and **nothing more**: no fork restates this body, and no fork may cite another fork *for it*. The review step is flow-body content owned here, so it sits squarely inside `mode_contract.md` rule (5)'s scoped prohibition — see that rule for the enumerated `### Sanctioned cross-fork anchors` that fall **outside** the prohibition; this file neither repeats nor narrows that list. Per-row wording deltas belong in that row's `Exceptions` cell, never in this body.
 
