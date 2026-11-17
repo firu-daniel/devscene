@@ -2,11 +2,11 @@
 
 ## Summary
 
-- `success_rate`: **`100%`** — headline metric.
+- `success_rate`: **`81.8%`** — headline metric.
 - `story_points_total`: `55` — denominator (sum of every task's `_(points: <N>)_` story-point estimate in the story index's `## Phase 2 Readiness — Ordered Fix List`).
-- `issue_cost_total`: `0` — subtraction (sum of each user-review observation's severity weight, in story-point units).
+- `issue_cost_total`: `10` — subtraction (sum of each user-review observation's severity weight, in story-point units).
 - `story_plan_tasks`: `3` — retained raw count of `## Phase 2 Readiness — Ordered Fix List` task entries.
-- `user_review_issues`: `0` — retained raw count of observations across all `feat_structured_outputs_unit_loop_review*.md` user-review files.
+- `user_review_issues`: `2` — retained raw count of observations across all `feat_structured_outputs_unit_loop_review*.md` user-review files.
 
 Formula:
 
@@ -14,7 +14,7 @@ Formula:
 success_rate = round(clamp((story_points_total - issue_cost_total) / story_points_total, 0, 1) * 100, 1) percent
 ```
 
-Worked example: `round(clamp((55 - 0) / 55, 0, 1) * 100, 1)` = `round(100.0, 1)` = `100%`.
+Worked example: `round(clamp((55 - 10) / 55, 0, 1) * 100, 1)` = `round(81.8181…, 1)` = `81.8%`.
 
 Edge cases (the rate is always computed via the formula, then adjusted by these rules):
 
@@ -36,15 +36,20 @@ Per-source raw numbers and per-issue costs are retained so the metric can be ref
     - **sum (`story_points_total`)**: `55`
   - `dispositioned_points`: `0` — no commit in `dev..HEAD` (evaluated as `origin/dev..HEAD`, the run copy carrying no local `dev` branch) carries the `record disposition of ` record, so no task here was closed without a fix and no unit token is listed.
   - Back-compat fallback did not fire: every entry carries a `_(points: …)_` tag.
-- **User-review source** — `user_review_issues`: `0`, `issue_cost_total`: `0`
-  - The glob `harness-runs/user_reviews/feat_structured_outputs_unit_loop_review*.md` matched no file (pre-user-review write), so no enumeration arm was evaluated and no observation was weighted.
-  - **total**: `0` observations → `issue_cost_total` `0`
-  - Each file's observation count is the count of whatever top-level enumeration that file uses, taken from the first of four arms to return non-zero and never summed across arms: (1) numbered `##`–`####` headings with required trailing punctuation, `grep -cE '^#{2,4} +[0-9]+[.):]'`; (2) top-level numbered/bulleted list items, `grep -cE '^[0-9]+\.|^[-*][[:space:]]'`; (3) an explicit per-observation marker the file itself uses, with the matching grep recorded beside the count; (4) `1`, reserved for a file with no enumeration of any kind.
+- **User-review source** — `user_review_issues`: `2`, `issue_cost_total`: `10` (per user-review file, then summed)
+  - The glob `harness-runs/user_reviews/feat_structured_outputs_unit_loop_review*.md` matched one file (no `_fix_plan` match to drop).
+  - `harness-runs/user_reviews/feat_structured_outputs_unit_loop_review.md`: `2` observations → cost `10`. Counted by **arm 2, top-level list items** — `grep -cE '^[0-9]+\.|^[-*][[:space:]]' <file>` → `2`, arm 1 (`grep -cE '^#{2,4} +[0-9]+[.):]' <file>`) having returned `0`. Each observation's assigned weight beside it:
+    1. `layer-implementer`'s `already passing` outcome is the only outcome value with a space in it → **Minor** `5`
+    2. `agent_return_contract.md` → `## Reading a return` has no rule for an optional field → **Minor** `5`
+  - **total**: `2` observations → `issue_cost_total` `10`
+  - Each file's observation count is the count of whatever top-level enumeration that file uses, taken from the first of four arms to return non-zero and never summed across arms: (1) numbered `##`–`####` headings with required trailing punctuation, `grep -cE '^#{2,4} +[0-9]+[.):]'` — here `0`; (2) top-level numbered/bulleted list items, `grep -cE '^[0-9]+\.|^[-*][[:space:]]'` — here `2`, so arm 2 is this file's count; (3) an explicit per-observation marker the file itself uses, with the matching grep recorded beside the count; (4) `1`, reserved for a file with no enumeration of any kind. Every observation the user wrote is counted and weighted, including any a later fix plan verifies as OK — the count measures what the user found, not what survived triage.
   - Each observation is weighted in story-point units: **Major** `15` (explicit `[major]` marker, or the observation describes a broken/incorrect user-facing flow, a missing/client-only authorization gate, data loss/corruption/unprotected data, or an absent whole ported behaviour — the deciding phrase is quoted beside the observation), **Trivial** `2` (explicit `[trivial]` marker), **Minor** `5` (the default for every observation without a Major/Trivial classification).
+
+**Why both took the Minor default.** Neither observation carries an explicit `[major]` or `[trivial]` marker. The first is a naming-consistency note (a space in one outcome value). The second describes a contract gap that the branch already avoids with a local exception; the review text describes a latent risk for future callers, not a flow that is broken end-to-end today, nor an authorization, data-integrity or missing-behaviour defect.
 
 ## Status
 
-- status: `pre-user-review` — `pre-user-review` means this file was written right after the branch (code) review with no user review yet (`issue_cost_total` `0` → `100%`); `post-user-review` means it was re-written after user-review fixes, with the issues from the `feat_structured_outputs_unit_loop_review*.md` files counted and weighted.
+- status: `post-user-review` — `pre-user-review` means this file was written right after the branch (code) review with no user review yet (`issue_cost_total` `0` → `100%`); `post-user-review` means it was re-written after user-review fixes, with the issues from the `feat_structured_outputs_unit_loop_review*.md` files counted and weighted.
 - last_updated: `2026-11-17`
 
 ## Notes
