@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "layer-implementer return",
+  "description": "The layer-implementer's return object for one layer of one unit.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "The unit's work for this layer is done.",
+      "properties": {
+        "outcome": { "const": "implemented", "description": "The unit's work for this layer is done." },
+        "flags": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "One item per thing the orchestrator should flag to the user; omitted when empty." }
+      },
+      "required": ["outcome"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A standing prohibition or an unsatisfiable gate admitted the disposition route; the ## Disposition record is written.",
+      "properties": {
+        "outcome": { "const": "prohibited", "description": "The disposition route was admitted." },
+        "cause": { "type": "string", "minLength": 1, "description": "One line naming the class; the same text as the detail file's **Cause:** line." }
+      },
+      "required": ["outcome", "cause"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "Row G.4 only: the row-G.4 check closed the unit; the ## Already passing record is written.",
+      "properties": {
+        "outcome": { "const": "already passing", "description": "The row-G.4 check closed the unit." },
+        "cause": { "type": "string", "minLength": 1, "description": "One line; the same text as the detail file's **Cause:** line." }
+      },
+      "required": ["outcome", "cause"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A transient stop: everything the two disposition paragraphs exclude.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "A transient stop." },
+        "blocker": { "type": "string", "minLength": 1, "description": "One line naming the cause." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}

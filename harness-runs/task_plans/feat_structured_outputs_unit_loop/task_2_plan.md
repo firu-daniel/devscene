@@ -91,3 +91,8 @@
 - `git grep -noE 'layer-implementer\.[a-z_]+' -- plugin`: every hit is a file name (`layer-implementer.md`, `layer-implementer.return`) or a property the new schema declares (`flags`, `cause`, `blocker`).
 - Goal 3 in `layer-implementer.md`: the `**Cause:** ` sentences of **The already-passing record.** and **The disposition record.**, and the `cause` bullet of `### Return fields`, each name the other side as the same text. `cli/templates/scripts/lib/unit-commit-lib.sh` → `ucl_record_cause` is unchanged (`git diff --stat -- cli/templates/scripts scripts` is empty).
 - `git grep -n 'agent_return_contract' -- plugin/agents/layer-implementer.md` prints nothing.
+
+- **Deviations from plan:**
+  - `layer-implementer.md` → **Unsatisfiable-gate disposition.**: its *"return an ordinary blocker if the item it names has not landed"* is a return reference the `**Work:**` sub-bullets did not list. It now reads *"return an `outcome` of `blocker`"*, following that bullet's lead *"Turn each return reference into an outcome reference"*.
+  - `unit_loop_core.md` → `### The dispositioned outcome` → **What it is.** still reads *"the admissibility test that let the return carry the marker"*. That bullet is outside (d)'s named places, so it was left unedited. "marker" there is now stale wording, and none of this task's verification greps match it.
+  - Verification also ran the tree guards that `## The test-run rule` point 7 selects for this diff, through `npm test --workspace cli -- <test>`: `agent-return-schemas`, `main-repo-resolution-corpus`, `no-container-home-paths`, `untrusted-input-corpus` and `commit-step-calls`. Each passed (`# fail 0`).
