@@ -21,7 +21,7 @@ One single-owner breach remains. `plugin/instructions/prompt_injection_screen.md
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Point at Reading a return step 1 without paraphrasing it in the screen's step 3 _(layer: plugin)_
+1. [x] **Finding 1** — Point at Reading a return step 1 without paraphrasing it in the screen's step 3 _(layer: plugin)_
 
 ## Must Fix
 
