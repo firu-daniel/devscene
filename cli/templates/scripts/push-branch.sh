@@ -6,7 +6,8 @@
 # calls right after a commit lands, so the remote branch reflects the local
 # commit chain no matter where the run stops — the watcher after its task-prompt
 # commit and, outside a job, after a session's run-analytics commits, the
-# `committer` agent's opt-in push, and the task, user-review-fix and planning
+# commit step's `--push` (`commit-on-branch.sh`'s front end), and the task,
+# user-review-fix and planning
 # orchestrators. It is invoked as a SEPARATE statement from the commit
 # (never `if commit-on-branch.sh …; then push-branch.sh; fi`: that compound is
 # not covered by the guards, and an unattended run refuses it), which works because a

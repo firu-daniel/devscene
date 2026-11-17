@@ -135,12 +135,12 @@ const [PUSH_DETACHED] = extract(pushBranchText, /echo "(push-branch\.sh: detache
 const commitOnBranchText = source(COMMIT_ON_BRANCH);
 const [COMMIT_REFUSAL_OPEN] = extract(
   commitOnBranchText,
-  /echo "(commit-on-branch\.sh: refusing to commit: )\$HR_WT_CONFIG_REFUSAL" >&2/,
+  /fail 1 "(commit-on-branch\.sh: refusing to commit: )\$HR_WT_CONFIG_REFUSAL"/,
   'commit-on-branch.sh worktree-config refusal',
 );
 const [COMMIT_DETACHED] = extract(
   commitOnBranchText,
-  /echo "(commit-on-branch\.sh: detached HEAD — refusing to commit)" >&2/,
+  /fail 1 "(commit-on-branch\.sh: detached HEAD — refusing to commit)"/,
   'commit-on-branch.sh detached HEAD refusal',
 );
 

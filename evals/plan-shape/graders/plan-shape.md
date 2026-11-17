@@ -23,7 +23,7 @@ does not hold.
 1. **A story index exists** under `<stateDir>/story_plans/`.
 2. **It carries the heading `## Phase 2 Readiness — Ordered Fix List` byte-identically** — same
    words, same em dash, same case. A paraphrase, a different dash or a different heading level
-   fails this invariant, because the orchestrator and the committer key off the exact string.
+   fails this invariant, because the orchestrator and the commit step key off the exact string.
 3. **Every readiness entry resolves to a per-task file that exists**, and every per-task file is
    named by an entry. The mapping is 1:1 in both directions; a dangling entry and an orphan file
    each fail it.

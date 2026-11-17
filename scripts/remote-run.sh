@@ -506,7 +506,7 @@
 #   - finding <K> is implemented when the index carries the literal
 #     `[x] **Finding <K>**`, and its fix commit is the oldest commit on
 #     `origin/<branch>` that introduced that literal into the index (`git log
-#     --reverse -S`), else origin's tip — the committer flips the entry in the
+#     --reverse -S`), else origin's tip — the commit step flips the entry in the
 #     fix's own commit.
 # Then one `completed` comment
 # on the pull request, its readiness clause by the flip's outcome, and one on

@@ -4,8 +4,12 @@
  * **The rule this suite exists to enforce: the `<MAIN_REPO>` resolution clause is wire text carried
  * byte-identical at every plugin site that resolves `<MAIN_REPO>`, and its single home's roster
  * (`plugin/instructions/main_repo_resolution.md` → `## Who may cite this`) names exactly those
- * sites.** Every autonomous binder also carries the byte-identical `<MAIN_REPO>` `## Resolved values`
- * row (`MAIN_REPO_ROW`); every clause-carrier without that row is listed in `EXEMPT` with its reason;
+ * sites.** The expected carrier set is that roster's `${CLAUDE_PLUGIN_ROOT}/` entries (`ROSTER`),
+ * each carrying the clause once unless `CLAUSE_COUNT_OVERRIDES` says otherwise, and every entry must
+ * name an existing file; so a plugin change moves a carrier and its roster entry together, in one
+ * unit, with no edit here. Every roster entry not in `EXEMPT` is an autonomous binder and carries the
+ * byte-identical `<MAIN_REPO>` `## Resolved values` row (`MAIN_REPO_ROW`); every `EXEMPT` entry
+ * carries its reason for needing none;
  * every file with a `<MAIN_REPO>` table row carries the literal-spelling sentence, except
  * `plugin/instructions/main_repo_resolution.md`; and no plugin file spells the push path as `<scripts_dir>/push-branch.sh` under any prefix but
  * `<MAIN_REPO>/`, passes it a `$` argument, or resolves `<MAIN_REPO>` through "watcher-supplied" or
@@ -71,10 +75,18 @@
  * checkout the citing engine command resolved. |" appended to `plugin/instructions/mode_contract.md`
  * in the working tree only, then restored: only the inherited-row test failed, with
  * `plugin/instructions/mode_contract.md` in the actual set and absent from the expected set.
+ *
+ * RED ONCE (roster-derived expected set) — 2026-11-16, the
+ * `${CLAUDE_PLUGIN_ROOT}/commands/branch-status.md` entry deleted from `## Who may cite this` in the
+ * working tree only, then restored byte-identical: `main-repo-resolution-clause` failed its
+ * `deepEqual` with `plugin/commands/branch-status.md: 1` in `needle`'s actual and absent from its
+ * expected; the roster check failed with that file in the tree's carriers and absent from `ROSTER`;
+ * the binder-classification test failed with it in the binders-plus-`EXEMPT` set and absent from
+ * the carriers.
  */
 
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import test from 'node:test';
 
@@ -98,23 +110,51 @@ const LITERAL_SPELLING =
 const MAIN_REPO_ROW =
   '| `<MAIN_REPO>` | derived at runtime | The main checkout — ' + NEW_CLAUSE + '. ' + LITERAL_SPELLING + ' |';
 
-/** The autonomous binders: each carries `MAIN_REPO_ROW` once. */
-const ROW_BINDERS = [
-  'plugin/agents/committer.md',
-  'plugin/commands/branch-start-docs-autonomous.md',
-  'plugin/commands/branch-start-plan-autonomous.md',
-  'plugin/commands/branch-start-user-review-fix-autonomous.md',
-  'plugin/docs/AUTONOMOUS_FLOW.md',
-  'plugin/instructions/autonomous_pause_and_ledger.md',
-  'plugin/instructions/clarification_digest_instructions.md',
-  'plugin/instructions/dispatch_discipline_instructions.md',
-  'plugin/instructions/docs_orchestration_instructions_autonomous.md',
-  'plugin/instructions/improvement_observations_instructions.md',
-  'plugin/instructions/plan_orchestration_instructions_autonomous.md',
-  'plugin/instructions/task_plan_writing_instructions_autonomous.md',
-  'plugin/instructions/user_review_fix_plan_writing_instructions_autonomous.md',
-  'plugin/instructions/user_review_fixes_instructions_autonomous.md',
-];
+const MODULE = 'plugin/instructions/main_repo_resolution.md';
+
+const MODULE_LINES = readFileSync(join(WORKSPACE_ROOT, MODULE), 'utf8').split('\n');
+
+/**
+ * The module's `## Who may cite this` plugin entries, as sorted repo-relative paths: the expected
+ * clause-carrier set every case below derives from. Only `${CLAUDE_PLUGIN_ROOT}/` entries are read:
+ * the repo-relative entries (`cli/…`, `docs/…`) lie outside the cases' `plugin` root.
+ */
+function readRoster(lines) {
+  const start = lines.indexOf('## Who may cite this');
+  if (start === -1) return [];
+  const end = lines.findIndex((line, i) => i > start && line.startsWith('## '));
+  return lines
+    .slice(start + 1, end === -1 ? undefined : end)
+    .map((line) => line.match(/^- `\$\{CLAUDE_PLUGIN_ROOT\}\/([^`]+)`/))
+    .filter(Boolean)
+    .map((match) => `plugin/${match[1]}`)
+    .sort();
+}
+
+const ROSTER = readRoster(MODULE_LINES);
+
+/** Roster members carrying the clause more than once, with the count each carries. */
+export const CLAUSE_COUNT_OVERRIDES = {
+  // Its `## Resolved values` row and its global kill-switch step each spell the clause.
+  'plugin/commands/branch-start-user-review-fix-autonomous.md': 2,
+};
+
+/** Carriers of the resolution clause without `MAIN_REPO_ROW`, each with the reason it needs none. */
+const SUPERVISED_NO_PUSH =
+  'user-invoked in a supervised session, where an unmatched command prompts rather than being refused, and none issues a push';
+
+export const EXEMPT = {
+  'plugin/agents/qa-tester.md': 'it resolves a Read-tool path and spells no command with `<MAIN_REPO>`',
+  'plugin/commands/branch-answer.md': SUPERVISED_NO_PUSH,
+  'plugin/commands/branch-pause.md': SUPERVISED_NO_PUSH,
+  'plugin/commands/branch-prompt.md': SUPERVISED_NO_PUSH,
+  'plugin/commands/branch-resume.md': SUPERVISED_NO_PUSH,
+  'plugin/commands/branch-status.md': SUPERVISED_NO_PUSH,
+  'plugin/commands/branch-user-review.md': SUPERVISED_NO_PUSH,
+};
+
+/** The autonomous binders, each carrying `MAIN_REPO_ROW` once: the roster minus `EXEMPT`. */
+const ROW_BINDERS = ROSTER.filter((file) => !Object.hasOwn(EXEMPT, file));
 
 /** `{ id, root, glob, needle, expected, forbidden }` — `root` repo-relative, `glob` a file-name suffix. */
 export const CASES = [
@@ -123,30 +163,8 @@ export const CASES = [
     root: 'plugin',
     glob: '.md',
     needle: NEW_CLAUSE,
-    expected: {
-      'plugin/agents/committer.md': 1,
-      'plugin/agents/qa-tester.md': 1,
-      'plugin/commands/branch-answer.md': 1,
-      'plugin/commands/branch-pause.md': 1,
-      'plugin/commands/branch-prompt.md': 1,
-      'plugin/commands/branch-resume.md': 1,
-      'plugin/commands/branch-start-docs-autonomous.md': 1,
-      'plugin/commands/branch-start-plan-autonomous.md': 1,
-      'plugin/commands/branch-start-user-review-fix-autonomous.md': 2,
-      'plugin/commands/branch-status.md': 1,
-      'plugin/commands/branch-user-review.md': 1,
-      'plugin/docs/AUTONOMOUS_FLOW.md': 1,
-      'plugin/instructions/autonomous_pause_and_ledger.md': 1,
-      'plugin/instructions/clarification_digest_instructions.md': 1,
-      'plugin/instructions/dispatch_discipline_instructions.md': 1,
-      'plugin/instructions/docs_orchestration_instructions_autonomous.md': 1,
-      'plugin/instructions/improvement_observations_instructions.md': 1,
-      'plugin/instructions/plan_orchestration_instructions_autonomous.md': 1,
-      'plugin/instructions/task_plan_writing_instructions_autonomous.md': 1,
-      'plugin/instructions/user_review_fix_plan_writing_instructions_autonomous.md': 1,
-      'plugin/instructions/user_review_fixes_instructions_autonomous.md': 1,
-    },
-    forbidden: [OLD_CLAUSE],
+    expected: Object.fromEntries(ROSTER.map((f) => [f, CLAUSE_COUNT_OVERRIDES[f] ?? 1])),
+        forbidden: [OLD_CLAUSE],
   },
   {
     id: 'main-repo-resolved-values-row',
@@ -174,21 +192,6 @@ export const CASES = [
   },
 ];
 
-/** Carriers of the resolution clause without `MAIN_REPO_ROW`, each with the reason it needs none. */
-const SUPERVISED_NO_PUSH =
-  'user-invoked in a supervised session, where an unmatched command prompts rather than being refused, and none issues a push';
-
-export const EXEMPT = {
-  'plugin/agents/qa-tester.md': 'it resolves a Read-tool path and spells no command with `<MAIN_REPO>`',
-  'plugin/commands/branch-answer.md': SUPERVISED_NO_PUSH,
-  'plugin/commands/branch-pause.md': SUPERVISED_NO_PUSH,
-  'plugin/commands/branch-prompt.md': SUPERVISED_NO_PUSH,
-  'plugin/commands/branch-resume.md': SUPERVISED_NO_PUSH,
-  'plugin/commands/branch-status.md': SUPERVISED_NO_PUSH,
-  'plugin/commands/branch-user-review.md': SUPERVISED_NO_PUSH,
-};
-
-const MODULE = 'plugin/instructions/main_repo_resolution.md';
 
 /** Repo-relative, `/`-separated paths of every file under `root` whose name ends in `glob`. */
 function filesUnder(root, glob) {
@@ -224,25 +227,18 @@ test('corpus cases', async (t) => {
   }
 });
 
-test('main_repo_resolution.md — one `## The fallback`, and a plugin roster equal to the first row', () => {
-  const lines = readFileSync(join(WORKSPACE_ROOT, MODULE), 'utf8').split('\n');
-  assert.equal(lines.filter((line) => line === '## The fallback').length, 1);
+test('main_repo_resolution.md — one `## The fallback`, and a plugin roster equal to the clause carriers in the tree', () => {
+  assert.equal(MODULE_LINES.filter((line) => line === '## The fallback').length, 1);
+  assert.notEqual(MODULE_LINES.indexOf('## Who may cite this'), -1, `${MODULE} has no \`## Who may cite this\``);
 
-  const start = lines.indexOf('## Who may cite this');
-  assert.notEqual(start, -1, `${MODULE} has no \`## Who may cite this\``);
-  const end = lines.findIndex((line, i) => i > start && line.startsWith('## '));
-  const section = lines.slice(start + 1, end === -1 ? undefined : end);
+  const missing = ROSTER.filter((file) => !existsSync(join(WORKSPACE_ROOT, file)));
+  assert.deepEqual(missing, [], `roster entries naming no file: ${missing.join(', ')}`);
 
-  // Only `${CLAUDE_PLUGIN_ROOT}/` entries are compared: the repo-relative entries (`cli/…`,
-  // `docs/…`) lie outside the first row's `plugin` root, so they neither match nor fail here.
-  const roster = section
-    .map((line) => line.match(/^- `\$\{CLAUDE_PLUGIN_ROOT\}\/([^`]+)`/))
-    .filter(Boolean)
-    .map((match) => `plugin/${match[1]}`)
+  // The tree, not `CASES`, is the other side: the clause case's `expected` is the roster itself.
+  const carriers = filesUnder('plugin', '.md')
+    .filter((file) => readFileSync(join(WORKSPACE_ROOT, file), 'utf8').includes(NEW_CLAUSE))
     .sort();
-
-  const row = CASES.find((c) => c.id === 'main-repo-resolution-clause');
-  assert.deepEqual(roster, Object.keys(row.expected).sort());
+  assert.deepEqual(ROSTER, carriers);
 });
 
 test('every clause-carrier is a row binder or listed in EXEMPT, never both', () => {

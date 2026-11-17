@@ -86,6 +86,10 @@
       "covers": "plugin/**/*.md"
     },
     {
+      "test": "test/commit-step-calls.test.mjs",
+      "covers": "plugin/**/*.md"
+    },
+    {
       "test": "test/agent-return-schemas.test.mjs",
       "covers": "plugin/**/*.md"
     },

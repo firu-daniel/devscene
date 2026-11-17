@@ -24,7 +24,7 @@
  * `plugin/instructions/task_plan_writing_instructions_autonomous.md` → `## Override 2 — resumability`
  * and `## Override 5 — pause/resume + flow-progress ledger (planning half)`; *§1.6* is
  * `plugin/instructions/autonomous_pause_and_ledger.md` → `### 1.6 How to flip / create — direct
- * `commit-on-branch.sh`, NEVER a committer dispatch`; *walker STATE*, *walker ROUNDS* and *walker
+ * `commit-on-branch.sh`, never a bare `git commit``; *walker STATE*, *walker ROUNDS* and *walker
  * OUTPUT* are those paragraphs of the header of `cli/templates/scripts/flow-walker.sh`.
  *
  * Every fixture repository is built under the system temp directory and torn down in process.

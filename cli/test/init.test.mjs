@@ -5443,15 +5443,15 @@ test('a layer named for a reserved analyze target loses the bare word, and the r
 });
 
 /**
- * The commit-policy section the committer agent resolves `<commit_conventions>` against.
+ * The commit-policy section that names the wrapper-built subject and the body-line records.
  *
- * That agent reads exactly one thing from a conventions document and states no message rule of its
- * own, so a shared skeleton without this section leaves it with nothing to apply — the drift that
- * shipped: the token was documented as generated at init while no template generated it. The
+ * `commit-on-branch.sh` builds every unit and artifact subject itself, so the skeleton must still
+ * ask an adopter the policy those subjects follow and say which records go in the body. The
  * fragments are literals from the section rather than a constant, so a rewrite that drops the
- * fixed-form subjects, the trailer question or the per-class designation fails here.
+ * wrapper, the fixed-form subjects, the trailer question, the per-class designation or the
+ * body-line records fails here.
  */
-test('the shared conventions skeleton carries the commit-policy section the committer resolves against', async (t) => {
+test('the shared conventions skeleton carries the commit-policy section naming the wrapper-built subject', async (t) => {
   const dir = await fixtureFor(t, { files: nodeProjectFiles() });
 
   await initOk(dir);
@@ -5464,6 +5464,8 @@ test('the shared conventions skeleton carries the commit-policy section the comm
     'ui_test_pass',
     'Per commit class',
     'carries no prefix at all',
+    'body line',
+    'commit-on-branch.sh',
   ]) {
     assert.ok(shared.includes(fragment), `${SHARED_STUB} says nothing about ${fragment}`);
   }

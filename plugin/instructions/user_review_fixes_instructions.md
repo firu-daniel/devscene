@@ -21,7 +21,7 @@ The tokens below are neither Mode-contract **bindings** (this file declares none
 
 ## Phase 2 — Fix orchestration
 
-**Read `${CLAUDE_PLUGIN_ROOT}/instructions/plan_orchestration_instructions.md`** and follow it. That file is the canonical loop (steps, sub-agent prompt rules, commit conventions, notes) — do not duplicate or reinterpret it here. The "index file" referenced in that loop is, in this flow, the active fix-plan index from Phase 1 (its `## Phase 2 Readiness — Ordered Fix List` is the iteration source; this flow dispatches no committer, so the orchestrator itself flips each entry to `[x]` as it ships (that loop's step 6), same mechanism as the code-review fixes flow — the `[ ]` → `[x]` transition always belongs to the committing role, which is the `committer` agent only in the flows that dispatch one); the per-item detail file is the matching `finding_<K>.md`.
+**Read `${CLAUDE_PLUGIN_ROOT}/instructions/plan_orchestration_instructions.md`** and follow it. That file is the canonical loop (steps, sub-agent prompt rules, commit conventions, notes) — do not duplicate or reinterpret it here. The "index file" referenced in that loop is, in this flow, the active fix-plan index from Phase 1 (its `## Phase 2 Readiness — Ordered Fix List` is the iteration source; this flow runs no commit step, so the orchestrator itself flips each entry to `[x]` as it ships (that loop's step 6), same mechanism as the code-review fixes flow — the `[ ]` → `[x]` transition always belongs to the committing role, which is `commit-on-branch.sh --unit` only in the flows that run the unit loop); the per-item detail file is the matching `finding_<K>.md`.
 
 ## Phase 3 — Update branch statistics once all user-review fixes have landed
 
