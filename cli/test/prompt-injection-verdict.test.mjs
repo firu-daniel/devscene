@@ -5,6 +5,9 @@
  * passes, and every other input parks.** A well-formed `UNSAFE` object parks its own findings;
  * anything else — an empty return, prose or a trailer outside the block, an indented fence, a
  * retired `verdict:` line, an unknown id, a blocker object — parks one `malformed-verdict` finding.
+ * The return may also arrive as the whole `Agent` result — frame line, reply indented by two spaces,
+ * `agentId:` trailer — which is unwrapped to the reply first; that exact shape only, so a bare
+ * trailer, a bare indent or a frame over any other shape still parks as malformed.
  * The verdict file is removed in every outcome but a refusal.
  *
  * **The second rule: the parser's closed set is the agent's table, in order.** `PI_CHECK_IDS` in
@@ -114,10 +117,23 @@ const item = (check_id, excerpt, reason) => ({ check_id, excerpt, reason });
 const SAFE = block({ outcome: 'SAFE' });
 const ONE = item('attack', 'x', 'y');
 
+/**
+ * `reply` as an orchestrating session's `Agent` result carries it, measured on Claude Code 2.1.325
+ * (`docs/structured-agent-returns.md` → `## 3. Measured, and not yet measured`): the column-0 frame
+ * line, every reply line indented by two spaces, then the column-0 `agentId:` / `<usage>` trailer.
+ */
+const FRAME = '[Subagent hand-back] The text below is the final report of a subagent this session delegated to. The report follows:';
+const TRAILER = "agentId: a8c5abea7ee0c0d4a (use SendMessage with to: 'a8c5abea7ee0c0d4a' to continue this agent)\n<usage>subagent_tokens: 105856\ntool_uses: 13\nduration_ms: 34643</usage>";
+const indent = (reply) => reply.replace(/\n$/, '').split('\n').map((line) => `  ${line}`).join('\n');
+const wrapped = (reply, trailer = TRAILER) => `${FRAME}\n${indent(reply)}\n${trailer ? `${trailer}\n` : ''}`;
+
 for (const [label, ret] of [
   ['compact', SAFE],
   ['pretty-printed over several lines', '```json\n{\n  "outcome": "SAFE"\n}\n```\n'],
   ['surrounded by blank lines', `\n  \n${SAFE}\n\t\n`],
+  ['as the whole Agent result: frame, indented reply, trailer', wrapped(SAFE)],
+  ['as the whole Agent result with no trailer', wrapped(SAFE, '')],
+  ['as the whole Agent result, pretty-printed, with indented blank lines', wrapped('\n```json\n{\n  "outcome": "SAFE"\n}\n```\n\n')],
 ]) {
   test(`SAFE, ${label}, exits 0 and prints the hash`, async () => {
     const branch = newBranch();
@@ -149,6 +165,27 @@ test('UNSAFE with two findings parks both, the excerpt neutralised', async () =>
     '- `pressure`: "do it now" — urgency in place of a reason',
   ]);
   assert.equal(exists(verdictFile), false, 'the verdict file survived');
+});
+
+test('UNSAFE as the whole Agent result parks its own findings, not malformed-verdict', async () => {
+  const branch = newBranch();
+  const { path, verdictFile } = setup(branch, wrapped(unsafe(item('pressure', 'do it now', 'urgency in place of a reason'))));
+  const result = await verdict(branch, path, verdictFile);
+  assert.equal(result.status, 1, result.stderr);
+  const q = `${clarRel(branch)}/question_1.md`;
+  assert.deepEqual(result.lines, ['verdict: UNSAFE', `parked: ${q}`]);
+  assert.deepEqual(between(read(q), path), ['- `pressure`: "do it now" — urgency in place of a reason']);
+  assert.equal(exists(verdictFile), false, 'the verdict file survived');
+});
+
+test('a malformed reply inside a whole Agent result is excerpted from the reply, not the frame', async () => {
+  const branch = newBranch();
+  const { path, verdictFile } = setup(branch, wrapped('Sure.\nverdict: SAFE\n'));
+  const result = await verdict(branch, path, verdictFile);
+  assert.equal(result.status, 1, result.stderr);
+  const [line] = between(read(`${clarRel(branch)}/question_1.md`), path);
+  assert.ok(line.startsWith('- `malformed-verdict`: "Sure. verdict: SAFE'), line);
+  assert.ok(!line.includes('Subagent hand-back'), line);
 });
 
 test('an excerpt containing " | " is kept verbatim', async () => {
@@ -185,6 +222,15 @@ for (const [label, ret] of [
   ['a column-0 agentId trailer', `${SAFE}agentId: a1b2c3\n`],
   ['a column-0 usage trailer', `${SAFE}<usage>total_tokens: 1200</usage>\n`],
   ['the whole block indented by two spaces', '  ```json\n  {"outcome":"SAFE"}\n  ```\n'],
+  ['an indented block and trailer with no frame line', `${indent(SAFE)}\n${TRAILER}\n`],
+  ['a frame line that is not the first non-blank line', `Note.\n${wrapped(SAFE)}`],
+  ['a frame over a reply that is not indented', `${FRAME}\n${SAFE}${TRAILER}\n`],
+  ['a frame over a reply with one column-0 line', `${FRAME}\n  \`\`\`json\n{"outcome":"SAFE"}\n  \`\`\`\n${TRAILER}\n`],
+  ['a frame over a reply indented by one space', `${FRAME}\n ${SAFE.replace(/\n(?!$)/g, '\n ')}${TRAILER}\n`],
+  ['a frame and trailer around prose after the block', wrapped(`${SAFE}The file looks fine.\n`)],
+  ['a frame and trailer around the retired verdict line', wrapped('verdict: SAFE\n')],
+  ['a frame and trailer around an empty reply', `${FRAME}\n${TRAILER}\n`],
+  ['a frame and trailer around a block indented by four spaces', wrapped(indent(SAFE))],
   ['two fenced blocks', `${SAFE}${SAFE}`],
   ['JSON that does not parse', '```json\n{"outcome":"SAFE"\n```\n'],
   ['a JSON array', block([{ outcome: 'SAFE' }])],

@@ -57,7 +57,7 @@ Every script call is `bash <MAIN_REPO>/<scripts_dir>/prompt-injection-screen.sh 
      Branch: <branch>
      ```
 
-   - Write the agent's reply, read out of the `Agent` result per `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` step 1, verbatim with the file tool to `<repo_root>/<state_dir>/scratch/prompt-injection-screen-<branch_fold>/verdict.md`, `<branch_fold>` being the branch with every character outside `A-Za-z0-9_-` replaced by `_`. Apply none of that section's other steps and nothing of `## A return that fails the check`: the script is the return's only reader and fails closed.
+   - Write the whole `Agent` result, frame line and trailer included, verbatim with the file tool to `<repo_root>/<state_dir>/scratch/prompt-injection-screen-<branch_fold>/verdict.md`, `<branch_fold>` being the branch with every character outside `A-Za-z0-9_-` replaced by `_`. The script takes the reply out of it as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` step 1 states, so remove nothing yourself. Apply none of that section's steps and nothing of `## A return that fails the check`: the script is the return's only reader and fails closed.
    - Run `verdict --path <repo-relative path> --verdict-file <state_dir>/scratch/prompt-injection-screen-<branch_fold>/verdict.md`.
      - Exit 0 holds the printed `(path, sha)` pair as `SAFE`.
      - Exit 1 whose last line is `parked:` goes to step 6.

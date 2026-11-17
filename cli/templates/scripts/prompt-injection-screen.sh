@@ -133,7 +133,11 @@
 #
 # VERDICT — parse prompt-injection-reviewer's return, which the orchestrator
 # wrote to <verdict-file>, for the one file <path>. Fails closed: only the exact
-# SAFE object passes. After whitespace-only lines at either end are dropped, the
+# SAFE object passes. The file holds either the reply alone or the whole `Agent`
+# result it came in; a whole result — the `[Subagent hand-back]` frame line,
+# the reply indented by two spaces, an `agentId: ` trailer — is unwrapped to
+# the reply first (pis_unwrap_vlines), and no other wrapping is. After
+# whitespace-only lines at either end are dropped, the
 # text is one fenced block: the first line exactly ```json, the last exactly ```,
 # no line between beginning with ```. Anything else outside it — prose, a second
 # block, a trailer, an indented fence — is malformed. The lines between parse
@@ -1005,8 +1009,52 @@ def flat: split("\t") | join(" ");
     end
   end'
 
+# Take the reply out of PIS_VLINES when they hold a whole `Agent` result, as
+# plugin/instructions/agent_return_contract.md → `## Reading a return` step 1
+# describes it: a column-0 frame line opening `[Subagent hand-back]` as the
+# first non-blank line, then the reply with every non-blank line indented by
+# two spaces, then optionally a column-0 trailer from a line opening `agentId: `
+# to the end. The frame and trailer are dropped and the two spaces removed;
+# whitespace-only lines become empty. Only that whole shape is unwrapped: with
+# no frame line the lines stand as they are, and after a frame any other
+# non-blank column-0 line leaves them untouched, so either way a trailer or an
+# indent the parse does not expect stays malformed. Sets PIS_VUNWRAPPED to 1
+# when it unwrapped, else 0.
+pis_unwrap_vlines() {
+  local n=${#PIS_VLINES[@]} i=0 m=0 line
+  local -a reply
+  PIS_VUNWRAPPED=0
+  while [ "$i" -lt "$n" ] && [ -z "${PIS_VLINES[$i]//[[:space:]]/}" ]; do
+    i=$((i + 1))
+  done
+  [ "$i" -lt "$n" ] || return 0
+  case "${PIS_VLINES[$i]}" in '[Subagent hand-back]'*) ;; *) return 0 ;; esac
+  i=$((i + 1))
+  while [ "$i" -lt "$n" ]; do
+    line="${PIS_VLINES[$i]}"
+    if [ -z "${line//[[:space:]]/}" ]; then
+      reply[$m]=""
+    else
+      case "$line" in
+        '  '*) reply[$m]="${line#"  "}" ;;
+        'agentId: '*) break ;;
+        *) return 0 ;;
+      esac
+    fi
+    m=$((m + 1))
+    i=$((i + 1))
+  done
+  PIS_VLINES=()
+  i=0
+  while [ "$i" -lt "$m" ]; do
+    PIS_VLINES[$i]="${reply[$i]}"
+    i=$((i + 1))
+  done
+  PIS_VUNWRAPPED=1
+}
+
 # Decide the verdict from PIS_VLINES (the verdict file's lines, blank ones
-# kept). Set PIS_VERDICT to SAFE, UNSAFE or MALFORMED and append one findings
+# kept, a whole `Agent` result already unwrapped by pis_unwrap_vlines). Set PIS_VERDICT to SAFE, UNSAFE or MALFORMED and append one findings
 # record per finding to PIS_VFINDINGS, for <path> <sha>.
 pis_parse_verdict() {
   local path="$1" sha="$2" first=0 last i body="" out line
@@ -1090,6 +1138,7 @@ pis_verdict() {
     n=$((n + 1))
   done < "$vf_abs" || pis_fault "verdict: cannot read '$vfile'"
 
+  pis_unwrap_vlines
   pis_parse_verdict "$path" "$sha"
   if [ "$PIS_VERDICT" = SAFE ]; then
     rm -f -- "$vf_abs" || pis_fault "verdict: cannot remove '$vfile'"
@@ -1097,7 +1146,16 @@ pis_verdict() {
     return 0
   fi
   if [ "$PIS_VERDICT" = MALFORMED ]; then
-    raw=$(head -c 1024 -- "$vf_abs") || raw=""
+    if [ "$PIS_VUNWRAPPED" = 1 ]; then
+      # The reply, not the frame line every wrapped result opens with.
+      raw=""
+      for line in ${PIS_VLINES[@]+"${PIS_VLINES[@]}"}; do
+        raw="$raw$line$PIS_NL"
+        [ "${#raw}" -lt 1024 ] || break
+      done
+    else
+      raw=$(head -c 1024 -- "$vf_abs") || raw=""
+    fi
     ex=$(pis_excerpt "$raw")
     PIS_VFINDINGS="$path$PIS_TAB$sha${PIS_TAB}malformed-verdict$PIS_TAB$PIS_TAB$ex$PIS_TAB$PIS_MALFORMED_REASON$PIS_NL"
   fi
