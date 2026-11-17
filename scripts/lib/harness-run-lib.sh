@@ -4954,10 +4954,13 @@ hr_copy_sync_main_git() {
 # one-branch-one-checkout rule gives a worktree), a branch <main> lacks, a
 # heal whose compare-and-swap fails, and a diverged clone. 0 synced, healed or
 # a no-op (main or worktree, `HR_SYNC_TIP` empty); 1 with `HR_SYNC_REFUSAL`
-# set to one sentence naming the branch and the failed step.
+# set to one sentence naming the branch and the failed step. The diverged
+# sentence also names the cause, read from the tips' first parents and trees,
+# and both full ids in two `update-ref` repair commands it spells and never runs.
 hr_copy_sync_in_var() {
   local main="${1-}" gitdir="${2-}" branch="${3-}" kind cmain clone ref
   local up out line oid="" count=0 cur main_old status tab=$'\t'
+  local c_parent m_parent c_tree m_tree cause worktree
   HR_SYNC_TIP=""
   HR_SYNC_REFUSAL=""
   kind=$(hr_copy_kind "$main" "$gitdir") || kind=""
@@ -5063,7 +5066,24 @@ EOF
             fi
             ;;
           1)
-            HR_SYNC_REFUSAL="cannot sync branch '$branch' in from '$clone': the clone (${oid:0:12}) and the main checkout (${main_old:0:12}) have diverged"
+            # A failed read leaves its value empty: the relation is then unknown, never a refusal of its own.
+            c_parent=$(hr_copy_sync_main_git "$cmain" rev-parse --verify --quiet "$oid^" 2>/dev/null) || c_parent=""
+            m_parent=$(hr_copy_sync_main_git "$cmain" rev-parse --verify --quiet "$main_old^" 2>/dev/null) || m_parent=""
+            c_tree=$(hr_copy_sync_main_git "$cmain" rev-parse --verify --quiet "$oid^{tree}" 2>/dev/null) || c_tree=""
+            m_tree=$(hr_copy_sync_main_git "$cmain" rev-parse --verify --quiet "$main_old^{tree}" 2>/dev/null) || m_tree=""
+            cause="one of them moved outside the wrappers"
+            worktree=" and bring the clone's index and working tree to that tip"
+            if [ -n "$c_parent" ] && [ "$c_parent" = "$m_parent" ]; then
+              if [ -n "$c_tree" ] && [ "$c_tree" = "$m_tree" ]; then
+                cause="the clone's tip rewrote the main checkout's outside the wrappers (same parent, same tree)"
+                worktree=""
+              elif [ -n "$c_tree" ] && [ -n "$m_tree" ]; then
+                cause="the clone's tip rewrote the main checkout's outside the wrappers (same parent, different tree)"
+              else
+                cause="the clone's tip rewrote the main checkout's outside the wrappers (same parent)"
+              fi
+            fi
+            HR_SYNC_REFUSAL="cannot sync branch '$branch' in from '$clone': the clone (${oid:0:12}) and the main checkout (${main_old:0:12}) have diverged — $cause; nothing was moved. To keep the clone's tip, run git -C '$cmain' update-ref $ref $oid $main_old; to keep the main checkout's, run git -C '$clone' update-ref $ref $main_old $oid$worktree. Then answer the park."
             return 1
             ;;
           *)

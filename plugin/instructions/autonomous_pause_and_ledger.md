@@ -339,6 +339,11 @@ entry stages no diff → the wrapper prints `error: nothing to commit` and exits
 the same call still pushes. This makes every flip safe to re-run on a resumed run. If a flip is ever refused,
 treat the commit as **not landed** and re-run it as a plain single-statement command.
 
+**A landed commit is never repaired.** A wrapper commit that landed with a subject, body line or trailer the
+commit point did not mean stays as it landed: no `git commit --amend`, `git reset`, `git rebase`,
+`git update-ref` or second commit in its place. The commit point halts and hands off through the flow's
+**existing** `<escalate>` binding, naming the commit and what is wrong with it.
+
 ### 1.7 Resume-from-ledger (every fork, on every (re-)entry)
 1. Read `<state_dir>/flow_progress/<branch>_progress.md`.
 2. The **first `[ ]` phase entry** is the resume point. A `[-]` entry is not a `[ ]` entry, so a phase

@@ -5,7 +5,8 @@
  * sync-in's fetch, which hashes what it indexes, so a substituted object is rejected and the main
  * checkout's refs are left as they were; sync-in fast-forwards a clone strictly behind the main
  * checkout to the main checkout's tip, its index and working tree with its ref, refusing with nothing
- * moved when a file in the clone is in the way, and refuses a diverged one with neither ref moved; sync-in
+ * moved when a file in the clone is in the way, and refuses a diverged one with neither ref moved, in one
+ * line naming the cause and both full-id `update-ref` repairs; sync-in
  * never moves a branch the main checkout or one of its worktrees has checked out; and both halves are
  * no-ops for a worktree and for the main checkout.**
  *
@@ -269,6 +270,36 @@ test('(d) Diverged tips are refused, naming both short ids', async (t) => {
   assert.deepEqual(await f.mainSnapshot(), before);
   assert.equal(await f.mainTip(), ours);
   assert.equal(await f.cloneTip(), theirs);
+});
+
+test('(d2) A clone tip rewritten by a plain amend is refused as one line naming the cause and both full-id repairs, neither ref moved, and the clone-tip repair it names puts both refs on the clone’s tip', async (t) => {
+  const f = await fixture(t);
+  const synced = await f.commitInClone('a.txt', 'clone work\n');
+  assert.equal((await f.syncIn()).status, '0');
+  assert.equal(await f.mainTip(), synced);
+  await runGit(f.clone, [...IDENTITY, 'commit', '--quiet', '--amend', '-m', 'clone: a.txt, reworded']);
+  const amended = await f.cloneTip();
+  assert.notEqual(amended, synced);
+
+  const before = await f.mainSnapshot();
+  const g = await f.syncIn();
+  assert.equal(g.status, '1');
+  assert.equal(g.tip, '');
+  assert.match(g.refusal, /have diverged/);
+  assert.match(g.refusal, /same parent, same tree/);
+  assert.doesNotMatch(g.refusal, /\n/);
+  assert.ok(g.refusal.includes(`update-ref ${REF} ${amended} ${synced}`), g.refusal);
+  assert.ok(g.refusal.includes(`update-ref ${REF} ${synced} ${amended}`), g.refusal);
+  assert.deepEqual(await f.mainSnapshot(), before);
+  assert.equal(await f.mainTip(), synced);
+  assert.equal(await f.cloneTip(), amended);
+
+  const repair = g.refusal.match(/To keep the clone's tip, run git -C '([^']+)' update-ref (\S+) ([0-9a-f]+) ([0-9a-f]+);/);
+  assert.ok(repair, g.refusal);
+  assert.equal(repair[1], f.main);
+  await runGit(repair[1], ['update-ref', repair[2], repair[3], repair[4]]);
+  assert.equal(await f.mainTip(), amended);
+  assert.equal(await f.cloneTip(), amended);
 });
 
 test('(e) The main checkout having the branch checked out refuses sync-in, its ref unchanged', async (t) => {

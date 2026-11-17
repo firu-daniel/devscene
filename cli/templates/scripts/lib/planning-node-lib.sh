@@ -1,20 +1,28 @@
 #!/usr/bin/env bash
 # planning-node-lib.sh — one planning node session, for the script-driven
 # planning driver: the node's prompt, read out of the pinned plugin's planning
-# core; the JSON Schema its outcome must fit, built from the planning graph;
-# the per-node launch flags; the background launch; and the validated read of
-# the session's stream once it has exited.
+# core; the return schema its agent's return object must satisfy, read out of
+# the pinned plugin's `schemas/<agent>.return.json`; the per-node launch flags;
+# the background launch; and the validated read of the session's stream once it
+# has exited.
 #
 # The rule this library exists to enforce: a node's result is a declared
 # outcome, `error` or `undelivered`, never a guess. `pnl_reap` decides it from
-# the stream alone, in one fixed order, and an outcome the node's graph entry
-# does not declare is `error`, whatever else the session printed. Every `error`
-# carries its class, decided here and nowhere else: `infra` for no `init`
-# event, a session that ended not `success` or with `is_error`, and a result
-# with no decision object; `agent` for every other `error`. A session is
-# refused for its tools only when its `init` tools carry one the agent does not
-# declare; a declared tool the session lacks is reported on `withheld=` and
-# never refused, because a missing tool cannot widen what the session does.
+# the stream alone, in one fixed order: the outcome is read only from the
+# return block that ends the `result` text, validated against the agent's own
+# `schemas/<agent>.return.json`, and an outcome the node's graph entry does not
+# declare is `error`, whatever else the session printed. Every `error` carries
+# its class, decided here and nowhere else: `infra` for no `init` event, a
+# session that ended not `success` or with `is_error`, a result whose return
+# block is missing, not one JSON object or fails the schema, and a `FAIL` — or
+# a round gate's `PASS` — that carries no non-blank `findings_file` —
+# infrastructure because the driver's bounded re-dispatch of the same prompt is
+# the remedy for a malformed reply, as the plugin's return contract
+# (`agent_return_contract.md` → `## A return that fails the check`) bounds it at
+# three attempts; `agent` for every other `error`. A session is refused for its
+# tools only when its `init` tools carry one the agent does not declare; a
+# declared tool the session lacks is reported on `withheld=` and never refused,
+# because a missing tool cannot widen what the session does.
 #
 # IT LAUNCHES NOTHING ON ITS OWN AND DECIDES NO ROUTING. Which node runs next,
 # when a set is launched, STOP, PAUSE, the dispatch cap, recording with
@@ -36,8 +44,9 @@
 # associative array, no array-reading builtin, no `local -n`; no regex in jq,
 # every jq `if` has an `else`.
 #
-# TEMPORARY FILES. Every one — a filtered MCP config, a `return` text, a
-# friction list, a verdict — lives in the one directory `pnl_init` makes, which
+# TEMPORARY FILES. Every one — a node's return schema, a filtered MCP config,
+# a `result` text, a return object, a verdict — lives in the one directory
+# `pnl_init` makes, which
 # holds files only. `pnl_cleanup` removes its files and then the directory,
 # never recursively; the driver calls it on every return path.
 #
@@ -49,7 +58,8 @@
 #
 # GLOBALS. `pnl_init` sets `PNL_PLUGIN_DIR`, `PNL_WORKTREE`, `PNL_STATE_DIR`,
 # `PNL_SCRIPTS_DIR`, `PNL_GRAPH`, `PNL_TMP`, `PNL_PLUGIN_NAME`,
-# `PNL_MAX_DISPATCHES` and one `PNL_BLOCK_<key>` per key. `pnl_launch` sets
+# `PNL_MAX_DISPATCHES`, one `PNL_BLOCK_<key>` per key, and writes
+# `<PNL_TMP>/schema-<node>.json` per `kind: "dispatch"` node. `pnl_launch` sets
 # `PNL_HANDLE`, and must run in the shell that will `wait` on the session —
 # never inside `$(…)`. It reads `PD_SESSION_EXEC`, `PD_FORMATTER` and the
 # optional `PD_PLUGIN_DIR_ADDED`.
@@ -70,11 +80,12 @@
 #             pnl_init "$w" "$w"     -> 2, `planning-driver: … plugin.json …`
 #   prompt    pnl_prompt plan_writer revision feat_x 1 '' a.md b.md
 #               -> `Revise the task plan per findings at a.md, b.md.` …
-#   schema    pnl_schema plan_review | jq -c .properties.outcome.enum
-#               -> ["PASS","FAIL","error","blocker"]
+#   schema    jq -c '[.oneOf[].properties.outcome.const]' "$PNL_TMP/schema-plan_review.json"
+#               -> ["PASS","FAIL","blocker"]
 #   flags     pnl_agent_flags plan_review task-plan-reviewer
-#               -> --agent / devscene:task-plan-reviewer / --plugin-dir / … /
-#                  --strict-mcp-config / --mcp-config / <PNL_TMP>/mcp-plan_review.json
+#               -> --agent / devscene:task-plan-reviewer / --plugin-dir / <plugin_root> /
+#                  --add-dir / <plugin_root> / --strict-mcp-config / --mcp-config /
+#                  <PNL_TMP>/mcp-plan_review.json
 #   launch    s() { printf '%s\n' '{"type":"system","subtype":"init","tools":[]}'; }
 #             PD_SESSION_EXEC=s PD_FORMATTER=cat
 #             pnl_launch 1 plan_review task-plan-reviewer "$(pnl_prompt plan_review '' feat_x 0 '')" "$w/run.log"
@@ -216,6 +227,32 @@ $PNL_CORE_BLOCKS
 EOF
 
   PNL_TMP=$(mktemp -d "${TMPDIR:-/tmp}/planning-node.XXXXXX") || { PNL_TMP=""; pnl_fail "cannot create a temporary directory"; return 2; }
+  pnl_load_schemas || { pnl_cleanup; return 2; }
+  return 0
+}
+
+# pnl_load_schemas — for every `kind: "dispatch"` node of the planning graph,
+# its agent's `<PNL_PLUGIN_DIR>/schemas/<agent>.return.json` as compact JSON in
+# `<PNL_TMP>/schema-<node>.json`. A missing or unreadable file, a file that is
+# not one JSON object, or one with no top-level `oneOf` array is a fault naming
+# the file, so no session is launched against an agent with no schema.
+pnl_load_schemas() {
+  local pairs node agent f obj
+  pairs=$(jq -r '.nodes | to_entries[] | select(.value.kind == "dispatch") | .key + " " + (.value.agent | if type == "string" then . else "" end)' "$PNL_GRAPH" 2>/dev/null) \
+    || { pnl_fail "the planning graph '$PNL_GRAPH' could not be read for its dispatch nodes"; return 2; }
+  while IFS=' ' read -r node agent; do
+    [ -n "$node" ] || continue
+    [ -n "$agent" ] || { pnl_fail "the planning graph '$PNL_GRAPH' names no agent for dispatch node '$node'"; return 2; }
+    f="$PNL_PLUGIN_DIR/schemas/$agent.return.json"
+    [ -f "$f" ] && [ -r "$f" ] || { pnl_fail "the return schema file '$f' cannot be read"; return 2; }
+    obj=$(jq -c -s 'if length == 1 and (.[0] | type) == "object" then .[0] else error("not one object") end' "$f" 2>/dev/null) \
+      || { pnl_fail "the return schema file '$f' is not one JSON object"; return 2; }
+    printf '%s\n' "$obj" | jq -e '(.oneOf | type) == "array"' >/dev/null 2>&1 \
+      || { pnl_fail "the return schema file '$f' carries no top-level oneOf array"; return 2; }
+    printf '%s\n' "$obj" >"$PNL_TMP/schema-$node.json" || { pnl_fail "cannot write '$PNL_TMP/schema-$node.json'"; return 2; }
+  done <<EOF
+$pairs
+EOF
   return 0
 }
 
@@ -277,30 +314,6 @@ pnl_prompt() {
   printf '%s\n' "$text"
 }
 
-# pnl_schema <node> — one line of JSON Schema: `outcome` an enum of exactly the
-# node's declared outcome keys, plus `findings_file`, `return` and
-# `harness_friction`.
-pnl_schema() {
-  local node="${1-}"
-  jq -c --arg n "$node" '
-    (.nodes[$n].outcomes // null) as $o
-    | if ($o | type) != "object" then error("no outcomes")
-      else {
-        type: "object",
-        properties: {
-          outcome: { type: "string", enum: ($o | keys_unsorted),
-            description: "The outcome your return maps to." },
-          findings_file: { type: "string",
-            description: "The findings file your return names, where it names one." },
-          return: { type: "string",
-            description: "Your whole return, exactly as your own Output contract states it." },
-          harness_friction: { type: "array", items: { type: "string" },
-            description: "Each problem the harness itself caused you, one per item." }
-        },
-        required: ["outcome"]
-      } end' "$PNL_GRAPH" 2>/dev/null || { pnl_fail "the planning graph declares no outcomes for node '$node'"; return 2; }
-}
-
 # pnl_agent_tools_var <agent> — the `tools:` line of the agent's frontmatter,
 # one tool per line, into PNL_TOOLS; 1 when the file or the line is missing.
 pnl_agent_tools_var() {
@@ -336,20 +349,17 @@ pnl_agent_tools_var() {
 # pnl_agent_flags <node> <agent> — the per-node flags, one argv word per line:
 # `--agent <plugin>:<agent>`, `--plugin-dir` and `--add-dir` the plugin
 # directory — the `--add-dir` left out when `PD_PLUGIN_DIR_ADDED` is `1`, the
-# caller's shared vector already carrying it — `--json-schema <schema>`, then
-# the MCP flags. An agent whose
+# caller's shared vector already carrying it — then the MCP flags. An agent whose
 # `tools:` line names no `mcp__` tool gets `--disallowedTools mcp__*`; one that
 # names some gets `--strict-mcp-config --mcp-config <file>`, the worktree's
 # `.mcp.json` cut to the servers those entries name (an empty server set when
 # there is no such file).
 pnl_agent_flags() {
-  local node="${1-}" agent="${2-}" schema t server servers="" nl="
+  local node="${1-}" agent="${2-}" t server servers="" nl="
 " file
   pnl_agent_tools_var "$agent" || { pnl_fail "'${PNL_PLUGIN_DIR-}/agents/$agent.md' carries no tools: line"; return 2; }
-  schema=$(pnl_schema "$node") || return 2
   printf '%s\n' --agent "$PNL_PLUGIN_NAME:$agent" --plugin-dir "$PNL_PLUGIN_DIR"
   [ "${PD_PLUGIN_DIR_ADDED-}" = "1" ] || printf '%s\n' --add-dir "$PNL_PLUGIN_DIR"
-  printf '%s\n' --json-schema "$schema"
   while IFS= read -r t; do
     case "$t" in
       mcp__?*__*)
@@ -418,17 +428,54 @@ EOF
 }
 
 # The decision over one session's stream, in `pnl_reap`'s order. Input: the raw
-# stream; `$g` the planning graph; `$node`; `$tools` the agent's `tools:` list.
+# stream; `$g` the planning graph; `$sch` the node's return schema, loaded from
+# its agent's `schemas/<agent>.return.json`; `$node`; `$tools` the agent's
+# `tools:` list. `vfail` and `schemafail` hold a value to the closed dialect
+# that file is written in, and yield the first failure, or "" when there is none.
 PNL_REAP_JQ='
   def blank: if type == "string" then ([explode[] | select(. != 32 and . != 9 and . != 10 and . != 13)] | length) == 0 else true end;
   def oneline: tostring | split("\r") | join(" ") | split("\n") | join(" ");
+  def firstof: if length > 0 then .[0] else "" end;
+  def vfail(p): p as $p | . as $v
+    | if ($p | type) != "object" then ""
+      elif ($p | has("const")) and $v != $p.const then "is not " + ($p.const | tojson)
+      elif $p.type == "string" and ($v | type) != "string" then "is not a string"
+      elif $p.type == "integer" and (($v | type) != "number" or $v != ($v | floor)) then "is not an integer"
+      elif $p.type == "boolean" and ($v | type) != "boolean" then "is not a boolean"
+      elif $p.type == "array" and ($v | type) != "array" then "is not an array"
+      elif ($p | has("enum")) and (any($p.enum[]; . == $v) | not) then "is not one of " + ($p.enum | tojson)
+      elif ($p | has("minLength")) and ($v | type) == "string" and ($v | length) < $p.minLength
+      then "is shorter than " + ($p.minLength | tostring)
+      elif ($p | has("minimum")) and ($v | type) == "number" and $v < $p.minimum
+      then "is below " + ($p.minimum | tostring)
+      elif ($p | has("minItems")) and ($v | type) == "array" and ($v | length) < $p.minItems
+      then "has fewer than " + ($p.minItems | tostring) + " items"
+      elif ($p | has("items")) and ($v | type) == "array"
+      then [range(0; $v | length) as $i | $v[$i] | vfail($p.items) | select(. != "") | "item " + ($i | tostring) + " " + .] | firstof
+      else "" end;
+  def schemafail(s): s as $s | . as $d
+    | if ($d | has("outcome") | not) then "missing required key outcome"
+      else
+        ([($s.oneOf // [])[] | select(type == "object")
+          | select((.properties.outcome // {}) | (type == "object") and has("const") and .const == $d.outcome)] | first) as $var
+        | if ($var | type) != "object" then "outcome " + ($d.outcome | tojson) + " matches no variant"
+          else
+            ($var.properties // {}) as $props
+            | [($var.required // [])[] | select(. as $k | $d | has($k) | not)] as $miss
+            | [$d | keys_unsorted[] | select(. as $k | $props | has($k) | not)] as $unknown
+            | if ($miss | length) > 0 then "missing required key " + $miss[0]
+              elif ($unknown | length) > 0 then "unknown key " + $unknown[0]
+              else [$d | keys_unsorted[] as $k | $d[$k] | vfail($props[$k]) | select(. != "") | $k + " " + .] | firstof
+              end
+          end
+      end;
   (($g[0].nodes[$node].outcomes // {}) | keys_unsorted) as $declared
   | [$g[0].nodes[] | select(.kind == "round") | (.gates // [])[]] as $gates
   | ($tools | split("\n") | map(select(length > 0))) as $agent
   | [split("\n")[] | select(length > 0) | fromjson? | objects] as $ev
   | ([$ev[] | select(.type == "system" and .subtype == "init")] | first) as $init
   | ([$ev[] | select(.type == "result")] | last) as $res
-  | { outcome: "", findings: "", ret: "", friction: [], read: false, class: "", withheld: "",
+  | { outcome: "", findings: "", ret: "", obj: null, read: false, class: "", withheld: "",
       cost: (if ($res | type) == "object" and ($res.total_cost_usd | type) == "number" then ($res.total_cost_usd | tostring) else "" end),
       denials: (if ($res | type) == "object" and ($res.permission_denials | type) == "array" then ($res.permission_denials | length) else 0 end) } as $m
   | if ($init | type) != "object" then $m + { kind: "error", class: "infra", reason: "the agent did not resolve: no init event" }
@@ -446,21 +493,30 @@ PNL_REAP_JQ='
         elif $res.is_error == true or ($res.subtype // "") != "success"
         then $m + { kind: "error", class: "infra", reason: ("the session ended as " + (($res.subtype // "no subtype") | oneline) + (if $res.is_error == true then " with is_error" else "" end)) }
         else
-          (if ($res.structured_output | type) == "object" then $res.structured_output
-           else ([$res.result | strings | fromjson? | objects] | first) end) as $d
-          | if ($d | type) != "object" then $m + { kind: "error", class: "infra", reason: "the result carries no decision object" }
-            elif ($d.outcome | type) != "string" or (any($declared[]; . == $d.outcome) | not)
-            then $m + { kind: "error", class: "agent", reason: ("undeclared outcome " + (if ($d.outcome | type) == "string" then $d.outcome else ($d.outcome | tojson) end | oneline)) }
+          (if ($res.result | type) == "string" then $res.result else "" end) as $text
+          | (("\n" + $text) | split("\r\n") | join("\n") | split("\n```json\n")) as $open
+          | (if ($open | length) < 2 then [] else ("\n" + ($open | last)) | split("\n```") end) as $close
+          | if ($close | length) < 2 or (($close[1:] | join("\n```")) | blank | not)
+            then $m + { kind: "error", class: "infra", reason: "the result carries no return block" }
             else
-              ($m + { read: true,
-                  findings: (if ($d.findings_file | type) == "string" then $d.findings_file else "" end),
-                  ret: (if ($d.return | type) == "string" then $d.return else "" end),
-                  friction: (if ($d.harness_friction | type) == "array" then [$d.harness_friction[] | strings | oneline] else [] end) }) as $r
-              | if ($r.findings | blank) and ($d.outcome == "FAIL" or ($d.outcome == "PASS" and any($gates[]; . == $node)))
-                then $r + { kind: "error", class: "agent", reason: ($d.outcome + " carries no findings_file") }
-                elif $d.outcome == "questions" and ($r.ret | blank)
-                then $r + { kind: "error", class: "agent", reason: "questions with a blank return" }
-                else $r + { kind: "returned", outcome: $d.outcome, reason: "" } end
+              [$close[0] | fromjson?] as $parsed
+              | if ($parsed | length) != 1 or ($parsed[0] | type) != "object"
+                then $m + { kind: "error", class: "infra", reason: "the return block is not one JSON object" }
+                else
+                  $parsed[0] as $d
+                  | ($d | schemafail($sch[0])) as $sf
+                  | if $sf != ""
+                    then $m + { kind: "error", class: "infra", reason: ("the return fails its schema: " + $sf) }
+                    elif ($d.outcome | type) != "string" or (any($declared[]; . == $d.outcome) | not)
+                    then $m + { kind: "error", class: "agent", reason: ("undeclared outcome " + (if ($d.outcome | type) == "string" then $d.outcome else ($d.outcome | tojson) end | oneline)) }
+                    else
+                      ($m + { read: true, ret: $text, obj: $d,
+                          findings: (if ($d.findings_file | type) == "string" then $d.findings_file else "" end) }) as $r
+                      | if ($r.findings | blank) and ($d.outcome == "FAIL" or ($d.outcome == "PASS" and any($gates[]; . == $node)))
+                        then $m + { kind: "error", class: "infra", reason: ($d.outcome + " carries no findings_file") }
+                        else $r + { kind: "returned", outcome: $d.outcome, reason: "" } end
+                    end
+                end
             end
         end
     end'
@@ -470,21 +526,24 @@ PNL_REAP_JQ='
 # carries an `init` event, one `{"session_id", "seq", "node"}` line — that
 # event's session_id — to `${log_path%.log}.planning/node-sessions.jsonl`, the
 # manifest `run-analytics.sh` classes node sessions by. Then it prints
-# `kind=`, `class=`, `outcome=`, `findings=`, `return_file=`, `friction_file=`,
+# `kind=`, `class=`, `outcome=`, `findings=`, `return_file=`, `object_file=`,
 # `cost=`, `duration_secs=`, `denials=`, `withheld=` and `reason=`, one per
 # line. `class=` is `infra` or `agent` and set only for `kind=error`;
-# `outcome=` only for `kind=returned`; `return_file=` and `friction_file=` only
+# `outcome=` only for `kind=returned`. `return_file=` (the whole `result` text)
+# and `object_file=` (the validated return object, compact JSON) are set only
 # once the outcome was read as declared. `withheld=` is the agent's declared
 # non-`mcp__` tools the `init` event lacks, in `tools:` order, joined by `, `,
 # on every kind; empty when none is lacking or there is no `init` event.
 pnl_reap() {
-  local handle="${1-}" pid seq node agent stream log_path start now verdict ret_file="" fr_file="" tools="" sid
+  local handle="${1-}" pid seq node agent stream log_path start now verdict ret_file="" obj_file="" tools="" sid schema
   IFS='	' read -r pid seq node agent stream log_path start <<EOF
 $handle
 EOF
   [ -n "$pid" ] && [ -n "$node" ] && [ -n "$stream" ] && [ -n "$log_path" ] && [ -n "$start" ] \
     || { pnl_fail "pnl_reap: '$handle' is not a handle pnl_launch set"; return 2; }
   [ -n "${PNL_TMP-}" ] && [ -d "$PNL_TMP" ] || { pnl_fail "no temporary directory; call pnl_init first"; return 2; }
+  schema="$PNL_TMP/schema-$node.json"
+  [ -f "$schema" ] || { pnl_fail "pnl_reap: no return schema is loaded for node '$node'"; return 2; }
   [ -f "$stream" ] || : >"$stream"
   cat "$stream" >>"${log_path%.log}.stream.jsonl" || { pnl_fail "cannot append to '${log_path%.log}.stream.jsonl'"; return 2; }
   sid=$(jq -n -R -r '[inputs | fromjson? | objects | select(.type == "system" and .subtype == "init") | .session_id | strings] | if length == 0 then "" else .[0] end' <"$stream" 2>/dev/null) \
@@ -498,22 +557,22 @@ EOF
 
   if pnl_agent_tools_var "$agent"; then tools="$PNL_TOOLS"; fi
   verdict="$PNL_TMP/$seq-$node.verdict"
-  jq -R -s -c --slurpfile g "$PNL_GRAPH" --arg node "$node" --arg tools "$tools" "$PNL_REAP_JQ" "$stream" >"$verdict" 2>/dev/null \
+  jq -R -s -c --slurpfile g "$PNL_GRAPH" --slurpfile sch "$schema" --arg node "$node" --arg tools "$tools" "$PNL_REAP_JQ" "$stream" >"$verdict" 2>/dev/null \
     || { pnl_fail "pnl_reap: the stream '$stream' could not be judged"; return 2; }
   if [ "$(jq -r '.read' "$verdict")" = "true" ]; then
     ret_file="$PNL_TMP/$seq-$node.return"
-    fr_file="$PNL_TMP/$seq-$node.friction"
-    jq -j '.ret' "$verdict" >"$ret_file" && jq -r '.friction[]' "$verdict" >"$fr_file" \
+    obj_file="$PNL_TMP/$seq-$node.object.json"
+    jq -j '.ret' "$verdict" >"$ret_file" && jq -c '.obj' "$verdict" >"$obj_file" \
       || { pnl_fail "pnl_reap: cannot write the return of '$stream'"; return 2; }
   fi
-  jq -r --arg ret "$ret_file" --arg fr "$fr_file" --arg dur "$((now - start))" '
+  jq -r --arg ret "$ret_file" --arg obj "$obj_file" --arg dur "$((now - start))" '
     def oneline: tostring | split("\r") | join(" ") | split("\n") | join(" ");
     "kind=" + .kind,
     "class=" + .class,
     "outcome=" + (.outcome | oneline),
     "findings=" + (.findings | oneline),
     "return_file=" + $ret,
-    "friction_file=" + $fr,
+    "object_file=" + $obj,
     "cost=" + .cost,
     "duration_secs=" + $dur,
     "denials=" + (.denials | tostring),
