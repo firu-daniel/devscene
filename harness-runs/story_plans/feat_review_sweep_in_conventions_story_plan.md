@@ -53,7 +53,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_review_sweep_in_convent
 
 1. [ ] **Task 1** — Write the `.claude/review-sweep.md` skeleton from `init` and reserve the `sweep` analyze target _(layer: cli)_ _(points: 20)_
 2. [ ] **Task 2** — Ship `review-sweep.sh`, which applies the sweep rows to a branch's added lines, with its test suite _(layer: cli)_ _(points: 20)_
-3. [ ] **Task 3** — Add `review-sweep.sh` to the outer-loop script table as agent-invocable _(layer: cli)_ _(points: 10)_
+3. [ ] **Task 3** — Add `review-sweep.sh` to the outer-loop script table as agent-invocable _(layer: cli)_ _(points: 15)_
 4. [ ] **Task 4** — Add the `review-sweep` doctor check for a missing or unfilled sweep document _(layer: cli)_ _(points: 15)_
 5. [ ] **Task 5** — Teach `conventions-writer` the `sweep` target and the sweep row format _(layer: plugin)_ _(points: 15)_
 6. [ ] **Task 6** — Teach `conventions-reviewer` the `sweep` target and the regex-grounding check _(layer: plugin)_ _(points: 15)_
@@ -84,7 +84,7 @@ Application source (`cli/src/**`, shell bodies and their comments) is outside th
 - **E8 — conventions-document statements of the main-checkout wrapper set (command):** `git grep -n -F 'launch-sandboxed-gates.sh' -- .claude/context`
 - **E9 — standing-artifact rows (procedure).** **First step, runnable:** `grep -n -i -E 'sweep|Pass 0|regex|review-sweep' harness-runs/lessons.md harness-runs/improvement_suggestions.md`. **Artifact:** those two standing ledgers. **Traversal:** each topic heading in file order, then the one-line entries under it. **Decision rule:** an entry is reached when it names the reviewer's sweep, its table or a surface on this branch's target list. On this plan's walk the procedure reached no entry, so it contributes no row.
 
-**Closure invariant:** every site any derivation entry reaches appears as a row below. Every path E1–E8 prints is a row's file, and a printed path that no row names is a register gap.
+**Closure invariant:** every site any derivation entry reaches appears as a row below. A site is each separately anchored passage of a printed file that carries the entry's pattern, not the file as a whole: re-run an `-l` entry with `-n` in place of `-l` to see its passages. A printed file, or a passage within one, that no row names is a register gap.
 
 | # | Site | Copy | Evidence | Disposition | Owning task or reason |
 |---|---|---|---|---|---|
@@ -100,6 +100,14 @@ Application source (`cli/src/**`, shell bodies and their comments) is outside th
 | 10 | `cli/templates/scripts/README.md` ("The other family in this directory is not generated.") | — | E3 | `change` | Task 3 |
 | 11 | `docs/cli.md` → `## 3. The re-run contract` table | — | E3, E4 | `change` | Task 10 |
 | 12 | `docs/cli.md` → the `doctor` check table (the `task-offer-rules` row) | — | E3, E5 | `change` | Task 10 |
+| 27 | `docs/cli.md` → the paragraph opening "Two families land in `scriptsDir`, and only one of them is generated." (the outer-loop inventory and the agent-invocable list) | — | E3 | `change` | Task 10 |
+| 28 | `docs/cli.md` → the list under the `doctor` table opening "Which severity a check carries is a decision, not a default" (the `setup-analysis` bullet, and the `task-offer-rules` bullet with its "Two more arms" paragraphs) | — | E3, E5 | `change` | Task 10: a `review-sweep` severity bullet joins the list. The `setup-analysis` and `task-offer-rules` bullets themselves are unchanged. |
+| 29 | `plugin/agents/branch-reviewer.md` → `## Resolved values`, the `<repo_root>` / `<app_dir>` row ("the Pass 0 sweep") and the `<impl_stack>` row ("write a Pass 0 regex") | — | E1 | `change` | Task 8 |
+| 30 | `plugin/agents/branch-reviewer.md` → the review steps, step 3 ("Run the mechanical sweep (Pass 0)") | — | E1 | `no-change` | It points at `### Pass 0 — the deterministic sweep`, a heading Task 8 keeps. |
+| 31 | `docs/analyze.md` → §4, the paragraph opening "What a forced setup re-run costs the analysis." ("Two artifacts are kept instead") | — | E5 | `change` | Task 10: Task 1 gives the sweep document the conventions stub's conditional `--force` keep, so the kept artifacts this paragraph enumerates gain one. |
+| 32 | `docs/analyze.md` → §9, the paragraph opening "The precondition is stated at two sites" (`doctor`'s `setup-analysis` warnings) | — | E5 | `no-change` | The `review-sweep` warning names the command as one route among two (or a hand edit), the case this paragraph already leaves out. |
+| 33 | `plugin/commands/analyze.md` → `## Resolved values`, the `<shared_conventions_path>` row (the document set `doctor` states in `setup-analysis`) | — | E5 | `no-change` | The sweep document is not a member of the conventions document set (Task 7), so the derivation stated there is unchanged. |
+| 34 | `cli/templates/claude/CLAUDE.md` → `## Where a change request runs`, the closing paragraph naming `.claude/devscene-task-offer.md` | — | E4 | `no-change` | It describes the offer only. |
 | 13 | `docs/guard-verification.md` ("`task-offer-check.sh` joined the guard's left-allowed set") | — | E3 | `no-change` | The guard's code and lists are unchanged, and the new script reaches the same non-denied arm as every other agent-invocable script, so nothing needs re-measuring. |
 | 14 | `docs/watcher.md` → the outer-loop script table | — | E3 | `change` | Task 9 |
 | 15 | `plugin/hooks/README.md` → `## The deny list` | — | E3 | `no-change` | `review-sweep.sh` is agent-invocable and joins no deny list. |
