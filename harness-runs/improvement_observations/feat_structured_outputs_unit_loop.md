@@ -42,3 +42,20 @@
 - **category:** optimization
 - **evidence:** the A2 `architecture-reviewer` return (Should Fix, no file written on PASS) and B.1 `branch-reviewer` Finding 1 (`harness-runs/code_reviews/feat_structured_outputs_unit_loop_code_review.md`) raised the same finding: `layer-implementer` cannot return `flags` on `prohibited` / `already passing`
 - **cost this run:** the finding was carried by the second reviewer only because the first one's PASS writes no file
+
+# User-review fix round 1 — optional-field rule stated once; `already passing` outcome renamed `already_passing`
+
+## A Phase A implementer reported "No tree guard was selected" for a change its tree guards cover
+- **category:** agent-contract
+- **evidence:** Phase A Item 1 (`Finding 1`) `layer-implementer` return, item 5: "No tree guard was selected." Its commit `ec41bf57` changed files under `plugin/instructions/`, `plugin/agents/` and `plugin/schemas/`, which match the `devscene.config.json` `treeGuards` globs `plugin/**/*.md`, `**/*.md` and `plugin/schemas/**`. The Item 2 implementer, whose change matched the same `.md` globs, selected and ran five guards. The Item 1 `layer-reviewer` returned PASS without mentioning the skipped guards.
+- **cost this run:** Item 1's guards first ran at the Phase G whole-suite round (`review_1_round_1`, `pass`), not inside the unit
+
+## A Phase A implementer piped its tree-guard run, against the foreground/unpiped rule
+- **category:** agent-contract
+- **evidence:** Phase A Item 2 (`Finding 2`) `layer-implementer` return, item 5: it ran the five selected guards in one `npm test --workspace cli -- …` call and "piped that run's output through `grep` to read the counts", which it reported as a departure from the plugin conventions (`unit_loop_core.md` → `## The test-run rule` point 6)
+- **cost this run:** 5 guard results (76 tests, all passed) were recorded from a run in a form the rule does not allow
+
+## The Phase-D disposition derivation's `git log <default_branch>..HEAD` fails in the run copy
+- **category:** agent-contract
+- **evidence:** `git log --format='%h %s%n%b' --name-only dev..HEAD`, the command `improvement_observations_instructions.md` → `## Dispositioned units` (b) gives, exited 128 with `fatal: ambiguous argument 'dev..HEAD': unknown revision or path not in the working tree.` It was re-issued against `origin/dev`. That section gives no remote-tracking fallback. The core's D.2 delivery bullet does give one.
+- **cost this run:** 1 failed command; the derivation was re-run against a base the section does not name
