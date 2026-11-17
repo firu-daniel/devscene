@@ -39,7 +39,7 @@
 ## Phase 2 Readiness — Ordered Fix List
 
 1. [x] **Finding 4** — Type the generator's `sweep` target against `RESERVED_ANALYZE_TARGETS` _(layer: cli)_
-2. [ ] **Finding 2** — State that the `sweep` target's `scope` is the repository root in `conventions-writer`'s `scope` row _(layer: plugin)_
+2. [x] **Finding 2** — State that the `sweep` target's `scope` is the repository root in `conventions-writer`'s `scope` row _(layer: plugin)_
 3. [ ] **Finding 3** — Test the review-sweep document's second-`--force` keep path _(layer: cli)_
 4. [ ] **Finding 1** — Resolve the sweep base as `origin/<default_branch>` in a run copy that has no local default branch _(layer: cli, plugin, general)_
 

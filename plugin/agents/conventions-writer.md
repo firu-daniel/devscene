@@ -42,7 +42,7 @@ You are dispatched by `${CLAUDE_PLUGIN_ROOT}/commands/analyze.md`, on the axis t
 | `target` | One of `<layer_names>`, `conventions` for the shared cross-layer document, or `sweep` for the review-sweep document `.claude/review-sweep.md`. |
 | `document_path` | The absolute path of the one document you write. |
 | `action` | `write` or `merge`. |
-| `scope` | The absolute path(s) this document's evidence is gathered from — this layer's `layers[].path`, or the **repository root** when the target is the shared document, which governs every layer, or `sweep`. Every `layers[].path` is repo-relative and resolves against `<repo_root>`, never against `<app_dir>`. |
+| `scope` | The absolute path(s) this document's evidence is gathered from — this layer's `layers[].path`, or the **repository root** when the target is the shared document, which governs every layer, or the review-sweep document (`target: sweep`). Every `layers[].path` is repo-relative and resolves against `<repo_root>`, never against `<app_dir>`. |
 | `mode` | `existing` or `greenfield`. |
 | `excluded_paths` | Paths inside `scope` that are never evidence — `<state_dir>`, `<scripts_dir>`, `<githooks_dir>`. |
 | `harvested_sources` | Absolute paths of the adopter's own prose the caller's repo-level harvest found, or `none`. |
