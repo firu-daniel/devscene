@@ -28,3 +28,8 @@
 - `cmp cli/templates/scripts/review-sweep.sh scripts/review-sweep.sh` exits zero.
 - `git ls-files -s scripts/review-sweep.sh` shows mode `100755`, once the file is staged by the commit step.
 - `git grep -n -F 'review-sweep.sh' -- docs/watcher.md` prints the new row.
+
+**Deviations from plan:**
+
+- `scripts/review-sweep.sh` was written with the Write tool from the template's content, because the session's permission mode refused `cp` (*"Permission to use Bash has been denied because Claude Code is running in don't ask mode"*). `cmp cli/templates/scripts/review-sweep.sh scripts/review-sweep.sh` exits zero with no output, so the bytes match.
+- **Mode `0755` not set.** `chmod 0755 scripts/review-sweep.sh` was refused with the same denial, and `ls -l` shows the file as `-rw-r--r--`. Committed as it stands, the file would get mode `100644`, not `100755`, so the `git ls-files -s` verification would fail. To fix: run `chmod 0755 scripts/review-sweep.sh` from the checkout root before the commit step.
