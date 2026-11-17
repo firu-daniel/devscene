@@ -210,6 +210,9 @@ export function isUntouchedSkeletonText(content: string): boolean {
  */
 export const RESERVED_ANALYZE_TARGETS = ['project', 'conventions', 'layers', 'sweep'] as const;
 
+/** The reserved target that fills {@link REVIEW_SWEEP_PATH}, typed against the list so dropping it is a compile error here. */
+const SWEEP_TARGET: (typeof RESERVED_ANALYZE_TARGETS)[number] = 'sweep';
+
 /**
  * The delimiters of the **setup-pending banner** the generated project file carries under its
  * heading: the record of what the adopter answered `devscene init`'s analyze offer
@@ -711,7 +714,7 @@ export function writeClaudeContext({
     path: join(repoRoot, REVIEW_SWEEP_PATH),
     policy: 'create-if-absent',
     ...(keepSweep ? { forceOverride: 'never' as const } : {}),
-    content: render('review-sweep.md', { analyzeInvocation: `${ANALYZE_COMMAND} sweep` }),
+    content: render('review-sweep.md', { analyzeInvocation: `${ANALYZE_COMMAND} ${SWEEP_TARGET}` }),
     label: 'review sweep skeleton',
   });
 
