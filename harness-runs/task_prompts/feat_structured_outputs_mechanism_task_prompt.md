@@ -99,6 +99,23 @@ Its callers:
 
 The script receives the return as a file, so it can apply the driver's full schema check rather than the session's lighter routing check. Whether it shares `PNL_REAP_JQ` or carries its own extraction is planning's choice. A changed generated or copied script obliges a `chore: Re-render …` follow-up, as earlier branches did.
 
+## Boundary with the GraphScene skeleton
+
+A later piece of work, the GraphScene skeleton, replaces `flow-walker.sh` and the planning driver libraries (`cli/templates/scripts/lib/planning-{driver,node,record}-lib.sh`) with a generic graph engine in Python. That engine owns:
+
+- a pluggable node executor that validates a node's return;
+- a per-node retry policy with two failure classes, `infra` and `agent`;
+- per-node hooks for commits, ledger flips and observations;
+- the harness's flows (the unit loop, review, QA, gates) shipped as declared graphs.
+
+**This branch builds none of that.** It settles the three gaps above and adopts one agent, and nothing more:
+
+- **No new machinery.** Add no engine, executor, retry rule, failure class or general-purpose validator. A return that fails its check is handled by what `agent_return_contract.md` → `## A return that fails the check` and `PNL_REAP_JQ` already do.
+- **Gap 3 maps onto the existing classes.** The `error` rule uses the two failure classes the driver already has (`planning-node-lib.sh`'s header: `infra` for a malformed or missing return, re-dispatched at most three times; `agent` for what the agent itself reports). It adds no third class. An agent's own blocked or cannot-proceed return belongs with `blocker`, the outcome the six adopted schemas already use.
+- **Gap 2 uses standard keywords.** Any dialect extension uses only standard draft-07 keywords, as the closed dialect does today, so a standard JSON Schema validator reads every schema file unchanged.
+- **The screen stays independent of the driver.** `prompt-injection-screen.sh` does not source or call the planning driver libraries, which the skeleton replaces. If it needs the return-block extraction or the schema check `PNL_REAP_JQ` performs, it carries its own copy or uses a library that does not belong to the planning driver. Say which in the plan and why.
+- **Outcomes are routing values.** Give `prompt-injection-reviewer`'s `outcome` one value per route its callers take, so the screen can later become a graph node whose outcome keys are exactly those values.
+
 ## What to read first
 
 - `docs/structured-agent-returns.md`, whole. It is the decision record this branch extends.
@@ -124,4 +141,3 @@ The script receives the return as a file, so it can apply the driver's full sche
 - `bash scripts/typecheck.sh` and `scripts/run-gates.sh` pass.
 - **No measured result is invented.** Anything the change relies on about how Claude Code returns an `Agent` result or a `result` event is either already recorded in `docs/structured-agent-returns.md` → `## 3. Measured, and not yet measured` or added there as unmeasured.
 - No caller is left reading a field its agent no longer returns, at the end of any task.
-
