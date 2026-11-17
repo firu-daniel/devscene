@@ -598,7 +598,9 @@ test('every `<agent>.<field>` citation across plugin/**/*.md names a declared fi
 
 test(`every \`<agent>.<field>\` citation across ${SCRIPTS_DIR}/** names a declared field`, () => {
   assert.ok(scriptFiles.length > 0, `${SCRIPTS_DIR} holds no file`);
-  assert.deepEqual(checkCitations(scriptFiles, SCHEMAS).problems, []);
+  const { seen, problems } = checkCitations(scriptFiles, SCHEMAS);
+  assert.ok(seen > 0, `no citation of a schema-carrying agent was found under ${SCRIPTS_DIR}`);
+  assert.deepEqual(problems, []);
 });
 
 test('the plugin files naming the module equal its ## Who may cite this roster', () => {

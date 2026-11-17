@@ -27,7 +27,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 2** — Assert the script-citation check found a citation _(layer: cli)_
+1. [x] **Finding 2** — Assert the script-citation check found a citation _(layer: cli)_
 2. [ ] **Finding 1** — Require the SAFE block's text to be the SAFE object, not only its parse _(layer: cli)_
 
 ---
