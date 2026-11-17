@@ -34,3 +34,4 @@
 - `git grep -n -E '^16\. ' -- plugin/agents/conventions-reviewer.md` resolves to the new check.
 - `git grep -n -F '## The sweep document' -- plugin/agents/conventions-reviewer.md plugin/agents/conventions-writer.md` resolves in both files. The reviewer cites the heading Task 5 created.
 - `plugin/schemas/conventions-reviewer.return.json` is unchanged from `dev`.
+  - **Deviations from plan:** No local `dev` ref exists in this checkout (`git diff dev` → `fatal: bad revision 'dev'`); the schema check ran as `git diff --quiet origin/dev -- plugin/schemas/conventions-reviewer.return.json` (exit 0). Also renumbered the two `(1)–(15)` ranges that name the document-pass check set as a whole — the `## What to verify` lead line and the corpus pass's disjointness sentence — to `(1)–(16)`.
