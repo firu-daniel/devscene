@@ -11,8 +11,10 @@
 #   1  at least one hit, one line each on stdout, rows in document order.
 #   2  a configuration error; exactly one line on stderr naming the cause, and
 #      nothing on stdout. Bad usage; this script's own `devscene.config.json`
-#      unreadable; `--repo` not a work tree; `<default_branch>` not resolvable;
-#      the document not committed on `<default_branch>`; the document still an
+#      unreadable; `--repo` not a work tree; `<default_branch>` not resolvable
+#      — or `origin/<default_branch>` when `--repo` carries no local
+#      `<default_branch>`, as a run copy does; the document not committed on
+#      `<default_branch>`; the document still an
 #      untouched skeleton (`<!-- devscene:unfilled -->` and
 #      `**What belongs here**` both present); no `## Sweep rows` heading, a
 #      header row other than the exact one, or no data row; a malformed row
@@ -24,8 +26,10 @@
 # `bash <MAIN_REPO>/<scriptsDir>/review-sweep.sh --repo <repo_root>`: the main
 # checkout's copy, aimed at the run's checkout. `defaultBranch` and `stateDir`
 # come from the configuration beside THIS script, never from `--repo`'s, and
-# the rows come from `git show <default_branch>:.claude/review-sweep.md` in
-# `--repo`, never its working tree: a branch cannot weaken its own sweep.
+# the rows come from `git show <default_branch>:.claude/review-sweep.md` — or
+# `origin/<default_branch>` when `--repo` carries no local `<default_branch>`,
+# as a run copy does — in `--repo`, never its working tree: a branch cannot
+# weaken its own sweep.
 #
 # REUSED FROM `lib/harness-run-lib.sh`: `hr_script_root`, `hr_config_load`,
 # `hr_default_branch`, `hr_state_dir`, `hr_repo_root`. The row parser is this
@@ -116,16 +120,21 @@ while [ -n "$state_dir" ] && [ "${state_dir%/}" != "$state_dir" ]; do state_dir=
 [ "$repo_given" -eq 1 ] || repo=$root
 top=$(hr_repo_root "$repo") || rs_fail "--repo $repo is not a git work tree"
 
-git -C "$top" rev-parse --verify --quiet "$default_branch^{commit}" >/dev/null 2>&1 \
-  || rs_fail "default branch $default_branch does not resolve in $top"
+if git -C "$top" rev-parse --verify --quiet "refs/heads/$default_branch^{commit}" >/dev/null 2>&1; then
+  base_ref=$default_branch
+elif git -C "$top" rev-parse --verify --quiet "refs/remotes/origin/$default_branch^{commit}" >/dev/null 2>&1; then
+  base_ref=origin/$default_branch
+else
+  rs_fail "default branch $default_branch does not resolve in $top, as a local branch or as origin/$default_branch"
+fi
 
-doc=$(git -C "$top" show "$default_branch:$RS_SWEEP_PATH" 2>/dev/null) \
-  || rs_fail "$RS_SWEEP_PATH is not committed on $default_branch"
+doc=$(git -C "$top" show "$base_ref:$RS_SWEEP_PATH" 2>/dev/null) \
+  || rs_fail "$RS_SWEEP_PATH is not committed on $base_ref"
 
 case "$doc" in
   *"<!-- devscene:unfilled -->"*)
     case "$doc" in
-      *"**What belongs here**"*) rs_fail "$RS_SWEEP_PATH on $default_branch is still an untouched skeleton" ;;
+      *"**What belongs here**"*) rs_fail "$RS_SWEEP_PATH on $base_ref is still an untouched skeleton" ;;
     esac
     ;;
 esac
@@ -259,7 +268,7 @@ while IFS= read -r line || [ -n "$line" ]; do
 done < <(printf '%s\n' "$doc")
 
 case "$state" in
-  seek) rs_fail "$RS_SWEEP_PATH on $default_branch has no '$RS_HEADING' heading" ;;
+  seek) rs_fail "$RS_SWEEP_PATH on $base_ref has no '$RS_HEADING' heading" ;;
   header) rs_fail "the '$RS_HEADING' heading has no table under it" ;;
   separator) rs_fail "the table under '$RS_HEADING' has no separator row" ;;
 esac
@@ -285,8 +294,8 @@ while [ "$i" -lt "$rows" ]; do
   done < <(printf '%s' "${row_exempts[$i]}")
 
   diff=$(git -C "$top" -c core.quotePath=false diff --no-color --no-ext-diff --unified=0 \
-    --src-prefix=a/ --dst-prefix=b/ "$default_branch...HEAD" -- "${spec[@]}" 2>/dev/null) \
-    || rs_fail "git diff $default_branch...HEAD failed in $top for row '${row_class[$i]}'"
+    --src-prefix=a/ --dst-prefix=b/ "$base_ref...HEAD" -- "${spec[@]}" 2>/dev/null) \
+    || rs_fail "git diff $base_ref...HEAD failed in $top for row '${row_class[$i]}'"
 
   # The added lines' text and, at the same index, their `<path>:<line>`.
   texts=()

@@ -16,7 +16,8 @@
 
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 
@@ -201,6 +202,19 @@ test('a malformed document or row is a configuration error naming its cause', as
       assertConfigError(await sweep(dir), pattern);
     });
   }
+});
+
+test('a run copy carrying only origin/<default_branch> is swept against it', async (t) => {
+  const dir = await sweepFixture(t, { [SWEEP]: sweepDoc([CONSOLE_ROW]) });
+  await write(dir, 'src/a.js', 'console.log(1);\n');
+  await commitAll(dir, 'hit');
+
+  const clone = await mkdtemp(join(tmpdir(), 'review-sweep-clone-'));
+  t.after(() => rm(clone, { recursive: true, force: true }));
+  await runGit(dir, ['clone', '--quiet', dir, clone]);
+  await assert.rejects(runGit(clone, ['rev-parse', '--verify', '--quiet', `refs/heads/${DEFAULT_BRANCH}`]));
+
+  assertHits(await sweep(dir, ['--repo', clone]), ['src/a.js:1: Raw console']);
 });
 
 test('bad usage, a --repo that is not a work tree and an unresolvable default branch are configuration errors', async (t) => {
