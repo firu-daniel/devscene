@@ -81,7 +81,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_structured_outputs_docs
 3. [x] **Task 3** — Give `docs-writer` a schema-validated return and move the docs phase and the docs catalog onto it _(layer: plugin)_ _(points: 20)_
 4. [x] **Task 4** — Give `docs-reviewer` a schema-validated return and move the docs phase and the docs catalog onto it _(layer: plugin)_ _(points: 15)_
 5. [x] **Task 5** — Make the schema suite fail an agent definition with no return schema _(layer: cli)_ _(points: 10)_
-6. [ ] **Task 6** — Record the five agents' outcomes in the decision record, state the every-agent rule, and close the roadmap row _(layer: general)_ _(points: 10)_
+6. [x] **Task 6** — Record the five agents' outcomes in the decision record, state the every-agent rule, and close the roadmap row _(layer: general)_ _(points: 10)_
 
 ## Scope register
 
