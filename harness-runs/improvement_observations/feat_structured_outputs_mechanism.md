@@ -15,4 +15,16 @@
 - **evidence:** seq node agent attempt result duration cost: #1 plan_writer task-plan-writer 1/3 returned 805s 5.841977600000002
 - **cost this run:** 1 node session(s)
 
+# Script-driven planning — 2026-11-17T09:43:55Z
+
+## A planning node session met permission denials
+- **category:** tooling-gap
+- **evidence:** #3 plan_review (task-plan-reviewer), round 0: 3 denial(s)
+- **cost this run:** 3 refused tool call(s)
+
+## Script-driven planning node sessions (pd_drive returned 0)
+- **category:** flow-efficiency
+- **evidence:** seq node agent attempt result duration cost: #2 architecture_review architecture-reviewer 1/3 PASS 79s 1.2907605999999998; #3 plan_review task-plan-reviewer 1/3 PASS 257s 3.259801000000001
+- **cost this run:** 2 node session(s)
+
 # Task run (Phase D)
