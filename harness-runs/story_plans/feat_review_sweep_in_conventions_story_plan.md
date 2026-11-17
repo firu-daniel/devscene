@@ -54,7 +54,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_review_sweep_in_convent
 1. [x] **Task 1** — Write the `.claude/review-sweep.md` skeleton from `init` and reserve the `sweep` analyze target _(layer: cli)_ _(points: 20)_
 2. [x] **Task 2** — Ship `review-sweep.sh`, which applies the sweep rows to a branch's added lines, with its test suite _(layer: cli)_ _(points: 20)_
 3. [x] **Task 3** — Add `review-sweep.sh` to the outer-loop script table as agent-invocable _(layer: cli)_ _(points: 15)_
-4. [ ] **Task 4** — Add the `review-sweep` doctor check for a missing or unfilled sweep document _(layer: cli)_ _(points: 15)_
+4. [x] **Task 4** — Add the `review-sweep` doctor check for a missing or unfilled sweep document _(layer: cli)_ _(points: 15)_
 5. [ ] **Task 5** — Teach `conventions-writer` the `sweep` target and the sweep row format _(layer: plugin)_ _(points: 15)_
 6. [ ] **Task 6** — Teach `conventions-reviewer` the `sweep` target and the regex-grounding check _(layer: plugin)_ _(points: 15)_
 7. [ ] **Task 7** — Run the `sweep` target last in `/devscene:analyze` _(layer: plugin)_ _(points: 20)_

@@ -4302,6 +4302,52 @@ test('(e) a fence that does not name the opt-out script passes with the script d
   assert.doesNotMatch(stderr, warnLine('task-offer-rules'));
 });
 
+/** The review-sweep document, spelled as an adopter's tree carries it for the reason `TASK_OFFER_FILE` is. */
+const REVIEW_SWEEP_FILE = '.claude/review-sweep.md';
+
+/** The review-sweep check: absent and untouched both warn with their own remedy, and neither fails. */
+test('the review-sweep check warns on a missing or untouched document and passes a filled one', async (t) => {
+  await t.test('an absent document warns, names init, and exits 0', async (subtest) => {
+    const dir = await wiredFixture(subtest);
+    await rm(join(dir, REVIEW_SWEEP_FILE));
+
+    const { status, stdout, stderr } = await runCli(dir, ['doctor']);
+
+    assert.equal(status, 0, `doctor exited ${status} on a condition that only warns\n${stdout}\n${stderr}`);
+    const line = detailLine(stderr, warnLine('review-sweep'));
+    assert.ok(line.includes(REVIEW_SWEEP_FILE), `the warning does not name the missing document:\n${line}`);
+    assert.match(line, /npx devscene init/);
+  });
+
+  await t.test('an untouched skeleton warns, names the sweep target, and exits 0', async (subtest) => {
+    const dir = await wiredFixture(subtest);
+    const content = readFileSync(join(dir, REVIEW_SWEEP_FILE), 'utf8');
+    assert.ok(
+      content.includes(UNFILLED_MARKER) && content.includes(GUIDANCE_MARKER),
+      `init did not write ${REVIEW_SWEEP_FILE} as an untouched skeleton, so this case proves nothing`,
+    );
+
+    const { status, stdout, stderr } = await runCli(dir, ['doctor']);
+
+    assert.equal(status, 0, `doctor exited ${status} on a condition that only warns\n${stdout}\n${stderr}`);
+    const line = detailLine(stderr, warnLine('review-sweep'));
+    assert.ok(line.includes(REVIEW_SWEEP_FILE), `the warning does not name the document:\n${line}`);
+    assert.ok(line.includes(`${ANALYZE_COMMAND} sweep`), `the warning does not name the sweep target:\n${line}`);
+    assert.match(line, /default branch/);
+  });
+
+  await t.test('a document filled by hand passes', async (subtest) => {
+    const dir = await wiredFixture(subtest);
+    writeConventionsByHand(dir, REVIEW_SWEEP_FILE);
+
+    const { status, stdout, stderr } = await runCli(dir, ['doctor']);
+
+    assert.equal(status, 0, `doctor exited ${status}\n${stdout}\n${stderr}`);
+    assert.match(stdout, passLine('review-sweep'));
+    assert.doesNotMatch(stderr, warnLine('review-sweep'));
+  });
+});
+
 /**
  * The layer-profile contract literals, spelled here for the reason the section above spells its
  * own: a fixture edited through the constant the check reads would assert only that one module
@@ -5592,7 +5638,7 @@ const PRE_BRANCH_CHECK_IDS = Object.freeze([
   'git', 'jj-repository', 'default-branch', 'remote', 'base-freshness', 'pre-push-guard', 'protected-set', 'jq',
   'worktrees', 'daemon-backend', 'run-watcher', 'notifications', 'repo-registry', 'machine-footprint', 'daemon-path',
   'remote-execution', 'remote-github', 'forge', 'branch-protection', 'config', 'command-wrappers', 'command-permissions', 'command-resolves',
-  'state-dir', 'artifact-tree', 'setup-analysis', 'task-offer-rules', 'layer-profile', 'layer-drift', 'tree-guards',
+  'state-dir', 'artifact-tree', 'setup-analysis', 'task-offer-rules', 'review-sweep', 'layer-profile', 'layer-drift', 'tree-guards',
   'ignore-rules', 'plugin-wiring', 'permission-profile', 'profile-paths', 'profile-tracked', 'profile-browser-deny',
   'profile-deny-floor', 'profile-main-anchor', 'profile-sandbox', 'profile-write-protection', 'sandbox-prerequisites', 'keep-awake', 'plugin-permissions',
   'browser-wiring',
