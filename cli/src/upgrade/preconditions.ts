@@ -15,7 +15,7 @@ import { CONFIG_FILENAME, type HarnessConfig } from '../config/model.js';
 import { HarnessError } from '../core/errors.js';
 import { gitCommonDir, mainWorktreeRoot, probeRepoRoot } from '../core/git.js';
 import { nameList } from '../core/nameList.js';
-import { readActiveRuns } from '../core/runRegistry.js';
+import { pidIsAlive, pidNumber, readRegistryRecords, RUNNING_STATUS } from '../core/runRegistry.js';
 import { runRegistryPath } from '../generators/writeProtection.js';
 
 /** The repository an upgrade may proceed in. */
@@ -35,6 +35,12 @@ export interface UpgradeTargetRequest {
   /** Refuses by throwing; what it throws reaches the caller unchanged. */
   readonly assertRepositoryAllowed: (repoRoot: string) => unknown;
 }
+
+/** Whether a run may be executing, as the refusal has to read it. */
+export type ActiveRuns =
+  | { state: 'none' }
+  | { state: 'active'; branches: readonly string[] }
+  | { state: 'unreadable'; detail: string };
 
 const REFUSAL_PREFIX = 'refusing to upgrade';
 
@@ -81,6 +87,34 @@ function configRefusal(root: string, loaded: LoadedConfig): HarnessError {
   // An absent file's problem already names `init` as its remedy.
   const remedy = configExists(root) ? `; correct ${CONFIG_FILENAME}, then run --upgrade again` : '';
   return new HarnessError(`${REFUSAL_PREFIX}: ${problems.join('; ')}${remedy}`);
+}
+
+/**
+ * The branches whose runs may be executing.
+ *
+ * A malformed record is `unreadable`, because the refusal cannot prove it is not a run. A record is
+ * active when its `status` is `running` and its pid is alive or holds no number yet: at launch the
+ * watcher writes `running`, clears any earlier pid to `""`, and writes the new pid after it spawns
+ * the run.
+ */
+export function readActiveRuns(registryPath: string): ActiveRuns {
+  const read = readRegistryRecords(registryPath);
+  if (read.state === 'unreadable') return read;
+  if (read.malformedKeys.length > 0) {
+    return {
+      state: 'unreadable',
+      detail: `${registryPath} holds run records that are not objects: ${nameList(read.malformedKeys)}`,
+    };
+  }
+
+  const branches = read.records
+    .filter(({ record }) => {
+      if (record['status'] !== RUNNING_STATUS) return false;
+      const pid = record['pid'];
+      return pidNumber(pid) === undefined || pidIsAlive(pid);
+    })
+    .map(({ key }) => key);
+  return branches.length > 0 ? { state: 'active', branches } : { state: 'none' };
 }
 
 /** Why the run registry stops an upgrade, or `undefined` when it does not. */

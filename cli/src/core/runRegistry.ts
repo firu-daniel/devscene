@@ -4,8 +4,8 @@
  *
  * **The rule this module exists to enforce: the registry file's parsing and record walk live here
  * once, and each caller keeps its own grading.** {@link readRegistryRecords} says what the file holds
- * and grades nothing. {@link readActiveRuns} is the grading a refusal needs, which treats what it
- * cannot prove idle as a reason to stop; a report is free to grade the same records differently.
+ * and grades nothing; {@link pidNumber} and {@link pidIsAlive} read one record's pid. `doctor`'s report
+ * and the `--upgrade` refusal grade the same records differently, each in its own module.
  *
  * The caller supplies the path, so this module knows neither the configuration nor where the state
  * directory is. Nothing here writes. The registry's shape, field set and status vocabulary are the
@@ -14,7 +14,6 @@
  */
 
 import { isJsonObject, readJsonFile, type JsonObject, type JsonValue } from './json.js';
-import { nameList } from './nameList.js';
 
 /** The record status of a run the watcher considers in flight. */
 export const RUNNING_STATUS = 'running';
@@ -30,14 +29,8 @@ export type RegistryRecords =
   | { state: 'read'; records: readonly { key: string; record: JsonObject }[]; malformedKeys: readonly string[] }
   | { state: 'unreadable'; detail: string };
 
-/** Whether a run may be executing, as a refusal has to read it. */
-export type ActiveRuns =
-  | { state: 'none' }
-  | { state: 'active'; branches: readonly string[] }
-  | { state: 'unreadable'; detail: string };
-
 /** The number a pid field carries, stored as a number or as the watcher's text; otherwise `undefined`. */
-function pidNumber(pid: JsonValue | undefined): number | undefined {
+export function pidNumber(pid: JsonValue | undefined): number | undefined {
   if (typeof pid === 'number') return pid;
   return typeof pid === 'string' && PID_TEXT.test(pid) ? Number(pid) : undefined;
 }
@@ -89,32 +82,4 @@ export function readRegistryRecords(registryPath: string): RegistryRecords {
     else malformedKeys.push(key);
   }
   return { state: 'read', records, malformedKeys };
-}
-
-/**
- * The branches whose runs may be executing.
- *
- * A malformed record is `unreadable`, because a refusal cannot prove it is not a run. A record is
- * active when its `status` is `running` and its pid is alive or holds no number yet: at launch the
- * watcher writes `running`, clears any earlier pid to `""`, and writes the new pid after it spawns
- * the run.
- */
-export function readActiveRuns(registryPath: string): ActiveRuns {
-  const read = readRegistryRecords(registryPath);
-  if (read.state === 'unreadable') return read;
-  if (read.malformedKeys.length > 0) {
-    return {
-      state: 'unreadable',
-      detail: `${registryPath} holds run records that are not objects: ${nameList(read.malformedKeys)}`,
-    };
-  }
-
-  const branches = read.records
-    .filter(({ record }) => {
-      if (record['status'] !== RUNNING_STATUS) return false;
-      const pid = record['pid'];
-      return pidNumber(pid) === undefined || pidIsAlive(pid);
-    })
-    .map(({ key }) => key);
-  return branches.length > 0 ? { state: 'active', branches } : { state: 'none' };
 }

@@ -1,6 +1,7 @@
 /**
  * The two read-only facts `--upgrade` and `doctor` share: `cli/src/core/runRegistry.ts` and
- * `cli/src/machine/plugins.ts` → `installedPluginVersion`.
+ * `cli/src/machine/plugins.ts` → `installedPluginVersion`; and the `--upgrade` refusal's grading of
+ * the first, `cli/src/upgrade/preconditions.ts` → `readActiveRuns`.
  *
  * **The rule this suite enforces: the registry reader reports what the file holds, the active-run
  * reading stops on whatever it cannot prove idle, and the version reader answers `undefined` for
@@ -17,9 +18,10 @@ import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 
 import { PLUGIN_NAME } from '../dist/core/pluginIdentity.js';
-import { pidIsAlive, readActiveRuns, readRegistryRecords, RUNNING_STATUS } from '../dist/core/runRegistry.js';
+import { pidIsAlive, readRegistryRecords, RUNNING_STATUS } from '../dist/core/runRegistry.js';
 import { MARKETPLACE_NAME, PLUGIN_KEY } from '../dist/generators/projectSettings.js';
 import { installedPluginVersion } from '../dist/machine/plugins.js';
+import { readActiveRuns } from '../dist/upgrade/preconditions.js';
 
 const DEAD_PID = spawnSync(process.execPath, ['-e', '']).pid;
 
