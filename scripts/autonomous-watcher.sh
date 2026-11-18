@@ -3833,7 +3833,7 @@ planning_driver_ready() {
   fi
   for lib in $PLANNING_DRIVER_LIBS; do
     if [ ! -r "$SCRIPT_DIR/lib/$lib.sh" ]; then
-      PLANNING_DRIVER_OFF_REASON="'$SCRIPT_DIR/lib/$lib.sh' is not readable (\`devscene init --force\` rewrites it)"
+      PLANNING_DRIVER_OFF_REASON="'$SCRIPT_DIR/lib/$lib.sh' is not readable (\`devscene init --upgrade\` rewrites it)"
       return 1
     fi
   done
@@ -4190,7 +4190,7 @@ record_run_analytics() {
     return 0
   fi
   if [ ! -x "$RUN_ANALYTICS" ]; then
-    log "run analytics: '$RUN_ANALYTICS' is not executable — '$branch' not recorded (\`devscene init --force\` rewrites it)"
+    log "run analytics: '$RUN_ANALYTICS' is not executable — '$branch' not recorded (\`devscene init --upgrade\` rewrites it)"
     return 0
   fi
   if ! state_rel="$(run_state_dir "$worktree")"; then
