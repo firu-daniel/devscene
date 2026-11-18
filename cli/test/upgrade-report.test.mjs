@@ -114,7 +114,7 @@ test('removed entries get one warning, naming the local file and only the lists 
   assert.equal(real.length, 1);
   assert.match(real[0], /^The generator does not produce 2 profile entries, so they were removed and were not moved automatically: Bash\(old\), old\.example\./);
   assert.ok(real[0].includes(LOCAL_FILE));
-  assert.ok(real[0].endsWith('followed by another devscene init --upgrade.'));
+  assert.ok(real[0].endsWith('followed by another npx devscene init --upgrade.'));
   for (const list of ['permissions.allow', 'permissions.ask', 'permissions.deny', 'sandbox.filesystem.denyWrite']) {
     assert.ok(real[0].includes(list), list);
   }
@@ -218,7 +218,7 @@ test('no restart line when the watcher and lib rows are untouched', () => {
 test('a local file git does not ignore is named, in either mode, and only then', () => {
   for (const dryRun of [false, true]) {
     assert.deepEqual(report({ localFileIgnored: false, dryRun }).warnings, [
-      `${LOCAL_FILE} is not ignored by git: a plain devscene init merges the ignore rule.`,
+      `${LOCAL_FILE} is not ignored by git: a plain npx devscene init merges the ignore rule.`,
     ]);
     assert.deepEqual(report({ localFileIgnored: true, dryRun }).warnings, []);
     assert.deepEqual(report({ localFileIgnored: undefined, dryRun }).warnings, []);
@@ -228,7 +228,7 @@ test('a local file git does not ignore is named, in either mode, and only then',
 test('a differing plugin version names both versions, in either mode', () => {
   for (const dryRun of [false, true]) {
     assert.deepEqual(report({ pluginVersion: '1.2.0', dryRun }).warnings, [
-      'The installed plugin is version 1.2.0 and this CLI is version 1.2.3: run devscene init --upgrade from the CLI matching the plugin.',
+      'The installed plugin is version 1.2.0 and this CLI is version 1.2.3: run npx devscene init --upgrade from the CLI matching the plugin.',
     ]);
   }
 });

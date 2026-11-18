@@ -42,7 +42,8 @@ export interface UpgradeReport {
   readonly result: string;
 }
 
-const UPGRADE_COMMAND = 'devscene init --upgrade';
+const CLI = 'npx devscene';
+const UPGRADE_COMMAND = `${CLI} init --upgrade`;
 
 const CHANGED_EFFECTS: ReadonlySet<WriteEffect> = new Set<WriteEffect>(['created', 'backed-up-and-replaced']);
 
@@ -106,7 +107,7 @@ export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
   }
 
   if (localFileIgnored === false) {
-    warnings.push(`${PROFILE_LOCAL_PATH} is not ignored by git: a plain devscene init merges the ignore rule.`);
+    warnings.push(`${PROFILE_LOCAL_PATH} is not ignored by git: a plain ${CLI} init merges the ignore rule.`);
   }
   if (pluginVersion !== undefined && pluginVersion !== cliVersion) {
     warnings.push(
