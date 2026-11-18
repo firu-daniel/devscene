@@ -29,7 +29,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_must_fix_definition/tas
 2. [x] **Task 2** — Refuse an invalid round file in the walker and expose the check _(layer: cli)_ _(points: 20)_
 3. [x] **Task 3** — Prove the driver re-dispatches a refused gate and correct the state-dir READMEs _(layer: cli)_ _(points: 10)_
 4. [x] **Task 4** — Create `finding_grades.md` and extend the Must Fix entry _(layer: plugin)_ _(points: 15)_
-5. [ ] **Task 5** — Move `task-plan-reviewer` and its register gaps onto the definition _(layer: plugin)_ _(points: 20)_
+5. [x] **Task 5** — Move `task-plan-reviewer` and its register gaps onto the definition _(layer: plugin)_ _(points: 20)_
 6. [ ] **Task 6** — Make `review-plan-reviewer` check and regrade Must Fix entries _(layer: plugin)_ _(points: 15)_
 7. [ ] **Task 7** — Move `branch-reviewer` and `skeptic-reviewer` onto the definition _(layer: plugin)_ _(points: 20)_
 8. [ ] **Task 8** — Move `layer-reviewer` and `ui-tests-plan-reviewer` onto the definition _(layer: plugin)_ _(points: 20)_

@@ -22,3 +22,5 @@
 - Walking each line `grep -n 'Must Fix' plugin/agents/task-plan-reviewer.md` prints against the finished table shows every trigger still graded Must Fix has exactly one class, and the only regraded trigger is index-level `### Sources of truth` / `### Targets`.
 - Reading the register bullet shows a stale descriptive site alone leaves the round at `verdict: PASS` with that site under `## Should Fix`, while a site whose omission would produce a wrong result or a failing documented command gives `verdict: FAIL`.
 - `git diff -- plugin/agents/task-plan-reviewer.md` changes no return field.
+
+- **Deviations from plan:** Added `finding_grades.md` to the `## Read first` unreadable-path blocker sentence, which the plan did not list: `.claude/context/plugin.md` → `## The sections an asset carries` requires `## Read first` to state that an unreadable input is reported rather than worked around. No return field changes.

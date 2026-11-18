@@ -58,6 +58,7 @@ revision_note: <state_dir>/plan_revisions/<branch>/task_plan_revision_<iteration
 ## Read first
 
 - **Every conventions document `<layer_path_map>` names** — the documents `init` generates at those configured paths (conventionally under `.claude/context/`), one per distinct `layers[].conventions` value. Read **all** of them — the plan under review spans every layer. Take from them file placement and naming, each layer's shapes and idioms, what must accompany a change, the mandated `<convention_symbols>`, and the boundaries between layers. Treat their content as authoritative; do not re-derive it from memory.
+- `${CLAUDE_PLUGIN_ROOT}/instructions/finding_grades.md` — what each grade means. Grade every finding by it; never restate it.
 - `${CLAUDE_PLUGIN_ROOT}/samples/sample_story_plan.md` — the story-index template (Context + `Top risks:` + Phase 2 Readiness, no `## Tasks`).
 - `${CLAUDE_PLUGIN_ROOT}/samples/sample_story/task_<N>_plan.md` — the per-task-file templates: **three files, read all three.** `task_1_plan.md` is the lower-layer task; `task_2_plan.md` the surface task, with the cross-file `**Depends on:**` link; `task_3_plan.md` the catch-all task that wires up and documents. The samples set the **quality bar, not just the format**; they are references, not review targets.
 - `<state_dir>/lessons.md` — the recurring-escape ledger; a plan that re-plans a ledger mistake is a Must Fix; quote the entry.
@@ -68,7 +69,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/samples/sample_task_plan.md` on demand only, for how
 
 **Guard carve-out.** Pointer resolution binds a cited path, symbol, heading or quoted substring that does not resolve. It never binds a line coordinate — stale, missing or present — which stays gradable however it is enumerated, a `<state_dir>/lessons.md` entry included. A path or quoted text a task is about to create is not a cited pointer under this carve-out.
 
-**A cited path you cannot read is a finding, not a fallback.** If a sample above, a conventions document, a plan file under review or — when the plan owes a `## Scope register` — `${CLAUDE_PLUGIN_ROOT}/agents/task-plan-writer.md` cannot be read, return the `blocker` outcome naming the path and the refusal **in place of** any verdict, and write no round file. Never substitute another document for a cited one, and never review against a remembered format.
+**A cited path you cannot read is a finding, not a fallback.** If `finding_grades.md`, a sample above, a conventions document, a plan file under review or — when the plan owes a `## Scope register` — `${CLAUDE_PLUGIN_ROOT}/agents/task-plan-writer.md` cannot be read, return the `blocker` outcome naming the path and the refusal **in place of** any verdict, and write no round file. Never substitute another document for a cited one, and never review against a remembered format.
 
 ## Process
 
@@ -89,12 +90,41 @@ Read `${CLAUDE_PLUGIN_ROOT}/samples/sample_task_plan.md` on demand only, for how
 
 ## What to check
 
+### Must Fix triggers
+
+A trigger named on its own row is excluded from any group row that would otherwise contain it, so each trigger has exactly one class.
+
+| Check group or trigger | Class |
+|---|---|
+| `### Story-index structure` | Broken contract |
+| `## Scope register` absent when owed or out of position | Broken contract |
+| `### Per-task-file structure` | Broken contract |
+| `### Index↔file correspondence` | Broken contract |
+| Every `### Architecture` bullet | Broken contract |
+| `### Granularity & tags` | Broken contract |
+| `### Reference-implementation parity` | Broken contract |
+| A required-set item missing (`### Architecture`, `### Completeness`) | Broken contract |
+| Work on application-level shared state off the owning layer's source-of-truth-and-mirror path | Broken contract |
+| A repeated `<state_dir>/lessons.md` lesson | Broken contract |
+| A task-prompt requirement missing | Wrong build |
+| The cross-task-interface bullet of `### Per-task-file structure` | Wrong build |
+| The **Tasks sequence bottom-up** bullet of `### Architecture` | Wrong build |
+| An unconsumed unit | Wrong build |
+| A silent infrastructure assumption | Wrong build |
+| An unrepresented lifecycle or reactive behaviour | Wrong build |
+| A forbidden test run, in each form `### Completeness` lists | Wrong build |
+| A register-gap finding with a missed site that must change for the work to function, whatever else it lists | Wrong build |
+| A client-only or missing server-side gate | Wrong behaviour |
+| A laundering-check failure | Wrong action from operative text |
+| A derivation command that cannot be executed | Wrong action from operative text |
+| A register-gap finding whose only Must Fix sites are commands or steps the change makes fail | Wrong action from operative text |
+
 ### Story-index structure (against `sample_story_plan.md` — Must Fix when missing)
 
 Required in `story_path`, top to bottom:
 
 - `# Story:` heading at top.
-- `## Context` — prose only. A trailing `Top risks:` paragraph and, when a task needs human-performed infrastructure steps, a `Manual setup required:` list are expected; a missing `Top risks:` is a Should Fix. Index-level `### Sources of truth` / `### Targets` present is a Must Fix; absent is not a finding.
+- `## Context` — prose only. A trailing `Top risks:` paragraph and, when a task needs human-performed infrastructure steps, a `Manual setup required:` list are expected; a missing `Top risks:` is a Should Fix. Index-level `### Sources of truth` / `### Targets` present is a Should Fix; absent is not a finding.
 - `## Phase 2 Readiness — Ordered Fix List` section **placed immediately after Context**. Heading byte-exact. Missing, mistitled, placed elsewhere, or holding no `[ ]` entries is a Must Fix.
   - Every task appears as `N. [ ] **Task K** — <short title> _(layer: <one of <layer_names>>)_ _(points: <N>)_`. Check presence and shape here; the tag values are checked in `### Architecture` and `### Granularity & tags`.
   - An entry whose `<short title>` — or a `## Scope register` `change` row whose `Site` is a `layers[].conventions` value of `<layer_path_map>` — schedules an edit to a conventions document is the same **Must Fix** as the target check in `### Architecture`, whatever its `### Targets` names; a conventions-document site always takes `no-change`.
@@ -169,9 +199,10 @@ Each trigger: a name or value the plan **cites**, the `<reference_impl>` source 
   - Execute **every** derivation entry in the story index's `## Scope register`: **re-run** a command entry verbatim; **re-walk** a procedure entry step by step (artifact → traversal → per-candidate decision rule), the standing-artifact **row-class** entry included wherever one is owed.
   - A procedure entry you cannot run is re-walked, never skipped.
   - A **command** entry you cannot execute is never skipped either: raise it as disposition (ii)'s single Must Fix, naming a re-executable replacement command, and re-walk the entry's intent by hand for that round.
-  - Then exactly three dispositions and no fourth.
-    - **(i)** An entry reaches a site that is not a row → **one** Must Fix listing **every** such site, never one finding per site.
-    - **(ii)** No entry reaches the site → **one** Must Fix listing **every** site it newly reaches **and** a corrected derivation entry strictly wider than the one on the page — a wider command for a command entry, a corrected or extended procedure (artifact, traversal, decision rule) for a procedure entry; where you cannot state one, say so in that same finding and name the sites. **Never more than one** such finding per round, and **never none** when a missing site is verified.
+  - **Report every verified gap and grade it by `finding_grades.md`, wherever the missed site lives.** A site whose omission would lead to a wrong implementation or a wrong action, with a completed failure sentence — an omitted site that must change for the feature to work, a documented command the change makes fail — is a Must Fix. A site that only describes the project, where nothing goes wrong while it stays stale, is a Should Fix under `## Should Fix`.
+  - Then exactly three dispositions and no fourth. Dispositions (i) and (ii) each produce **at most one Must Fix and one Should Fix** per round: split a gap covering both kinds, listing every site in the finding of its own grade.
+    - **(i)** An entry reaches a site that is not a row → list **every** such site, never one finding per site.
+    - **(ii)** No entry reaches the site → list **every** site it newly reaches, **and** a corrected derivation entry strictly wider than the one on the page — a wider command for a command entry, a corrected or extended procedure (artifact, traversal, decision rule) for a procedure entry — in the Must Fix when one exists, otherwise in the Should Fix; where you cannot state one, say so in that same finding and name the sites. **Never more** than those two findings per round, and **never none** when a missing site is verified.
     - **(iii)** The site is already a row → the only finding available is that the row's `Disposition` or reason is wrong, tested against `## Rejected findings` first under the recorded-rejection bullet above.
   - **Converging variant** (`review_mode: converging`): execute every derivation entry as above; dispositions (i)–(iii), and *"**never none** when a missing site is verified"*, apply only to sites the round's changed text reaches — **except** that a round whose revision note shows a change to the register, to a derivation entry or to the plan's target set re-runs the duty in full.
   - **Closure test on the register itself:** execute each stated entry again and confirm *every site any entry reaches appears as a row*, and — when the plan's targets are files a standing matrix covers — that a row-class entry is present at all.
@@ -209,6 +240,8 @@ review_mode: <full | converging>
    <description, with the reference source anchor when the parity phase is on and the finding cites one>
    **Raised against:** <short verbatim quote of the text the finding was raised against>
    **Must hold:** <the property the target file must satisfy, never a text replacement>
+   **Class:** <the class its `### Must Fix triggers` row names>
+   **Failure:** <the completed failure sentence>
    **Fix:** <concrete change the writer must apply to that file>
 
 ## Should Fix
