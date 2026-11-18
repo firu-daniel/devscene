@@ -23,3 +23,9 @@
 
 - `cli/test/upgrade-preconditions.test.mjs` passes.
 - A directory outside any repository is still not a repository after the call.
+
+**Deviations from plan:**
+
+- The plan asks for an active run to be found with `stateDir` absent, but `cli/src/config/check.ts` → `TOP_LEVEL_REQUIRED` and `schemas/devscene.config.schema.json` make `stateDir` required, so such a configuration carries an error the configuration refusal would stop first. Implemented: the registry is read before shape errors refuse, whenever a configuration parsed and its `stateDir` is absent or a string. An active run is reported first; with none, or under `dryRun`, the configuration is still refused. No configuration with an error is ever accepted.
+- The worktree and common-directory checks run before the configuration checks, unlike the plan's listing order, so a linked worktree with no configuration is sent to the main checkout rather than told to run `init` there.
+- Added a refusal the plan does not list: `mainWorktreeRoot` answering `undefined` refuses, because the main checkout cannot be shown. The suite covers it and the `gitCommonDir` refusal through a failing `git` on `PATH`.
