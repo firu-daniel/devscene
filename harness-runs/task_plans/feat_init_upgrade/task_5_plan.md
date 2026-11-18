@@ -24,3 +24,8 @@
 - `cli/test/profile-upgrade.test.mjs` passes.
 - `planProfileUpgrade` called twice over an unchanged repository produces byte-identical content.
 - The module makes no filesystem write of its own.
+
+**Deviations from plan:**
+
+- `profileDrift` resolves a `pluginRootEntryTarget` answer before `isUnderDirectory`. The plan passes it directly, but the target is the entry's raw text, so `Read(/<root>/../../etc/**)` would count as under `<root>` and a profile could vouch for a path outside it.
+- A non-list value at a list's path counts as one malformed element, and a blank string as no usable string, so neither is skipped. The plan states this rule for elements of a list only.
