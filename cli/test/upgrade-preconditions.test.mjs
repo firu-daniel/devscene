@@ -228,6 +228,18 @@ test('an active run refuses, naming only the active branch and the remedy', asyn
   await assertRefused(dir, () => resolveIn(dir), [/runs are active on feat_live \(/, /wait for them to finish or stop them/]);
 });
 
+test('a running remote record does not refuse, because its run executes in a remote job', async (t) => {
+  const registry = JSON.stringify({ runs: { feat_remote: { status: 'running', execution: 'github-actions', pid: '' } } });
+  const dir = await repository(t, { [CONFIG_FILE]: CONFIG, [registryFile(STATE_DIR)]: registry });
+  assert.deepEqual(resolveIn(dir).notes, []);
+});
+
+test('a local run whose pid is not yet written still refuses', async (t) => {
+  const registry = JSON.stringify({ runs: { feat_starting: { status: 'running', pid: '' } } });
+  const dir = await repository(t, { [CONFIG_FILE]: CONFIG, [registryFile(STATE_DIR)]: registry });
+  await assertRefused(dir, () => resolveIn(dir), [/feat_starting/]);
+});
+
 test('an active run is found at the default path when stateDir is absent', async (t) => {
   const dir = await repository(t, {
     [CONFIG_FILE]: WITHOUT_STATE_DIR,

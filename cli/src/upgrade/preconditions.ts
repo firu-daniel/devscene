@@ -14,7 +14,7 @@ import { join } from 'node:path';
 
 import { hasErrors, formatProblem } from '../config/check.js';
 import { configExists, loadConfig, type LoadedConfig } from '../config/io.js';
-import { CONFIG_FILENAME, type HarnessConfig } from '../config/model.js';
+import { CONFIG_FILENAME, type HarnessConfig, type HarnessExecutionTarget } from '../config/model.js';
 import { HarnessError } from '../core/errors.js';
 import { gitCommonDir, mainWorktreeRoot, probeRepoRoot } from '../core/git.js';
 import { nameList } from '../core/nameList.js';
@@ -46,6 +46,9 @@ export type ActiveRuns =
   | { state: 'unreadable'; detail: string };
 
 const REFUSAL_PREFIX = 'refusing to upgrade';
+
+/** The `execution` value of a run record whose run executes in a remote job, not on this machine. */
+const REMOTE_EXECUTION: HarnessExecutionTarget = 'github-actions';
 
 /** Where a clone that borrows its objects names the repository it borrows from. */
 const ALTERNATES_SEGMENTS: readonly string[] = Object.freeze(['objects', 'info', 'alternates']);
@@ -111,7 +114,8 @@ function configRefusal(root: string, loaded: LoadedConfig): HarnessError {
  * A malformed record is `unreadable`, because the refusal cannot prove it is not a run. A record is
  * active when its `status` is `running` and its pid is alive or holds no number yet: at launch the
  * watcher writes `running`, clears any earlier pid to `""`, and writes the new pid after it spawns
- * the run.
+ * the run. A record whose `execution` is `github-actions` is not active here: its run executes in a
+ * remote job, has no local pid, and uses none of the files an upgrade replaces.
  */
 export function readActiveRuns(registryPath: string): ActiveRuns {
   const read = readRegistryRecords(registryPath);
@@ -125,7 +129,7 @@ export function readActiveRuns(registryPath: string): ActiveRuns {
 
   const branches = read.records
     .filter(({ record }) => {
-      if (record['status'] !== RUNNING_STATUS) return false;
+      if (record['status'] !== RUNNING_STATUS || record['execution'] === REMOTE_EXECUTION) return false;
       const pid = record['pid'];
       return pidNumber(pid) === undefined || pidIsAlive(pid);
     })

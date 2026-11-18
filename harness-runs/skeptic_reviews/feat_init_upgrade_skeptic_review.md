@@ -28,7 +28,7 @@ Under `## Wires: dispatch in, return out`, no dispatch argument or return field 
 
 1. [x] **Finding 4** — Send the carry-forward warning's remedy to the local additions file _(layer: cli)_
 2. [x] **Finding 3** — Print a restart command that works on an `npx` adoption _(layer: cli, general)_
-3. [ ] **Finding 1** — Exclude remote run records from the upgrade's active-run refusal _(layer: cli, general)_
+3. [x] **Finding 1** — Exclude remote run records from the upgrade's active-run refusal _(layer: cli, general)_
 4. [ ] **Finding 2** — Report and grade profile settings outside the entry lists _(layer: cli, general)_
 
 ---

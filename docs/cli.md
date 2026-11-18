@@ -197,7 +197,7 @@ npx devscene@<version> init --upgrade --reference-toolchain-path <absolute path>
 - the checkout is a run copy the main checkout's run registry records, for the same reason, and the refusal names that checkout;
 - git does not report the main checkout or the common directory;
 - `devscene.config.json` is absent or carries an error;
-- the run registry records a `running` run whose pid is alive or not yet written, or cannot be read, because a replacement cannot then show that nothing is executing;
+- the run registry records a local `running` run whose pid is alive or not yet written, or cannot be read, because a replacement cannot then show that nothing is executing (a record with `execution: github-actions` runs in a remote job and does not count);
 - the local additions file is refused (§6).
 
 `--dry-run` reports the two run-registry states as what a real run would refuse and carries on with its preview; every other refusal still fires.
