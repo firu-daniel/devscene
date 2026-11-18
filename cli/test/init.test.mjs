@@ -8432,7 +8432,7 @@ const NOT_CARRIED_WARNING_DRY = 'would not be carried into the regenerated profi
 const CARRIED_UNVERIFIED = 'unverified:';
 const GRADED_CARRY = "naming this machine's plugin roots";
 const UPGRADE_CAUSE = 'a plugin upgrade';
-const BY_HAND_REMEDY = 'back by hand';
+const LOCAL_FILE_REMEDY = 'to .claude/settings.autonomous.local.json, then run';
 
 /** What the reporter leads a warning line with (`core/report.ts`) — one block per warning, body and all. */
 const WARNING_MARK = '! ';
@@ -8606,7 +8606,10 @@ test('init --force carries the profile\'s resolved-plugin-root entries forward, 
       !reported.includes('doctor'),
       `the run sends the adopter to a report that never names this entry:\n${reported}`,
     );
-    assert.ok(reported.includes('add it back by hand'), `the run names no remedy at all:\n${reported}`);
+    assert.ok(
+      reported.includes('add it to .claude/settings.autonomous.local.json'),
+      `the run names no remedy at all:\n${reported}`,
+    );
 
     // The stale helper in the same run still gets the message that is true of it.
     const [stranded = ''] = warnings.filter((block) => block.includes(helperEntry(stale)));
@@ -8703,7 +8706,7 @@ test('init --force carries the profile\'s resolved-plugin-root entries forward, 
     }
     assert.ok(!stderr.includes(NOT_CARRIED_WARNING), `a run that graded nothing reports a drop:\n${stderr}`);
     assert.ok(!stderr.includes(UPGRADE_CAUSE), `a run that observed no root blames an upgrade it did not see:\n${stderr}`);
-    assert.ok(!stderr.includes(BY_HAND_REMEDY), `a run that graded nothing says nothing re-derives a line doctor dictates:\n${stderr}`);
+    assert.ok(!stderr.includes(LOCAL_FILE_REMEDY), `a run that graded nothing says nothing re-derives a line doctor dictates:\n${stderr}`);
     assert.ok(stdout.includes(CARRIED_NOTE), `the run does not say what it carried forward:\n${stdout}`);
     assert.ok(stdout.includes(CARRIED_UNVERIFIED), `the run states an unverified carry as a verified one:\n${stdout}`);
     assert.ok(!stdout.includes(GRADED_CARRY), `the run claims roots it could not read:\n${stdout}`);
@@ -8741,7 +8744,7 @@ test('init --force carries the profile\'s resolved-plugin-root entries forward, 
     const allow = allowEntries(dir);
     assert.ok(allow.includes(helperEntry(machine.root)), 'an entry at a root this machine resolves was dropped');
     assert.ok(!allow.includes(readEntry(reference)), 'the zero-root carry-forward reached the arm that graded the entries');
-    assert.ok(stderr.includes(BY_HAND_REMEDY), `the unpreserved grant lost its own remedy:\n${stderr}`);
+    assert.ok(stderr.includes(LOCAL_FILE_REMEDY), `the unpreserved grant lost its own remedy:\n${stderr}`);
     assert.ok(stdout.includes(GRADED_CARRY), `a run that resolved a root does not say so:\n${stdout}`);
     assert.ok(!stdout.includes(CARRIED_UNVERIFIED), `a run that graded the entries calls the carry unverified:\n${stdout}`);
   });

@@ -1588,15 +1588,17 @@ function appendCarriedPluginRootEntries(
     );
   }
 
-  // No cause claimed and no remedy named: these are entries no root on this machine ever answered
+  // No cause claimed and `doctor` not named: these are entries no root on this machine ever answered
   // for, so nothing re-derives them and `doctor` — which passes over exactly this form — would send
-  // the adopter through a report that cannot mention the entry they came to it about.
+  // the adopter through a report that cannot mention the entry they came to it about. The remedy is
+  // the local file because this profile is regenerated: an entry re-added here is dropped again by
+  // the next replacement, while one the local file supplies is merged by the render.
   if (notPreserved.length > 0) {
     const one = notPreserved.length === 1;
     const absent = `${one ? 'it' : 'they'} ${dryRun ? 'would not be' : one ? 'is not' : 'are not'} in`;
     const object = one ? 'it' : 'them';
     warn(
-      `${notPreserved.length} \`permissions.allow\` ${entryWord(notPreserved.length)} in ${PROFILE_PATH} ${one ? 'names' : 'name'} an absolute directory outside this checkout that this generator does not produce and does not preserve — a grant over a reference implementation or another machine-local toolchain is the usual case — so ${absent} the regenerated profile. Nothing re-derives ${object}: add ${object} back by hand. Left behind:\n${notPreserved.join('\n')}`,
+      `${notPreserved.length} \`permissions.allow\` ${entryWord(notPreserved.length)} in ${PROFILE_PATH} ${one ? 'names' : 'name'} an absolute directory outside this checkout that this generator does not produce and does not preserve — a grant over a reference implementation or another machine-local toolchain is the usual case — so ${absent} the regenerated profile. Nothing re-derives ${object}: add ${object} to ${PROFILE_LOCAL_PATH}, then run \`${UPGRADE_COMMAND}\`. Left behind:\n${notPreserved.join('\n')}`,
     );
   }
 }
