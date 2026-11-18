@@ -204,10 +204,25 @@ Then four invocations, in this order and with these expectations: `node cli/dist
 
 A one-off source edit is the other way to get a single run through, and it was rejected for a reason worth recording: `init` is not one-shot. `--force` regenerates a generated file when `cli/templates/` changes, and `--reset-config` rebuilds the configuration, so the run this exists for recurs every time a template moves. An edit-build-revert-build cycle per template change is a standing invitation to ship the CLI with its guard removed — and while the refusal *is* covered (`cli/test/init.test.mjs`, the harness's-own-repository subtest), a test only catches a forgotten revert if it is run before the commit.
 
-**Regenerating this repository's adoption after a `cli/templates/` change is one forced self-adopt run, read as a dry run first.** From this checkout's root, build, then read what the run would do before it writes anything:
+**Regenerating this repository's adoption after a `cli/templates/` change depends on which file moved, and each route is read as a dry run first.** A change to an outer-loop script or to the permission profile takes `init --upgrade`. From this checkout's root, build, then read what the run would do before it writes anything:
 
 ```
 npm run build
+HARNESS_SELF_ADOPT=1 node cli/dist/cli.js init --upgrade --dry-run
+```
+
+Then run it and list what it changed:
+
+```
+HARNESS_SELF_ADOPT=1 node cli/dist/cli.js init --upgrade
+git status --short
+```
+
+It writes the outer-loop scripts and the profile and nothing else, so it leaves nothing to restore and no `.bak` to remove: its backups go under the git common directory (`docs/cli.md` §3). Do not add the forced run's `--no-analyze`: `init --upgrade` refuses every other `init` flag but `--reference-toolchain-path` (`docs/cli.md` §2).
+
+**Any other generated file takes one forced self-adopt run**, the wrappers and the git hook among them. Build as above, then read what the run would do:
+
+```
 HARNESS_SELF_ADOPT=1 node cli/dist/cli.js init --force --no-analyze --dry-run --non-interactive
 ```
 
@@ -220,7 +235,7 @@ git status --short
 
 **The two wrappers keep their hand-set lines.** `commands.typecheck` and `commands.test` are the wrappers' own invocations here (`bash scripts/typecheck.sh`, `bash scripts/test.sh`), so a forced self-adopt run carries the line each wrapper already runs, `npm run build` and `bash scripts/run-gates.sh`, into the re-rendered template rather than replacing it from detection. The run's `== commands` section prints one carried row per wrapper, for example `commands.test -> bash scripts/test.sh -> bash scripts/run-gates.sh — the line test.sh already carries, kept by this self-adopt run and re-rendered into the current template`. Only a self-adopt run carries the line. An adopter's `--force` still re-renders both wrappers from detection (`docs/cli.md` §5). On a published release, that adopter side is `sandbox1h` §1 — a forced run shows no `kept by this self-adopt run` row in `== commands`, re-renders both wrappers from detection, and keeps every state-dir README that matches its template `= kept` with no `.bak` — and step 4 of Gate 12's **The sandbox series round (#170 step 4) — not yet run.** takes it: *not yet measured*.
 
-**What it still overwrites, and what to restore.** Measured on this branch at `e5da5416`: the dry run above printed these `would replace` lines for the files to restore:
+**What it still overwrites, and what to restore.** Measured on this branch at `e5da5416`: the forced dry run above printed these `would replace` lines for the files to restore:
 
 ```
 + would replace  .claude/CLAUDE.md (backed up to CLAUDE.md.bak)

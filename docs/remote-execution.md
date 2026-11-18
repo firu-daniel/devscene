@@ -598,7 +598,7 @@ The list of record is the `env:` block of the `run` job in `devscene-run.yml`, f
 
 ### Your own allow entries
 
-Entries you added to this machine's `.claude/settings.autonomous.json` — typically to stop a refusal of a command the generated profile did not allow — do not reach the job, which generates its own profile for its own checkout (§4). An entry moved into the committed `.claude/settings.json` applies on a person's machine, where the runtime merges that file beside the profile passed with `--settings`. In the job it is not established: Gate 12 round 1 observed entries there naming a path outside the checkout not applying, and an entry naming no path is unmeasured there (§6). The job's plugin-root grants come from its generated profile and its launch flags (§4), not from that file.
+An entry this machine's unattended runs need — typically to stop a refusal of a command the generated profile did not allow — belongs in `.claude/settings.autonomous.local.json` ([`cli.md`](cli.md) → `### Who owns the profile`). One added by hand to `.claude/settings.autonomous.json` is dropped by the next `init --upgrade`, unless it names a plugin root that run carries forward. Neither reaches the job, which generates its own profile for its own checkout (§4) and has no local file to merge: the file is gitignored, and a tracked copy is refused. An entry moved into the committed `.claude/settings.json` applies on a person's machine, where the runtime merges that file beside the profile passed with `--settings`. In the job it is not established: Gate 12 round 1 observed entries there naming a path outside the checkout not applying, and an entry naming no path is unmeasured there (§6). The job's plugin-root grants come from its generated profile and its launch flags (§4), not from that file.
 
 ### Upgrading
 
@@ -652,7 +652,7 @@ The last two are needed for the reason step 3 above gives: the `workflow` scope,
   ```
   npx devscene@<version> init --force
   ```
-- **It adds the `Open the draft pull request` step** to `devscene-run.yml`, which opens the run's draft pull request when the run starts ([`github-run-control.md`](github-run-control.md) → `## 4. The draft pull request`). The step calls `remote-run.sh open`, a script verb this upgrade does not write: until the outer-loop scripts are re-rendered too, with `init --force` (below), the verb is missing, the `continue-on-error` step does nothing, and the pull request opens at completion as before. The step arrives with:
+- **It adds the `Open the draft pull request` step** to `devscene-run.yml`, which opens the run's draft pull request when the run starts ([`github-run-control.md`](github-run-control.md) → `## 4. The draft pull request`). The step calls `remote-run.sh open`, a script verb this upgrade does not write: until the outer-loop scripts are replaced too, with `init --upgrade` (below), the verb is missing, the `continue-on-error` step does nothing, and the pull request opens at completion as before. The step arrives with:
 
   ```
   npx devscene@<version> init --upgrade-workflows
@@ -681,10 +681,28 @@ The last two are needed for the reason step 3 above gives: the `workflow` scope,
   git push --no-verify origin <default branch>
   ```
 
-  The re-rendered `run` job calls `remote-run.sh push-credential store`, a script verb this upgrade does not write, and that step is not `continue-on-error`. So re-render the outer-loop scripts on the default branch too, with the forced re-run, which regenerates every generated file after a `.bak` (the bullet on the scripts below):
+  The re-rendered `run` job calls `remote-run.sh push-credential store`, a script verb this upgrade does not write, and that step is not `continue-on-error`. So bring the outer-loop scripts on the default branch current too, with `init --upgrade` (the bullet on the scripts below):
 
   ```
-  npx devscene@<version> init --force
+  npx devscene@<version> init --upgrade
+  ```
+
+  Then list the scripts it replaced, and commit and push exactly those paths:
+
+  ```
+  git status --short
+  ```
+
+  ```
+  git add <each path under your scripts directory that git status lists>
+  ```
+
+  ```
+  git commit -m "Upgrade the harness scripts to <version>"
+  ```
+
+  ```
+  git push --no-verify origin <default branch>
   ```
 
   What it changes for you:
@@ -701,10 +719,16 @@ The last two are needed for the reason step 3 above gives: the `workflow` scope,
   ```
 
   Carry over what you need by hand. The managed `.gitignore` block ignores both workflow `.bak` files, so `git add -A` leaves them out; delete them once compared.
-- **It does not re-render `devscene-trigger.yml` or `devscene-control.yml`.** Neither carries a version pin, and both call the scripts on the default branch, so both share the scripts' route, `init --force`, like the outer-loop scripts in the next bullet. A repository that re-renders the two pinned workflows without `--force` gets a `deliver` report step whose script verb is missing until `--force` runs; that step is `continue-on-error`, so the run still finishes. `Store the push credential outside the checkout` is not, so a `run` job carrying it fails until `--force` has run (the bullet on `DEVSCENE_GIT_TOKEN` above).
+- **It does not re-render `devscene-trigger.yml` or `devscene-control.yml`.** Neither carries a version pin, and `init --upgrade` writes no workflow, so their route stays `init --force`, which regenerates every generated file after a `.bak`. Both call the scripts on the default branch, and those take `init --upgrade` (the next bullet). A repository that re-renders the two pinned workflows without bringing the scripts current gets a `deliver` report step whose script verb is missing until `init --upgrade` runs; that step is `continue-on-error`, so the run still finishes. `Store the push credential outside the checkout` is not, so a `run` job carrying it fails until `init --upgrade` has run and its scripts are pushed (the bullet on `DEVSCENE_GIT_TOKEN` above).
 
   `doctor --check-github` fails on any harness workflow GitHub lists by its path rather than its name, which is how GitHub lists a file it could not parse.
-- **It does not re-render the outer-loop scripts** under `<scriptsDir>`. They stay create-if-absent ([`cli.md`](cli.md) → `## 3. The re-run contract`), so `init --force` remains their route. It also regenerates every other generated file after a `.bak`, including `.claude/CLAUDE.md` and the conventions documents the analyze command filled.
+- **It does not re-render the outer-loop scripts** under `<scriptsDir>`. A plain re-run keeps them ([`cli.md`](cli.md) → `## 3. The re-run contract`), and their route is `init --upgrade` ([`cli.md`](cli.md) → `### Updating an adopted repository`), which leaves `.claude/CLAUDE.md` and the conventions documents the analyze command filled as they are:
+
+  ```
+  npx devscene@<version> init --upgrade
+  ```
+
+  Commit the scripts it replaced, by path, as the bullet on `DEVSCENE_GIT_TOKEN` above gives. The run also replaces this machine's `.claude/settings.autonomous.json`, which stays here: a job generates its own profile, without the local additions file (*Your own allow entries* above).
 - **The allow-list reaches each file only by that file's route.** What a copy written before `DEVSCENE_RUN_ACTORS` does until it is re-rendered:
   - **An old `devscene-run.yml`**, re-rendered by `--upgrade-workflows`: its `run` job checks no one's dispatch or re-run, so any writer's **Run workflow**, `gh workflow run` or re-run launches. Its `collect` job passes the scripts no list: with old scripts every writer's review still starts a round, and with re-rendered scripts a round's authors are held to the unset default.
   - **An old `devscene-trigger.yml` or `devscene-control.yml`**, re-rendered by `init --force` with the scripts: it passes the scripts no list. With old scripts every writer still starts and commands a run. With re-rendered scripts every start and command is held to the unset default: the repository owner alone, or nobody in an organisation-owned repository.
@@ -974,7 +998,7 @@ Light use fits inside a private repository's included minutes: the Free plan's 2
 
 **The branch's own files are checked before the job trusts them.** A previous job's session can commit any content at any path of the run's branch, so the `run` job checks the tree it has just checked out before anything runs from it.
 
-- **The step.** `Refuse a branch that changed the job's own files` runs the **pinned** CLI, `doctor --job-surfaces=<GitHub default branch>`, right after `Set up Node`. It reads `devscene.config.json` from `refs/remotes/origin/<GitHub default branch>` in the fresh checkout, the branch the `collect` job already reads its configuration from, and takes `defaultBranch` from that trusted copy. It fails when the branch's own commits since `merge-base(HEAD, origin/<defaultBranch>)` changed any path of `jobSurfacePaths`: the outer-loop scripts and `<scriptsDir>/lib`, `<githooksDir>`, `.mcp.json`, `.claude/settings.autonomous.json`, `.claude/settings.json`, `.claude/settings.local.json`, `devscene.config.json`, and `<scriptsDir>/docs-search-server.sh` where retrieval applies. The next step, `Record the default branch's commit`, writes that branch's commit id, and the configured `defaultBranch`'s, from the same fresh checkout to the job's environment as `HARNESS_GITHUB_DEFAULT_COMMIT` and `HARNESS_DEFAULT_BRANCH_COMMIT`, before any session. The job-mode stall watchdog runs the same check before its reset as `--job-surfaces=<branch>@$HARNESS_GITHUB_DEFAULT_COMMIT@$HARNESS_DEFAULT_BRANCH_COMMIT`, so its configuration comes from the first recorded commit and its merge base from the second, rather than from the checkout's `refs/remotes/origin/*`, which the session can rewrite (§3, *Stalls*). `doctor`'s git reads for this check run with replace refs and grafts switched off, so a session that wrote `refs/replace/` or `info/grafts` in the checkout cannot make the watchdog's check read a different base.
+- **The step.** `Refuse a branch that changed the job's own files` runs the **pinned** CLI, `doctor --job-surfaces=<GitHub default branch>`, right after `Set up Node`. It reads `devscene.config.json` from `refs/remotes/origin/<GitHub default branch>` in the fresh checkout, the branch the `collect` job already reads its configuration from, and takes `defaultBranch` from that trusted copy. It fails when the branch's own commits since `merge-base(HEAD, origin/<defaultBranch>)` changed any path of `jobSurfacePaths`: the outer-loop scripts and `<scriptsDir>/lib`, `<githooksDir>`, `.mcp.json`, `.claude/settings.autonomous.json`, `.claude/settings.autonomous.local.json`, `.claude/settings.json`, `.claude/settings.local.json`, `devscene.config.json`, and `<scriptsDir>/docs-search-server.sh` where retrieval applies. The next step, `Record the default branch's commit`, writes that branch's commit id, and the configured `defaultBranch`'s, from the same fresh checkout to the job's environment as `HARNESS_GITHUB_DEFAULT_COMMIT` and `HARNESS_DEFAULT_BRANCH_COMMIT`, before any session. The job-mode stall watchdog runs the same check before its reset as `--job-surfaces=<branch>@$HARNESS_GITHUB_DEFAULT_COMMIT@$HARNESS_DEFAULT_BRANCH_COMMIT`, so its configuration comes from the first recorded commit and its merge base from the second, rather than from the checkout's `refs/remotes/origin/*`, which the session can rewrite (§3, *Stalls*). `doctor`'s git reads for this check run with replace refs and grafts switched off, so a session that wrote `refs/replace/` or `info/grafts` in the checkout cannot make the watchdog's check read a different base.
 - **Every `run`-job `npm` / `npx` runs outside the checkout.** The refusal step, `Install the claude CLI when absent`, `Generate the job's permission profile` and `Preflight with doctor` run with `working-directory: ${{ runner.temp }}`, and each of their CLI calls names the repository with the global `--cwd "$GITHUB_WORKSPACE"`. A branch's `.npmrc` or `node_modules/` is not a job surface, and npm would read it from the checkout: npm reads a project `.npmrc` from the nearest directory above its working directory holding a `package.json`, where `registry=` can serve any code under the pinned version and `node-options=` runs code in npm's children, and `npx` runs a satisfying local `node_modules` package without fetching. The watchdog's check runs from a fresh `mktemp -d` directory for the same reason, because by then the session can have written either into the checkout without a commit.
 - **Why it precedes the configuration read.** `Read the configuration` is the only `run`-job step that sets `SCRIPTS_DIR`, and every `always()`, `!cancelled()` and `cancelled()` step is gated on `env.SCRIPTS_DIR != ''`. A refused job, or one whose step failed for any other reason, therefore runs no script from the branch's tree after the refusal, post-session steps included, as with the run-actor gate above.
 - **What a refused job reports, and how its run is recorded.** The job ends `failure`; the step's log and its one `::error::` annotation name each changed path. It saves no state bundle, so `remote-run.sh sync` records the run by its no-bundle rule (§4, **Central state.**): `paused` with `pause_reason: killed` when an older run of the branch carries a bundle, else `failed`. Nothing chains, `poll` never re-dispatches it, and the job sends no notification, as with the run-actor gate's refusal.
