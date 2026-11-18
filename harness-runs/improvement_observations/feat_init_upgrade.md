@@ -33,3 +33,15 @@
 - **category:** optimization
 - **evidence:** `architecture-reviewer` listed as non-gating incidental findings the two gaps `task-plan-reviewer` graded Must Fix on the same plan: the `--force`-only statements in `cli/src/generators/permissionProfile.ts` (architecture round 3, task-plan round 3 finding 2) and the `--force left them in place` note (architecture round 4, task-plan round 4 finding 3).
 - **cost this run:** none measured; one gate held each gap as non-gating while the other failed the round on it
+
+# User-review fix round 1 — plugin and CLI version mismatch handling, and the local-file advice for refused entries
+
+## The fix plan needed 3 review rounds to converge
+- **category:** optimization
+- **evidence:** 3 distinct round indices (0 to 2) under `harness-runs/architecture_user_review_reviews/feat_init_upgrade/user_review_1/`, with verdicts FAIL, FAIL, PASS; `phases.parity` is `false`, so no parity round exists. Finding headings per round: 3, 3, 0. Compared by exact heading against the previous round, round 1 was 3 net-new and 0 re-raised, and round 2 raised none. Round 1's Should Fix 2 on `cli/src/machine/` placement covers the same subject as round 0's Should Fix 1 under a reworded heading, which an exact-heading comparison counts as net-new.
+- **cost this run:** 2 writer revisions, `harness-runs/plan_revisions/feat_init_upgrade/fix_plan_1_revision_1.md` and `fix_plan_1_revision_2.md`
+
+## The Phase D disposition command fails in a run copy with no local default branch
+- **category:** tooling-gap
+- **evidence:** `git log --format='%h %s%n%b' --name-only dev..HEAD`, the form `plugin/instructions/improvement_observations_instructions.md` (main checkout) → `## Dispositioned units` gives for `defaultBranch` `dev`, exited 128 with `fatal: ambiguous argument 'dev..HEAD': unknown revision or path not in the working tree.` This session ran the disposition and index-only search over `origin/dev..HEAD` instead and matched no commit. `statistics-plan-writer` (#1) reported the same missing ref and made the same substitution.
+- **cost this run:** one failed command; the search ran over a base the instruction does not name
