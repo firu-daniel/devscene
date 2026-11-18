@@ -181,6 +181,12 @@ Then, in the main checkout, run `init --upgrade` from the CLI of the same versio
 npx devscene@<version> init --upgrade
 ```
 
+With `phases.parity` on, name the reference toolchain on every upgrade. Its entries are rendered only from this flag, so a run without it removes them:
+
+```bash
+npx devscene@<version> init --upgrade --reference-toolchain-path <absolute path>
+```
+
 **It changes the outer-loop scripts and the profile and nothing else.** What it leaves alone, and how it replaces a file, is §3's `replace-if-changed` bullet; what an entry you added to the profile needs is §6's `### Who owns the profile`. The scripts are tracked, so the ones it replaced show in `git status` for you to commit; the profile is ignored and does not. A second run over a current repository prints `Already current: no file changed.`
 
 **It refuses before writing anything, with exit `1`**, in each of these states:

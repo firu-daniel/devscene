@@ -280,6 +280,22 @@ test('a toolchain-shaped entry is accounted for only with the parity phase on', 
   assert.deepEqual(drift({ ...repo, config: parityOn }, onDisk).unaccounted, []);
 });
 
+test('an upgrade with the parity phase on and no toolchain path names the command that restores the entries', async (t) => {
+  const repo = await adopted(t, await machineWithoutPlugin(t));
+  const parityOn = {
+    ...repo.config,
+    parity: { toolchainCommands: ['reference-analyze'] },
+    phases: { ...repo.config.phases, parity: true },
+  };
+
+  const { warnings } = planned({ ...repo, config: parityOn }).result;
+
+  assert.ok(
+    warnings.some((line) => line.includes('init --upgrade --reference-toolchain-path <absolute path>')),
+    `no warning names the upgrade command: ${JSON.stringify(warnings)}`,
+  );
+});
+
 test('a hand-added sandbox entry or credential is in the delta and is unaccounted', async (t) => {
   const repo = await adopted(t, await machineWithoutPlugin(t));
   const onDisk = editProfile(repo.dir, ({ sandbox }) => {

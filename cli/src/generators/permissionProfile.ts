@@ -1237,7 +1237,7 @@ function appendToolchainAllowances(profile: JsonObject, { config, referenceToolc
 
   if (directory === undefined || directory === '') {
     warn(
-      `the parity phase is on and no ${TOOLCHAIN_FLAG} was given, so the reference implementation's own toolchain is not allow-listed: it usually sits outside the checkout, where no other entry in the permission profile reaches it. Re-run init with ${TOOLCHAIN_FLAG} <absolute path> to add one entry per parity.toolchainCommands value`,
+      `the parity phase is on and no ${TOOLCHAIN_FLAG} was given, so the reference implementation's own toolchain is not allow-listed: it usually sits outside the checkout, where no other entry in the permission profile reaches it. Run \`${UPGRADE_COMMAND} ${TOOLCHAIN_FLAG} <absolute path>\` to add one entry per parity.toolchainCommands value; a plain re-run keeps the existing profile`,
     );
     return;
   }
@@ -1271,6 +1271,9 @@ function appendToolchainAllowances(profile: JsonObject, { config, referenceToolc
 
 /** The command that re-derives this machine's plugin roots and prints the lines to paste. */
 const DOCTOR_COMMAND = 'npx devscene doctor';
+
+/** The run that re-renders a profile already on disk, which a plain `init` keeps. */
+const UPGRADE_COMMAND = 'npx devscene init --upgrade';
 
 /**
  * The plugin roots this machine resolves, **runtime root first** — `doctor`'s own order — with the
