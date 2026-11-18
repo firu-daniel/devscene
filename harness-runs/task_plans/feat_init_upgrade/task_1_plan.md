@@ -23,3 +23,9 @@
 - `cli/test/write-plan-replace.test.mjs` passes.
 - A second `apply` of the same plan reports only `kept` for these requests and creates no backup directory.
 - Every `chmodSync`, `copyFileSync`, `mkdirSync`, `openSync`, `renameSync` and `rmSync` that serves a plan in `writer.ts` is inside `commitWrite` or a helper only it calls.
+
+- **Deviations from plan:**
+  - `cli/src/generators/githubWorkflows.ts` is outside this task's Targets. Its header said "not a fifth `WritePolicy`", which became wrong when this task added the fifth value, so the comment now says "a further". No behaviour changes.
+  - The plan names no effect for a mode-only replacement. It reports `backed-up-and-replaced` with no `backupPath`, because `WriteEffect` stays closed and later tasks key "was a backup taken" on `backupPath`. Its action line reads `permission bits only`.
+  - Two refusals are added beyond the plan: `replace-if-changed` with `allowOutsideRepo` is an `internal()` fault, because a repo-relative backup path would climb out of `backupDir`; and an existing file at the backup path is refused while planning, so `COPYFILE_EXCL` cannot fail partway through a plan.
+  - `.claude/context/conventions.md` → `## Shell assets` still says `writer.ts` has a "single removal"; the engine now has two, both without `recursive`. That file is outside the `cli` layer and was not edited.

@@ -49,7 +49,7 @@ The work runs bottom-up through the configured layers. The `cli` tasks come firs
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_init_upgrade/task_<K>_plan.md`. Entries are ordered bottom-up by ship sequence, with the catch-all layer last.
 
-1. [ ] **Task 1** — Add the atomic `replace-if-changed` write policy and `gitCommonDir` _(layer: cli)_ _(points: 20)_
+1. [x] **Task 1** — Add the atomic `replace-if-changed` write policy and `gitCommonDir` _(layer: cli)_ _(points: 20)_
 2. [ ] **Task 2** — Read and validate the local permission additions file _(layer: cli)_ _(points: 15)_
 3. [ ] **Task 3** — Write-protect and ignore the local additions file _(layer: cli)_ _(points: 10)_
 4. [ ] **Task 4** — Merge local additions when the permission profile is rendered _(layer: cli)_ _(points: 20)_
