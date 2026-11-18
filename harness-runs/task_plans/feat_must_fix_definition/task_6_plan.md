@@ -23,3 +23,5 @@
 - `grep -nE 'Must Fix is reserved for|dressed up as Must Fix' plugin/agents/review-plan-reviewer.md` prints nothing.
 - Reading the new section shows a Must Fix finding file with no `**Failure:**` line produces `outcome: FAIL`, and the fix keeps the fix loop's readiness entry valid.
 - Walking each line `grep -n 'Must Fix' plugin/agents/review-plan-reviewer.md` prints against the finished `### Must Fix triggers` shows every check still graded Must Fix, `### Must Fix entries` included, has exactly one class, and a missing or unsupported `**Class:**` / `**Failure:**` falls under `### Must Fix entries` alone.
+
+- **Deviations from plan:** Two additions the Work bullets did not list. `finding_grades.md` joins the `## Read first` unreadable-path blocker sentence, because `.claude/context/plugin.md` → `## The sections an asset carries` requires `## Read first` to state that an unreadable input is reported rather than worked around. `<step>` joins the placeholder list in the `## Resolved values` lead, which names the template placeholders the body resolves itself. No return field changes.
