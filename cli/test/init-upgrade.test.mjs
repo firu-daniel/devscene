@@ -359,6 +359,21 @@ test('a retired generated entry disappears and is reported', async (t) => {
   assert.ok(stderr.includes(RETIRED_ENTRY), stderr);
 });
 
+test('a setting outside the entry lists is reset and named, and a dry run names it first', async (t) => {
+  const repo = await wired(t);
+  editProfile(repo, (profile) => {
+    profile.env = { HAND_ADDED: '1' };
+  });
+
+  const dry = await upgrade(repo, DRY_RUN);
+  assert.match(dry.stderr, /1 profile setting outside the entry lists would be reset to what this CLI renders: env\./);
+  assert.deepEqual(profileOf(repo).env, { HAND_ADDED: '1' });
+
+  const real = await upgrade(repo);
+  assert.match(real.stderr, /1 profile setting outside the entry lists was reset to what this CLI renders: env\./);
+  assert.equal(profileOf(repo).env, undefined);
+});
+
 for (const [mode, extra] of [
   ['a real run', []],
   ['a dry run', ['--dry-run']],

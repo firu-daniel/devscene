@@ -26,6 +26,8 @@ export interface UpgradeReportInput {
   readonly scriptsDir: string;
   readonly applied: readonly WriteResult[];
   readonly delta: readonly ProfileEntryDelta[];
+  /** The `ProfileUpgradePlan.settingChanges` value. */
+  readonly settingChanges: readonly string[];
   readonly previousUnreadable: boolean;
   readonly localAdditionCount: number;
   readonly backupDir: string;
@@ -78,7 +80,7 @@ function removedEntriesWarning(removed: readonly string[], dryRun: boolean): str
 
 /** Turn the outcome of an upgrade or a dry run into the lines the command reports. */
 export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
-  const { dryRun, daemonLoadedPaths, scriptsDir, applied, delta, localAdditionCount, backupDir } = input;
+  const { dryRun, daemonLoadedPaths, scriptsDir, applied, delta, settingChanges, localAdditionCount, backupDir } = input;
   const { previousUnreadable, localFileIgnored, cliVersion, cliCommand, pluginVersion, pluginCliCommand } = input;
 
   const notes: string[] = [...profileLines(delta, dryRun)];
@@ -86,6 +88,14 @@ export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
 
   const removed = delta.flatMap((list) => list.removed);
   if (removed.length > 0) warnings.push(removedEntriesWarning(removed, dryRun));
+  if (settingChanges.length > 0) {
+    const names = settingChanges.join(', ');
+    warnings.push(
+      dryRun
+        ? `${counted(settingChanges.length, 'profile setting')} outside the entry lists would be reset to what this CLI renders: ${names}. ${PROFILE_LOCAL_PATH} cannot hold them; the replaced file would be backed up first.`
+        : `${counted(settingChanges.length, 'profile setting')} outside the entry lists ${settingChanges.length === 1 ? 'was' : 'were'} reset to what this CLI renders: ${names}. ${PROFILE_LOCAL_PATH} cannot hold them; the replaced file is under ${backupDir}.`,
+    );
+  }
 
   if (localAdditionCount > 0) {
     const additions = counted(localAdditionCount, 'local addition');

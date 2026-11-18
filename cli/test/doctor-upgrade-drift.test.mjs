@@ -164,6 +164,32 @@ describe('doctor upgrade drift', { concurrency: CASE_CONCURRENCY }, () => {
     assert.doesNotMatch(line, /hand edit/);
   });
 
+  it('warns about a setting outside the entry lists, and passes after init --upgrade', async (t) => {
+    const repo = await wired(t);
+    editProfile(repo, (profile) => {
+      profile.hooks = {};
+    });
+
+    const line = warning(await doctor(repo), PROFILE_CHECK);
+    assert.ok(line.includes(JSON.stringify('hooks')), line);
+    assert.match(line, /settings that differ/);
+    assert.doesNotMatch(line, /is stale/);
+
+    assertOk(await repo.run(UPGRADE), 'init --upgrade');
+    assertPasses(await doctor(repo), [PROFILE_CHECK]);
+  });
+
+  it('keeps a line break in a tampered setting key on the one report line', async (t) => {
+    const repo = await wired(t);
+    editProfile(repo, (profile) => {
+      profile['x\nPASS  forged  line'] = true;
+    });
+
+    const result = await doctor(repo);
+    assert.ok(warning(result, PROFILE_CHECK).includes('\\n'));
+    assert.ok(!`${result.stdout}\n${result.stderr}`.split('\n').some((line) => line.startsWith('PASS  forged')));
+  });
+
   it('warns about a local entry not yet rendered, and passes after init --upgrade', async (t) => {
     const repo = await wired(t);
     writeLocal(repo, { permissions: { allow: [LOCAL_ENTRY] } });

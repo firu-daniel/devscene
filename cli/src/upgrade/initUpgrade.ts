@@ -64,6 +64,7 @@ export function runInitUpgrade(
     scriptsDir: scripts.scriptsDir,
     applied,
     delta: profile.delta,
+    settingChanges: profile.settingChanges,
     previousUnreadable: profile.previousUnreadable,
     localAdditionCount: profile.localAdditionCount,
     backupDir,

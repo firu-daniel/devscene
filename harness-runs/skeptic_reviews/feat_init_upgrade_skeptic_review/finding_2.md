@@ -78,3 +78,9 @@ The evidence is from reading the code. A throwaway-fixture run of the CLI was re
    - In the same file, add a `planProfileUpgrade` case where the existing profile carries `env`, asserting `settingChanges` is `['env']`.
    - In `cli/test/upgrade-report.test.mjs`, add `settingChanges: []` to the `report` helper's input, and add one case for each tense asserting the warning names the key.
    - In `cli/test/doctor-upgrade-drift.test.mjs`, add a case where a profile carrying a `hooks` key makes `profile-drift` warn and name `hooks`.
+
+**Deviations from plan:**
+
+- Step 5 specified `settings.join(', ')`. The `profile-drift` finding JSON-quotes each key instead, as `driftedEntry` does for entries: a raw key holding a line break could print a forged `PASS` line in `doctor`'s report. `cli/test/doctor-upgrade-drift.test.mjs` covers it.
+- Step 7 gained one case beyond the list, in `cli/test/init-upgrade.test.mjs`: `.claude/context/cli.md` → `## What "done" means here` requires a command change to be driven through the compiled CLI, and nothing else covers the `settingChanges` wiring in `cli/src/upgrade/initUpgrade.ts`.
+- Step 6 (`docs/cli.md`) is outside the `cli` path. The readiness entry is tagged `cli, general`, so the `general` layer's dispatch owns it.

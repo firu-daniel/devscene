@@ -32,6 +32,7 @@ const report = (overrides = {}) =>
     scriptsDir: 'scripts',
     applied: [],
     delta: [],
+    settingChanges: [],
     previousUnreadable: false,
     localAdditionCount: 0,
     backupDir: BACKUP_DIR,
@@ -130,6 +131,25 @@ test('removed entries get one warning, naming the local file and only the lists 
 test('entries that were only added raise no warning', () => {
   const delta = [{ list: 'permissions.allow', added: ['Bash(a)'], removed: [] }];
   assert.deepEqual(report({ delta }).warnings, []);
+});
+
+test('a real run warns about each setting it reset, and where the old file went', () => {
+  const [one, ...others] = report({ settingChanges: ['hooks'] }).warnings;
+  assert.deepEqual(others, []);
+  assert.equal(
+    one,
+    `1 profile setting outside the entry lists was reset to what this CLI renders: hooks. ${LOCAL_FILE} cannot hold them; the replaced file is under ${BACKUP_DIR}.`,
+  );
+  assert.match(report({ settingChanges: ['hooks', 'env'] }).warnings[0], /^2 profile settings outside the entry lists were reset to what this CLI renders: hooks, env\. /);
+});
+
+test('a dry run warns about each setting it would reset, and names no backup directory', () => {
+  const [one, ...others] = report({ settingChanges: ['permissions.defaultMode'], dryRun: true }).warnings;
+  assert.deepEqual(others, []);
+  assert.equal(
+    one,
+    `1 profile setting outside the entry lists would be reset to what this CLI renders: permissions.defaultMode. ${LOCAL_FILE} cannot hold them; the replaced file would be backed up first.`,
+  );
 });
 
 test('local additions are counted in the tense of the run, and absent when there are none', () => {
@@ -254,6 +274,7 @@ test('all of the wording is plain ASCII', () => {
   const everything = {
     applied: [replaced('scripts/autonomous-watcher.sh'), replaced(PROFILE_FILE)],
     delta: DELTA,
+    settingChanges: ['hooks'],
     previousUnreadable: true,
     localAdditionCount: 3,
     localFileIgnored: false,

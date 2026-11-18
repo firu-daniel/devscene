@@ -5473,7 +5473,7 @@ const PROFILE_DRIFT_CHECK: Check = {
       return warn(`${findings.join('; ')}. Correct that, then run \`${INIT_UPGRADE_COMMAND}\`, which refuses until it is.${unmeasured}`);
     }
 
-    const { missing, unaccounted } = drift;
+    const { missing, unaccounted, settings } = drift;
     if (missing.length > 0) {
       findings.push(
         `${PROFILE_PATH} is stale: it lacks ${missing.length} ${entryWord(missing.length)} this CLI renders — ${missing.map(driftedEntry).join('; ')}`,
@@ -5484,12 +5484,18 @@ const PROFILE_DRIFT_CHECK: Check = {
         `${PROFILE_PATH} carries ${unaccounted.length} ${entryWord(unaccounted.length)} nothing here accounts for, from a hand edit or tampering — ${unaccounted.map(driftedEntry).join('; ')}`,
       );
     }
+    if (settings.length > 0) {
+      // JSON-quoted for the reason driftedEntry's are: a key in a tampered profile can hold a line break.
+      findings.push(
+        `${PROFILE_PATH} has settings that differ from this CLI's render, from a hand edit, tampering or an earlier release — ${settings.map((setting) => JSON.stringify(setting)).join(', ')}`,
+      );
+    }
     if (findings.length === 0) {
-      return pass(`${PROFILE_PATH} holds every entry this CLI renders for this configuration, and none it cannot account for.${unmeasured}`);
+      return pass(`${PROFILE_PATH} holds every entry and setting this CLI renders for this configuration, and no entry or setting it cannot account for.${unmeasured}`);
     }
 
     const remedy =
-      missing.length > 0 || unaccounted.length > 0
+      missing.length > 0 || unaccounted.length > 0 || settings.length > 0
         ? `Run \`${INIT_UPGRADE_COMMAND}\`, which replaces the profile with this render after a backup; an entry to keep belongs in ${PROFILE_LOCAL_PATH}, which that command merges`
         : `Keep the file rather than deleting it: an entry to keep belongs in ${PROFILE_LOCAL_PATH}, which \`${INIT_UPGRADE_COMMAND}\` merges`;
     return warn(`${findings.join('; ')}. ${remedy}.${unmeasured}`);

@@ -27,6 +27,7 @@ import {
   planProfileUpgrade,
   profileDrift,
   profileEntryDelta,
+  profileSettingChanges,
 } from '../dist/generators/profileUpgrade.js';
 import { createFixture, readJson, runCli, snapshotTree } from './helpers/fixture.mjs';
 
@@ -248,7 +249,7 @@ test('an absent profile is planned as new and is not called unreadable', async (
 
 test('profileDrift is clean after init, and reports both directions', async (t) => {
   const repo = await adopted(t, await machineWithoutPlugin(t));
-  assert.deepEqual(drift(repo), { missing: [], unaccounted: [] });
+  assert.deepEqual(drift(repo), { missing: [], unaccounted: [], settings: [] });
 
   let dropped;
   const onDisk = editProfile(repo.dir, (profile) => {
@@ -258,16 +259,17 @@ test('profileDrift is clean after init, and reports both directions', async (t) 
   assert.deepEqual(drift(repo, onDisk), {
     missing: [{ list: 'permissions.deny', entry: dropped }],
     unaccounted: [{ list: ALLOW, entry: RETIRED }],
+    settings: [],
   });
 });
 
 test('a local entry the profile has not picked up is missing, and accounted for once it has', async (t) => {
   const repo = await adopted(t, await machineWithoutPlugin(t));
   writeLocal(repo.dir, { permissions: { allow: [LOCAL_ENTRY] } });
-  assert.deepEqual(drift(repo), { missing: [{ list: ALLOW, entry: LOCAL_ENTRY }], unaccounted: [] });
+  assert.deepEqual(drift(repo), { missing: [{ list: ALLOW, entry: LOCAL_ENTRY }], unaccounted: [], settings: [] });
 
   editProfile(repo.dir, (profile) => profile.permissions.allow.push(LOCAL_ENTRY));
-  assert.deepEqual(drift(repo), { missing: [], unaccounted: [] });
+  assert.deepEqual(drift(repo), { missing: [], unaccounted: [], settings: [] });
 });
 
 test('a toolchain-shaped entry is accounted for only with the parity phase on', async (t) => {
@@ -321,7 +323,43 @@ test('a hand-added sandbox entry or credential is in the delta and is unaccounte
   assert.deepEqual(drift(repo, onDisk), {
     missing: [],
     unaccounted: expected.map(([list, entry]) => ({ list, entry })),
+    settings: [],
   });
+});
+
+test('a setting outside the entry lists that differs from the render is drift', async (t) => {
+  const repo = await adopted(t, await machineWithoutPlugin(t));
+  const onDisk = structuredClone(freshRender(repo));
+  onDisk.hooks = {};
+  onDisk.permissions.defaultMode = 'bypassPermissions';
+
+  assert.deepEqual(drift(repo, onDisk).settings, ['permissions.defaultMode', 'hooks']);
+});
+
+test('an upgrade names the settings it resets, and has none to name without a previous profile', async (t) => {
+  const repo = await adopted(t, await machineWithoutPlugin(t));
+  assert.deepEqual(planned(repo).result.settingChanges, []);
+
+  editProfile(repo.dir, (profile) => {
+    profile.env = { HAND_ADDED: '1' };
+  });
+  assert.deepEqual(planned(repo).result.settingChanges, ['env']);
+
+  rmSync(profilePath(repo.dir));
+  assert.deepEqual(planned(repo).result.settingChanges, []);
+});
+
+test('the setting comparison skips the entry lists and the rationale block, and ignores key order', () => {
+  const profile = { _README: ['a'], model: 'm', permissions: { allow: ['a'], defaultMode: 'x' }, attribution: { commit: '', pr: '' } };
+  const reordered = {
+    attribution: { pr: '', commit: '' },
+    permissions: { defaultMode: 'x', allow: ['b'] },
+    model: 'm',
+    _README: ['b'],
+  };
+  assert.deepEqual(profileSettingChanges(profile, reordered), []);
+  assert.deepEqual(profileSettingChanges({ permissions: 'x' }, { permissions: { defaultMode: 'x' } }), ['permissions']);
+  assert.deepEqual(profileSettingChanges({ nested: { _README: 1 } }, { nested: {} }), ['nested._README']);
 });
 
 test('an element with no usable string is compared by its JSON form', async (t) => {

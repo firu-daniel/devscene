@@ -30,7 +30,7 @@ import {
   resolvedPluginRoots,
   SANDBOX_LISTS,
 } from './permissionProfile.js';
-import { PROFILE_PATH } from './profileEntries.js';
+import { PROFILE_PATH, README_KEY } from './profileEntries.js';
 import { readLocalAdditions, type LocalAdditions } from './profileLocal.js';
 import { SANDBOX_KEY } from './sandboxProfile.js';
 
@@ -53,6 +53,8 @@ export const PROFILE_ENTRY_LISTS: readonly ProfileEntryList[] = Object.freeze([
   ...CREDENTIAL_LISTS.map(([list, field]) => ({ path: `${SANDBOX_KEY}.credentials.${list}`, field })),
   { path: ENABLED_SERVERS_KEY },
 ]);
+
+const ENTRY_LIST_PATHS: ReadonlySet<string> = new Set(PROFILE_ENTRY_LISTS.map(({ path }) => path));
 
 /** How one list changes between two profiles. */
 export interface ProfileEntryDelta {
@@ -97,6 +99,8 @@ export interface ProfileUpgradePlan {
   readonly rendered: JsonObject;
   /** Only the lists that change. */
   readonly delta: readonly ProfileEntryDelta[];
+  /** {@link profileSettingChanges} from the file it replaces; empty when there is none to compare. */
+  readonly settingChanges: readonly string[];
   readonly localAdditionCount: number;
   /** A file exists at {@link path} and is not a readable JSON object. */
   readonly previousUnreadable: boolean;
@@ -115,6 +119,8 @@ export interface ProfileDriftOptions {
 export interface ProfileDrift {
   readonly missing: readonly ProfileEntry[];
   readonly unaccounted: readonly ProfileEntry[];
+  /** Settings outside the entry lists that differ from the render. */
+  readonly settings: readonly string[];
 }
 
 function renderWith(
@@ -170,6 +176,25 @@ export function profileEntryDelta(current: JsonObject | undefined, next: JsonObj
   });
 }
 
+/**
+ * The dotted keys outside the entry lists and the rationale block whose value differs between two
+ * profiles: a key on one side only, or a different value. Objects are compared key by key, so key
+ * order is not a difference.
+ */
+export function profileSettingChanges(current: JsonObject, next: JsonObject, parent: readonly string[] = []): readonly string[] {
+  const keys = [...new Set([...Object.keys(current), ...Object.keys(next)])];
+  return keys.flatMap((key) => {
+    if (parent.length === 0 && key === README_KEY) return [];
+    const path = [...parent, key];
+    const dotted = path.join('.');
+    if (ENTRY_LIST_PATHS.has(dotted)) return [];
+    const before = current[key];
+    const after = next[key];
+    if (isJsonObject(before) && isJsonObject(after)) return profileSettingChanges(before, after, path);
+    return JSON.stringify(before) === JSON.stringify(after) ? [] : [dotted];
+  });
+}
+
 /** The profile at `path`: absent and unreadable are different answers, and neither refuses the run. */
 function readPreviousProfile(path: string): { readonly previous?: JsonObject; readonly unreadable: boolean } {
   let parsed: JsonValue | undefined;
@@ -212,6 +237,7 @@ export function planProfileUpgrade({
     previous,
     rendered,
     delta: profileEntryDelta(previous, rendered),
+    settingChanges: previous === undefined ? [] : profileSettingChanges(previous, rendered),
     localAdditionCount: localAdditions?.count ?? 0,
     previousUnreadable: unreadable,
     warnings,
@@ -249,5 +275,5 @@ export function profileDrift({ repoRoot, config, onDisk }: ProfileDriftOptions):
       unaccounted.push({ list, entry });
     }
   }
-  return { missing, unaccounted };
+  return { missing, unaccounted, settings: profileSettingChanges(onDisk, expected) };
 }
