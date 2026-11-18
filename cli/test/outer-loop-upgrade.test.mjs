@@ -11,8 +11,8 @@
  */
 
 import assert from 'node:assert/strict';
-import { appendFileSync, chmodSync, readFileSync, rmSync, statSync, symlinkSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { appendFileSync, chmodSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { test } from 'node:test';
 
 import { requireConfig } from '../dist/config/io.js';
@@ -185,6 +185,17 @@ test('the drift reader reports a deleted row as missing', async (t) => {
   const { dir, config, pathOf } = await adopted(t);
   rmSync(pathOf(WATCHER));
   assert.deepEqual(outerLoopScriptDrift(dir, config), { missing: [WATCHER], changed: [] });
+});
+
+test('the drift reader reports every lib/ row as missing when lib is a regular file', async (t) => {
+  const { dir, config, pathOf } = await adopted(t);
+  const libDir = dirname(pathOf(LIB));
+  rmSync(libDir, { recursive: true });
+  writeFileSync(libDir, 'not a directory\n');
+
+  const libRows = OUTER_LOOP_SCRIPTS.filter((script) => script.subdir === 'lib').map(outerLoopRelativePath);
+  assert.ok(libRows.length > 0);
+  assert.deepEqual(outerLoopScriptDrift(dir, config), { missing: libRows, changed: [] });
 });
 
 test('the drift reader reports an edited row, and a row in lib/, as changed', async (t) => {

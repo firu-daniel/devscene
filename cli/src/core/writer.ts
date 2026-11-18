@@ -112,7 +112,6 @@ import {
   copyFileSync,
   fchmodSync,
   fsyncSync,
-  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -125,7 +124,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 import { HarnessError, internal } from './errors.js';
 import { formatJson, mergeMissing, readJsonFile, type JsonObject } from './json.js';
 import { nameList } from './nameList.js';
-import { insideRepo } from './paths.js';
+import { insideRepo, lstatOrUndefined } from './paths.js';
 import type { ActionKind, Reporter } from './report.js';
 
 /**
@@ -328,16 +327,6 @@ interface Replacement {
   readonly mode: number;
   /** The root of {@link PlannedWrite.backupPath}, present exactly when a backup is due. */
   readonly backupDir?: string;
-}
-
-/** `lstat` without following the link, or `undefined` when nothing is at `path`. */
-function lstatOrUndefined(path: string): ReturnType<typeof lstatSync> | undefined {
-  try {
-    return lstatSync(path);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException | null)?.code === 'ENOENT') return undefined;
-    throw error;
-  }
 }
 
 /** Read a text file, or `undefined` when it does not exist. */

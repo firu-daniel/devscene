@@ -13,9 +13,13 @@
  * branch is checked out and which checkouts exist live in `core/git.ts`, which owns every git
  * invocation that reads repository state or a path — including the two invariants those calls
  * hold to. A path derived from a repository starts with a value from there and is joined here.
+ *
+ * **{@link lstatOrUndefined} is the one "what is at this path" probe shared across areas.** Which
+ * errors mean "nothing is there" differs by caller, so each caller that widens the default says so
+ * at its own call site.
  */
 
-import { readFileSync } from 'node:fs';
+import { lstatSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
@@ -158,6 +162,24 @@ export function readTemplate(relativePath: string): string {
     if ((error as NodeJS.ErrnoException | null)?.code === 'ENOENT') {
       throw new HarnessError(`template missing from the installed package: ${absolute}`, EXIT.INTERNAL);
     }
+    throw error;
+  }
+}
+
+/**
+ * `lstat` without following a link, or `undefined` when it fails with one of `absentCodes`; any
+ * other failure throws. The default leaves `ENOTDIR` throwing, so a path under a regular file is
+ * an error unless the caller names that code.
+ */
+export function lstatOrUndefined(
+  path: string,
+  absentCodes: readonly string[] = ['ENOENT'],
+): ReturnType<typeof lstatSync> | undefined {
+  try {
+    return lstatSync(path);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | null)?.code;
+    if (code !== undefined && absentCodes.includes(code)) return undefined;
     throw error;
   }
 }

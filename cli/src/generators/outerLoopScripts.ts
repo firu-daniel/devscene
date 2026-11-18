@@ -46,11 +46,11 @@
  * allow-list a file that was never written.
  */
 
-import { lstatSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { DEFAULTS, type HarnessConfig } from '../config/model.js';
-import { readTemplate } from '../core/paths.js';
+import { lstatOrUndefined, readTemplate } from '../core/paths.js';
 import { normalizeRepoDir } from '../core/repoPaths.js';
 import type { WritePlan, WritePolicy } from '../core/writer.js';
 import { scriptInvocation } from './scripts.js';
@@ -446,16 +446,8 @@ export function planOuterLoopScriptUpgrade(options: OuterLoopScriptsOptions): Ou
   return { ...enqueueOuterLoopScripts(options, 'replace-if-changed'), notes: [] };
 }
 
-/** `lstat` without following a link, or `undefined` when nothing can be at `path`. */
-function lstatOrUndefined(path: string): ReturnType<typeof lstatSync> | undefined {
-  try {
-    return lstatSync(path);
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException | null)?.code;
-    if (code === 'ENOENT' || code === 'ENOTDIR') return undefined;
-    throw error;
-  }
-}
+/** `ENOTDIR` counts as absent: a regular file where a row's directory belongs leaves the row missing. */
+const SCRIPT_ABSENT_CODES: readonly string[] = ['ENOENT', 'ENOTDIR'];
 
 /**
  * Which rows differ from what this CLI ships. Bytes are compared as buffers, so an invalid UTF-8
@@ -468,7 +460,7 @@ export function outerLoopScriptDrift(repoRoot: string, config: HarnessConfig): O
   for (const script of OUTER_LOOP_SCRIPTS) {
     const relative = outerLoopRelativePath(script);
     const path = outerLoopScriptPath(repoRoot, config, relative);
-    const stats = lstatOrUndefined(path);
+    const stats = lstatOrUndefined(path, SCRIPT_ABSENT_CODES);
     if (stats === undefined) {
       missing.push(relative);
       continue;
