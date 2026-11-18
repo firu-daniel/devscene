@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/feat_init_upgrade_task_prompt.md → `### Run 
   - screened: harness-runs/task_prompts/feat_init_upgrade_task_prompt.md sha256=6ce1d2033cea3424f8dc43cd33c8ea7f61eae8a96e51e2255f5b682e046478bc
 - [ ] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
