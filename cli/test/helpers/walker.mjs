@@ -122,9 +122,29 @@ export async function walk(dir, args) {
 }
 
 /**
+ * A `## Must Fix` section holding one entry, with both required fields unless `lacking` names one.
+ *
+ * @param {'Class' | 'Failure'} [lacking]
+ * @returns {string}
+ */
+export function mustFixSection(lacking) {
+  const lines = ['## Must Fix', '1. **fixture finding**'];
+  if (lacking !== 'Class') lines.push('   **Class:** Wrong build');
+  if (lacking !== 'Failure') lines.push('   **Failure:** If the writer follows the plan, then the build fails.');
+  return `${lines.join('\n')}\n`;
+}
+
+async function writeReview(dir, folder, n, verdict, section) {
+  const relative = `${stateDirOf(dir)}/${folder}/review_${n}.md`;
+  await mkdir(join(dir, dirname(relative)), { recursive: true });
+  await writeFile(join(dir, relative), `# review ${n}\nverdict: ${verdict}\nreview_mode: full\n${section}`, 'utf8');
+  return relative;
+}
+
+/**
  * Write the round file `review_<n>.md` a reviewer leaves behind, in the shape
- * `plugin/instructions/plan_review_rounds.md` → `## The round file` fixes: the walker reads only its
- * `verdict:` line.
+ * `plugin/instructions/plan_review_rounds.md` → `## The round file` fixes. A `FAIL` carries a valid
+ * `## Must Fix` entry, because the gate library reads a `FAIL` without one as `unreadable`.
  *
  * @param {string} dir
  * @param {string} folder the findings folder under `stateDir`, branch segment included.
@@ -133,10 +153,20 @@ export async function walk(dir, args) {
  * @returns {Promise<string>} the file's repo-relative path — the `findings_file` the reviewer returns.
  */
 export async function plantReview(dir, folder, n, verdict = 'FAIL') {
-  const relative = `${stateDirOf(dir)}/${folder}/review_${n}.md`;
-  await mkdir(join(dir, dirname(relative)), { recursive: true });
-  await writeFile(join(dir, relative), `# review ${n}\nverdict: ${verdict}\nreview_mode: full\n`, 'utf8');
-  return relative;
+  return writeReview(dir, folder, n, verdict, verdict === 'FAIL' ? mustFixSection() : '');
+}
+
+/**
+ * Write a `verdict: FAIL` round file whose one `## Must Fix` entry omits a required field.
+ *
+ * @param {string} dir
+ * @param {string} folder the findings folder under `stateDir`, branch segment included.
+ * @param {number} n
+ * @param {'Class' | 'Failure'} lacking
+ * @returns {Promise<string>} the file's repo-relative path, as `plantReview` returns it.
+ */
+export async function plantMalformedReview(dir, folder, n, lacking) {
+  return writeReview(dir, folder, n, 'FAIL', mustFixSection(lacking));
 }
 
 /**

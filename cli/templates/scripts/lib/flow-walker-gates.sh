@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # flow-walker-gates.sh — the mechanical answers the flow walker needs at a
 # gate, each defined once: the next free `review_<n>` index in a findings
-# folder, a round file's verdict, a folder's count
-# of `FAIL` round files, a plan-review round's evidence, the run mode's skipped
+# folder, a round file's verdict, whether a round file may be used, a folder's
+# count of `FAIL` round files, a plan-review round's evidence, the run mode's skipped
 # ids, whether a `phases.*` flag is on, and the escalation evidence a story
 # index or UI-test index carries.
 #
@@ -10,9 +10,10 @@
 # its cap, which round a resume re-enters and what the walker prints are the
 # walker's; round evidence is an answer, the round decision is not. Nothing
 # here writes anything — not even the walker's state file. The findings-folder
-# functions list names only and open no file, except `fw_review_verdict` and
-# `fw_fail_count`, which read a round file's verdict line and nothing else
-# from it. The verdict line contract is
+# functions list names only and open no file, except these: `fw_review_verdict`
+# and `fw_fail_count` read only a round file's verdict line, and
+# `fw_round_file_check`, which `fw_round_evidence` calls, also reads its
+# `## Must Fix` section. The verdict line contract is
 # `plugin/instructions/plan_review_rounds.md` → `## The round file`: exactly
 # one line `verdict: PASS` or `verdict: FAIL`.
 #
@@ -39,12 +40,14 @@
 #   review index      mkdir "$root/f"; : > "$root/f/review_0.md"; : > "$root/f/review_3.md"
 #                     fw_next_review_index "$root/f"   -> 4   (a gap is never back-filled)
 #                     fw_next_review_index "$root/nope"  -> 0
-#   round verdicts    mkdir "$root/g"; printf 'verdict: FAIL\n' > "$root/g/review_0.md"; : > "$root/plan.md"
+#   round verdicts    mkdir "$root/g"; : > "$root/plan.md"
+#                     printf 'verdict: FAIL\n## Must Fix\n1. **f**\n   **Class:** c\n   **Failure:** x\n' > "$root/g/review_0.md"
 #                     git -C "$root" add g/review_0.md plan.md
 #                     git -C "$root" -c user.name=r -c user.email=r@r commit -qm r
 #                     fw_review_verdict "$root/g/review_0.md"           -> FAIL
 #                     fw_review_verdict "$root/f/review_0.md"; echo $?  -> 1, prints nothing
 #                     fw_fail_count "$root/g"; fw_fail_count "$root/nope"   -> 1, 0
+#                     printf 'verdict: FAIL\n' > "$root/bad.md"; fw_round_file_check "$root/bad.md"; echo $?  -> verdict: FAIL with no numbered entry under ## Must Fix, 1
 #   round evidence    fw_round_evidence "$root" "$root/n_{round}.md" "$root/plan.md" -- a="$root/g" b="$root/h"
 #                     -> round: 0
 #                        gate: a FAIL <root>/g/review_0.md
@@ -116,6 +119,46 @@ fw_review_verdict() {
   return 0
 }
 
+# Print nothing and return 0 when round file <file> may be used; otherwise print
+# one reason line and return 1, the first problem found winning. A `FAIL` needs
+# at least one numbered entry under `## Must Fix` and a `PASS` none; every entry
+# needs a non-empty `**Class:**` and `**Failure:**`. The class name is not
+# checked: `finding_grades.md` owns that list.
+fw_round_file_check() {
+  local file="${1-}" verdict reason
+  verdict=$(fw_review_verdict "$file") || {
+    printf 'no single verdict line\n'
+    return 1
+  }
+  reason=$(FW_VERDICT="$verdict" awk '
+    function settle() {
+      if (open && bad == "") {
+        if (!class) bad = "Must Fix entry " k " lacks **Class:**"
+        else if (!failure) bad = "Must Fix entry " k " lacks **Failure:**"
+      }
+      open = 0
+    }
+    { l = $0; sub(/\r$/, "", l) }
+    l ~ /^## / { settle(); in_section = (l == "## Must Fix"); next }
+    !in_section { next }
+    l ~ /^[0-9]+\. / { settle(); k++; open = 1; class = 0; failure = 0; next }
+    open && l ~ /^[ \t]*\*\*Class:\*\*[ \t]*[^ \t]/ { class = 1 }
+    open && l ~ /^[ \t]*\*\*Failure:\*\*[ \t]*[^ \t]/ { failure = 1 }
+    END {
+      settle()
+      if (ENVIRON["FW_VERDICT"] == "FAIL" && !k) print "verdict: FAIL with no numbered entry under ## Must Fix"
+      else if (ENVIRON["FW_VERDICT"] == "PASS" && k) print "verdict: PASS with a numbered entry under ## Must Fix"
+      else if (bad != "") print bad
+    }
+  ' "$file" 2>/dev/null) || {
+    printf 'no single verdict line\n'
+    return 1
+  }
+  [ -n "$reason" ] || return 0
+  printf '%s\n' "$reason"
+  return 1
+}
+
 # Print how many `review_<n>.md` entries `fw_review_verdict` reads as `FAIL`,
 # or 0 when the folder is absent. Not a count of files: a `PASS` round writes
 # a file too.
@@ -144,7 +187,8 @@ fw_fail_count() {
 # Every path absolute; <note_template> carries the literal `{round}`; the pairs
 # are the gates the caller names, in gate order. Prints, in this order:
 #   round: <R> | round: none   R = the highest <n> among the folders' review_<n>.md
-#   gate: <node> <PASS|FAIL|missing|unreadable> <folder>/review_<R>.md   one per pair
+#   gate: <node> <PASS|FAIL|missing|unreadable> <folder>/review_<R>.md   one per pair;
+#                              `unreadable` = present, and `fw_round_file_check` refuses it
 #   note: present | absent     <note_template> with {round} = R+1
 #   plan: not-newer | newer | unknown
 # `round: none` is followed by `note: absent` and `plan: unknown` only. `plan:`
@@ -198,6 +242,7 @@ fw_round_evidence() {
     else
       present[$nf]="$file"; nf=$((nf + 1))
       v=$(fw_review_verdict "$file") || v=unreadable
+      fw_round_file_check "$file" >/dev/null || v=unreadable
     fi
     printf 'gate: %s %s %s\n' "$node" "$v" "$file"
     i=$((i + 1))

@@ -1,13 +1,15 @@
 /**
- * The flow walker's gate library, `lib/flow-walker-gates.sh`: `fw_review_verdict`, `fw_fail_count`
- * and `fw_round_evidence`.
+ * The flow walker's gate library, `lib/flow-walker-gates.sh`: `fw_review_verdict`,
+ * `fw_round_file_check`, `fw_fail_count` and `fw_round_evidence`.
  *
  * **The rule this suite enforces: a round file's verdict is read only from exactly one
- * `verdict: PASS` / `verdict: FAIL` line, a folder's FAIL count counts only files read as `FAIL`,
- * and a round's evidence is reported literally — the highest round, each gate's verdict or
- * `missing` / `unreadable`, the next round's note, and whether a plan path changed after the
- * earliest present gate file was committed — without the library deciding anything from it.** The
- * line contract is `plugin/instructions/plan_review_rounds.md` → `## The round file`.
+ * `verdict: PASS` / `verdict: FAIL` line, `fw_round_file_check` refuses a file whose verdict and
+ * `## Must Fix` entries disagree or whose entry lacks `**Class:**` or `**Failure:**`, a folder's
+ * FAIL count counts only files read as `FAIL`, and a round's evidence is reported literally — the
+ * highest round, each gate's verdict or `missing` / `unreadable`, the next round's note, and
+ * whether a plan path changed after the earliest present gate file was committed — without the
+ * library deciding anything from it.** The line contract is
+ * `plugin/instructions/plan_review_rounds.md` → `## The round file`.
  *
  * Both libraries are the copies `init` shipped into a fixture (`cli/test/helpers/walker.mjs`: never
  * the template in this checkout), sourced by a `bash -c` driver that calls one function with fixed
@@ -69,8 +71,13 @@ async function commit(...relatives) {
   await runGit(fixture.dir, ['commit', '-q', '--no-verify', '-m', 'fixture']);
 }
 
-const FAIL = '# Review\n\nverdict: FAIL\n';
+const CLASS = '   **Class:** Wrong build\n';
+const FAILURE = '   **Failure:** If the writer follows the plan, then the build fails.\n';
+const ENTRY = `1. **fixture finding**\n${CLASS}${FAILURE}`;
+const FAIL_HEAD = '# Review\n\nverdict: FAIL\n\n## Must Fix\n';
+const FAIL = `${FAIL_HEAD}${ENTRY}`;
 const PASS = '# Review\n\nverdict: PASS\n';
+const LACKS_FAILURE = `${FAIL_HEAD}1. **fixture finding**\n${CLASS}`;
 
 test('fw_review_verdict reads exactly one verdict line', { skip: SKIP }, async (t) => {
   await t.test('a FAIL file prints FAIL', async () => {
@@ -96,9 +103,98 @@ test('fw_review_verdict reads exactly one verdict line', { skip: SKIP }, async (
   });
 });
 
+test('fw_round_file_check decides whether a round file may be used', { skip: SKIP }, async (t) => {
+  const VALID = { status: 0, stdout: '', stderr: '' };
+  const refused = (reason) => ({ status: 1, stdout: `${reason}\n`, stderr: '' });
+  const NO_ENTRY = 'verdict: FAIL with no numbered entry under ## Must Fix';
+  const check = async (name, content) => call('fw_round_file_check', await plant(`check/${name}/review_0.md`, content));
+
+  await t.test('a FAIL with a complete entry is valid', async () => {
+    assert.deepEqual(await check('fail', FAIL), VALID);
+  });
+
+  await t.test('a PASS with no section is valid', async () => {
+    assert.deepEqual(await check('pass', PASS), VALID);
+  });
+
+  await t.test('no single verdict line', async () => {
+    const reason = refused('no single verdict line');
+    assert.deepEqual(await check('dup', `verdict: FAIL\n${FAIL}`), reason);
+    assert.deepEqual(await check('none', '# Review\n'), reason);
+    assert.deepEqual(await call('fw_round_file_check', join(fixture.dir, 'check/absent/review_0.md')), reason);
+  });
+
+  await t.test('a FAIL with no numbered entry, the section empty or absent', async () => {
+    assert.deepEqual(await check('empty', FAIL_HEAD), refused(NO_ENTRY));
+    assert.deepEqual(await check('nosection', '# Review\n\nverdict: FAIL\n'), refused(NO_ENTRY));
+  });
+
+  await t.test('a PASS with a numbered entry', async () => {
+    assert.deepEqual(
+      await check('passentry', `${PASS}\n## Must Fix\n${ENTRY}`),
+      refused('verdict: PASS with a numbered entry under ## Must Fix'),
+    );
+  });
+
+  await t.test('an entry lacking **Class:**', async () => {
+    assert.deepEqual(
+      await check('noclass', `${FAIL_HEAD}1. **fixture finding**\n${FAILURE}`),
+      refused('Must Fix entry 1 lacks **Class:**'),
+    );
+  });
+
+  await t.test('an entry lacking **Failure:**, named by its position', async () => {
+    assert.deepEqual(
+      await check('nofailure', `${FAIL}2. **second finding**\n${CLASS}`),
+      refused('Must Fix entry 2 lacks **Failure:**'),
+    );
+  });
+
+  await t.test('the first problem found wins', async () => {
+    assert.deepEqual(
+      await check('first', `${FAIL_HEAD}1. **one**\n${CLASS}2. **two**\n${FAILURE}`),
+      refused('Must Fix entry 1 lacks **Failure:**'),
+    );
+    assert.deepEqual(await check('both', `${FAIL_HEAD}1. **one**\n`), refused('Must Fix entry 1 lacks **Class:**'));
+  });
+
+  await t.test('a field with no value does not count', async () => {
+    assert.deepEqual(
+      await check('blank', `${FAIL_HEAD}1. **one**\n   **Class:**   \n${FAILURE}`),
+      refused('Must Fix entry 1 lacks **Class:**'),
+    );
+  });
+
+  await t.test('a field past the end of the section does not count', async () => {
+    assert.deepEqual(
+      await check('past', `${FAIL_HEAD}1. **one**\n${CLASS}\n## Should Fix\n${FAILURE}`),
+      refused('Must Fix entry 1 lacks **Failure:**'),
+    );
+  });
+
+  await t.test('a CRLF file is read like its LF form', async () => {
+    assert.deepEqual(await check('crlf', FAIL.replaceAll('\n', '\r\n')), VALID);
+    assert.deepEqual(
+      await check('crlfblank', `${FAIL_HEAD}1. **one**\n   **Class:** \n${FAILURE}`.replaceAll('\n', '\r\n')),
+      refused('Must Fix entry 1 lacks **Class:**'),
+    );
+  });
+
+  await t.test('fields after a multi-line description belong to the entry', async () => {
+    const description = '   First line of the description.\n\n   Second paragraph, naming **Class** in prose.\n';
+    assert.deepEqual(await check('multi', `${FAIL_HEAD}1. **one**\n${description}${CLASS}${FAILURE}`), VALID);
+  });
+
+  await t.test('`## Must Fix` text inside `## Should Fix` is not the section', async () => {
+    const shouldFix = '## Should Fix\nSee ## Must Fix\n ## Must Fix\n## Must Fix later\n1. **not a must fix**\n';
+    assert.deepEqual(await check('sf_fail', `# Review\n\nverdict: FAIL\n\n${shouldFix}`), refused(NO_ENTRY));
+    assert.deepEqual(await check('sf_pass', `${PASS}\n${shouldFix}`), VALID);
+  });
+});
+
 test('fw_fail_count counts only files read as FAIL', { skip: SKIP }, async () => {
   await plant('count/f/review_0.md', FAIL);
-  await plant('count/f/review_1.md', FAIL);
+  await plant('count/f/review_1.md', LACKS_FAILURE);
   await plant('count/f/review_2.md', PASS);
   await plant('count/f/review_x.md', FAIL);
   assert.deepEqual(await call('fw_fail_count', join(fixture.dir, 'count/f')), { status: 0, stdout: '2\n', stderr: '' });
@@ -142,6 +238,15 @@ test('fw_round_evidence reports a round literally', { skip: SKIP }, async (t) =>
         'plan: unknown',
         '',
       ].join('\n'),
+      stderr: '',
+    });
+  });
+
+  await t.test('a FAIL file whose entry lacks **Failure:** is unreadable', async () => {
+    await plant('ev_bad/a/review_0.md', LACKS_FAILURE);
+    assert.deepEqual(await evidence('ev_bad', 'ev_bad/plan.md', ['a']), {
+      status: 0,
+      stdout: ['round: 0', `gate: a unreadable ${at('ev_bad', 'a', 0)}`, 'note: absent', 'plan: unknown', ''].join('\n'),
       stderr: '',
     });
   });
