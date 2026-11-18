@@ -134,11 +134,13 @@
 # VERDICT — parse prompt-injection-reviewer's return, which the orchestrator
 # wrote to <verdict-file>, for the one file <path>. Fails closed: only the exact
 # SAFE object passes. The file holds either the reply alone or the whole `Agent`
-# result it came in; a whole result — optional tools-used lines, then at most
-# one harness notice line after them, both ahead of the frame, the
+# result it came in; a whole result — optional tools-used lines, then an
+# optional harness notice line after them, both ahead of the frame, the
 # `[Subagent hand-back]` frame line, the reply indented by two spaces, an
 # `agentId: ` trailer holding neither — is unwrapped to the reply first
-# (pis_unwrap_vlines), and no other wrapping is. After
+# (pis_unwrap_vlines), and no other wrapping is. The notice may instead be the
+# reply's first non-blank line, which unwraps to a blank line; one result
+# carries at most one notice across both placements. After
 # whitespace-only lines at either end are dropped, the
 # text is one fenced block: the first line exactly ```json, the last exactly ```,
 # no line between beginning with ```. Anything else outside it — prose, a second
@@ -1056,6 +1058,9 @@ pis_is_notice_line() {
 # by two spaces, then optionally a column-0 trailer from a line opening
 # `agentId: ` to the end. Whatever precedes the frame, the frame and the trailer
 # are dropped and the two spaces removed; whitespace-only lines become empty.
+# The notice may instead be the reply's first non-blank line, which becomes
+# empty too; one result carries at most one notice across both placements, and
+# any other notice in the reply stays there for pis_parse_verdict to refuse.
 # Only that whole shape is unwrapped: with no frame line the lines stand as they
 # are, after a frame any other non-blank column-0 line leaves them untouched,
 # and so does a tools-used or notice line in the trailer, so a trailer, an
@@ -1063,7 +1068,7 @@ pis_is_notice_line() {
 # malformed.
 # Sets PIS_VUNWRAPPED to 1 when it unwrapped, else 0.
 pis_unwrap_vlines() {
-  local n=${#PIS_VLINES[@]} i=0 m=0 line notice=0
+  local n=${#PIS_VLINES[@]} i=0 m=0 line notice=0 started=0
   local -a reply
   PIS_VUNWRAPPED=0
   while [ "$i" -lt "$n" ]; do
@@ -1088,7 +1093,15 @@ pis_unwrap_vlines() {
       reply[$m]=""
     else
       case "$line" in
-        '  '*) reply[$m]="${line#"  "}" ;;
+        '  '*)
+          if [ "$started" = 0 ] && [ "$notice" = 0 ] && pis_is_notice_line "$line"; then
+            notice=1
+            reply[$m]=""
+          else
+            reply[$m]="${line#"  "}"
+          fi
+          started=1
+          ;;
         'agentId: '*) break ;;
         *) return 0 ;;
       esac
