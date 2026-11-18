@@ -54,7 +54,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_init_upgrade/task_<K>_p
 3. [x] **Task 3** — Write-protect and ignore the local additions file _(layer: cli)_ _(points: 10)_
 4. [x] **Task 4** — Merge local additions when the permission profile is rendered _(layer: cli)_ _(points: 20)_
 5. [x] **Task 5** — Add the profile upgrade planner, entry delta and drift comparison _(layer: cli)_ _(points: 15)_
-6. [ ] **Task 6** — Add the outer-loop script upgrade planner and drift reader _(layer: cli)_ _(points: 10)_
+6. [x] **Task 6** — Add the outer-loop script upgrade planner and drift reader _(layer: cli)_ _(points: 10)_
 7. [ ] **Task 7** — Add the run-registry reader and the installed plugin version reader _(layer: cli)_ _(points: 15)_
 8. [ ] **Task 8** — Add the `--upgrade` repository refusals _(layer: cli)_ _(points: 10)_
 9. [ ] **Task 9** — Add the `--upgrade` report _(layer: cli)_ _(points: 10)_

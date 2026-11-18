@@ -21,8 +21,10 @@
  *    these scripts reads `<repo_root>/devscene.config.json` at run time through the one shared
  *    library the `lib` row below writes beside them, because a guard whose protected-branch set was
  *    frozen into a file when `init` ran enforces the wrong set the moment `protectedBranches` changes —
- *    and that failure is silent. Verbatim copies are also what makes the `create-if-absent` re-run
- *    contract trivial here: there is no generated content for a second run to disagree about.
+ *    and that failure is silent. Verbatim copies are also what makes both re-run contracts trivial
+ *    here, `create-if-absent` under `init` and `replace-if-changed` under `init --upgrade`: there is
+ *    no generated content for a second run to disagree about, so a row is current exactly when it
+ *    carries its template's bytes and its table mode.
  * 2. **The set is written whatever the repository looks like — there is no selection rule.** The
  *    wrapper set has one (`selectWrapper`) because a wrapper exists only for a command that
  *    resolved. These scripts are the flow's own machinery rather than a view of the adopter's
@@ -36,18 +38,21 @@
  *
  * ## Scope this release
  *
- * This module is the **writer**. The set below grows one row at a time as each script's template
+ * This module is the **writer**, the upgrade planner ({@link planOuterLoopScriptUpgrade}) and the
+ * drift reader ({@link outerLoopScriptDrift}). The wrapper scripts are none of its business: each
+ * holds the adopter's own command. The set below grows one row at a time as each script's template
  * lands, and the ordering rule is the one stated on {@link OUTER_LOOP_SCRIPTS}: a row arrives in
  * the same change as its template, never before it, so a generated permission profile can never
  * allow-list a file that was never written.
  */
 
+import { lstatSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { DEFAULTS, type HarnessConfig } from '../config/model.js';
 import { readTemplate } from '../core/paths.js';
 import { normalizeRepoDir } from '../core/repoPaths.js';
-import type { WritePlan } from '../core/writer.js';
+import type { WritePlan, WritePolicy } from '../core/writer.js';
 import { scriptInvocation } from './scripts.js';
 
 /**
@@ -130,6 +135,16 @@ export interface OuterLoopScript {
  * nowhere else.
  */
 export const WATCHER_SCRIPT_NAME = 'autonomous-watcher.sh';
+
+/**
+ * The watcher restart script's file name, named on its own for the same reason
+ * {@link WATCHER_SCRIPT_NAME} is: the `init --upgrade` report prints this script's invocation, because
+ * a running watcher keeps the code it already parsed, and a report disagreeing with the writer would
+ * tell the operator to run a file that was never written.
+ *
+ * The row below is built from it, so the file is renamed here and nowhere else.
+ */
+export const RESTART_WATCHER_SCRIPT_NAME = 'restart-watcher.sh';
 
 /**
  * The notifier's file name, named on its own for the same reason {@link WATCHER_SCRIPT_NAME} is:
@@ -233,7 +248,7 @@ export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze(
   Object.freeze({ file: 'planning-record-lib.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
   Object.freeze({ file: 'planning-driver-lib.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
   Object.freeze({ file: WATCHER_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
-  Object.freeze({ file: 'restart-watcher.sh', mode: 0o755, agentInvocable: false }),
+  Object.freeze({ file: RESTART_WATCHER_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
   // Run by the watcher, the remote job or a person. Carries a `DENY_SCRIPT_BASENAMES` entry: a run that
   // could dispatch runs could start runs about itself.
   Object.freeze({ file: 'remote-run.sh', mode: 0o755, agentInvocable: false }),
@@ -248,7 +263,13 @@ export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze(
 /** The templates' subdirectory under `cli/templates/`, addressed as {@link readTemplate} wants it. */
 const TEMPLATE_DIR = 'scripts';
 
-/** Everything {@link writeOuterLoopScripts} needs. */
+/**
+ * The one bit {@link outerLoopScriptDrift} compares. Git records only this one, so a checkout under a
+ * stricter umask differs from the table in its group and other bits without having drifted.
+ */
+const OWNER_EXECUTE_BIT = 0o100;
+
+/** Everything {@link writeOuterLoopScripts} and {@link planOuterLoopScriptUpgrade} need. */
 export interface OuterLoopScriptsOptions {
   /** The resolved repository root the scripts are written under. */
   readonly repoRoot: string;
@@ -281,6 +302,14 @@ export interface OuterLoopScriptsResult {
   readonly written: readonly WrittenOuterLoopScript[];
   /** Informational lines, one each, for the reporter's `info` — as `init` drains every generator's. */
   readonly notes: readonly string[];
+}
+
+/** How the scripts on disk differ from the shipped set. Paths are relative to `scriptsDir`, in table order. */
+export interface OuterLoopScriptDrift {
+  /** Rows with nothing at their path. */
+  readonly missing: readonly string[];
+  /** Rows whose bytes or executable bit differ, or whose path holds something other than a regular file. */
+  readonly changed: readonly string[];
 }
 
 /**
@@ -339,18 +368,19 @@ export function outerLoopScriptPath(repoRoot: string, config: HarnessConfig, rel
   return join(repoRoot, outerLoopScriptsDir(config), ...relativePath.split('/'));
 }
 
+/** A shipped script's text, addressed by its path relative to `scriptsDir`. */
+function shippedScript(relativePath: string): string {
+  return readTemplate(`${TEMPLATE_DIR}/${relativePath}`);
+}
+
 /**
- * Enqueue the outer-loop scripts for the configured `scriptsDir`: `ensure-dir` on the directory and
- * on every subdirectory a row asks for, then one `create-if-absent` write per row, its content read
- * from the matching template and copied through unchanged.
- *
- * `create-if-absent` is the re-run contract for this artifact, and it means what it says: an adopter
- * who edited a generated script keeps that edit byte-for-byte on the next `init`. `--force`
- * overwrites, and only after the write engine has taken a `.bak` of what was there.
- *
- * Nothing here touches the filesystem: the generator plans, and `init` applies the plan once.
+ * Enqueue `ensure-dir` on the scripts directory and on every subdirectory a row asks for, then one
+ * write per row under `policy`, carrying the row's template unchanged and its mode.
  */
-export function writeOuterLoopScripts({ repoRoot, config, plan }: OuterLoopScriptsOptions): OuterLoopScriptsResult {
+function enqueueOuterLoopScripts(
+  { repoRoot, config, plan }: OuterLoopScriptsOptions,
+  policy: WritePolicy,
+): Pick<OuterLoopScriptsResult, 'scriptsDir' | 'written'> {
   const scriptsDir = outerLoopScriptsDir(config);
   const written: WrittenOuterLoopScript[] = [];
   const ensured = new Set<string>();
@@ -371,13 +401,31 @@ export function writeOuterLoopScripts({ repoRoot, config, plan }: OuterLoopScrip
     const relative = outerLoopRelativePath(script);
     plan.add({
       path: join(repoRoot, scriptsDir, ...relative.split('/')),
-      policy: 'create-if-absent',
-      content: readTemplate(`${TEMPLATE_DIR}/${relative}`),
+      policy,
+      content: shippedScript(relative),
       label: `outer-loop script ${relative}`,
       mode: script.mode,
     });
     written.push({ ...script, invocation: scriptInvocation(scriptsDir, relative) });
   }
+
+  return { scriptsDir, written };
+}
+
+/**
+ * Enqueue the outer-loop scripts for the configured `scriptsDir`: `ensure-dir` on the directory and
+ * on every subdirectory a row asks for, then one `create-if-absent` write per row, its content read
+ * from the matching template and copied through unchanged.
+ *
+ * This artifact has two re-run contracts. `create-if-absent` is `init`'s, and it means what it says:
+ * an adopter who edited a generated script keeps that edit byte-for-byte on the next `init`, and
+ * `--force` overwrites only after the write engine has taken a `.bak` of what was there.
+ * `replace-if-changed` is `init --upgrade`'s, and {@link planOuterLoopScriptUpgrade} enqueues it.
+ *
+ * Nothing here touches the filesystem: the generator plans, and `init` applies the plan once.
+ */
+export function writeOuterLoopScripts(options: OuterLoopScriptsOptions): OuterLoopScriptsResult {
+  const { scriptsDir, written } = enqueueOuterLoopScripts(options, 'create-if-absent');
 
   const notes =
     written.length === 0
@@ -387,4 +435,50 @@ export function writeOuterLoopScripts({ repoRoot, config, plan }: OuterLoopScrip
         ];
 
   return { scriptsDir, written, notes };
+}
+
+/**
+ * Enqueue the same directories and rows as {@link writeOuterLoopScripts} under `replace-if-changed`,
+ * which brings each row to its shipped bytes and mode. It carries no notes: the plain-`init` note
+ * says an edited copy is kept, which this plan does not do.
+ */
+export function planOuterLoopScriptUpgrade(options: OuterLoopScriptsOptions): OuterLoopScriptsResult {
+  return { ...enqueueOuterLoopScripts(options, 'replace-if-changed'), notes: [] };
+}
+
+/** `lstat` without following a link, or `undefined` when nothing can be at `path`. */
+function lstatOrUndefined(path: string): ReturnType<typeof lstatSync> | undefined {
+  try {
+    return lstatSync(path);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | null)?.code;
+    if (code === 'ENOENT' || code === 'ENOTDIR') return undefined;
+    throw error;
+  }
+}
+
+/**
+ * Which rows differ from what this CLI ships. Bytes are compared as buffers, so an invalid UTF-8
+ * sequence cannot decode into a match. Reads only.
+ */
+export function outerLoopScriptDrift(repoRoot: string, config: HarnessConfig): OuterLoopScriptDrift {
+  const missing: string[] = [];
+  const changed: string[] = [];
+
+  for (const script of OUTER_LOOP_SCRIPTS) {
+    const relative = outerLoopRelativePath(script);
+    const path = outerLoopScriptPath(repoRoot, config, relative);
+    const stats = lstatOrUndefined(path);
+    if (stats === undefined) {
+      missing.push(relative);
+      continue;
+    }
+    const current =
+      stats.isFile() &&
+      (Number(stats.mode) & OWNER_EXECUTE_BIT) === (script.mode & OWNER_EXECUTE_BIT) &&
+      readFileSync(path).equals(Buffer.from(shippedScript(relative), 'utf8'));
+    if (!current) changed.push(relative);
+  }
+
+  return { missing, changed };
 }
