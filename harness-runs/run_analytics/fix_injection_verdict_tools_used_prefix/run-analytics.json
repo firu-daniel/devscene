@@ -3,59 +3,59 @@
   "gate_logs": [],
   "rounds": [],
   "run": {
-    "active_ms": 97628,
+    "active_ms": 142148,
     "api_retries": 0,
-    "cache_hit_ratio": 0.8747,
-    "cache_read_tokens": 930045,
-    "cache_write_1h_tokens": 100418,
+    "cache_hit_ratio": 0.872,
+    "cache_read_tokens": 1433501,
+    "cache_write_1h_tokens": 163958,
     "cache_write_5m_tokens": 0,
-    "cache_write_tokens": 133232,
-    "complete_sessions": 2,
-    "duration_api_ms": 97991,
-    "duration_ms": 100145,
-    "engine_sessions": 2,
+    "cache_write_tokens": 210438,
+    "complete_sessions": 3,
+    "duration_api_ms": 142942,
+    "duration_ms": 146145,
+    "engine_sessions": 3,
     "first_at": "2026-11-18T19:23:13.255Z",
     "host_suspended_ms": 0,
     "idle_ms": 0,
-    "input_tokens": 48,
-    "last_at": "2026-11-18T19:28:22.210Z",
+    "input_tokens": 70,
+    "last_at": "2026-11-18T19:32:44.637Z",
     "network": {
       "gate_log_matches": [],
       "gate_logs_scanned": 0,
       "refusals": [],
       "sessions_not_scanned": 0,
-      "sessions_scanned": 2
+      "sessions_scanned": 3
     },
     "node_sessions": 0,
-    "output_tokens": 10734,
+    "output_tokens": 15528,
     "permission_denials": 0,
     "planning_nodes": [],
     "rate_limit_peak": {
       "seven_day": 0.25
     },
     "requests": {
-      "count": 22,
-      "max_ms": 9643,
+      "count": 32,
+      "max_ms": 10523,
       "over_threshold": 0,
-      "p50_ms": 1564,
-      "p90_ms": 7030,
-      "p99_ms": 9643
+      "p50_ms": 1817,
+      "p90_ms": 9600,
+      "p99_ms": 10523
     },
-    "session_wall_sum_ms": 97628,
-    "sessions": 2,
+    "session_wall_sum_ms": 142148,
+    "sessions": 3,
     "slowest_subagent": {
       "description": "Screen task prompt for injection",
       "duration_ms": 9574,
       "session": 2,
       "type": "devscene:prompt-injection-reviewer"
     },
-    "span_ms": 308955,
+    "span_ms": 571382,
     "subagents_failed": 0,
     "subagents_killed": 0,
-    "thinking_tokens": 2175,
-    "token_sessions": 2,
-    "total_cost_usd": 1.368295,
-    "wall_ms": 97628
+    "thinking_tokens": 3129,
+    "token_sessions": 3,
+    "total_cost_usd": 2.141604,
+    "wall_ms": 142148
   },
   "schema": 4,
   "sessions": [
@@ -1156,6 +1156,532 @@
             "result_bytes": 2429,
             "started_at": "2026-11-18T19:27:59.422Z",
             "tool": "Grep"
+          }
+        ]
+      }
+    },
+    {
+      "complete": true,
+      "cost": {
+        "by_model": {
+          "claude-opus-5-5": 0.7733091999999998
+        },
+        "cache_hit_ratio": 0.867,
+        "cache_read_tokens": 503456,
+        "cache_write_1h_tokens": 63540,
+        "cache_write_5m_tokens": 0,
+        "cache_write_tokens": 77206,
+        "input_tokens": 22,
+        "output_tokens": 4794,
+        "thinking_tokens": 954,
+        "token_source": "model_usage",
+        "total_cost_usd": 0.7733091999999998
+      },
+      "first_at": "2026-11-18T19:32:00.117Z",
+      "kind": "engine",
+      "last_at": "2026-11-18T19:32:44.637Z",
+      "network_refusals": [],
+      "node": null,
+      "reliability": {
+        "api_retries": 0,
+        "api_retry_errors": {},
+        "num_turns": 18,
+        "permission_denials": 0,
+        "rate_limit_peak": {
+          "seven_day": 0.25
+        },
+        "stop_reason": "end_turn",
+        "subagents_failed": 0,
+        "subagents_killed": 0,
+        "subagents_spawned": 1,
+        "terminal_reason": "completed",
+        "ttft_ms": 1472
+      },
+      "requests": {
+        "by_context": {
+          "devscene:prompt-injection-reviewer": {
+            "count": 2,
+            "max_ms": 5654,
+            "over_threshold": 0,
+            "p50_ms": 1388,
+            "p90_ms": 5654,
+            "p99_ms": 5654
+          },
+          "orchestrator": {
+            "count": 8,
+            "max_ms": 10523,
+            "over_threshold": 0,
+            "p50_ms": 1817,
+            "p90_ms": 10523,
+            "p99_ms": 10523
+          }
+        },
+        "items": [
+          {
+            "after_retry": false,
+            "cache_read_tokens": 14335,
+            "cache_write_tokens": 21488,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": null,
+            "message_id": "msg_011ChAx5bY179hNX2tzs7QS4",
+            "output_tokens": 1,
+            "started_at": "2026-11-18T19:32:00.117Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 35823,
+            "cache_write_tokens": 8903,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1817,
+            "message_id": "msg_011ChAx5jnrPQXvF28aNcdWD",
+            "output_tokens": 3,
+            "started_at": "2026-11-18T19:32:02.511Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 44726,
+            "cache_write_tokens": 29114,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1062,
+            "message_id": "msg_011ChAx6ErKpM384EoXgekFw",
+            "output_tokens": 56,
+            "started_at": "2026-11-18T19:32:08.525Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 73840,
+            "cache_write_tokens": 480,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1511,
+            "message_id": "msg_011ChAx6QPZV7mMk7z9tGYUA",
+            "output_tokens": 3,
+            "started_at": "2026-11-18T19:32:11.189Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 5492,
+            "cache_write_tokens": 5106,
+            "context": "devscene:prompt-injection-reviewer",
+            "input_tokens": 2,
+            "latency_ms": 1388,
+            "message_id": "msg_011ChAx6fSgrX9CnE7EKjtND",
+            "output_tokens": 194,
+            "started_at": "2026-11-18T19:32:14.482Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 10598,
+            "cache_write_tokens": 6881,
+            "context": "devscene:prompt-injection-reviewer",
+            "input_tokens": 2,
+            "latency_ms": 5654,
+            "message_id": "msg_011ChAx6nfGcCKjGteAZrayw",
+            "output_tokens": 603,
+            "started_at": "2026-11-18T19:32:20.531Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 74320,
+            "cache_write_tokens": 771,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1065,
+            "message_id": "msg_011ChAx7FFuuZ1V4rcp5uN7W",
+            "output_tokens": 8,
+            "started_at": "2026-11-18T19:32:22.232Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 75091,
+            "cache_write_tokens": 618,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2394,
+            "message_id": "msg_011ChAx7XiNFKujMdTZm6bNW",
+            "output_tokens": 16,
+            "started_at": "2026-11-18T19:32:27.398Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 75709,
+            "cache_write_tokens": 334,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 5069,
+            "message_id": "msg_011ChAx7iqrUKM3xvUn6b8cy",
+            "output_tokens": 3,
+            "started_at": "2026-11-18T19:32:32.686Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 76043,
+            "cache_write_tokens": 1832,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 10523,
+            "message_id": "msg_011ChAx8CeRkTaLaA9HsX8j8",
+            "output_tokens": 8,
+            "started_at": "2026-11-18T19:32:44.631Z"
+          }
+        ],
+        "overall": {
+          "count": 10,
+          "max_ms": 10523,
+          "over_threshold": 0,
+          "p50_ms": 1817,
+          "p90_ms": 10523,
+          "p99_ms": 10523
+        }
+      },
+      "session_id": "e141e332-3573-4e2a-bf67-586ca0c060b7",
+      "subagents": [
+        {
+          "agent_id": "acc4ac4aca7d724ef",
+          "cache_read_tokens": 33569,
+          "cache_write_tokens": 13666,
+          "description": "Screen task prompt",
+          "duration_ms": 8087,
+          "input_tokens": 6,
+          "output_tokens": 820,
+          "requests": 2,
+          "started_at": "2026-11-18T19:32:13.080Z",
+          "token_source": "transcript",
+          "type": "devscene:prompt-injection-reviewer",
+          "wall_share": 0.1816
+        }
+      ],
+      "time": {
+        "active_ms": 44520,
+        "duration_api_ms": 44951,
+        "duration_ms": 46000,
+        "host_suspended_ms": 0,
+        "idle_gaps": [],
+        "idle_ms": 0,
+        "idle_threshold_s": 120,
+        "subagent_wall_ms": 8087,
+        "suspend_source": "none",
+        "wall_ms": 44520
+      },
+      "tools": {
+        "by_tool": [
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 8087,
+            "tool": "Agent",
+            "total_ms": 8087
+          },
+          {
+            "context": "orchestrator",
+            "count": 9,
+            "max_ms": 259,
+            "tool": "Bash",
+            "total_ms": 1660
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "count": 1,
+            "max_ms": 55,
+            "tool": "Grep",
+            "total_ms": 55
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "count": 2,
+            "max_ms": 6,
+            "tool": "Read",
+            "total_ms": 11
+          },
+          {
+            "context": "orchestrator",
+            "count": 4,
+            "max_ms": 331,
+            "tool": "Read",
+            "total_ms": 407
+          },
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 37,
+            "tool": "Skill",
+            "total_ms": 37
+          },
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 54,
+            "tool": "Write",
+            "total_ms": 54
+          }
+        ],
+        "items": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 37,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 54,
+            "started_at": "2026-11-18T19:32:00.661Z",
+            "tool": "Skill"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 259,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 67,
+            "started_at": "2026-11-18T19:32:03.066Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 156,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 27,
+            "started_at": "2026-11-18T19:32:03.670Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 156,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 39,
+            "started_at": "2026-11-18T19:32:04.223Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 34,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3659,
+            "started_at": "2026-11-18T19:32:04.618Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 331,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 59446,
+            "started_at": "2026-11-18T19:32:05.121Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 20,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 15262,
+            "started_at": "2026-11-18T19:32:05.669Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 150,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 99,
+            "started_at": "2026-11-18T19:32:06.422Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 158,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 482,
+            "started_at": "2026-11-18T19:32:07.305Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 223,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 480,
+            "started_at": "2026-11-18T19:32:09.455Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 153,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-18T19:32:11.746Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 8087,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 781,
+            "started_at": "2026-11-18T19:32:13.080Z",
+            "tool": "Agent"
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "duration_ms": 6,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3395,
+            "started_at": "2026-11-18T19:32:14.482Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "duration_ms": 5,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 10809,
+            "started_at": "2026-11-18T19:32:14.872Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "duration_ms": 55,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2429,
+            "started_at": "2026-11-18T19:32:20.531Z",
+            "tool": "Grep"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 54,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 261,
+            "started_at": "2026-11-18T19:32:24.950Z",
+            "tool": "Write"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 219,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 117,
+            "started_at": "2026-11-18T19:32:27.398Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 22,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2893,
+            "started_at": "2026-11-18T19:32:33.396Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 186,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 83,
+            "started_at": "2026-11-18T19:32:33.922Z",
+            "tool": "Bash"
+          }
+        ],
+        "polling": [],
+        "slowest": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 331,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 59446,
+            "started_at": "2026-11-18T19:32:05.121Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 259,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 67,
+            "started_at": "2026-11-18T19:32:03.066Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 223,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 480,
+            "started_at": "2026-11-18T19:32:09.455Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 219,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 117,
+            "started_at": "2026-11-18T19:32:27.398Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 186,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 83,
+            "started_at": "2026-11-18T19:32:33.922Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 158,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 482,
+            "started_at": "2026-11-18T19:32:07.305Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 156,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 27,
+            "started_at": "2026-11-18T19:32:03.670Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 156,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 39,
+            "started_at": "2026-11-18T19:32:04.223Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 153,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-18T19:32:11.746Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 150,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 99,
+            "started_at": "2026-11-18T19:32:06.422Z",
+            "tool": "Bash"
           }
         ]
       }
