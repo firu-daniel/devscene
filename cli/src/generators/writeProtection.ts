@@ -16,7 +16,8 @@
  * {@link protectedPaths} and {@link fileToolDenyRules}, so they are the one statement of the set.
  *
  * The set: the main checkout's outer-loop scripts and their library, the hooks directories, the MCP
- * wiring, the profile and the settings files, the plugin roots, the main checkout's whole `.git`, its
+ * wiring, the profile, its local additions file (the main checkout's copy alone: a run loads no
+ * other) and the settings files, the plugin roots, the main checkout's whole `.git`, its
  * configuration file and run registry, a `.git` at each scripts-directory level, and, under the
  * sibling-run-copy glob, the same hooks, MCP and settings paths plus the {@link COPY_GIT_PATHS} rows:
  * the run copy's trust files and its branch-ref store — `HEAD`, `refs/heads` and `packed-refs`.
@@ -72,7 +73,7 @@ import {
   RUN_LIBRARY_SCRIPT_NAME,
   type OuterLoopScript,
 } from './outerLoopScripts.js';
-import { appendReadme, assertUsableInEntry, normalizedRoot, PROFILE_PATH } from './profileEntries.js';
+import { appendReadme, assertUsableInEntry, normalizedRoot, PROFILE_LOCAL_PATH, PROFILE_PATH } from './profileEntries.js';
 import { SETTINGS_LOCAL_PATH, SETTINGS_PATH } from './projectSettings.js';
 import { MCP_PATH } from './repoRoot.js';
 import { SANDBOX_KEY } from './sandboxProfile.js';
@@ -213,7 +214,7 @@ export const COPY_GIT_PATHS: readonly CopyGitPath[] = Object.freeze([
 ]);
 
 /** The main checkout's run registry, under the configured `stateDir`. */
-function runRegistryPath(repoRoot: string, config: HarnessConfig): string {
+export function runRegistryPath(repoRoot: string, config: HarnessConfig): string {
   return join(repoRoot, normalizeRepoDir(config.stateDir ?? DEFAULTS.stateDir), RUN_LOGS_DIR, RUN_REGISTRY_FILENAME);
 }
 
@@ -246,7 +247,7 @@ function libraryDir(): string {
 /**
  * The write-protected set, in a fixed order: the main checkout's copy of every top-level outer-loop
  * script (the unsandboxed wrappers first) and the wrappers' library, the hooks
- * directories, the MCP launch surface, the profile and the project settings files, the plugin roots,
+ * directories, the MCP launch surface, the profile, its local additions file and the project settings files, the plugin roots,
  * the main checkout's whole `.git`, the {@link COPY_GIT_PATHS} rows under the sibling-run-copy glob,
  * the main checkout's configuration file, the run registry by its exact path, and a `.git` at each
  * level of the scripts directory. The configuration file and the `.git` levels are protected because the wrappers place
@@ -313,6 +314,11 @@ export function protectedPaths({
       path: join(repoRoot, PROFILE_PATH),
       kind: 'file',
       reason: "the run watcher renders every local run's --settings file from it, and a remote job passes it with --settings",
+    },
+    {
+      path: join(repoRoot, PROFILE_LOCAL_PATH),
+      kind: 'file',
+      reason: 'its entries are merged into the permission profile every run is rendered from',
     },
     { path: join(repoRoot, SETTINGS_PATH), kind: 'file', reason: 'Claude Code runs the hooks it declares outside the sandbox' },
     { path: join(glob, SETTINGS_PATH), kind: 'file', reason: "a run copy's session runs the hooks it declares outside the sandbox" },

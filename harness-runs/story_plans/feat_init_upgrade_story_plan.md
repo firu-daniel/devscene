@@ -51,7 +51,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_init_upgrade/task_<K>_p
 
 1. [x] **Task 1** — Add the atomic `replace-if-changed` write policy and `gitCommonDir` _(layer: cli)_ _(points: 20)_
 2. [x] **Task 2** — Read and validate the local permission additions file _(layer: cli)_ _(points: 15)_
-3. [ ] **Task 3** — Write-protect and ignore the local additions file _(layer: cli)_ _(points: 10)_
+3. [x] **Task 3** — Write-protect and ignore the local additions file _(layer: cli)_ _(points: 10)_
 4. [ ] **Task 4** — Merge local additions when the permission profile is rendered _(layer: cli)_ _(points: 20)_
 5. [ ] **Task 5** — Add the profile upgrade planner, entry delta and drift comparison _(layer: cli)_ _(points: 15)_
 6. [ ] **Task 6** — Add the outer-loop script upgrade planner and drift reader _(layer: cli)_ _(points: 10)_
