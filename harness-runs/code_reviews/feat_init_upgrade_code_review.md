@@ -20,7 +20,7 @@ Seven findings follow: two Must Fix and five Should Fix.
 
 **This section is the single source of truth for the per-item fix loop.** The orchestrator walks the `[ ]` entries below top to bottom; the committing role flips each one to `[x]` as that fix lands. Each entry resolves to `harness-runs/code_reviews/feat_init_upgrade_code_review/finding_<K>.md`. The leading number is the fix order and `K` is the finding's stable identity.
 
-1. [ ] **Finding 6** — Use the shared `lstatOrUndefined` probe in `writePermissionProfile` _(layer: cli)_
+1. [x] **Finding 6** — Use the shared `lstatOrUndefined` probe in `writePermissionProfile` _(layer: cli)_
 2. [ ] **Finding 5** — Correct `doctor`'s comments that call the profile the adopter's file _(layer: cli)_
 3. [ ] **Finding 4** — Print the pinned command in the upgrade report's version warning _(layer: cli)_
 4. [ ] **Finding 3** — Stop asking for a daemon restart after a permission-bits repair _(layer: cli)_

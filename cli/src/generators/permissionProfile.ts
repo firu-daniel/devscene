@@ -232,14 +232,13 @@
  * A mirror this header does not declare is a defect.
  */
 
-import { lstatSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, sep } from 'node:path';
 
 import { browserWiringApplies, CONFIG_FILENAME, DEFAULTS, retrievalApplies, type HarnessConfig } from '../config/model.js';
 import { HarnessError, internal } from '../core/errors.js';
 import { MAIN_REPO_ANCHOR_READ, MAIN_REPO_ANCHOR_RULE } from '../core/mainRepoAnchor.js';
 import { isJsonObject, readJsonFile, stringsAt, valueAt, type JsonObject, type JsonValue } from '../core/json.js';
-import { defaultProjectName, readTemplate, workRoot as resolveWorkRoot, worktreeGlob } from '../core/paths.js';
+import { defaultProjectName, lstatOrUndefined, readTemplate, workRoot as resolveWorkRoot, worktreeGlob } from '../core/paths.js';
 import { normalizeRepoDir } from '../core/repoPaths.js';
 import { containsToken, renderTemplate } from '../core/templating.js';
 import type { WriteEffect, WritePlan } from '../core/writer.js';
@@ -1824,7 +1823,7 @@ export function writePermissionProfile({
   let outcome: PluginRootEntriesOutcome = 'off';
 
   const path = join(repoRoot, PROFILE_PATH);
-  const willWrite = force === true || lstatSync(path, { throwIfNoEntry: false }) === undefined;
+  const willWrite = force === true || lstatOrUndefined(path) === undefined;
   const localAdditions = willWrite ? readLocalAdditions(repoRoot) : undefined;
 
   const profile = renderProfile({
