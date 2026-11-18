@@ -71,3 +71,30 @@
 - **category:** optimization
 - **evidence:** Phase A2 `architecture-reviewer`, Phase B.2 `review-plan-reviewer` and Phase C2 `skeptic-reviewer` each ran once over the branch and returned `PASS`, with no findings file and no fix commit.
 - **cost this run:** 3 dispatches, 1 pass each
+
+# User-review fix round 1 — two-leg divergence row and the Must Fix triggers corpus test
+
+## A per-unit Should Fix passes the unit and is summarised as Nice to Have
+- **category:** agent-contract
+- **evidence:** `layer-reviewer` returned `PASS` on Item 1 (`plugin`) and Item 2 (`cli`), each return reporting one Should Fix, in `harness-runs/user_review_fix_plan_point_reviews/feat_must_fix_definition_fix_plan/item_1/review_0.md` and `item_2/review_0.md`. `plugin/agents/layer-reviewer.md` (main checkout) case 2 returns `PASS` for Should Fix findings, while `plugin/instructions/user_review_fixes_instructions_core.md` (main checkout) → `### D.2 Done summary` says such files hold Nice to Have observations because "Must Fix / Should Fix would have triggered FAIL".
+- **cost this run:** 2 Should Fix findings entered no fix iteration and remain open on the branch
+
+## Agent probe and cleanup commands were refused
+- **category:** tooling-gap
+- **evidence:** the `user-review-fix-plan-writer` return states its scratch script was refused; the fix-plan `architecture-reviewer` return states its prototype of the planned audit was denied; the Item 2 `cli` and `general` `layer-reviewer` returns state their cleanup commands were denied, leaving `harness-runs/scratch/layer_review_triggers_probe.mjs` and `harness-runs/scratch/item2_general_audit_probe.mjs`.
+- **cost this run:** the plan's matching lists were written and gated without being executed, and the first test run needed one added `NOT_A_GRADE` entry; two ignored scratch files left behind
+
+## The ledger re-seed rule names no case for a task-engine ledger
+- **category:** agent-contract
+- **evidence:** `harness-runs/flow_progress/feat_must_fix_definition_progress.md` opened this round with the header `(engine: task)`, which carries no round. `plugin/instructions/autonomous_pause_and_ledger.md` (main checkout) § 1.4 decides by comparing header rounds: equal, older or absent. The run treated it as older and re-seeded in commit 51706719.
+- **cost this run:** one decision taken by inference; no rework
+
+## The configured default branch has no local ref in this run copy
+- **category:** agent-contract
+- **evidence:** the Phase D `statistics-plan-writer` return states `dev` has no local ref and that it read the range from `origin/dev`. This session's disposition and index-only history reads also used `origin/dev..HEAD`.
+- **cost this run:** one agent substituted the base on its own
+
+## The per-unit reviewer and the fix-plan gate produced no change
+- **category:** optimization
+- **evidence:** `layer-reviewer` ran 3 times across both fix items (Item 1 `plugin`, Item 2 `cli` and `general`), each returning `PASS` at iteration 0 with no fix dispatch. The fix-plan `architecture-reviewer` gate returned `PASS` on round 0 with no revision (`harness-runs/architecture_user_review_reviews/feat_must_fix_definition/user_review_1/review_0.md`).
+- **cost this run:** 4 dispatches, none followed by a change
