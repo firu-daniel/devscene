@@ -238,7 +238,7 @@ import { basename, dirname, isAbsolute, join, sep } from 'node:path';
 import { browserWiringApplies, CONFIG_FILENAME, DEFAULTS, retrievalApplies, type HarnessConfig } from '../config/model.js';
 import { HarnessError, internal } from '../core/errors.js';
 import { MAIN_REPO_ANCHOR_READ, MAIN_REPO_ANCHOR_RULE } from '../core/mainRepoAnchor.js';
-import { isJsonObject, readJsonFile, valueAt, type JsonObject, type JsonValue } from '../core/json.js';
+import { isJsonObject, readJsonFile, stringsAt, valueAt, type JsonObject, type JsonValue } from '../core/json.js';
 import { defaultProjectName, readTemplate, workRoot as resolveWorkRoot, worktreeGlob } from '../core/paths.js';
 import { normalizeRepoDir } from '../core/repoPaths.js';
 import { containsToken, renderTemplate } from '../core/templating.js';
@@ -1173,7 +1173,7 @@ function appendAdditionalDirectories(profile: JsonObject, directories: readonly 
 /** One `permissions` list of the local additions, in file order; none when there are no additions. */
 function localPermissionEntries(additions: LocalAdditions | undefined, list: string): readonly string[] {
   if (additions === undefined) return [];
-  return stringsIn(valueAt(additions.fragment, ['permissions', list]));
+  return stringsAt(valueAt(additions.fragment, ['permissions', list]));
 }
 
 /** The `allow` entry for one reference-toolchain command path. */
@@ -1406,20 +1406,15 @@ function existingProfile(repoRoot: string): JsonObject | undefined {
   return isJsonObject(parsed) ? parsed : undefined;
 }
 
-/** The strings of a list that may be missing or malformed. */
-function stringsIn(value: JsonValue | undefined): readonly string[] {
-  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
-}
-
 /** The `permissions.allow` entries of an on-disk profile. */
 function existingAllowEntries(profile: JsonObject | undefined): readonly string[] {
-  return profile === undefined ? [] : stringsIn(valueAt(profile, ['permissions', 'allow']));
+  return profile === undefined ? [] : stringsAt(valueAt(profile, ['permissions', 'allow']));
 }
 
 /** The entries an on-disk profile's {@link LOCAL_ALLOW_RECORD_PREFIX} `_README` lines record as local. */
 function recordedLocalEntries(profile: JsonObject | undefined): readonly string[] {
   if (profile === undefined) return [];
-  return stringsIn(profile[README_KEY])
+  return stringsAt(profile[README_KEY])
     .filter((line) => line.startsWith(LOCAL_ALLOW_RECORD_PREFIX))
     .map((line) => line.slice(LOCAL_ALLOW_RECORD_PREFIX.length));
 }

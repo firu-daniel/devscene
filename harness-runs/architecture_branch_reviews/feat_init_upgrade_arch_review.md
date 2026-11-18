@@ -8,7 +8,7 @@ The layering holds. The new `cli/src/upgrade/` area sits above `generators/`, `c
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Use the shared stringsAt instead of a private copy in the permission profile _(layer: cli)_
+1. [x] **Finding 1** — Use the shared stringsAt instead of a private copy in the permission profile _(layer: cli)_
 2. [ ] **Finding 2** — Give the two lstatOrUndefined copies one owner in core _(layer: cli)_
 3. [ ] **Finding 3** — Resolve daemon-loaded script paths through the outer-loop table's owner _(layer: cli)_
 4. [ ] **Finding 4** — Print the upgrade report's commands with the npx prefix _(layer: cli)_
