@@ -15,7 +15,7 @@
 Each entry resolves to `harness-runs/user_reviews/feat_must_fix_definition_fix_plan/finding_<K>.md` through its `**Finding K**` reference. Sorted lowest blast radius first. Finding 1 must land before Finding 2, because Finding 2's test fails until the row exists.
 
 1. [x] **Finding 1** — Add the missing two-leg divergence row to `branch-reviewer`'s `### Must Fix triggers` table. _(layer: plugin)_
-2. [ ] **Finding 2** — Add the `### Must Fix triggers` corpus test and register it as a tree guard. _(layer: cli, general)_
+2. [x] **Finding 2** — Add the `### Must Fix triggers` corpus test and register it as a tree guard. _(layer: cli, general)_
 
 ---
 

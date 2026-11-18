@@ -182,3 +182,5 @@ If the first run reports a line these lists miss, read that line. Add an entry o
    - ``Write the `## Must Fix` section.`` under `## What to check`.
 
 **Verification:** `cli/test/must-fix-triggers-corpus.test.mjs` passes, and each case in 3 fails if its edit's violation is not reported.
+
+**Deviations from plan:** `NOT_A_GRADE` carries one entry beyond the list above, `['task-plan-writer', 'a client-only gate is a Must Fix at review']`. The first run reported that line of `plugin/agents/task-plan-writer.md` as `uncovered`; it is a plan writer's **Authorization** instruction telling the writer how review will grade the omission, and the agent grades nothing, so `## The two lists` licenses the entry. The suite also adds one case beyond `## The cases`: every agent named in `OWN_ROWS` or `NOT_A_GRADE` exists, so a renamed agent's entries cannot silently stop being audited.
