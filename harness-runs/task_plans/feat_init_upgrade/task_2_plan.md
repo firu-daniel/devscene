@@ -23,3 +23,5 @@
 - `cli/test/profile-local.test.mjs` passes.
 - A file setting `sandbox.enabled`, `permissions.defaultMode` or a top-level `_README` is refused with that key named.
 - `profileLocal.ts` imports neither `permissionProfile.ts` nor `writeProtection.ts`.
+
+**Deviations from plan:** `profileLocal.ts` also exports `readLocalFileText(path)`, which the plan does not list. A test cannot create a character device at the local file's path without privilege, so the empty-device shape is driven through this path-level reader against `/dev/null`; `readLocalAdditions` calls it for every shape.
