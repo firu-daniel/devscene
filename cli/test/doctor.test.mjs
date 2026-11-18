@@ -3162,6 +3162,38 @@ test('the machine-footprint check reports the machine, and never fails or writes
     }
   }));
 
+  subtests.push(t.test('a registry record that is not an object is not counted', async (subtest) => {
+    const dir = await wiredFixture(subtest);
+    const machine = await footprintMachine(subtest, { cap: FOOTPRINT_CAP });
+    const unitPath = await seededUnitFile(subtest);
+    seedRunRegistry(dir, {
+      'run-alive-and-running': { status: 'running', pid: process.pid },
+      'run-not-an-object': 'running',
+    });
+    seedRegistry(machine, { [repoSlug(dir)]: entryFor(dir, unitPath) });
+
+    const { status, stdout, stderr } = await runCli(dir, ['doctor'], machine.env);
+
+    assert.equal(status, 0, `doctor exited ${status}\n${stdout}\n${stderr}`);
+    assert.match(stdout, passLine('machine-footprint'));
+    assert.ok(footprintLine(stdout, stderr).includes('live=1'), footprintLine(stdout, stderr));
+  }));
+
+  subtests.push(t.test('an unparsable run registry counts 0 and does not fail the check', async (subtest) => {
+    const dir = await wiredFixture(subtest);
+    const machine = await footprintMachine(subtest, { cap: FOOTPRINT_CAP });
+    const unitPath = await seededUnitFile(subtest);
+    seedRunRegistry(dir, {});
+    writeFileSync(join(dir, STATE_DIR, RUN_LOGS_DIR, RUN_REGISTRY_FILE), '{ not json', 'utf8');
+    seedRegistry(machine, { [repoSlug(dir)]: entryFor(dir, unitPath) });
+
+    const { status, stdout, stderr } = await runCli(dir, ['doctor'], machine.env);
+
+    assert.equal(status, 0, `doctor exited ${status}\n${stdout}\n${stderr}`);
+    assert.match(stdout, passLine('machine-footprint'));
+    assert.ok(footprintLine(stdout, stderr).includes('live=0'), footprintLine(stdout, stderr));
+  }));
+
   subtests.push(t.test('an unreadable configuration reports live=0 — the schema-default registry is never read', async (subtest) => {
     const here = await wiredFixture(subtest);
     const unwired = await wiredFixture(subtest);
@@ -5640,7 +5672,8 @@ const PRE_BRANCH_CHECK_IDS = Object.freeze([
   'remote-execution', 'remote-github', 'forge', 'branch-protection', 'config', 'command-wrappers', 'command-permissions', 'command-resolves',
   'state-dir', 'artifact-tree', 'setup-analysis', 'task-offer-rules', 'review-sweep', 'layer-profile', 'layer-drift', 'tree-guards',
   'ignore-rules', 'plugin-wiring', 'permission-profile', 'profile-paths', 'profile-tracked', 'profile-browser-deny',
-  'profile-deny-floor', 'profile-main-anchor', 'profile-sandbox', 'profile-write-protection', 'sandbox-prerequisites', 'keep-awake', 'plugin-permissions',
+  'profile-deny-floor', 'profile-main-anchor', 'profile-sandbox', 'profile-write-protection', 'profile-drift', 'outer-loop-scripts',
+  'sandbox-prerequisites', 'keep-awake', 'plugin-permissions', 'plugin-cli-version',
   'browser-wiring',
   'retrieval-dependencies', 'retrieval-model-cache', 'retrieval-index',
 ]);

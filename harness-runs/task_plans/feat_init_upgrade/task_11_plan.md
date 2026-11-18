@@ -31,3 +31,5 @@
 - Each new warning contains `init --upgrade`.
 - `doctor` writes nothing while evaluating the new checks.
 - `cli/src/doctor/checks.ts` no longer reads the registry's `runs` key itself.
+
+**Deviations from plan:** `liveRunCount` keeps its path and its `unreadable` / `malformedKeys` / `running` grading, but one behaviour moves with the plan's own swap to `core/runRegistry.js`: the exported `pidIsAlive` also accepts a pid stored as digit text, which is how `hr_registry_set` writes it, so a live `running` record with a text pid now counts where the private copy, which took numbers only, did not. Implemented as the plan's export requires.
