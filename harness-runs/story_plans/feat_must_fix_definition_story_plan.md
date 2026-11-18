@@ -32,7 +32,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_must_fix_definition/tas
 5. [x] **Task 5** — Move `task-plan-reviewer` and its register gaps onto the definition _(layer: plugin)_ _(points: 20)_
 6. [x] **Task 6** — Make `review-plan-reviewer` check and regrade Must Fix entries _(layer: plugin)_ _(points: 15)_
 7. [x] **Task 7** — Move `branch-reviewer` and `skeptic-reviewer` onto the definition _(layer: plugin)_ _(points: 20)_
-8. [ ] **Task 8** — Move `layer-reviewer` and `ui-tests-plan-reviewer` onto the definition _(layer: plugin)_ _(points: 20)_
+8. [x] **Task 8** — Move `layer-reviewer` and `ui-tests-plan-reviewer` onto the definition _(layer: plugin)_ _(points: 20)_
 9. [ ] **Task 9** — Move `architecture-reviewer` and `business-parity-reviewer` onto the definition _(layer: plugin)_ _(points: 15)_
 10. [ ] **Task 10** — Move the fix-plan writers and `qa-tester` onto the definition _(layer: plugin)_ _(points: 15)_
 11. [ ] **Task 11** — Update the samples, dispatch discipline and the flow map _(layer: plugin)_ _(points: 10)_

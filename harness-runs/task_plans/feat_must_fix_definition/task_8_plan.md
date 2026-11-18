@@ -21,3 +21,10 @@
 
 - `grep -nE 'Grade every finding by consequence|would do the wrong thing|[Tt]he rubric|ladder above' plugin/agents/layer-reviewer.md plugin/agents/ui-tests-plan-reviewer.md` prints nothing.
 - Both templates show the two fields, and the laundering sentence in `ui-tests-plan-reviewer` is byte-identical to before.
+
+**Deviations from plan:**
+
+- Both agents also name `finding_grades.md` in their unreadable-input stop, as `branch-reviewer`, `skeptic-reviewer` and `task-plan-reviewer` do; without it a new required input has no stated failure route.
+- `layer-reviewer`'s **Project-convention compliance** group shares the hard-conventions row: it is the catch-all layer's form of the same trigger, and the plan's list otherwise leaves it with no class.
+- `layer-reviewer`'s Should Fix and Nice to Have template lines now exclude the two fields, because their `<same shape, optional>` would otherwise have extended them past `## Must Fix`. Its `## Process` severity sentence now names `finding_grades.md` beside `## Checklist`.
+- `**Class:**` uses the `branch-reviewer` / `skeptic-reviewer` rule (a row's class where a row applies) rather than the row-only wording, because these agents can raise a Must Fix under no row.
