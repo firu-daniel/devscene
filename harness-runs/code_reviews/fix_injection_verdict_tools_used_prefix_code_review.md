@@ -18,7 +18,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — State the Claude Code version range of the 2026-11-18 prefix measurement _(layer: general)_
+1. [x] **Finding 1** — State the Claude Code version range of the 2026-11-18 prefix measurement _(layer: general)_
 
 ---
 
