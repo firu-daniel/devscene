@@ -19,7 +19,7 @@ Each entry resolves to a self-contained `harness-runs/user_reviews/feat_init_upg
 3. [x] **Finding 2** — Report a version mismatch as a dry-run note and still show the preview. _(layer: cli)_
 4. [x] **Finding 3** — Keep a version mismatch a warning under harness self-adoption. _(layer: cli)_
 5. [x] **Finding 5** — Make the doctor remedy and upgrade report update the older half. _(layer: cli)_
-6. [ ] **Finding 4** — Document the plugin update then latest CLI upgrade route. _(layer: cli, general)_
+6. [x] **Finding 4** — Document the plugin update then latest CLI upgrade route. _(layer: cli, general)_
 
 ---
 

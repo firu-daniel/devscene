@@ -50,7 +50,7 @@ Two families ship into the adopter's configured `scriptsDir`, and the difference
 - **Outer-loop scripts** — this table — carry **no token at all** and are copied verbatim. Each one resolves `<repo_root>/devscene.config.json` at run time through the one shared library beside them, so **changing a configuration key takes effect on the next invocation without regenerating anything**. That is not a convenience: a protected-branch set frozen into a file when `init` ran would enforce the wrong set the moment `protectedBranches` changed, and silently. For an adopter upgrading the CLI, who would otherwise read a plain re-run as picking a fix up: these files are written `create-if-absent`, so a fix shipped in a later release reaches a checkout that already has the file through `init --upgrade` from that release's CLI, which replaces it after a backup, or by deleting the file and re-running `init`, and §3's restart is still owed after either (`docs/cli.md` §3 states the policy and this corollary):
 
   ```bash
-  npx devscene@<version> init --upgrade
+  npx devscene@latest init --upgrade
   ```
 
 | File | What it does | Who runs it | Profile allow entry |

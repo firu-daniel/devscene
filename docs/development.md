@@ -218,7 +218,7 @@ HARNESS_SELF_ADOPT=1 node cli/dist/cli.js init --upgrade
 git status --short
 ```
 
-It writes the outer-loop scripts and the profile and nothing else, so it leaves nothing to restore and no `.bak` to remove: its backups go under the git common directory (`docs/cli.md` §3). Do not add the forced run's `--no-analyze`: `init --upgrade` refuses every other `init` flag but `--reference-toolchain-path` (`docs/cli.md` §2).
+It writes the outer-loop scripts and the profile and nothing else, so it leaves nothing to restore and no `.bak` to remove: its backups go under the git common directory (`docs/cli.md` §3). Do not add the forced run's `--no-analyze`: `init --upgrade` refuses every other `init` flag but `--reference-toolchain-path` (`docs/cli.md` §2). A plugin and CLI version mismatch is a warning here and not a refusal, because `dev` changes between releases at one version number and the installed plugin copy can lag the checkout.
 
 **Any other generated file takes one forced self-adopt run**, the wrappers and the git hook among them. Build as above, then read what the run would do:
 

@@ -192,10 +192,16 @@ Which keys are written is [`docs/cli.md`](docs/cli.md) §2. `devscene.config.jso
 claude plugin update devscene@devscene
 ```
 
-Then, in the main checkout, bring the outer-loop scripts and the permission profile up to the same version, with `<version>` the plugin's. Nothing else is written, so the conventions documents `/devscene:analyze` filled stay as they are. What it refuses and what it leaves for you to commit are [`docs/cli.md`](docs/cli.md#updating-an-adopted-repository):
+Then, in the main checkout, bring the outer-loop scripts and the permission profile up to the latest release. Nothing else is written, so the conventions documents `/devscene:analyze` filled stay as they are. What it refuses and what it leaves for you to commit are [`docs/cli.md`](docs/cli.md#updating-an-adopted-repository):
 
 ```bash
-npx devscene@<version> init --upgrade
+npx devscene@latest init --upgrade
+```
+
+`init --upgrade` leaves the GitHub workflows alone, so a repository using remote runs also runs the command below. What to commit and push afterwards is [`docs/remote-execution.md`](docs/remote-execution.md#upgrading):
+
+```bash
+npx devscene@latest init --upgrade-workflows
 ```
 
 ### Working from GitHub
