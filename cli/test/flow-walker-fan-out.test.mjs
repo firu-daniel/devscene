@@ -4,7 +4,9 @@
  *
  * **The rule this suite exists to enforce: a round's due gates are dispatched as one set, their
  * outcomes are recorded in any order, the round closes exactly once at the last of them, and an
- * outcome the round does not await is refused and changes nothing.** The set, the join and the held
+ * outcome the round does not await is refused and changes nothing; a gate's invalid round file
+ * records no verdict, never reaches the writer, and sends that gate back within the same round until
+ * its third refusal escalates.** The set, the join and the held
  * binding are cited from the shipped walker's own header (`cli/templates/scripts/flow-walker.sh` →
  * `# ROUNDS`, `# OUTPUT` and `# EXIT CODES`); a refusal is asserted on the state file's bytes, as
  * `cli/test/config-command.test.mjs`'s are (`.claude/context/cli.md` → `## What "done" means here`).
@@ -19,11 +21,15 @@
 
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { appendFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import { createFixture, INIT_SCRIPTS_DIR, runBash } from './helpers/fixture.mjs';
 import {
   blocksOf,
+  mustFixSection,
+  plantMalformedReview,
   plantReview,
   run,
   walk,
@@ -227,4 +233,156 @@ test('(6) --node is required while a set is pending', { skip: SKIP }, async (t) 
 
   // `# USAGE`, `--node`: "Required while a set is pending"; `# EXIT CODES`, 1: "no `--node`".
   await assertRefused(dir, nextArgs('--outcome', 'PASS', '--findings', findings), /name the gate with --node/);
+});
+
+const LACKS_CLASS = 'Must Fix entry 1 lacks **Class:**';
+
+/** `# OUTPUT`: "refused: <gate> attempt <n> of 3: <reason>". */
+const refusedLine = (gate, attempt, reason = LACKS_CLASS) => ['refused', `${gate} attempt ${attempt} of 3: ${reason}`];
+
+/** `wait` after a refusal: `# OUTPUT`, the `refused:` line stands where `recorded:` would. */
+function refusedWait(line, pending) {
+  return [['action', 'wait'], ['node', 'plan_round'], line, ...pending.map((name) => ['pending', name])];
+}
+
+/** A gate's `FAIL` return naming a round file whose one Must Fix entry lacks `**Class:**`. */
+async function returnMalformed(dir, node, folder) {
+  const findings = await plantMalformedReview(dir, `${folder}/${BRANCH}`, 0, 'Class');
+  const result = await walk(dir, nextArgs('--node', node, '--outcome', 'FAIL', '--findings', findings));
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  return result.action;
+}
+
+const malformedPlan = (dir) => returnMalformed(dir, 'plan_review', 'task_plan_reviews');
+const malformedArch = (dir) => returnMalformed(dir, 'architecture_review', 'architecture_reviews');
+
+test('(7) a refused gate waits for its siblings, then is dispatched alone in the same round', { skip: SKIP }, async (t) => {
+  const dir = await fixture(t, { parity: true, qa: false });
+  await run(dir, OPEN);
+
+  // `# OUTPUT`, `wait`: "a gate marked for re-dispatch is not out", so `plan_review` is not listed.
+  assert.deepEqual(
+    await malformedPlan(dir),
+    refusedWait(refusedLine('plan_review', 1), ['business_parity_review', 'architecture_review']),
+  );
+  const [parity, last] = await run(dir, [PARITY, ARCH]);
+  assert.deepEqual(parity, wait('business_parity_review PASS', ['architecture_review']));
+  // `# ROUNDS`: "dispatched again as one set, in the same round": `arg.iteration` and the heartbeat's
+  // counter stay 0, and neither a `round:` line nor a writer block appears.
+  assert.deepEqual(last, PLAN_BLOCK([refusedLine('plan_review', 1)]));
+});
+
+test("(8) a corrected return closes the round and the writer is handed the replaced file", { skip: SKIP }, async (t) => {
+  const dir = await fixture(t, { parity: true, qa: false });
+  await run(dir, OPEN);
+  await malformedPlan(dir);
+  await run(dir, [PARITY, ARCH]);
+
+  const [closed] = await run(dir, [{ node: 'plan_review', outcome: 'FAIL', review: ['task_plan_reviews', 0] }]);
+  const planFile = `devscene/task_plan_reviews/${BRANCH}/review_0.md`;
+  assert.deepEqual(closed, [
+    ['action', 'dispatch'],
+    ['node', 'plan_writer'],
+    ['agent', 'task-plan-writer'],
+    ['prompt', 'revision'],
+    ['arg.iteration', '1'],
+    ['arg.findings_file', `devscene/business_parity_reviews/${BRANCH}/review_0.md`],
+    ['arg.findings_file', `devscene/architecture_reviews/${BRANCH}/review_0.md`],
+    ['arg.findings_file', planFile],
+    ['round', '0 FAIL'],
+    ['heartbeat', '[plan-write · iter 1] → task-plan-writer  (#<total_dispatches>)'],
+  ]);
+  assert.match(readFileSync(join(dir, planFile), 'utf8'), /\*\*Class:\*\*/);
+});
+
+test('(9) two refused gates come back as one set', { skip: SKIP }, async (t) => {
+  const dir = await fixture(t, { parity: false, qa: false });
+  await run(dir, OPEN);
+
+  assert.deepEqual(await malformedArch(dir), refusedWait(refusedLine('architecture_review', 1), ['plan_review']));
+  // `# OUTPUT`, `set`: the `refused:` lines sit among the first block's passed-through lines.
+  assert.deepEqual(blocksOf(await malformedPlan(dir)), [
+    ARCH_BLOCK([
+      ['skip', 'business_parity_review skipped'],
+      refusedLine('architecture_review', 1),
+      refusedLine('plan_review', 1),
+    ]),
+    PLAN_BLOCK(),
+  ]);
+});
+
+test('(10) the third refusal of a gate escalates and never reaches the writer', { skip: SKIP }, async (t) => {
+  const dir = await fixture(t, { parity: false, qa: false });
+  await run(dir, [...OPEN, ARCH]);
+  const skippedParity = ['skip', 'business_parity_review skipped'];
+
+  assert.deepEqual(await malformedPlan(dir), PLAN_BLOCK([skippedParity, refusedLine('plan_review', 1)]));
+  assert.deepEqual(await malformedPlan(dir), PLAN_BLOCK([skippedParity, refusedLine('plan_review', 2)]));
+  assert.deepEqual(await malformedPlan(dir), [
+    ['action', 'binding'],
+    ['binding', '<escalate>'],
+    ['node', 'plan_review'],
+    ['agent', 'task-plan-reviewer'],
+    ['reason', 'error'],
+    ['held', 'plan_review error'],
+    refusedLine('plan_review', 3),
+  ]);
+});
+
+test("(11) `current` during the wait re-prints the refused gate's block", { skip: SKIP }, async (t) => {
+  const dir = await fixture(t, { parity: true, qa: false });
+  await run(dir, OPEN);
+  await malformedPlan(dir);
+
+  const current = await walk(dir, ['current', '--flow', WALKER_FLOW, '--branch', BRANCH]);
+  assert.equal(current.status, 0, current.stderr);
+  assert.deepEqual(blocksOf(current.action), [PARITY_BLOCK(), ARCH_BLOCK(), PLAN_BLOCK()]);
+});
+
+test('(12) a PASS file carrying a numbered Must Fix entry is refused and records no verdict', { skip: SKIP }, async (t) => {
+  const dir = await fixture(t, { parity: true, qa: false });
+  await run(dir, OPEN);
+  const findings = await plantReview(dir, `task_plan_reviews/${BRANCH}`, 0, 'PASS');
+  await appendFile(join(dir, findings), mustFixSection(), 'utf8');
+
+  const result = await walk(dir, nextArgs('--node', 'plan_review', '--outcome', 'PASS', '--findings', findings));
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    result.action,
+    refusedWait(
+      refusedLine('plan_review', 1, 'verdict: PASS with a numbered entry under ## Must Fix'),
+      ['business_parity_review', 'architecture_review'],
+    ),
+  );
+  assert.doesNotMatch(readFileSync(walkerStatePath(dir), 'utf8'), /^round\.verdict\.plan_review=/m);
+});
+
+test('(13) check-round-file answers by exit status, with no walk and no configuration read', { skip: SKIP }, async (t) => {
+  const dir = await fixture(t, { parity: true, qa: false });
+  const check = (...flags) => walk(dir, ['check-round-file', ...flags]);
+  const assertExit = (result, status, stderr) => {
+    assert.deepEqual({ status: result.status, stdout: result.stdout, stderr: result.stderr }, { status, stdout: '', stderr });
+  };
+
+  const valid = await plantReview(dir, `task_plan_reviews/${BRANCH}`, 0, 'PASS');
+  assertExit(await check('--findings', valid), 0, '');
+  assertExit(await check('--findings', join(dir, valid)), 0, '');
+
+  const invalid = await plantMalformedReview(dir, `architecture_reviews/${BRANCH}`, 0, 'Class');
+  assertExit(await check('--findings', invalid), 3, `flow-walker: ${invalid}: ${LACKS_CLASS}\n`);
+  assertExit(await check('--findings', 'devscene/absent.md'), 3, 'flow-walker: devscene/absent.md: no single verdict line\n');
+
+  assertExit(await check('--flow', WALKER_FLOW, '--findings', valid), 1, "flow-walker: '--flow' is not a flag of 'check-round-file'\n");
+  assertExit(await check('--branch', BRANCH, '--findings', valid), 1, "flow-walker: '--branch' is not a flag of 'check-round-file'\n");
+  assertExit(await check(), 1, 'flow-walker: missing required flag --findings\n');
+
+  const outside = await createFixture({ git: false });
+  t.after(outside.cleanup);
+  const walker = join(dir, INIT_SCRIPTS_DIR, 'flow-walker.sh');
+  assertExit(
+    await runBash(outside.dir, [walker, 'check-round-file', '--findings', 'review_0.md']),
+    2,
+    'flow-walker: not inside a git repository\n',
+  );
+  assert.equal(existsSync(walkerStatePath(dir)), false, 'check-round-file wrote walker state');
 });

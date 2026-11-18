@@ -26,3 +26,5 @@
 - `npm test --workspace cli -- test/flow-walker-fan-out.test.mjs` passes.
 - Following the header's updated `REPRO` in a throwaway fixture produces the outputs it states.
 - `grep -n 'FW_ROUND_FILE_ATTEMPTS' cli/templates/scripts/flow-walker.sh` shows one assignment and every use reads that name.
+
+**Deviations from plan:** Added a startup fault (exit 2) when `lib/flow-walker-gates.sh` defines no `fw_round_file_check`. The plan does not list it, but `init` writes that library `create-if-absent`, so a new walker can run beside an older copy; without the fault every valid round file would read as refused, and `check-round-file` would exit 3 on a file it never read.

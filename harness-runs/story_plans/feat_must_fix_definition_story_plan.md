@@ -26,7 +26,7 @@ The work ships bottom-up: the walker and its tests (`cli`), then the grades file
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_must_fix_definition/task_<K>_plan.md`. Entries follow the configured layer order, with the catch-all layer last.
 
 1. [x] **Task 1** — Add the round-file check to the walker's gate library _(layer: cli)_ _(points: 20)_
-2. [ ] **Task 2** — Refuse an invalid round file in the walker and expose the check _(layer: cli)_ _(points: 20)_
+2. [x] **Task 2** — Refuse an invalid round file in the walker and expose the check _(layer: cli)_ _(points: 20)_
 3. [ ] **Task 3** — Prove the driver re-dispatches a refused gate and correct the state-dir READMEs _(layer: cli)_ _(points: 10)_
 4. [ ] **Task 4** — Create `finding_grades.md` and extend the Must Fix entry _(layer: plugin)_ _(points: 15)_
 5. [ ] **Task 5** — Move `task-plan-reviewer` and its register gaps onto the definition _(layer: plugin)_ _(points: 20)_
