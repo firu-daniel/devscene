@@ -26,7 +26,7 @@ Seven findings follow: two Must Fix and five Should Fix.
 4. [x] **Finding 3** — Stop asking for a daemon restart after a permission-bits repair _(layer: cli)_
 5. [x] **Finding 7** — Remove the test-only `renderCurrentProfile` export _(layer: cli)_
 6. [x] **Finding 2** — Name the working route for restoring reference-toolchain entries _(layer: cli, general)_
-7. [ ] **Finding 1** — Refuse `init --upgrade` in a run copy _(layer: cli, general)_
+7. [x] **Finding 1** — Refuse `init --upgrade` in a run copy _(layer: cli, general)_
 
 ---
 

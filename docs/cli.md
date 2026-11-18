@@ -194,6 +194,7 @@ npx devscene@<version> init --upgrade --reference-toolchain-path <absolute path>
 - the directory is not inside a git repository, which this flag never creates;
 - the repository is the harness's own (§2's third precondition);
 - the checkout is a linked worktree, because the profile a run loads is the main checkout's, and the refusal names that checkout;
+- the checkout is a run copy the main checkout's run registry records, for the same reason, and the refusal names that checkout;
 - git does not report the main checkout or the common directory;
 - `devscene.config.json` is absent or carries an error;
 - the run registry records a `running` run whose pid is alive or not yet written, or cannot be read, because a replacement cannot then show that nothing is executing;

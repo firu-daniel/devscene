@@ -9,6 +9,9 @@
  * module, so it arrives as a callback. Flag combinations are that command's to refuse.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { hasErrors, formatProblem } from '../config/check.js';
 import { configExists, loadConfig, type LoadedConfig } from '../config/io.js';
 import { CONFIG_FILENAME, type HarnessConfig } from '../config/model.js';
@@ -44,6 +47,18 @@ export type ActiveRuns =
 
 const REFUSAL_PREFIX = 'refusing to upgrade';
 
+/** Where a clone that borrows its objects names the repository it borrows from. */
+const ALTERNATES_SEGMENTS: readonly string[] = Object.freeze(['objects', 'info', 'alternates']);
+const BORROWED_OBJECTS_SUFFIX = '/.git/objects';
+
+/** What {@link checkRunCopy} found. */
+type RunCopyCheck =
+  | { readonly kind: 'not-a-run-copy' }
+  | { readonly kind: 'run-copy'; readonly main: string }
+  | { readonly kind: 'registry-unreadable'; readonly registryPath: string };
+
+const NOT_A_RUN_COPY: RunCopyCheck = Object.freeze({ kind: 'not-a-run-copy' });
+
 /** The root of the repository around `cwd`, or the refusal saying why there is none. */
 function upgradeRoot(cwd: string): string {
   const probe = probeRepoRoot(cwd);
@@ -55,8 +70,9 @@ function upgradeRoot(cwd: string): string {
 }
 
 /**
- * Refuses anywhere but the main checkout, whose profile is the one a run loads. A probe with no
- * answer refuses too, because it cannot show this is the main checkout.
+ * Refuses a linked worktree, because the profile a run loads is the main checkout's. A probe with no
+ * answer refuses too, because it cannot show this is the main checkout. A clone is its own first
+ * worktree and passes here; {@link checkRunCopy} is what catches a run copy.
  */
 function assertMainCheckout(root: string): void {
   const main = mainWorktreeRoot(root);
@@ -148,6 +164,31 @@ function registryLocatable(config: HarnessConfig): boolean {
 }
 
 /**
+ * Whether `root` is a run copy: its alternates file names a checkout whose run registry records
+ * `root` as a clone. `git worktree list` cannot answer this, because a clone is its own first
+ * worktree. A registry that cannot be read cannot rule the answer out, so it is reported.
+ */
+function checkRunCopy(root: string, commonDir: string, config: HarnessConfig): RunCopyCheck {
+  let line: string;
+  try {
+    line = readFileSync(join(commonDir, ...ALTERNATES_SEGMENTS), 'utf8').trim();
+  } catch {
+    return NOT_A_RUN_COPY;
+  }
+  if (line.includes('\n') || !line.endsWith(BORROWED_OBJECTS_SUFFIX)) return NOT_A_RUN_COPY;
+  const candidate = line.slice(0, -BORROWED_OBJECTS_SUFFIX.length);
+  const registryPath = runRegistryPath(candidate, config);
+  const registry = readRegistryRecords(registryPath);
+  if (registry.state !== 'read' || registry.malformedKeys.length > 0) {
+    return { kind: 'registry-unreadable', registryPath };
+  }
+  const recorded = registry.records.some(
+    ({ record }) => record['worktree'] === root && record['copy_kind'] === 'clone',
+  );
+  return recorded ? { kind: 'run-copy', main: candidate } : NOT_A_RUN_COPY;
+}
+
+/**
  * The repository `cwd` belongs to, once every repository-level refusal has passed.
  *
  * The worktree check precedes the configuration's, so a linked worktree without the file is sent to
@@ -166,9 +207,16 @@ export function resolveUpgradeTarget(request: UpgradeTargetRequest): UpgradeTarg
   const loaded = loadConfig(repoRoot);
   const { config } = loaded;
   if (config === undefined) throw configRefusal(repoRoot, loaded);
-  const notes = registryLocatable(config)
-    ? runRegistryNotes(runRegistryPath(repoRoot, config), request.dryRun)
-    : [];
+  let notes: readonly string[] = [];
+  if (registryLocatable(config)) {
+    const runCopy = checkRunCopy(repoRoot, commonDir, config);
+    if (runCopy.kind === 'run-copy') {
+      throw new HarnessError(`${REFUSAL_PREFIX}: ${repoRoot} is a run copy; run --upgrade in the main checkout at ${runCopy.main}`);
+    }
+    const borrowedRegistryNotes =
+      runCopy.kind === 'registry-unreadable' ? runRegistryNotes(runCopy.registryPath, request.dryRun) : [];
+    notes = [...borrowedRegistryNotes, ...runRegistryNotes(runRegistryPath(repoRoot, config), request.dryRun)];
+  }
   if (hasErrors(loaded.problems)) throw configRefusal(repoRoot, loaded);
 
   return { repoRoot, config, gitCommonDir: commonDir, notes };

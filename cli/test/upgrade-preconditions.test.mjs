@@ -9,7 +9,7 @@
 
 import assert from 'node:assert/strict';
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
-import { delimiter, join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
 import { test } from 'node:test';
 
 import { HarnessError } from '../dist/core/errors.js';
@@ -76,6 +76,23 @@ async function linkedWorktree(t, files) {
   await runGit(main, ['worktree', 'add', '--quiet', '-b', 'linked', linked]);
   for (const [name, content] of Object.entries(files)) writeFileSync(join(linked, name), content);
   return { main, linked };
+}
+
+/**
+ * A repository whose alternates file borrows from a second fixture holding `registryText`, the
+ * shape a run copy has. Takes `registryText` as a function of the repository's root, which the
+ * registry has to name.
+ */
+async function borrowingRepository(t, registryText) {
+  const copy = await repository(t);
+  const main = await repository(t);
+  const registryPath = join(main, registryFile(STATE_DIR));
+  mkdirSync(dirname(registryPath), { recursive: true });
+  writeFileSync(registryPath, registryText(copy));
+  const info = join(copy, '.git', 'objects', 'info');
+  mkdirSync(info, { recursive: true });
+  writeFileSync(join(info, 'alternates'), `${join(main, '.git', 'objects')}\n`);
+  return { copy, main };
 }
 
 /** Puts first on `PATH` a `git` that fails when any argument is `failingArgument`. */
@@ -159,6 +176,40 @@ test('a linked worktree is refused with the main checkout named', async (t) => {
       await assertRefused(linked, () => resolveIn(linked, { dryRun: true }), patterns);
     });
   }
+});
+
+test('a run copy the borrowed registry records is refused with the main checkout named', async (t) => {
+  const { copy, main } = await borrowingRepository(t, (root) =>
+    JSON.stringify({ runs: { feat_copy: { worktree: root, copy_kind: 'clone' } } }),
+  );
+  const patterns = [new RegExp(`${copy} is a run copy`), new RegExp(`main checkout at ${main}$`)];
+  await assertRefused(copy, () => resolveIn(copy), patterns);
+  await assertRefused(copy, () => resolveIn(copy, { dryRun: true }), patterns);
+});
+
+test('a clone the borrowed registry does not record as a run copy is not refused', async (t) => {
+  const { copy } = await borrowingRepository(t, (root) =>
+    JSON.stringify({
+      runs: {
+        feat_elsewhere: { worktree: `${root}-elsewhere`, copy_kind: 'clone' },
+        feat_not_a_clone: { worktree: root, copy_kind: 'worktree' },
+      },
+    }),
+  );
+  const before = await snapshotTree(copy);
+  assert.deepEqual(resolveIn(copy).notes, []);
+  assert.deepEqual(await snapshotTree(copy), before);
+});
+
+test('a borrowed registry that cannot be read refuses, and is a note under a dry run', async (t) => {
+  const { copy, main } = await borrowingRepository(t, () => MALFORMED_REGISTRY);
+  await assertRefused(copy, () => resolveIn(copy), [new RegExp(join(main, registryFile(STATE_DIR))), /not valid JSON/]);
+
+  const before = await snapshotTree(copy);
+  const { notes } = resolveIn(copy, { dryRun: true });
+  assert.equal(notes.length, 1);
+  assert.match(notes[0], /would refuse: .*not valid JSON/);
+  assert.deepEqual(await snapshotTree(copy), before);
 });
 
 test('git not answering for the main checkout or the common directory refuses', async (t) => {
