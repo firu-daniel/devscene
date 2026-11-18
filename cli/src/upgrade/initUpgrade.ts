@@ -29,8 +29,11 @@ const BACKUP_ROOT_SEGMENTS: readonly string[] = Object.freeze(['devscene', 'upgr
 /** What `commands/init.ts` hands the run. */
 export interface InitUpgradeOptions {
   readonly referenceToolchainPath: string | undefined;
-  /** Refuses by throwing; `init`'s check for the harness's own repository. */
-  readonly assertRepositoryAllowed: (repoRoot: string) => unknown;
+  /**
+   * Refuses by throwing; `init`'s check for the harness's own repository. Returns `true` only for
+   * that repository's deliberate self-adoption.
+   */
+  readonly assertRepositoryAllowed: (repoRoot: string) => boolean;
 }
 
 /** This run's backup directory, named for its start time in UTC, to the millisecond. */
@@ -52,9 +55,13 @@ export function runInitUpgrade(
 
   const pluginVersion = installedPluginVersion(repoRoot);
   const cliVersion = ownManifestString('version');
-  const versionNotes = pluginVersionNotes({ mismatch: pluginCliMismatch(pluginVersion, cliVersion), dryRun });
-  // A dry run's mismatch is already a note; the report's pinned warning would contradict it.
-  const reportedPluginVersion = dryRun ? undefined : pluginVersion;
+  const versionNotes = pluginVersionNotes({
+    mismatch: pluginCliMismatch(pluginVersion, cliVersion),
+    dryRun,
+    selfAdopted: target.selfAdopted,
+  });
+  // Any other run's mismatch has already refused or become a note; the report's warning would contradict it.
+  const reportedPluginVersion = target.selfAdopted ? pluginVersion : undefined;
 
   const plan = new WritePlan();
   const scripts = planOuterLoopScriptUpgrade({ repoRoot, config, plan });

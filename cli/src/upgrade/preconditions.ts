@@ -31,6 +31,8 @@ export interface UpgradeTarget {
   readonly repoRoot: string;
   readonly config: HarnessConfig;
   readonly gitCommonDir: string;
+  /** Whether this run is the harness repository's deliberate self-adoption. */
+  readonly selfAdopted: boolean;
   /** What a `--dry-run` found that a real run would have refused on. */
   readonly notes: readonly string[];
 }
@@ -40,8 +42,11 @@ export interface UpgradeTargetRequest {
   readonly cwd: string;
   /** Turns the two run-registry refusals into {@link UpgradeTarget.notes}, and no other refusal. */
   readonly dryRun: boolean;
-  /** Refuses by throwing; what it throws reaches the caller unchanged. */
-  readonly assertRepositoryAllowed: (repoRoot: string) => unknown;
+  /**
+   * Refuses by throwing; what it throws reaches the caller unchanged. Returns `true` only for the
+   * harness repository's deliberate self-adoption.
+   */
+  readonly assertRepositoryAllowed: (repoRoot: string) => boolean;
 }
 
 /** Whether a run may be executing, as the refusal has to read it. */
@@ -204,16 +209,19 @@ function checkRunCopy(root: string, commonDir: string, config: HarnessConfig): R
 export interface PluginVersionRequest {
   readonly mismatch: PluginCliMismatch | undefined;
   readonly dryRun: boolean;
+  readonly selfAdopted: boolean;
 }
 
 /**
  * Refuses a real run on a plugin and CLI version mismatch; a dry run gets that refusal as a note.
+ * Self-adoption is exempt from both: the harness repository's `dev` moves between releases under one
+ * version number and its installed plugin can lag the checkout, so its mismatch stays a warning.
  *
  * The caller reads the versions, and {@link resolveUpgradeTarget} must not: its suite calls it in
  * process with no scratch agent-runner home, so a read there would grade the host's real plugin.
  */
-export function pluginVersionNotes({ mismatch, dryRun }: PluginVersionRequest): readonly string[] {
-  if (mismatch === undefined) return [];
+export function pluginVersionNotes({ mismatch, dryRun, selfAdopted }: PluginVersionRequest): readonly string[] {
+  if (mismatch === undefined || selfAdopted) return [];
   const refusal = `${pluginCliMismatchSummary(mismatch)}; ${pluginCliMismatchRemedy(mismatch)}`;
   if (!dryRun) throw new HarnessError(`${REFUSAL_PREFIX}: ${refusal}`);
   return [`${WOULD_REFUSE_PREFIX}${refusal}`];
@@ -231,7 +239,7 @@ export function pluginVersionNotes({ mismatch, dryRun }: PluginVersionRequest): 
  */
 export function resolveUpgradeTarget(request: UpgradeTargetRequest): UpgradeTarget {
   const repoRoot = upgradeRoot(request.cwd);
-  request.assertRepositoryAllowed(repoRoot);
+  const selfAdopted = request.assertRepositoryAllowed(repoRoot) === true;
   assertMainCheckout(repoRoot);
   const commonDir = requireCommonDir(repoRoot);
 
@@ -250,5 +258,5 @@ export function resolveUpgradeTarget(request: UpgradeTargetRequest): UpgradeTarg
   }
   if (hasErrors(loaded.problems)) throw configRefusal(repoRoot, loaded);
 
-  return { repoRoot, config, gitCommonDir: commonDir, notes };
+  return { repoRoot, config, gitCommonDir: commonDir, selfAdopted, notes };
 }

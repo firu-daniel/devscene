@@ -33,7 +33,7 @@ import { PACKAGE_ROOT, createFixture, readJson, runBash, runCli, runGit, snapsho
 const UPGRADE = ['init', '--upgrade'];
 const DRY_RUN = [...UPGRADE, '--dry-run'];
 const BACKUP_ROOT = ['.git', 'devscene', 'upgrade-backups'];
-const SELF_ADOPT_ENV = 'HARNESS_SELF_ADOPT';
+const SELF_ADOPT = { HARNESS_SELF_ADOPT: '1' };
 const CLAUDE_HOME_VARIABLE = 'CLAUDE_CONFIG_DIR';
 
 const EDIT = '\n# This line was added by hand.\n';
@@ -130,6 +130,21 @@ function recordPlugin(repo, version) {
   if (version !== undefined) {
     writeFileSync(join(root, '.claude-plugin', 'plugin.json'), formatJson({ name: 'devscene', version }));
   }
+}
+
+/** Gives the repository both marks `init` identifies the harness's own repository by. */
+function markAsHarness(repo) {
+  const { name } = readJson(join(PACKAGE_ROOT, 'package.json'));
+  mkdirSync(join(repo.dir, '.claude-plugin'));
+  writeFileSync(join(repo.dir, '.claude-plugin', 'marketplace.json'), '{}\n');
+  mkdirSync(join(repo.dir, 'cli'));
+  writeFileSync(join(repo.dir, 'cli', 'package.json'), formatJson({ name }));
+}
+
+/** The opening of the report's warning about a plugin at `pluginVersion`. */
+function versionsDiffer(pluginVersion) {
+  const { version } = readJson(join(PACKAGE_ROOT, 'package.json'));
+  return `The installed plugin is version ${pluginVersion} and this CLI is version ${version}`;
 }
 
 /**
@@ -349,11 +364,7 @@ test('a recorded plugin root with no readable manifest adds no refusal note to a
 
 test("the harness's own repository is refused unless self-adoption is asked for", async (t) => {
   const repo = await wired(t);
-  const { name } = readJson(join(PACKAGE_ROOT, 'package.json'));
-  mkdirSync(join(repo.dir, '.claude-plugin'));
-  writeFileSync(join(repo.dir, '.claude-plugin', 'marketplace.json'), '{}\n');
-  mkdirSync(join(repo.dir, 'cli'));
-  writeFileSync(join(repo.dir, 'cli', 'package.json'), formatJson({ name }));
+  markAsHarness(repo);
   const before = await snapshotTree(repo.dir);
 
   const refused = await repo.run(UPGRADE);
@@ -361,7 +372,49 @@ test("the harness's own repository is refused unless self-adoption is asked for"
   assert.match(refused.stderr, /refusing to wire the harness's own repository/);
   assert.deepEqual(await snapshotTree(repo.dir), before);
 
-  await upgrade(repo, UPGRADE, { [SELF_ADOPT_ENV]: '1' });
+  await upgrade(repo, UPGRADE, SELF_ADOPT);
+});
+
+for (const [name, pluginVersion] of [
+  ['an older plugin', '0.0.0'],
+  ['a newer plugin', '9999.0.0'],
+]) {
+  test(`self-adoption with ${name} upgrades and warns`, async (t) => {
+    const repo = await filled(t);
+    markAsHarness(repo);
+    recordPlugin(repo, pluginVersion);
+
+    const { stderr } = await upgrade(repo, UPGRADE, SELF_ADOPT);
+
+    assert.ok(stderr.includes(versionsDiffer(pluginVersion)), stderr);
+    assert.deepEqual(readFileSync(repo.scriptPath(SCRATCH_RUN)), shipped(SCRATCH_RUN));
+  });
+
+  test(`a self-adopted dry run with ${name} warns and reports no refusal`, async (t) => {
+    const repo = await filled(t);
+    markAsHarness(repo);
+    recordPlugin(repo, pluginVersion);
+    const before = await snapshotTree(repo.dir);
+
+    const { stdout, stderr } = await upgrade(repo, DRY_RUN, SELF_ADOPT);
+
+    assert.ok(stderr.includes(versionsDiffer(pluginVersion)), stderr);
+    assert.ok(!stdout.includes('a real --upgrade run would refuse'), stdout);
+    assert.deepEqual(await snapshotTree(repo.dir), before);
+  });
+}
+
+test('the self-adoption variable does not lift the version refusal in any other repository', async (t) => {
+  const repo = await filled(t);
+  recordPlugin(repo, '0.0.0');
+  const before = await snapshotTree(repo.dir);
+
+  const result = await repo.run(UPGRADE, SELF_ADOPT);
+
+  assert.equal(result.status, 1, result.stdout);
+  assert.match(result.stderr, /refusing to upgrade: the installed plugin is version 0\.0\.0/);
+  assert.deepEqual(await snapshotTree(repo.dir), before);
+  assert.deepEqual(backupRuns(repo), []);
 });
 
 test('a plain init still keeps an edited script and the existing profile', async (t) => {

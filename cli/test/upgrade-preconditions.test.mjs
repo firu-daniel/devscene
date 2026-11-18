@@ -311,8 +311,28 @@ test('an accepted repository resolves from a subdirectory, reading the configure
 
   for (const dryRun of [false, true]) {
     const target = resolveIn(cwd, { dryRun, assertRepositoryAllowed: (root) => allowed.push(root) });
-    assert.deepEqual(target, { repoRoot: dir, config: { ...CONFIG }, gitCommonDir: join(dir, '.git'), notes: [] });
+    assert.deepEqual(target, {
+      repoRoot: dir,
+      config: { ...CONFIG },
+      gitCommonDir: join(dir, '.git'),
+      selfAdopted: false,
+      notes: [],
+    });
   }
   assert.deepEqual(allowed, [dir, dir]);
   assert.deepEqual(await snapshotTree(dir), before);
+});
+
+test('only a callback returning true marks the run as self-adopted', async (t) => {
+  const dir = await repository(t);
+  for (const [answer, selfAdopted] of [
+    [true, true],
+    [false, false],
+    [undefined, false],
+    [1, false],
+    ['true', false],
+  ]) {
+    const target = resolveIn(dir, { assertRepositoryAllowed: () => answer });
+    assert.equal(target.selfAdopted, selfAdopted, String(answer));
+  }
 });

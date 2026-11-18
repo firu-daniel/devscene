@@ -130,12 +130,26 @@ for (const { older, pluginVersion, cliVersion, remedy, warning } of WORDING) {
 
   test(`a dry run notes the refusal when the older half is ${older}`, () => {
     const mismatch = pluginCliMismatch(pluginVersion, cliVersion);
-    assert.deepEqual(pluginVersionNotes({ mismatch, dryRun: true }), [
+    assert.deepEqual(pluginVersionNotes({ mismatch, dryRun: true, selfAdopted: false }), [
       `a real --upgrade run would refuse: the installed plugin is version ${pluginVersion} and this CLI is version ${cliVersion}; ${remedy}`,
     ]);
+  });
+
+  test(`a real run refuses when the older half is ${older}`, () => {
+    const mismatch = pluginCliMismatch(pluginVersion, cliVersion);
+    assert.throws(() => pluginVersionNotes({ mismatch, dryRun: false, selfAdopted: false }), {
+      message: `refusing to upgrade: the installed plugin is version ${pluginVersion} and this CLI is version ${cliVersion}; ${remedy}`,
+    });
+  });
+
+  test(`self-adoption neither refuses nor notes when the older half is ${older}`, () => {
+    const mismatch = pluginCliMismatch(pluginVersion, cliVersion);
+    for (const dryRun of [false, true]) {
+      assert.deepEqual(pluginVersionNotes({ mismatch, dryRun, selfAdopted: true }), []);
+    }
   });
 }
 
 test('a dry run with no mismatch has no version note', () => {
-  assert.deepEqual(pluginVersionNotes({ mismatch: undefined, dryRun: true }), []);
+  assert.deepEqual(pluginVersionNotes({ mismatch: undefined, dryRun: true, selfAdopted: false }), []);
 });
