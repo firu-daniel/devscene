@@ -22,7 +22,9 @@
  * variant whose `outcome` the entry names, every required property filled — the known ones with
  * their real values, any other with a placeholder.
  *
- * An entry is `{ outcome?, findings?, sleepMs?, mode?, touch?, questions? }`. `mode` is `no-init`,
+ * An entry is `{ outcome?, findings?, sleepMs?, mode?, touch?, questions?, malformedMustFix? }`.
+ * `malformedMustFix: true` drops `**Class:**` from the `## Must Fix` entry a `FAIL` round file
+ * carries. `mode` is `no-init`,
  * `no-result`, `not-success` (a `result` of subtype `error_max_turns` with `is_error`), `no-block`
  * (a `success` whose text carries no return block), `invalid` (a block carrying the unknown key
  * `stub_unknown`, so it fails its schema) or `withhold` (the `init` event drops `Glob` and `Grep`
@@ -49,7 +51,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import { INIT_SCRIPTS_DIR, WORKSPACE_ROOT, runBash, runGit } from './fixture.mjs';
-import { stateDirOf, walkerFixture, walkerUnavailable } from './walker.mjs';
+import { mustFixSection, stateDirOf, walkerFixture, walkerUnavailable } from './walker.mjs';
 
 export const BRANCH = 'feat_x';
 
@@ -114,7 +116,8 @@ if (folder !== '') {
   const verdict = entry.findings ?? outcome;
   if (verdict === 'PASS' || verdict === 'FAIL') {
     const findings = folder + 'review_' + value('iteration: ') + '.md';
-    put(findings, '# review\nverdict: ' + verdict + '\nreview_mode: ' + value('review_mode: ') + '\n');
+    const mustFix = verdict !== 'FAIL' ? '' : entry.malformedMustFix ? ${JSON.stringify(mustFixSection('Class'))} : ${JSON.stringify(mustFixSection())};
+    put(findings, '# review\nverdict: ' + verdict + '\nreview_mode: ' + value('review_mode: ') + '\n' + mustFix);
     if (verdict === outcome) known.findings_file = findings;
   }
 } else {

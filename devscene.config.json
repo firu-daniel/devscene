@@ -104,6 +104,14 @@
     {
       "test": "test/agent-return-schemas.test.mjs",
       "covers": "docs/structured-agent-returns.md"
+    },
+    {
+      "test": "test/must-fix-triggers-corpus.test.mjs",
+      "covers": "plugin/agents/*.md"
+    },
+    {
+      "test": "test/must-fix-triggers-corpus.test.mjs",
+      "covers": "plugin/instructions/finding_grades.md"
     }
   ],
   "execution": {

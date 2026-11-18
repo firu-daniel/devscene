@@ -11,7 +11,8 @@
  * infrastructure reason — a return block that is missing or fails its schema among them — is
  * re-dispatched alone, up to three attempts, and parks once only when all three failed; an
  * agent-reported `blocker` parks with no retry. A writer's `questions` park as one `## Q<k>` section
- * per item of its return object. A resume after an escalation
+ * per item of its return object. A gate whose round file the walker refuses is re-dispatched with
+ * no writer revision, and the third refusal parks as `held: <gate> error`. A resume after an escalation
  * park re-dispatches a gate that passed in the escalated round only after a writer revision, or
  * when the escalated gate's own file completed the round.** Each case is graded
  * on the return, `git log`, the run log, the clarification and pause files and the calls log.
@@ -209,6 +210,31 @@ test('a plan_review PASS with no findings_file fails its schema and is retried a
   const sessions = text.split('\n## ').find((b) => b.startsWith('Script-driven planning node sessions'));
   assert.ok(sessions.includes('plan_review task-plan-reviewer 1/3 error'), sessions);
   assert.ok(sessions.includes('plan_review task-plan-reviewer 2/3 PASS'), sessions);
+});
+
+test('a refused round file re-dispatches its gate, which then passes; the writer is not re-run', { skip: SKIP }, async (t) => {
+  const f = await driverFixture(t, {
+    script: { 'task-plan-reviewer': [{ outcome: 'FAIL', malformedMustFix: true }, { outcome: 'PASS' }] },
+  });
+  const r = await drive(t, f);
+  assert.equal(r.status, 0, show(r));
+  assert.equal(r.calls.filter((c) => c.agent === 'task-plan-reviewer').length, 2, show(r));
+  assert.equal(r.calls.filter((c) => c.agent === WRITER).length, 1, show(r));
+  assert.ok(r.log.includes('refused: plan_review attempt 1 of 3:'), r.log);
+});
+
+test('a round file refused three times parks as a held error, naming the last refusal', { skip: SKIP }, async (t) => {
+  const malformed = { outcome: 'FAIL', malformedMustFix: true };
+  const f = await driverFixture(t, { script: { 'task-plan-reviewer': [malformed, malformed, malformed] } });
+  const r = await drive(t, f);
+  assert.equal(r.status, 3, show(r));
+  assert.equal(r.calls.filter((c) => c.agent === 'task-plan-reviewer').length, 3, show(r));
+  assert.equal(r.calls.filter((c) => c.agent === WRITER).length, 1, show(r));
+  assert.deepEqual(Object.keys(r.clarifications), ['question_1.md'], show(r));
+  const question = r.clarifications['question_1.md'];
+  const lines = question.split('\n');
+  assert.ok(lines.includes('held: plan_review error'), question);
+  assert.ok(lines.some((l) => l.startsWith('refused: plan_review attempt 3 of 3:')), question);
 });
 
 test('an agent-reported blocker parks with no retry', { skip: SKIP }, async (t) => {

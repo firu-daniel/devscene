@@ -38,7 +38,7 @@ A citer **points and never restates**, and no plugin asset beyond this list poin
 
 ## The round file
 
-A reviewer writes `<findings_folder>/review_<iteration>.md` every round, **`PASS` included**, creating the folder itself on its first file. If `review_<iteration>.md` is already present it is from an interrupted round: review again in the mode the dispatch names, and replace it.
+A reviewer writes `<findings_folder>/review_<iteration>.md` every round, **`PASS` included**, creating the folder itself on its first file. If `review_<iteration>.md` is already present it comes from an interrupted round or from one the round-file check refused (`## The Must Fix entry`): review again in the mode the dispatch names, and replace it either way.
 
 A round's gates review the same plan revision as one set, dispatched together: never open another gate's round file of the round under review — it may still be being written. `## Converging mode` item 4 reads only the previous round's.
 
@@ -56,10 +56,13 @@ Those Should Fix and Nice to Have items stay in the review file as a record for 
 
 ## The Must Fix entry
 
-Each Must Fix keeps its title naming the target file and its `**Fix:**` line, and carries two more lines:
+Under `## Must Fix`, write each entry as a numbered item starting at column 0, its other lines indented beneath it. Each Must Fix keeps its title naming the target file and its `**Fix:**` line, and carries four more lines:
 
 - `**Raised against:**` — a short verbatim quote of the text the finding was raised against.
 - `**Must hold:**` — the defect stated as the property the target file must satisfy, never as a text replacement.
+- `**Class:**` and `**Failure:**` — per `${CLAUDE_PLUGIN_ROOT}/instructions/finding_grades.md` → `### The entry fields`.
+
+**The round-file check.** A `verdict: FAIL` file with no numbered entry, a `verdict: PASS` file with one, or an entry lacking a non-empty `**Class:**` or `**Failure:**` line is refused and does not reach the writer. The gate is dispatched again within the round, and its third refusal escalates.
 
 ## Converging mode
 

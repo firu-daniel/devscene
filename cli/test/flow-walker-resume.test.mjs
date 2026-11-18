@@ -38,6 +38,7 @@ import test from 'node:test';
 
 import { INIT_SCRIPTS_DIR, runBash, runGit } from './helpers/fixture.mjs';
 import {
+  mustFixSection,
   plantReview,
   run,
   stateDirOf,
@@ -222,7 +223,7 @@ async function committedPlanFixture(t, phases) {
   return dir;
 }
 
-const FAIL_BODY = `# review 3\nverdict: FAIL\nreview_mode: full\n`;
+const FAIL_BODY = `# review 3\nverdict: FAIL\nreview_mode: full\n${mustFixSection()}`;
 const PASS_BODY = `# review 3\nverdict: PASS\nreview_mode: full\n`;
 
 /**

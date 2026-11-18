@@ -19,47 +19,46 @@ Nothing here is a schedule or a promise. **The index below is the intended order
 | 7 | [Parallel dispatch in waves](#flow-and-orchestration) |
 | 8 | [Multi-plan programs](#flow-and-orchestration) |
 | 9 | [Ultra-fast mode](#flow-and-orchestration) |
-| 10 | [Review severity markers](#quality-and-testing) |
-| 11 | [Script-driven autonomous flow](#flow-and-orchestration) |
-| 12 | [Test-driven development](#quality-and-testing) |
-| 13 | [Outbound HTTP listener](#security-and-containment) |
-| 14 | [RagScene](#scene-products) |
-| 15 | [GraphScene](#scene-products) |
-| 16 | [Docs-catalog retrieval](#engines-environments-and-integrations) — kept opt-in by maintainer decision after a withdrawn verdict; improving it and measuring where it pays is open |
-| 17 | [Citation groundedness gate](#quality-and-testing) |
-| 18 | [Golden-task eval suite](#quality-and-testing) |
-| 19 | [Trace export](#planning-artifacts-and-reporting) |
-| 20 | [Engine / provider abstraction](#engines-environments-and-integrations) |
-| 21 | [Model-change drift gate](#quality-and-testing) |
-| 22 | [Budget governor](#engines-environments-and-integrations) |
-| 23 | [Other issue trackers](#engines-environments-and-integrations) |
-| 24 | [First published eval result](#evidence-and-adoption) |
-| 25 | [Outcome-graded eval case](#evidence-and-adoption) |
-| 26 | [Measuring the lessons ledger](#evidence-and-adoption) |
-| 27 | [MCP servers](#engines-environments-and-integrations) |
-| 28 | [Cross-repo tasks](#flow-and-orchestration) |
-| 29 | [Watcher settings surface](#flow-and-orchestration) |
-| 30 | [`branch-summary.md`](#planning-artifacts-and-reporting) |
-| 31 | [Task breakdown and estimates file](#planning-artifacts-and-reporting) |
-| 32 | [User flow diagram](#planning-artifacts-and-reporting) |
-| 33 | [Business (data) flow diagram](#planning-artifacts-and-reporting) |
-| 34 | [Integration tests](#quality-and-testing) |
-| 35 | [Regression tests](#quality-and-testing) |
-| 36 | [Fix-plan structure review](#quality-and-testing) |
-| 37 | [Deploy to a test environment](#engines-environments-and-integrations) |
-| 38 | [Cloud QA](#engines-environments-and-integrations) |
-| 39 | [Mobile QA drivers](#engines-environments-and-integrations) |
-| 40 | [Design-source ingestion](#engines-environments-and-integrations) |
-| 41 | [Second end-to-end capture](#evidence-and-adoption) |
-| 42 | [Interactive session vs harness run](#evidence-and-adoption) |
-| 43 | [`init` warns when there is no remote](#evidence-and-adoption) |
-| 44 | [OS-level sandbox in the autonomous profile](#security-and-containment) |
-| 45 | [`doctor` sandbox checks](#security-and-containment) |
-| 46 | [Threat model](#documentation) |
-| 47 | [Suggested protected branches at `init`](#security-and-containment) |
-| 48 | [Guided default-branch change](#evidence-and-adoption) |
-| 49 | [Release tags in the protected set](#security-and-containment) |
-| 50 | [Notifications settings command](#flow-and-orchestration) |
+| 10 | [Script-driven autonomous flow](#flow-and-orchestration) |
+| 11 | [Test-driven development](#quality-and-testing) |
+| 12 | [Outbound HTTP listener](#security-and-containment) |
+| 13 | [RagScene](#scene-products) |
+| 14 | [GraphScene](#scene-products) |
+| 15 | [Docs-catalog retrieval](#engines-environments-and-integrations) — kept opt-in by maintainer decision after a withdrawn verdict; improving it and measuring where it pays is open |
+| 16 | [Citation groundedness gate](#quality-and-testing) |
+| 17 | [Golden-task eval suite](#quality-and-testing) |
+| 18 | [Trace export](#planning-artifacts-and-reporting) |
+| 19 | [Engine / provider abstraction](#engines-environments-and-integrations) |
+| 20 | [Model-change drift gate](#quality-and-testing) |
+| 21 | [Budget governor](#engines-environments-and-integrations) |
+| 22 | [Other issue trackers](#engines-environments-and-integrations) |
+| 23 | [First published eval result](#evidence-and-adoption) |
+| 24 | [Outcome-graded eval case](#evidence-and-adoption) |
+| 25 | [Measuring the lessons ledger](#evidence-and-adoption) |
+| 26 | [MCP servers](#engines-environments-and-integrations) |
+| 27 | [Cross-repo tasks](#flow-and-orchestration) |
+| 28 | [Watcher settings surface](#flow-and-orchestration) |
+| 29 | [`branch-summary.md`](#planning-artifacts-and-reporting) |
+| 30 | [Task breakdown and estimates file](#planning-artifacts-and-reporting) |
+| 31 | [User flow diagram](#planning-artifacts-and-reporting) |
+| 32 | [Business (data) flow diagram](#planning-artifacts-and-reporting) |
+| 33 | [Integration tests](#quality-and-testing) |
+| 34 | [Regression tests](#quality-and-testing) |
+| 35 | [Fix-plan structure review](#quality-and-testing) |
+| 36 | [Deploy to a test environment](#engines-environments-and-integrations) |
+| 37 | [Cloud QA](#engines-environments-and-integrations) |
+| 38 | [Mobile QA drivers](#engines-environments-and-integrations) |
+| 39 | [Design-source ingestion](#engines-environments-and-integrations) |
+| 40 | [Second end-to-end capture](#evidence-and-adoption) |
+| 41 | [Interactive session vs harness run](#evidence-and-adoption) |
+| 42 | [`init` warns when there is no remote](#evidence-and-adoption) |
+| 43 | [OS-level sandbox in the autonomous profile](#security-and-containment) |
+| 44 | [`doctor` sandbox checks](#security-and-containment) |
+| 45 | [Threat model](#documentation) |
+| 46 | [Suggested protected branches at `init`](#security-and-containment) |
+| 47 | [Guided default-branch change](#evidence-and-adoption) |
+| 48 | [Release tags in the protected set](#security-and-containment) |
+| 49 | [Notifications settings command](#flow-and-orchestration) |
 
 ## Flow and orchestration
 
@@ -104,7 +103,7 @@ Nothing here is a schedule or a promise. **The index below is the intended order
 | Fix-plan structure review | A structural reviewer for the user-review fix-plan flow, matching the one the task plan already has. | Open |
 | Converging plan reviews | Every plan reviewer runs every round against the same version of the task plan, and one decision point closes the round. From the third round on, the reviewers run in converging mode: they check that the previous round's Must Fix items were addressed, and note anything else as non-gating incidental findings that the end-of-branch reviewers follow up. The autonomous fork commits each round. The same holds for the user-review fix plan, whose routing stays prose ([`docs/converging-plan-reviews.md`](docs/converging-plan-reviews.md)). | Done |
 | Narrower plan and branch reviewers | Refactor the task-plan reviewer to fewer responsibilities — the plan's structure, and whether it covers and offers a solution for every requirement of the task prompt — and spread the rest across the other reviewers. Starts with research into its full current responsibilities; whether the same applies to the end-of-branch `branch-reviewer` is part of that research. | Open |
-| Review severity markers | Revisit what really is a Must Fix — possibly a review should carry Must Fix items only. | Open |
+| Review severity markers | Revisit what really is a Must Fix — possibly a review should carry Must Fix items only. | Done |
 | Security reviewer | A security reviewer agent at the end-of-branch review and in the user-review fix-plan phase, and in the plan phase where security issues can be detected from a plan at all. Its scope draws on Claude Code's existing security review command. | Open |
 | Performance reviewer | A performance reviewer agent at the same three points: the end-of-branch review, the user-review fix-plan phase, and the plan phase where performance issues can be detected from a plan at all. | Open |
 | Test-driven development | The pipeline writes the tests before the implementation they cover. | Open |

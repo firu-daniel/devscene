@@ -112,4 +112,6 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 
 - **A value a script or graph may route on (an outcome, a key, an id) is one token with no space; when it is carried over from an old literal, keep the literal's words and drop its spacing.** _(taught by: feat_structured_outputs_unit_loop)_
 
+- **When a change makes agent definitions state one rule in two places, such as a checklist and a table, the same change ships the static check that holds the two aligned.** _(taught by: feat_must_fix_definition)_
+
 _Written by `autonomous-sdlc-harness init`, and yours from there on: a re-run never touches a ledger that already exists._

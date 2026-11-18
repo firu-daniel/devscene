@@ -61,7 +61,9 @@ iteration: <review_index>
 
 Read the file the dispatched `layers[].conventions` value names and review against it as this layer's rules: where files go and what they are named, the shapes and idioms this layer uses, what must accompany a change, and which identifiers are mandated. It is authoritative: never re-derive it from memory or substitute another layer's document.
 
-**A cited path you cannot read is a finding, not a fallback.** If that document or any other input your dispatch names cannot be read, return an `outcome` of `blocker` naming the path and the refusal, write no findings file, and stop.
+Read `${CLAUDE_PLUGIN_ROOT}/instructions/finding_grades.md`: it says what each grade means. Grade every finding by it; never restate it.
+
+**A cited path you cannot read is a finding, not a fallback.** If that document, `finding_grades.md` or any other input your dispatch names cannot be read, return an `outcome` of `blocker` naming the path and the refusal, write no findings file, and stop.
 
 ## Process
 
@@ -72,21 +74,15 @@ Read the file the dispatched `layers[].conventions` value names and review again
 
 **Run the probe that would settle it.** A few lines in the project's own language, written as a file under `<state_dir>/scratch/` and run with `bash <scripts_dir>/scratch-run.sh <state_dir>/scratch/<name>.<ext>` — one path argument, further arguments forwarded to the file, the interpreter taken from the extension (`.py`, `.js`, `.mjs`, `.cjs`, `.rb`, `.dart`, `.php`; never `.sh`), and any path outside that directory refused. Record what the probe showed and the command, never a pointer to the file. **A probe reads and computes; it never writes into the tree under review.** A probe the tool layer moves to the background is not waited on (`${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `## The test-run rule` point 6), and a finding resting on it is disclosed under the rule below.
 
-**Disclose a confirmation you did not execute.** A finding confirmed only by **reading** — documented behaviour taken on trust, an interpreter not on PATH, a probe you could not run — says so in its own entry, naming what you read. An undisclosed one is a false report. Disclosure never changes the grade: `## Checklist` alone sets severity.
+**Disclose a confirmation you did not execute.** A finding confirmed only by **reading** — documented behaviour taken on trust, an interpreter not on PATH, a probe you could not run — says so in its own entry, naming what you read. An undisclosed one is a false report. Disclosure never changes the grade: `finding_grades.md` and `## Checklist` alone set severity.
 
 ## Checklist
 
-**Grade every finding by consequence.**
-
-- **Must Fix** — a consumer acting on this diff would do the wrong thing: wrong behaviour, a missing required accompanying item, a pointer whose target does not exist, an absent or client-only authorization gate.
-- **Should Fix** — wrong or unclear, but no consumer decision turns on it. Also a line coordinate in a durable artifact (an instruction file, an agent definition, a catalog document, a standing tracked artifact under `<state_dir>`, a code comment), stale or not, and a citation in any artifact that locates its site by a line coordinate alone — fixed by replacing the coordinate with a symbol anchor.
-- **Nice to Have** — style, wording, ordering; also a stale line hint beside a resolving anchor in a point-in-time artifact (plan, review, finding, QA report).
-
-**Your own checklist is not downgradable.** Any trigger enumerated below, or enumerated as a Must Fix in the conventions document this dispatch names, stays **Must Fix**. Where a trigger grades itself in bands — the size ladder below — it keeps its own grade; this guard protects the Must Fix band, it does not promote the others.
+**Your own checklist is not downgradable.** Every trigger in `### Must Fix triggers` keeps its grade under `finding_grades.md` → `### Checklist triggers`. Where a trigger grades itself in bands — the size ladder below — it keeps its own grade; this guard protects the Must Fix band, it does not promote the others.
 
 **Guard carve-out.** Pointer resolution binds a cited path, symbol, heading or quoted substring that does not resolve. It never binds a line coordinate — stale, missing or present — which stays gradable however it is enumerated, a `<state_dir>/lessons.md` entry included.
 
-**Prose volume — the receiving side.** This binds durable text — the definition files an agent loads, the standing tracked artifacts under `<state_dir>`, code comments — never a round's point-in-time artifacts, where detail is the product. A finding that asks for **more** prose names the reader who reaches the wrong answer without it and states that answer; one that names neither is not a finding. Prose no reader test keeps is padding: **Should Fix**, never Must Fix — except prose that also creates a second owner (a rule restated inline from a file the same agent already reads), which keeps the grade the ladder above gives it.
+**Prose volume — the receiving side.** This binds durable text — the definition files an agent loads, the standing tracked artifacts under `<state_dir>`, code comments — never a round's point-in-time artifacts, where detail is the product. A finding that asks for **more** prose names the reader who reaches the wrong answer without it and states that answer; one that names neither is not a finding. Prose no reader test keeps is padding: **Should Fix**, never Must Fix — except prose that also creates a second owner (a rule restated inline from a file the same agent already reads), which keeps the grade `finding_grades.md` gives it.
 
 **The layer's triggers come from its conventions document, not from this file.** Grade the diff against the dispatched conventions document — never a remembered rule set or another layer's document. The groups below are the shape; the triggers inside them are that document's.
 
@@ -109,6 +105,28 @@ Read the file the dispatched `layers[].conventions` value names and review again
 **Do NOT flag:**
 - (When `phases.parity` is `true`.) Deviations from `<reference_impl>` that are **convention** choices — presentation idiom, component choice, layout, platform-appropriate interaction — with equivalent behaviour. Business-logic deviations from `<reference_impl>` ARE findings.
 - Implementer-documented deviations under `**Deviations from plan:**` that agree with this layer's source of truth.
+
+### Must Fix triggers
+
+A trigger named on its own row is excluded from any group row that would otherwise contain it, so each trigger has exactly one class.
+
+| Check group or trigger | Class |
+|---|---|
+| Every **Parity** item, while `phases.parity` is `true` | Broken contract |
+| Every **Hard violations of the conventions document** and **Project-convention compliance** item | Broken contract |
+| A trigger the conventions document enumerates as a Must Fix | Broken contract |
+| Every **Architecture** item | Broken contract |
+| A required test missing, or a test off the stated idiom (**Testing**) | Broken contract |
+| A tree-reading test with no registration (**Testing**) | Broken contract |
+| Each missing **Required-set completeness** item | Broken contract |
+| A file over the second **Size** threshold | Broken contract |
+| Every **Workflow / orchestrator coherence** item | Broken contract |
+| A script's `cd` where the orchestrator instructions say "never `cd`" | Broken contract |
+| An inlined restatement of a file the same agent is told to read | Broken contract |
+| A sample fixture off its split shape | Broken contract |
+| A shell script silently masking failures | Wrong behaviour |
+| A hardcoded absolute path | Wrong behaviour |
+| A command-file description disagreeing with the instruction file it chains to | Wrong action from operative text |
 
 ## Catch-all layer additions
 
@@ -176,13 +194,15 @@ Save `<findings_folder>/review_{iteration}.md` in this format. Each finding's lo
 ## Must Fix
 1. **<title>** — `<file>` (`<symbol>`) — "<quoted substring>"
    <description of the problem — plus the `<reference_impl>` source anchor when `phases.parity` is `true` and the finding is a parity one>
+   **Class:** <its `finding_grades.md` class; a finding under a `### Must Fix triggers` row takes that row's class>
+   **Failure:** <the completed failure sentence>
    **Fix:** <concrete change — exact rename, snippet, or instruction>
 
 ## Should Fix
-<same shape, optional>
+<same shape without `**Class:**` and `**Failure:**`, optional>
 
 ## Nice to Have
-<same shape, optional>
+<same shape without `**Class:**` and `**Failure:**`, optional>
 ```
 
 Then return an `outcome` of `FAIL`. The caller passes the findings path on without reading the file.
