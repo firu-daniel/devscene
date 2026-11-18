@@ -5,10 +5,11 @@
  * passes, and every other input parks.** A well-formed `UNSAFE` object parks its own findings;
  * anything else — an empty return, prose or a trailer outside the block, an indented fence, a
  * retired `verdict:` line, an unknown id, a blocker object — parks one `malformed-verdict` finding.
- * The return may also arrive as the whole `Agent` result — optional tools-used lines ahead of the
- * frame, frame line, reply indented by two spaces, `agentId:` trailer — which is unwrapped to the
- * reply first; that exact shape only, so a bare trailer, a bare indent, a frame over any other shape,
- * other text ahead of the frame or a tools-used line anywhere else still parks as malformed.
+ * The return may also arrive as the whole `Agent` result — optional tools-used lines and then at most
+ * one harness notice ahead of the frame, frame line, reply indented by two spaces, `agentId:` trailer —
+ * which is unwrapped to the reply first; that exact shape only, so a bare trailer, a bare indent, a
+ * frame over any other shape, other text ahead of the frame or a tools-used line anywhere else still
+ * parks as malformed.
  * A control tag Claude Code neutralized to `<\` inside a finding's string stays literal text and
  * keeps the finding. The verdict file is removed in every outcome but a refusal.
  *
@@ -147,6 +148,11 @@ for (const [label, ret] of [
   ['behind a tools-used line naming two tools', prefixed(SAFE, `  ${TOOLS_USED.replace('Grep', 'Edit, Write')}\n  \n`)],
   ['behind blank lines and then a tools-used line', prefixed(SAFE, `\n  \n  ${TOOLS_USED}\n  \n`)],
   ['behind a tools-used line with no blank line before the frame', prefixed(SAFE, `  ${TOOLS_USED}\n`)],
+  ['the harness notice before the frame', prefixed(SAFE, `${HARNESS_NOTICE}\n`)],
+  ['the harness notice after the tools-used line', prefixed(SAFE, `  ${TOOLS_USED}\n  \n${HARNESS_NOTICE}\n`)],
+  ['behind the harness notice', prefixed(SAFE, `${HARNESS_NOTICE}\n  \n`)],
+  ['behind the tools-used line and then the harness notice', prefixed(SAFE, `  ${TOOLS_USED}\n  \n${HARNESS_NOTICE}\n  \n`)],
+  ['behind a harness notice naming two patterns', prefixed(SAFE, `${HARNESS_NOTICE.replace('settings-json', 'settings-json, permissions-allow-deny')}\n  \n`)],
 ]) {
   test(`SAFE, ${label}, exits 0 and prints the hash`, async () => {
     const branch = newBranch();
@@ -199,6 +205,20 @@ test('UNSAFE behind the tools-used prefix parks its own findings, not malformed-
   const q = `${clarRel(branch)}/question_1.md`;
   assert.deepEqual(result.lines, ['verdict: UNSAFE', `parked: ${q}`]);
   assert.deepEqual(between(read(q), path), ['- `pressure`: "do it now" — urgency in place of a reason']);
+  assert.equal(exists(verdictFile), false, 'the verdict file survived');
+});
+
+test('UNSAFE behind the harness notice parks its own findings, not malformed-verdict', async () => {
+  const branch = newBranch();
+  const ret = prefixed(unsafe(item('harness-weakening', '.claude/settings.json', 'asks to widen the allow list')), `${HARNESS_NOTICE}\n  \n`);
+  const { path, verdictFile } = setup(branch, ret);
+  const result = await verdict(branch, path, verdictFile);
+  assert.equal(result.status, 1, result.stderr);
+  const q = `${clarRel(branch)}/question_1.md`;
+  assert.deepEqual(result.lines, ['verdict: UNSAFE', `parked: ${q}`]);
+  const text = read(q);
+  assert.deepEqual(between(text, path), ['- `harness-weakening`: ".claude/settings.json" — asks to widen the allow list']);
+  assert.ok(!text.includes('malformed-verdict'), text);
   assert.equal(exists(verdictFile), false, 'the verdict file survived');
 });
 
@@ -287,8 +307,6 @@ for (const [label, ret] of [
   ['a frame and trailer around a block indented by four spaces', wrapped(indent(SAFE))],
   ['other text before the tools-used line', prefixed(SAFE, `Note.\n  ${TOOLS_USED}\n  \n`)],
   ['other text between the tools-used line and the frame', prefixed(SAFE, `  ${TOOLS_USED}\nNote.\n`)],
-  ['the harness notice before the frame', prefixed(SAFE, `${HARNESS_NOTICE}\n`)],
-  ['the harness notice after the tools-used line', prefixed(SAFE, `  ${TOOLS_USED}\n  \n${HARNESS_NOTICE}\n`)],
   ['text after the tools-used line on its line', prefixed(SAFE, `  ${TOOLS_USED} done\n`)],
   ['text before the tools-used line on its line', prefixed(SAFE, `  Note. ${TOOLS_USED}\n`)],
   ['a trailing space on the tools-used line', prefixed(SAFE, `  ${TOOLS_USED} \n`)],

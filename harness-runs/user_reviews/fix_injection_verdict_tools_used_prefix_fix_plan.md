@@ -15,7 +15,7 @@
 Each entry resolves to `harness-runs/user_reviews/fix_injection_verdict_tools_used_prefix_fix_plan/finding_<K>.md` through its `**Finding K**` reference. Sorted lowest blast-radius first. Finding 2 builds on the helper Finding 1 adds, Finding 4 pins what Findings 1 to 3 build, and Finding 5 extends text Finding 4 writes, so this order is also the dependency order.
 
 1. [x] **Finding 3** — Keep the findings of an `UNSAFE` excerpt that quotes a neutralized control tag. _(layer: cli, general)_
-2. [ ] **Finding 1** — Accept the exact harness notice ahead of the frame. _(layer: cli, general)_
+2. [x] **Finding 1** — Accept the exact harness notice ahead of the frame. _(layer: cli, general)_
 3. [ ] **Finding 2** — Accept the exact harness notice as the first line of the framed reply. _(layer: cli, general)_
 4. [ ] **Finding 4** — Pin the fail-closed boundary in tests and update the two documents that describe the old behaviour. _(layer: cli, plugin, general)_
 5. [ ] **Finding 5** — Let the routing check parse a return holding a neutralized control tag. _(layer: plugin, general)_
