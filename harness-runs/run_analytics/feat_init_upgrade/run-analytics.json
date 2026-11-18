@@ -1,0 +1,2386 @@
+{
+  "branch": "feat_init_upgrade",
+  "gate_logs": [
+    {
+      "log_id": "task_round_1",
+      "matches": []
+    }
+  ],
+  "rounds": [
+    {
+      "gates": {
+        "outcome": "complete",
+        "rows": [
+          {
+            "gate": "1",
+            "phase": "full",
+            "seconds": 1,
+            "status": "ok"
+          },
+          {
+            "gate": "2a",
+            "phase": "full",
+            "seconds": 2,
+            "status": "ok"
+          },
+          {
+            "gate": "2b",
+            "phase": "full",
+            "seconds": 0,
+            "status": "ok"
+          },
+          {
+            "gate": "2c",
+            "phase": "full",
+            "seconds": 0,
+            "status": "ok"
+          },
+          {
+            "gate": "2d",
+            "phase": "full",
+            "seconds": 0,
+            "status": "ok"
+          },
+          {
+            "gate": "2e",
+            "phase": "full",
+            "seconds": 0,
+            "status": "ok"
+          },
+          {
+            "gate": "3a",
+            "phase": "full",
+            "seconds": 0,
+            "status": "ok"
+          },
+          {
+            "gate": "3b",
+            "phase": "full",
+            "seconds": 1,
+            "status": "ok"
+          },
+          {
+            "gate": "3c",
+            "phase": "full",
+            "seconds": 1,
+            "status": "ok"
+          },
+          {
+            "gate": "3d",
+            "phase": "full",
+            "seconds": 1,
+            "status": "ok"
+          },
+          {
+            "gate": "3e",
+            "phase": "full",
+            "seconds": 0,
+            "status": "ok"
+          },
+          {
+            "gate": "3f",
+            "phase": "full",
+            "seconds": 1,
+            "status": "ok"
+          },
+          {
+            "gate": "4",
+            "phase": "full",
+            "seconds": 988,
+            "status": "ok"
+          },
+          {
+            "gate": "6a",
+            "phase": "full",
+            "seconds": 1,
+            "status": "ok"
+          },
+          {
+            "gate": "6b",
+            "phase": "full",
+            "seconds": 0,
+            "status": "ok"
+          },
+          {
+            "gate": "6c",
+            "phase": "full",
+            "seconds": 1,
+            "status": "ok"
+          },
+          {
+            "gate": "6d",
+            "phase": "full",
+            "seconds": 2,
+            "status": "ok"
+          },
+          {
+            "gate": "6e",
+            "phase": "full",
+            "seconds": 0,
+            "status": "ok"
+          },
+          {
+            "gate": "6f",
+            "phase": "full",
+            "seconds": 0,
+            "status": "ok"
+          },
+          {
+            "gate": "11",
+            "phase": "full",
+            "seconds": 9,
+            "status": "ok"
+          },
+          {
+            "gate": "13a",
+            "phase": "full",
+            "seconds": 0,
+            "status": "BLOCKED"
+          },
+          {
+            "gate": "13b",
+            "phase": "full",
+            "seconds": 0,
+            "status": "BLOCKED"
+          },
+          {
+            "gate": "13c",
+            "phase": "full",
+            "seconds": 0,
+            "status": "BLOCKED"
+          },
+          {
+            "gate": "13d",
+            "phase": "full",
+            "seconds": 0,
+            "status": "SKIPPED"
+          },
+          {
+            "gate": "14a",
+            "phase": "full",
+            "seconds": 1,
+            "status": "ok"
+          },
+          {
+            "gate": "14c",
+            "phase": "full",
+            "seconds": 1,
+            "status": "ok"
+          },
+          {
+            "gate": "14d",
+            "phase": "full",
+            "seconds": 1,
+            "status": "ok"
+          },
+          {
+            "gate": "16",
+            "phase": "full",
+            "seconds": 1,
+            "status": "ok"
+          }
+        ]
+      },
+      "round_id": "task_round_1",
+      "tests": {
+        "full": [
+          {
+            "failed": 0,
+            "file": "test/remote-run.test.mjs",
+            "seconds": 358.0,
+            "status": "pass",
+            "tests": 130
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-remote-job.test.mjs",
+            "seconds": 331.1,
+            "status": "pass",
+            "tests": 29
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-control.test.mjs",
+            "seconds": 323.3,
+            "status": "pass",
+            "tests": 83
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-control-review.test.mjs",
+            "seconds": 302.5,
+            "status": "pass",
+            "tests": 33
+          },
+          {
+            "failed": 0,
+            "file": "test/doctor.test.mjs",
+            "seconds": 267.6,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/planning-driver-control.test.mjs",
+            "seconds": 249.1,
+            "status": "pass",
+            "tests": 15
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-trigger.test.mjs",
+            "seconds": 229.1,
+            "status": "pass",
+            "tests": 37
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-control-mention.test.mjs",
+            "seconds": 224.3,
+            "status": "pass",
+            "tests": 47
+          },
+          {
+            "failed": 0,
+            "file": "test/run-test-suite.test.mjs",
+            "seconds": 212.3,
+            "status": "pass",
+            "tests": 50
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-review-drop-payloads.test.mjs",
+            "seconds": 205.9,
+            "status": "pass",
+            "tests": 21
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-placeholder-host.test.mjs",
+            "seconds": 186.2,
+            "status": "pass",
+            "tests": 27
+          },
+          {
+            "failed": 0,
+            "file": "test/flow-walker.test.mjs",
+            "seconds": 171.2,
+            "status": "pass",
+            "tests": 16
+          },
+          {
+            "failed": 0,
+            "file": "test/flow-walker-resume.test.mjs",
+            "seconds": 155.5,
+            "status": "pass",
+            "tests": 12
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-remote-dispatch.test.mjs",
+            "seconds": 138.0,
+            "status": "pass",
+            "tests": 17
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-stall-reset-payloads.test.mjs",
+            "seconds": 136.6,
+            "status": "pass",
+            "tests": 18
+          },
+          {
+            "failed": 0,
+            "file": "test/gate12-sandbox-round-grade.test.mjs",
+            "seconds": 135.5,
+            "status": "pass",
+            "tests": 42
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-run-profile.test.mjs",
+            "seconds": 128.7,
+            "status": "pass",
+            "tests": 21
+          },
+          {
+            "failed": 0,
+            "file": "test/planning-driver-walk.test.mjs",
+            "seconds": 115.5,
+            "status": "pass",
+            "tests": 8
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-report.test.mjs",
+            "seconds": 115.0,
+            "status": "pass",
+            "tests": 44
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-planning-driver.test.mjs",
+            "seconds": 114.1,
+            "status": "pass",
+            "tests": 11
+          },
+          {
+            "failed": 0,
+            "file": "test/outer-loop-scripts.test.mjs",
+            "seconds": 109.9,
+            "status": "pass",
+            "tests": 54
+          },
+          {
+            "failed": 0,
+            "file": "test/flow-walker-ui-and-reentry.test.mjs",
+            "seconds": 108.1,
+            "status": "pass",
+            "tests": 13
+          },
+          {
+            "failed": 0,
+            "file": "test/clone-trust-check.test.mjs",
+            "seconds": 107.2,
+            "status": "pass",
+            "tests": 24
+          },
+          {
+            "failed": 0,
+            "file": "test/docs-retrieval.test.mjs",
+            "seconds": 107.1,
+            "status": "pass",
+            "tests": 17
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-keep-awake.test.mjs",
+            "seconds": 104.9,
+            "status": "pass",
+            "tests": 9
+          },
+          {
+            "failed": 0,
+            "file": "test/flow-walker-concurrency.test.mjs",
+            "seconds": 103.1,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/gate12-sandbox-round-full-run.test.mjs",
+            "seconds": 94.7,
+            "status": "pass",
+            "tests": 22
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-review-payloads.test.mjs",
+            "seconds": 93.2,
+            "status": "pass",
+            "tests": 15
+          },
+          {
+            "failed": 0,
+            "file": "test/docs-retrieval-store.test.mjs",
+            "seconds": 89.9,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-collect.test.mjs",
+            "seconds": 89.2,
+            "status": "pass",
+            "tests": 16
+          },
+          {
+            "failed": 0,
+            "file": "test/launch-sandboxed-gates.test.mjs",
+            "seconds": 87.3,
+            "status": "pass",
+            "tests": 21
+          },
+          {
+            "failed": 0,
+            "file": "test/init.test.mjs",
+            "seconds": 83.7,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-ledger-classification.test.mjs",
+            "seconds": 72.5,
+            "status": "pass",
+            "tests": 19
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-start.test.mjs",
+            "seconds": 69.2,
+            "status": "pass",
+            "tests": 16
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-remote-park-sequence.test.mjs",
+            "seconds": 65.5,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/wrapper-clone-arm.test.mjs",
+            "seconds": 65.3,
+            "status": "pass",
+            "tests": 19
+          },
+          {
+            "failed": 0,
+            "file": "test/init-upgrade.test.mjs",
+            "seconds": 63.1,
+            "status": "pass",
+            "tests": 24
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-control-close.test.mjs",
+            "seconds": 56.1,
+            "status": "pass",
+            "tests": 18
+          },
+          {
+            "failed": 0,
+            "file": "test/config-command.test.mjs",
+            "seconds": 51.9,
+            "status": "pass",
+            "tests": 39
+          },
+          {
+            "failed": 0,
+            "file": "test/flow-walker-fan-out.test.mjs",
+            "seconds": 47.6,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-deliver.test.mjs",
+            "seconds": 47.0,
+            "status": "pass",
+            "tests": 17
+          },
+          {
+            "failed": 0,
+            "file": "test/cleanup-run-copies.test.mjs",
+            "seconds": 44.9,
+            "status": "pass",
+            "tests": 11
+          },
+          {
+            "failed": 0,
+            "file": "test/commit-on-branch-unit.test.mjs",
+            "seconds": 39.3,
+            "status": "pass",
+            "tests": 21
+          },
+          {
+            "failed": 0,
+            "file": "test/push-branch-credential-scan.test.mjs",
+            "seconds": 38.8,
+            "status": "pass",
+            "tests": 17
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-progress.test.mjs",
+            "seconds": 38.7,
+            "status": "pass",
+            "tests": 15
+          },
+          {
+            "failed": 0,
+            "file": "test/create-worktree.test.mjs",
+            "seconds": 38.4,
+            "status": "pass",
+            "tests": 19
+          },
+          {
+            "failed": 0,
+            "file": "test/wrapper-target-check.test.mjs",
+            "seconds": 38.4,
+            "status": "pass",
+            "tests": 22
+          },
+          {
+            "failed": 0,
+            "file": "test/profile.test.mjs",
+            "seconds": 37.9,
+            "status": "pass",
+            "tests": 31
+          },
+          {
+            "failed": 0,
+            "file": "test/clone-sync.test.mjs",
+            "seconds": 36.1,
+            "status": "pass",
+            "tests": 20
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-park-resume.test.mjs",
+            "seconds": 36.0,
+            "status": "pass",
+            "tests": 7
+          },
+          {
+            "failed": 0,
+            "file": "test/planning-node-lib.test.mjs",
+            "seconds": 33.8,
+            "status": "pass",
+            "tests": 21
+          },
+          {
+            "failed": 0,
+            "file": "test/clone-create-remove.test.mjs",
+            "seconds": 33.6,
+            "status": "pass",
+            "tests": 18
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-sandbox-refusal.test.mjs",
+            "seconds": 33.4,
+            "status": "pass",
+            "tests": 5
+          },
+          {
+            "failed": 0,
+            "file": "test/run-copy-clone-arm.test.mjs",
+            "seconds": 33.1,
+            "status": "pass",
+            "tests": 9
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-stall-host-sleep.test.mjs",
+            "seconds": 33.1,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/gate12-sandbox-round-default-branch.test.mjs",
+            "seconds": 32.8,
+            "status": "pass",
+            "tests": 9
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-park-loop.test.mjs",
+            "seconds": 31.1,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/refresh-branch-worktree-config.test.mjs",
+            "seconds": 30.3,
+            "status": "pass",
+            "tests": 14
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-deliver-threads.test.mjs",
+            "seconds": 29.7,
+            "status": "pass",
+            "tests": 7
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-run-analytics.test.mjs",
+            "seconds": 29.0,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/registry-writer.test.mjs",
+            "seconds": 28.9,
+            "status": "pass",
+            "tests": 9
+          },
+          {
+            "failed": 0,
+            "file": "test/doctor-tree-guards.test.mjs",
+            "seconds": 28.4,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/wrapper-clone-config-refusal.test.mjs",
+            "seconds": 28.1,
+            "status": "pass",
+            "tests": 5
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-shell.test.mjs",
+            "seconds": 26.9,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-push-refusal.test.mjs",
+            "seconds": 25.5,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/task-offer-fence.test.mjs",
+            "seconds": 22.7,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-background-wait.test.mjs",
+            "seconds": 22.6,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/planning-record-lib.test.mjs",
+            "seconds": 22.5,
+            "status": "pass",
+            "tests": 10
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-save-links.test.mjs",
+            "seconds": 22.2,
+            "status": "pass",
+            "tests": 13
+          },
+          {
+            "failed": 0,
+            "file": "test/stack-presets.test.mjs",
+            "seconds": 22.2,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/profile-local-merge.test.mjs",
+            "seconds": 22.1,
+            "status": "pass",
+            "tests": 17
+          },
+          {
+            "failed": 0,
+            "file": "test/run-analytics-rounds.test.mjs",
+            "seconds": 21.1,
+            "status": "pass",
+            "tests": 9
+          },
+          {
+            "failed": 0,
+            "file": "test/daemon.test.mjs",
+            "seconds": 20.7,
+            "status": "pass",
+            "tests": 25
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-prerequisites-shell-mirror.test.mjs",
+            "seconds": 20.3,
+            "status": "pass",
+            "tests": 10
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-control-needs-agent.test.mjs",
+            "seconds": 20.0,
+            "status": "pass",
+            "tests": 14
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-session-env.test.mjs",
+            "seconds": 19.3,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/profile-upgrade.test.mjs",
+            "seconds": 19.1,
+            "status": "pass",
+            "tests": 22
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-protection-legs.test.mjs",
+            "seconds": 19.1,
+            "status": "pass",
+            "tests": 15
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-job-mode.test.mjs",
+            "seconds": 19.0,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-running-count.test.mjs",
+            "seconds": 18.9,
+            "status": "pass",
+            "tests": 7
+          },
+          {
+            "failed": 0,
+            "file": "test/workflow-sandbox-install.test.mjs",
+            "seconds": 18.9,
+            "status": "pass",
+            "tests": 15
+          },
+          {
+            "failed": 0,
+            "file": "test/outer-loop-upgrade.test.mjs",
+            "seconds": 18.2,
+            "status": "pass",
+            "tests": 14
+          },
+          {
+            "failed": 0,
+            "file": "test/trigger-workflow-init.test.mjs",
+            "seconds": 18.1,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/docs-retrieval-rerank-score.test.mjs",
+            "seconds": 17.8,
+            "status": "pass",
+            "tests": 5
+          },
+          {
+            "failed": 0,
+            "file": "test/doctor-profile-sandbox.test.mjs",
+            "seconds": 17.8,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/push-branch-worktree-config.test.mjs",
+            "seconds": 16.8,
+            "status": "pass",
+            "tests": 13
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-open.test.mjs",
+            "seconds": 16.8,
+            "status": "pass",
+            "tests": 7
+          },
+          {
+            "failed": 0,
+            "file": "test/gate12-sandbox-round-plant.test.mjs",
+            "seconds": 16.2,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/doctor-upgrade-drift.test.mjs",
+            "seconds": 15.8,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/job-layout-root.test.mjs",
+            "seconds": 15.3,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/prompt-injection-verdict.test.mjs",
+            "seconds": 14.8,
+            "status": "pass",
+            "tests": 70
+          },
+          {
+            "failed": 0,
+            "file": "test/plan-round-commit.test.mjs",
+            "seconds": 14.7,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/config-sandbox.test.mjs",
+            "seconds": 14.4,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/push-branch-deleted-upstream.test.mjs",
+            "seconds": 13.4,
+            "status": "pass",
+            "tests": 5
+          },
+          {
+            "failed": 0,
+            "file": "test/run-analytics-network.test.mjs",
+            "seconds": 13.3,
+            "status": "pass",
+            "tests": 8
+          },
+          {
+            "failed": 0,
+            "file": "test/commit-on-branch-plumbing.test.mjs",
+            "seconds": 12.8,
+            "status": "pass",
+            "tests": 15
+          },
+          {
+            "failed": 0,
+            "file": "test/gate12-sandbox-round-cli.test.mjs",
+            "seconds": 12.8,
+            "status": "pass",
+            "tests": 8
+          },
+          {
+            "failed": 0,
+            "file": "test/push-branch-retry.test.mjs",
+            "seconds": 11.2,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/task-offer-allow-rule.test.mjs",
+            "seconds": 11.2,
+            "status": "pass",
+            "tests": 5
+          },
+          {
+            "failed": 0,
+            "file": "test/keep-awake-lib.test.mjs",
+            "seconds": 11.0,
+            "status": "pass",
+            "tests": 9
+          },
+          {
+            "failed": 0,
+            "file": "test/run-analytics.test.mjs",
+            "seconds": 10.9,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/docs-retrieval-refresh-end-state.test.mjs",
+            "seconds": 10.8,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/wrapper-root-placement.test.mjs",
+            "seconds": 10.7,
+            "status": "pass",
+            "tests": 7
+          },
+          {
+            "failed": 0,
+            "file": "test/doctor-sandbox-prerequisites.test.mjs",
+            "seconds": 10.0,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-job-legs.test.mjs",
+            "seconds": 10.0,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-job-launch.test.mjs",
+            "seconds": 9.9,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/gate12-sandbox-round-teardown.test.mjs",
+            "seconds": 9.3,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/retrieval-loading.test.mjs",
+            "seconds": 9.2,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/review-sweep.test.mjs",
+            "seconds": 8.8,
+            "status": "pass",
+            "tests": 12
+          },
+          {
+            "failed": 0,
+            "file": "test/scripts-dir.test.mjs",
+            "seconds": 8.7,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/state-dir-bak-note.test.mjs",
+            "seconds": 8.7,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/doctor-branch-protection.test.mjs",
+            "seconds": 8.5,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/doctor-keep-awake.test.mjs",
+            "seconds": 8.5,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-main-anchor.test.mjs",
+            "seconds": 8.5,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/prompt-injection-remote-route.test.mjs",
+            "seconds": 8.4,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-push-credential.test.mjs",
+            "seconds": 8.4,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/setup-worktree-checkout-sparse.test.mjs",
+            "seconds": 8.1,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/gate-worker-start-probe.test.mjs",
+            "seconds": 8.0,
+            "status": "pass",
+            "tests": 8
+          },
+          {
+            "failed": 0,
+            "file": "test/clone-ref-order.test.mjs",
+            "seconds": 7.9,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/doctor-job-surfaces.test.mjs",
+            "seconds": 7.9,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/path-anchored-arms.test.mjs",
+            "seconds": 7.3,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/script-root.test.mjs",
+            "seconds": 7.3,
+            "status": "pass",
+            "tests": 7
+          },
+          {
+            "failed": 0,
+            "file": "test/commit-on-branch-target-check.test.mjs",
+            "seconds": 7.0,
+            "status": "pass",
+            "tests": 12
+          },
+          {
+            "failed": 0,
+            "file": "test/self-adopt-force.test.mjs",
+            "seconds": 6.9,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/restart-watcher-cli.test.mjs",
+            "seconds": 6.7,
+            "status": "pass",
+            "tests": 5
+          },
+          {
+            "failed": 0,
+            "file": "test/prompt-injection-park.test.mjs",
+            "seconds": 6.6,
+            "status": "pass",
+            "tests": 12
+          },
+          {
+            "failed": 0,
+            "file": "test/run-analytics-node-overlap.test.mjs",
+            "seconds": 6.1,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/run-analytics-tokens.test.mjs",
+            "seconds": 6.1,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-platform.test.mjs",
+            "seconds": 6.0,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/branch-naming.test.mjs",
+            "seconds": 5.9,
+            "status": "pass",
+            "tests": 14
+          },
+          {
+            "failed": 0,
+            "file": "test/state-dir-readme-force.test.mjs",
+            "seconds": 5.8,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/test-timeout.test.mjs",
+            "seconds": 5.8,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/setup-worktree-clone-target.test.mjs",
+            "seconds": 5.6,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/upgrade-run-profile.test.mjs",
+            "seconds": 5.5,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/qa-user-locks.test.mjs",
+            "seconds": 5.3,
+            "status": "pass",
+            "tests": 9
+          },
+          {
+            "failed": 0,
+            "file": "test/profile-local-protection.test.mjs",
+            "seconds": 5.1,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/docs-retrieval-store-upgrade.test.mjs",
+            "seconds": 5.0,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-judge.test.mjs",
+            "seconds": 5.0,
+            "status": "pass",
+            "tests": 10
+          },
+          {
+            "failed": 0,
+            "file": "test/watcher-usage-resume.test.mjs",
+            "seconds": 4.9,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-git-and-legs.test.mjs",
+            "seconds": 4.8,
+            "status": "pass",
+            "tests": 11
+          },
+          {
+            "failed": 0,
+            "file": "test/main-root-fallback.test.mjs",
+            "seconds": 4.7,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-gate-sandbox-legs.test.mjs",
+            "seconds": 4.6,
+            "status": "pass",
+            "tests": 11
+          },
+          {
+            "failed": 0,
+            "file": "test/prompt-injection-plan.test.mjs",
+            "seconds": 4.1,
+            "status": "pass",
+            "tests": 11
+          },
+          {
+            "failed": 0,
+            "file": "test/restart-watcher-remote.test.mjs",
+            "seconds": 4.1,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/git-trust-file-guard.test.mjs",
+            "seconds": 3.9,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/flow-walker-gates.test.mjs",
+            "seconds": 3.8,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-runner-legs.test.mjs",
+            "seconds": 3.8,
+            "status": "pass",
+            "tests": 5
+          },
+          {
+            "failed": 0,
+            "file": "test/test-time-scale.test.mjs",
+            "seconds": 3.8,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/credential-scan-lib.test.mjs",
+            "seconds": 3.7,
+            "status": "pass",
+            "tests": 11
+          },
+          {
+            "failed": 0,
+            "file": "test/prompt-injection-prescan.test.mjs",
+            "seconds": 3.7,
+            "status": "pass",
+            "tests": 23
+          },
+          {
+            "failed": 0,
+            "file": "test/upgrade-preconditions.test.mjs",
+            "seconds": 3.7,
+            "status": "pass",
+            "tests": 17
+          },
+          {
+            "failed": 0,
+            "file": "test/run-analytics-overlap.test.mjs",
+            "seconds": 3.4,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/doctor-main-anchor.test.mjs",
+            "seconds": 3.3,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/fixture-template.test.mjs",
+            "seconds": 3.3,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/ledger-phases.test.mjs",
+            "seconds": 3.3,
+            "status": "pass",
+            "tests": 15
+          },
+          {
+            "failed": 0,
+            "file": "test/workflow-plugin-pin.test.mjs",
+            "seconds": 3.1,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/profile-local.test.mjs",
+            "seconds": 2.8,
+            "status": "pass",
+            "tests": 8
+          },
+          {
+            "failed": 0,
+            "file": "test/config-tree-guards.test.mjs",
+            "seconds": 2.7,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-gates-legs.test.mjs",
+            "seconds": 2.4,
+            "status": "pass",
+            "tests": 7
+          },
+          {
+            "failed": 0,
+            "file": "test/no-container-home-paths.test.mjs",
+            "seconds": 2.3,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/check-shell-parse.test.mjs",
+            "seconds": 2.2,
+            "status": "pass",
+            "tests": 9
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-remote-legs.test.mjs",
+            "seconds": 2.1,
+            "status": "pass",
+            "tests": 7
+          },
+          {
+            "failed": 0,
+            "file": "test/gate-round-lib.test.mjs",
+            "seconds": 1.8,
+            "status": "pass",
+            "tests": 13
+          },
+          {
+            "failed": 0,
+            "file": "test/placeholder-sweep-lib.test.mjs",
+            "seconds": 1.8,
+            "status": "pass",
+            "tests": 14
+          },
+          {
+            "failed": 0,
+            "file": "test/run-analytics-overlap-gaps.test.mjs",
+            "seconds": 1.8,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/fixture-isolation.test.mjs",
+            "seconds": 1.5,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/unit-commit-lib.test.mjs",
+            "seconds": 1.4,
+            "status": "pass",
+            "tests": 19
+          },
+          {
+            "failed": 0,
+            "file": "test/plugin-runtime-root-lib.test.mjs",
+            "seconds": 1.3,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/profile-commit-attribution.test.mjs",
+            "seconds": 1.3,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-evidence.test.mjs",
+            "seconds": 1.3,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/workflow-templates.test.mjs",
+            "seconds": 1.3,
+            "status": "pass",
+            "tests": 74
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-glob-registry-legs.test.mjs",
+            "seconds": 1.2,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-wrappers-legs.test.mjs",
+            "seconds": 1.2,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-detached-loopback-legs.test.mjs",
+            "seconds": 1.1,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/run-analytics-rounds-parse.test.mjs",
+            "seconds": 1.0,
+            "status": "pass",
+            "tests": 14
+          },
+          {
+            "failed": 0,
+            "file": "test/run-gates-lane-lib.test.mjs",
+            "seconds": 1.0,
+            "status": "pass",
+            "tests": 8
+          },
+          {
+            "failed": 0,
+            "file": "test/run-analytics-network-parse.test.mjs",
+            "seconds": 0.9,
+            "status": "pass",
+            "tests": 14
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-planted-legs.test.mjs",
+            "seconds": 0.9,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/run-analytics-report-network.test.mjs",
+            "seconds": 0.8,
+            "status": "pass",
+            "tests": 8
+          },
+          {
+            "failed": 0,
+            "file": "test/write-plan-replace.test.mjs",
+            "seconds": 0.8,
+            "status": "pass",
+            "tests": 21
+          },
+          {
+            "failed": 0,
+            "file": "test/test-timing-reporter.test.mjs",
+            "seconds": 0.7,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/main-anchor-isolation.test.mjs",
+            "seconds": 0.6,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/run-analytics-report-rounds.test.mjs",
+            "seconds": 0.6,
+            "status": "pass",
+            "tests": 9
+          },
+          {
+            "failed": 0,
+            "file": "test/planning-subjects-drift.test.mjs",
+            "seconds": 0.5,
+            "status": "pass",
+            "tests": 5
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-invalid-profile.test.mjs",
+            "seconds": 0.5,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-refusal-leg.test.mjs",
+            "seconds": 0.5,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/check-machine-paths.test.mjs",
+            "seconds": 0.4,
+            "status": "pass",
+            "tests": 5
+          },
+          {
+            "failed": 0,
+            "file": "test/clarification-index-lib.test.mjs",
+            "seconds": 0.3,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/fixtures/docs-index-pg-textsearch-1.3.1.mjs",
+            "seconds": 0.3,
+            "status": "pass",
+            "tests": 0
+          },
+          {
+            "failed": 0,
+            "file": "test/main-repo-resolution-corpus.test.mjs",
+            "seconds": 0.3,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/helpers/fixture.mjs",
+            "seconds": 0.2,
+            "status": "pass",
+            "tests": 0
+          },
+          {
+            "failed": 0,
+            "file": "test/helpers/gate12-round.mjs",
+            "seconds": 0.2,
+            "status": "pass",
+            "tests": 0
+          },
+          {
+            "failed": 0,
+            "file": "test/helpers/planning-driver.mjs",
+            "seconds": 0.2,
+            "status": "pass",
+            "tests": 0
+          },
+          {
+            "failed": 0,
+            "file": "test/helpers/run-copy-layouts.mjs",
+            "seconds": 0.2,
+            "status": "pass",
+            "tests": 0
+          },
+          {
+            "failed": 0,
+            "file": "test/helpers/walker.mjs",
+            "seconds": 0.2,
+            "status": "pass",
+            "tests": 0
+          },
+          {
+            "failed": 0,
+            "file": "test/helpers/watcher.mjs",
+            "seconds": 0.2,
+            "status": "pass",
+            "tests": 0
+          },
+          {
+            "failed": 0,
+            "file": "test/keep-awake.test.mjs",
+            "seconds": 0.2,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/remote-names.test.mjs",
+            "seconds": 0.2,
+            "status": "pass",
+            "tests": 15
+          },
+          {
+            "failed": 0,
+            "file": "test/gate12-sandbox-round-docs.test.mjs",
+            "seconds": 0.1,
+            "status": "pass",
+            "tests": 2
+          },
+          {
+            "failed": 0,
+            "file": "test/helpers/concurrency.mjs",
+            "seconds": 0.1,
+            "status": "pass",
+            "tests": 0
+          },
+          {
+            "failed": 0,
+            "file": "test/helpers/runner-git-shim.mjs",
+            "seconds": 0.1,
+            "status": "pass",
+            "tests": 0
+          },
+          {
+            "failed": 0,
+            "file": "test/helpers/timing.mjs",
+            "seconds": 0.1,
+            "status": "pass",
+            "tests": 0
+          },
+          {
+            "failed": 0,
+            "file": "test/jq-floor.test.mjs",
+            "seconds": 0.1,
+            "status": "pass",
+            "tests": 25
+          },
+          {
+            "failed": 0,
+            "file": "test/retrieval-python-backend.test.mjs",
+            "seconds": 0.1,
+            "status": "pass",
+            "tests": 15
+          },
+          {
+            "failed": 0,
+            "file": "test/untrusted-input-corpus.test.mjs",
+            "seconds": 0.1,
+            "status": "pass",
+            "tests": 4
+          },
+          {
+            "failed": 0,
+            "file": "test/upgrade-inputs.test.mjs",
+            "seconds": 0.1,
+            "status": "pass",
+            "tests": 17
+          },
+          {
+            "failed": 0,
+            "file": "test/agent-return-schemas.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 57
+          },
+          {
+            "failed": 0,
+            "file": "test/branch-protection.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 8
+          },
+          {
+            "failed": 0,
+            "file": "test/commit-step-calls.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 5
+          },
+          {
+            "failed": 0,
+            "file": "test/docs-retrieval-corpus.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 6
+          },
+          {
+            "failed": 0,
+            "file": "test/prompt.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/push-destination.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 3
+          },
+          {
+            "failed": 0,
+            "file": "test/run-gates-park-answer.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 8
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-prerequisites.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 13
+          },
+          {
+            "failed": 0,
+            "file": "test/sandbox-probe-runner-workflow.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 5
+          },
+          {
+            "failed": 0,
+            "file": "test/script-root-callers.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 8
+          },
+          {
+            "failed": 0,
+            "file": "test/shipped-scripts-mktemp.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 1
+          },
+          {
+            "failed": 0,
+            "file": "test/upgrade-report.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 24
+          },
+          {
+            "failed": 0,
+            "file": "test/wrapper-carry-forward.test.mjs",
+            "seconds": 0.0,
+            "status": "pass",
+            "tests": 5
+          }
+        ]
+      },
+      "unreadable": [],
+      "verdict": "pass"
+    }
+  ],
+  "run": {
+    "active_ms": 55725,
+    "api_retries": 0,
+    "cache_hit_ratio": 0.8796,
+    "cache_read_tokens": 552497,
+    "cache_write_1h_tokens": 57389,
+    "cache_write_5m_tokens": 0,
+    "cache_write_tokens": 75621,
+    "complete_sessions": 1,
+    "duration_api_ms": 56232,
+    "duration_ms": 57632,
+    "engine_sessions": 1,
+    "first_at": "2026-11-18T14:09:44.456Z",
+    "host_suspended_ms": 0,
+    "idle_ms": 0,
+    "input_tokens": 28,
+    "last_at": "2026-11-18T14:10:40.181Z",
+    "network": {
+      "gate_log_matches": [],
+      "gate_logs_scanned": 1,
+      "refusals": [],
+      "sessions_not_scanned": 0,
+      "sessions_scanned": 1
+    },
+    "node_sessions": 0,
+    "output_tokens": 5954,
+    "permission_denials": 0,
+    "planning_nodes": [],
+    "rate_limit_peak": {
+      "seven_day": 0.22
+    },
+    "requests": {
+      "count": 12,
+      "max_ms": 11414,
+      "over_threshold": 0,
+      "p50_ms": 1902,
+      "p90_ms": 4987,
+      "p99_ms": 11414
+    },
+    "session_wall_sum_ms": 55725,
+    "sessions": 1,
+    "slowest_subagent": {
+      "description": "Screen user review file",
+      "duration_ms": 8641,
+      "session": 1,
+      "type": "devscene:prompt-injection-reviewer"
+    },
+    "span_ms": 55725,
+    "subagents_failed": 0,
+    "subagents_killed": 0,
+    "thinking_tokens": 1244,
+    "token_sessions": 1,
+    "total_cost_usd": 0.779963,
+    "wall_ms": 55725
+  },
+  "schema": 4,
+  "sessions": [
+    {
+      "complete": true,
+      "cost": {
+        "by_model": {
+          "claude-opus-5-5": 0.7799634000000001
+        },
+        "cache_hit_ratio": 0.8796,
+        "cache_read_tokens": 552497,
+        "cache_write_1h_tokens": 57389,
+        "cache_write_5m_tokens": 0,
+        "cache_write_tokens": 75621,
+        "input_tokens": 28,
+        "output_tokens": 5954,
+        "thinking_tokens": 1244,
+        "token_source": "model_usage",
+        "total_cost_usd": 0.7799634000000001
+      },
+      "first_at": "2026-11-18T14:09:44.456Z",
+      "kind": "engine",
+      "last_at": "2026-11-18T14:10:40.181Z",
+      "network_refusals": [],
+      "node": null,
+      "reliability": {
+        "api_retries": 0,
+        "api_retry_errors": {},
+        "num_turns": 23,
+        "permission_denials": 0,
+        "rate_limit_peak": {
+          "seven_day": 0.22
+        },
+        "stop_reason": "end_turn",
+        "subagents_failed": 0,
+        "subagents_killed": 0,
+        "subagents_spawned": 1,
+        "terminal_reason": "completed",
+        "ttft_ms": 1824
+      },
+      "requests": {
+        "by_context": {
+          "devscene:prompt-injection-reviewer": {
+            "count": 2,
+            "max_ms": 4597,
+            "over_threshold": 0,
+            "p50_ms": 1261,
+            "p90_ms": 4597,
+            "p99_ms": 4597
+          },
+          "orchestrator": {
+            "count": 10,
+            "max_ms": 11414,
+            "over_threshold": 0,
+            "p50_ms": 1902,
+            "p90_ms": 11414,
+            "p99_ms": 11414
+          }
+        },
+        "items": [
+          {
+            "after_retry": false,
+            "cache_read_tokens": 11894,
+            "cache_write_tokens": 25558,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": null,
+            "message_id": "msg_011ChAXWFpd7ejuan3isjYeD",
+            "output_tokens": 4,
+            "started_at": "2026-11-18T14:09:44.456Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 37452,
+            "cache_write_tokens": 7800,
+            "context": "orchestrator",
+            "input_tokens": 4,
+            "latency_ms": 1902,
+            "message_id": "msg_011ChAXWTiVTrm6T36Ez76G4",
+            "output_tokens": 5,
+            "started_at": "2026-11-18T14:09:47.383Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 45252,
+            "cache_write_tokens": 7038,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1392,
+            "message_id": "msg_011ChAXWyGkZMUpQfgzisJjj",
+            "output_tokens": 16,
+            "started_at": "2026-11-18T14:09:53.790Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 52290,
+            "cache_write_tokens": 8818,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1322,
+            "message_id": "msg_011ChAXXDBQr4RVQCLozirTd",
+            "output_tokens": 8,
+            "started_at": "2026-11-18T14:09:56.987Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 61108,
+            "cache_write_tokens": 384,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1323,
+            "message_id": "msg_011ChAXXPU2m74pzxXVwZWdM",
+            "output_tokens": 20,
+            "started_at": "2026-11-18T14:09:59.388Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 10504,
+            "context": "devscene:prompt-injection-reviewer",
+            "input_tokens": 2,
+            "latency_ms": 1261,
+            "message_id": "msg_011ChAXXaouykaF6kxB4ArTq",
+            "output_tokens": 172,
+            "started_at": "2026-11-18T14:10:01.854Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 10504,
+            "cache_write_tokens": 6431,
+            "context": "devscene:prompt-injection-reviewer",
+            "input_tokens": 2,
+            "latency_ms": 4597,
+            "message_id": "msg_011ChAXXhXyeQX48jNN4tckK",
+            "output_tokens": 708,
+            "started_at": "2026-11-18T14:10:06.852Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 61492,
+            "cache_write_tokens": 711,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1226,
+            "message_id": "msg_011ChAXYDDRBQiv8dMWf9Uxx",
+            "output_tokens": 8,
+            "started_at": "2026-11-18T14:10:10.453Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 62203,
+            "cache_write_tokens": 545,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2073,
+            "message_id": "msg_011ChAXYVkauuMLwwgxJ4w6P",
+            "output_tokens": 16,
+            "started_at": "2026-11-18T14:10:15.145Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 62748,
+            "cache_write_tokens": 285,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 4987,
+            "message_id": "msg_011ChAXYfUUgnJSqwu9uXHgZ",
+            "output_tokens": 3,
+            "started_at": "2026-11-18T14:10:20.344Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 63033,
+            "cache_write_tokens": 4553,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 4337,
+            "message_id": "msg_011ChAXZCuLd3ubjUUxJeLB4",
+            "output_tokens": 8,
+            "started_at": "2026-11-18T14:10:27.056Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 67586,
+            "cache_write_tokens": 1697,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 11414,
+            "message_id": "msg_011ChAXZeidJ6rDfYx4uBzDJ",
+            "output_tokens": 4,
+            "started_at": "2026-11-18T14:10:40.172Z"
+          }
+        ],
+        "overall": {
+          "count": 12,
+          "max_ms": 11414,
+          "over_threshold": 0,
+          "p50_ms": 1902,
+          "p90_ms": 4987,
+          "p99_ms": 11414
+        }
+      },
+      "session_id": "be953955-20a0-448c-93ae-b8ed2dc69ac0",
+      "subagents": [
+        {
+          "agent_id": "a101b3d051ed3a8d9",
+          "cache_read_tokens": 27439,
+          "cache_write_tokens": 18232,
+          "description": "Screen user review file",
+          "duration_ms": 8641,
+          "input_tokens": 6,
+          "output_tokens": 903,
+          "requests": 2,
+          "started_at": "2026-11-18T14:10:00.586Z",
+          "token_source": "transcript",
+          "type": "devscene:prompt-injection-reviewer",
+          "wall_share": 0.1551
+        }
+      ],
+      "time": {
+        "active_ms": 55725,
+        "duration_api_ms": 56232,
+        "duration_ms": 57632,
+        "host_suspended_ms": 0,
+        "idle_gaps": [],
+        "idle_ms": 0,
+        "idle_threshold_s": 120,
+        "subagent_wall_ms": 8641,
+        "suspend_source": "none",
+        "wall_ms": 55725
+      },
+      "tools": {
+        "by_tool": [
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 8641,
+            "tool": "Agent",
+            "total_ms": 8641
+          },
+          {
+            "context": "orchestrator",
+            "count": 13,
+            "max_ms": 257,
+            "tool": "Bash",
+            "total_ms": 2279
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "count": 2,
+            "max_ms": 105,
+            "tool": "Grep",
+            "total_ms": 170
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "count": 2,
+            "max_ms": 12,
+            "tool": "Read",
+            "total_ms": 21
+          },
+          {
+            "context": "orchestrator",
+            "count": 5,
+            "max_ms": 33,
+            "tool": "Read",
+            "total_ms": 103
+          },
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 34,
+            "tool": "Skill",
+            "total_ms": 34
+          },
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 58,
+            "tool": "Write",
+            "total_ms": 58
+          }
+        ],
+        "items": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 34,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 65,
+            "started_at": "2026-11-18T14:09:45.451Z",
+            "tool": "Skill"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 257,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2046,
+            "started_at": "2026-11-18T14:09:48.324Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 160,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 45,
+            "started_at": "2026-11-18T14:09:48.822Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 156,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 27,
+            "started_at": "2026-11-18T14:09:49.522Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 163,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 17,
+            "started_at": "2026-11-18T14:09:49.971Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 182,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 56,
+            "started_at": "2026-11-18T14:09:50.471Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 33,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3396,
+            "started_at": "2026-11-18T14:09:50.922Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 179,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 6276,
+            "started_at": "2026-11-18T14:09:52.219Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 22,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 7592,
+            "started_at": "2026-11-18T14:09:53.790Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 23,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 15260,
+            "started_at": "2026-11-18T14:09:54.239Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 182,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 32,
+            "started_at": "2026-11-18T14:09:55.483Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 189,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 269,
+            "started_at": "2026-11-18T14:09:57.876Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 135,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 106,
+            "started_at": "2026-11-18T14:09:59.388Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 8641,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 781,
+            "started_at": "2026-11-18T14:10:00.586Z",
+            "tool": "Agent"
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "duration_ms": 12,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2735,
+            "started_at": "2026-11-18T14:10:01.854Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "duration_ms": 9,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 10809,
+            "started_at": "2026-11-18T14:10:02.246Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "duration_ms": 65,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 263,
+            "started_at": "2026-11-18T14:10:06.852Z",
+            "tool": "Grep"
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "duration_ms": 105,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 894,
+            "started_at": "2026-11-18T14:10:08.311Z",
+            "tool": "Grep"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 58,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 217,
+            "started_at": "2026-11-18T14:10:13.014Z",
+            "tool": "Write"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 212,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 95,
+            "started_at": "2026-11-18T14:10:15.145Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 5,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2633,
+            "started_at": "2026-11-18T14:10:20.594Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 117,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3661,
+            "started_at": "2026-11-18T14:10:21.747Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 131,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2278,
+            "started_at": "2026-11-18T14:10:22.588Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 20,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2030,
+            "started_at": "2026-11-18T14:10:27.818Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 216,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 56,
+            "started_at": "2026-11-18T14:10:28.542Z",
+            "tool": "Bash"
+          }
+        ],
+        "polling": [],
+        "slowest": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 257,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2046,
+            "started_at": "2026-11-18T14:09:48.324Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 216,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 56,
+            "started_at": "2026-11-18T14:10:28.542Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 212,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 95,
+            "started_at": "2026-11-18T14:10:15.145Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 189,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 269,
+            "started_at": "2026-11-18T14:09:57.876Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 182,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 56,
+            "started_at": "2026-11-18T14:09:50.471Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 182,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 32,
+            "started_at": "2026-11-18T14:09:55.483Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 179,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 6276,
+            "started_at": "2026-11-18T14:09:52.219Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 163,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 17,
+            "started_at": "2026-11-18T14:09:49.971Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 160,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 45,
+            "started_at": "2026-11-18T14:09:48.822Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 156,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 27,
+            "started_at": "2026-11-18T14:09:49.522Z",
+            "tool": "Bash"
+          }
+        ]
+      }
+    }
+  ]
+}
