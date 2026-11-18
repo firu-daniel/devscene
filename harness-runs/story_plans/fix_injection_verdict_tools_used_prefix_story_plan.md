@@ -25,7 +25,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/fix_injection_verdict_tools_
 1. [x] **Task 1** — Accept the tools-used prefix in `pis_unwrap_vlines`, fail-closed, with verdict tests _(layer: cli)_ _(points: 15)_
 2. [x] **Task 2** — Describe the tools-used prefix in `## Reading a return` step 1 _(layer: plugin)_ _(points: 5)_
 3. [x] **Task 3** — Bring this repository's `scripts/prompt-injection-screen.sh` level with the template _(layer: general)_ _(points: 5)_
-4. [ ] **Task 4** — Record the measured prefix shapes in `docs/structured-agent-returns.md` _(layer: general)_ _(points: 10)_
+4. [x] **Task 4** — Record the measured prefix shapes in `docs/structured-agent-returns.md` _(layer: general)_ _(points: 10)_
 
 ## Scope register
 
