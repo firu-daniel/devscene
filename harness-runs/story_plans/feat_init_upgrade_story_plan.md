@@ -16,7 +16,7 @@ The work runs bottom-up through the configured layers. The `cli` tasks come firs
 | `gitCommonDir(repoRoot)` | Task 1, `cli/src/core/git.ts` | The absolute git common directory, or `undefined` |
 | `PROFILE_LOCAL_PATH`, `readLocalAdditions`, `LocalAdditions` | Task 2 | The local file's path, its reader and validator, and the validated result |
 | `runRegistryPath` (newly exported) | Task 3, `cli/src/generators/writeProtection.ts` | The one resolver of the run registry's path |
-| `renderProfile`'s `localAdditions` option, `isToolchainEntry` | Task 4 | The merge at render time, and the shape test for reference-toolchain entries |
+| `renderProfile`'s `localAdditions` option, `isToolchainEntry`, and the newly exported `PERMISSION_LISTS`, `SANDBOX_LISTS`, `CREDENTIAL_LISTS`, `ENABLED_SERVERS_KEY`, `resolvedPluginRoots` | Task 4, `cli/src/generators/permissionProfile.ts` | The merge at render time, the shape test for reference-toolchain entries, the one declaration of the profile's entry lists, and the plugin roots this machine resolves |
 | `renderCurrentProfile`, `profileEntryDelta`, `planProfileUpgrade`, `profileDrift` | Task 5, `cli/src/generators/profileUpgrade.ts` | Everything `--upgrade` and `doctor` need to know about the profile |
 | `planOuterLoopScriptUpgrade`, `outerLoopScriptDrift`, `RESTART_WATCHER_SCRIPT_NAME` | Task 6 | The script half of the same two callers, and the restart script's one spelling |
 | `readRegistryRecords`, `readActiveRuns`, `pidIsAlive`, `RUNNING_STATUS` | Task 7, `cli/src/core/runRegistry.ts` | The run registry's one parser and record walk, and the refusal's reading of it |
@@ -30,6 +30,8 @@ The work runs bottom-up through the configured layers. The `cli` tasks come firs
 - **`--upgrade` does not edit `.gitignore`.** The prompt requires that `git status` shows only the two artifact classes, and `.gitignore` is tracked. The ignore rule ships in the managed block, so a plain `init` merges it. Until then, `--upgrade` and `doctor` warn when a local file exists and git does not ignore it.
 - **A tracked local file is refused.** The file's safety for remote jobs rests on it being machine-local. A job whose checkout carries one must not merge it, so the reader refuses it in every execution mode.
 - **An empty placeholder counts as absent.** On a bubblewrap host an exact `denyWrite` entry for an absent path can leave a 0-byte read-only file, and reads as `/dev/null` inside a sandboxed call (`docs/sandbox-verification.md` → F9, `docs/sandbox-record.md` residual 12). The reader accepts exactly those inert shapes as absent, and refuses a symlink or any other non-regular file.
+- **A local entry is never carried forward, and deleting it takes effect.** The rendered profile records each local `allow` entry of a carry-forward shape in a `_README` line, so the next render can tell it from a hand-pasted plugin-root entry. The record can only withhold an entry from the carry-forward (Task 4).
+- **`doctor` does not let the profile vouch for itself.** Its drift comparison renders with no carry-forward, and accepts a plugin-root shape only under a root this machine resolves (Task 5).
 - **`--upgrade` runs in the main checkout only.** A linked worktree has no profile a run loads, so it is refused with the main checkout named.
 - **An unreadable run registry refuses the upgrade.** `doctor` counts it as no runs because it only reports; a replacement cannot prove that nothing is executing.
 - **`--upgrade` accepts one other `init` flag, `--reference-toolchain-path`.** That value exists nowhere else, and without it a parity adopter's toolchain entries are not rendered.
@@ -108,6 +110,10 @@ The `cli/src/core/writer.ts` table is a source comment rather than corpus text, 
 
 `grep -rnIE 'init --force|--force run|re-run it with --force|ADD THEM BY HAND' cli/templates/scripts cli/templates/github/workflows cli/templates/githooks cli/templates/repo cli/templates/claude/settings.autonomous.json cli/templates/claude/settings.autonomous.qa.json cli/templates/claude/settings.autonomous.retrieval.json plugin/scripts examples/notes-app/.claude/settings.autonomous.json scripts/autonomous-watcher.sh scripts/task-offer-check.sh`
 
+**Derivation entry D7 — the scripts' upgrade route, hand additions to the profile, and the protected and job-surface sets (command).**
+
+`grep -rnIE 'upgraded by re-running .init|the profile itself in the main checkout|paths? of .jobSurfacePaths|Entries you added to this machine' cli/scripts/README.md docs/cli.md docs/remote-execution.md docs/watcher.md`
+
 **Derivation entry P1 — the sections the prompt names (procedure).** **Artifact:** `docs/cli.md` and `docs/config.md`. **Traversal:** in `docs/cli.md`, the `## 2.` flag table, every row and bullet of `## 3. The re-run contract`, the opening of `## 6.`, and the check table and check bullets of `## 7.`; in `docs/config.md`, `## 1. The three resolution classes`. **Decision rule:** a row or paragraph is a site when it states how many write policies exist, what happens to the outer-loop scripts or the profile on a re-run, who owns the profile, or the list of `doctor` checks, or when the new flag or local file belongs beside it.
 
 **Derivation entry P2 — the template and example descriptions (procedure).** **Artifact:** `cli/templates/claude/README.md`, `cli/templates/repo/README.md`, `examples/notes-app/README.md`. **Traversal:** each file's paragraphs in order, reading those about the permission profile or the managed ignore block. **Decision rule:** a paragraph is a site when it enumerates the profile's parts, or states a figure or history of `examples/notes-app/.claude/settings.autonomous.json` that this branch's re-render changes.
@@ -136,7 +142,7 @@ No standing matrix under `harness-runs/` tracks these files, so no row-class ent
 | 16 | `docs/cli.md` → `## 5.` "That first arm is now" | — | D2 | `no-change` | It concerns a wrapper body, which `--upgrade` does not write |
 | 17 | `docs/cli.md` → `## 5.` "Two families land in `scriptsDir`" ("upgraded like every outer-loop script, by `init --force`") | — | D2 | `change` | Task 15 |
 | 18 | `docs/cli.md` → `## 6.` opening paragraph | — | P1 | `change` | Task 15 |
-| 19 | `docs/cli.md` → `## 6.` "Both conditions are the gate" | — | D1, D2 | `no-change` | Turning the phase on also needs `.mcp.json` and the ignore rules, which `--upgrade` does not write, and `init`'s own note names the forced run |
+| 19 | `docs/cli.md` → `## 6.` "Both conditions are the gate" | — | D1, D2 | `change` | Task 15 — only the retrieval clause ("forced re-run in §2's fenced block"), which row 4's edit would falsify; the browser half keeps its forced route |
 | 20 | `docs/cli.md` → `### The sandbox block`, "gains none of these three entries until `init --force`" | — | D2 | `change` | Task 15 |
 | 21 | `docs/cli.md` → `## 7.` check table (three rows are added) | — | P1 | `change` | Task 15 |
 | 22 | `docs/cli.md` → `## 7.` bullet `forge` | — | D2 | `no-change` | That warning concerns the forge workflows, which `--upgrade` does not write |
@@ -224,3 +230,7 @@ No standing matrix under `harness-runs/` tracks these files, so no row-class ent
 | 104 | `cli/templates/repo/gitignore` → the comment on the two workflows' `.bak` copies | — | D6 | `no-change` | It concerns the workflows' backups, which `--upgrade` does not take |
 | 105 | `cli/templates/repo/mcp.retrieval.json` → `_comment_docs_retrieval` ("needs `init --force` to reach it") | — | D6 | `change` | Task 13 |
 | 106 | `cli/templates/scripts/lib/harness-run-lib.sh` → the protected-branch comment ("only after `init --force`") | — | D6 | `no-change` | It is the hook's route, and `--upgrade` does not write the hook |
+| 107 | `cli/scripts/README.md` → "a copied script is upgraded by re-running `init`" | — | D7 | `change` | Task 13 |
+| 108 | `docs/cli.md` → `### The sandbox block and the permission mode`, "**Everything that runs outside the sandbox is write-protected on both sides**" ("the profile itself in the main checkout") | — | D7 | `change` | Task 15 |
+| 109 | `docs/remote-execution.md` → "**The step.** `Refuse a branch that changed the job's own files`" ("any path of `jobSurfacePaths`") | — | D7 | `change` | Task 16 |
+| 110 | `docs/remote-execution.md` → "Entries you added to this machine's `.claude/settings.autonomous.json`" | — | D7 | `change` | Task 16 |
