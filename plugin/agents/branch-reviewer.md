@@ -188,6 +188,7 @@ A trigger named on its own row is excluded from any group row that would otherwi
 | A file over the second size threshold | Broken contract |
 | Every **Architecture leaks** item | Broken contract |
 | A `<state_dir>/lessons.md` entry | Broken contract |
+| A `<reference_impl>` divergence failing either leg of the call-out two-leg test, while `phases.parity` is `true` | Broken contract |
 | A new exported symbol with zero callers (Pass 0 half (b)) | Wrong behaviour |
 | A `<reference_impl>` behaviour missing from the diff, or waived by a fabricated or miscited authorization (Pass 1 step 5), while `phases.parity` is `true` | Wrong behaviour |
 
