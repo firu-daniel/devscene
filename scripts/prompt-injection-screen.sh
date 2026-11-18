@@ -134,9 +134,10 @@
 # VERDICT — parse prompt-injection-reviewer's return, which the orchestrator
 # wrote to <verdict-file>, for the one file <path>. Fails closed: only the exact
 # SAFE object passes. The file holds either the reply alone or the whole `Agent`
-# result it came in; a whole result — the `[Subagent hand-back]` frame line,
-# the reply indented by two spaces, an `agentId: ` trailer — is unwrapped to
-# the reply first (pis_unwrap_vlines), and no other wrapping is. After
+# result it came in; a whole result — optional tools-used lines ahead of the
+# frame and accepted nowhere else, the `[Subagent hand-back]` frame line, the
+# reply indented by two spaces, an `agentId: ` trailer — is unwrapped to the
+# reply first (pis_unwrap_vlines), and no other wrapping is. After
 # whitespace-only lines at either end are dropped, the
 # text is one fenced block: the first line exactly ```json, the last exactly ```,
 # no line between beginning with ```. Anything else outside it — prose, a second
@@ -1009,22 +1010,43 @@ def flat: split("\t") | join(" ");
     end
   end'
 
+# True when $1 is exactly one tools-used line: at column 0 or indented by exactly
+# two spaces, `<tools-used-before-summary>`, one or more characters that are
+# neither `<` nor `>`, `</tools-used-before-summary>`, and nothing else.
+pis_is_tools_used_line() {
+  local rest="${1#"  "}" inner
+  case "$rest" in
+    '<tools-used-before-summary>'*'</tools-used-before-summary>') ;;
+    *) return 1 ;;
+  esac
+  inner="${rest#'<tools-used-before-summary>'}"
+  inner="${inner%'</tools-used-before-summary>'}"
+  case "$inner" in
+    ''|*'<'*|*'>'*) return 1 ;;
+  esac
+  return 0
+}
+
 # Take the reply out of PIS_VLINES when they hold a whole `Agent` result, as
 # plugin/instructions/agent_return_contract.md → `## Reading a return` step 1
 # describes it: a column-0 frame line opening `[Subagent hand-back]` as the
-# first non-blank line, then the reply with every non-blank line indented by
-# two spaces, then optionally a column-0 trailer from a line opening `agentId: `
-# to the end. The frame and trailer are dropped and the two spaces removed;
+# first line that is neither blank nor a tools-used line, then the reply with
+# every non-blank line indented by two spaces, then optionally a column-0
+# trailer from a line opening `agentId: ` to the end. Whatever precedes the
+# frame, the frame and the trailer are dropped and the two spaces removed;
 # whitespace-only lines become empty. Only that whole shape is unwrapped: with
-# no frame line the lines stand as they are, and after a frame any other
-# non-blank column-0 line leaves them untouched, so either way a trailer or an
-# indent the parse does not expect stays malformed. Sets PIS_VUNWRAPPED to 1
-# when it unwrapped, else 0.
+# no frame line the lines stand as they are, after a frame any other non-blank
+# column-0 line leaves them untouched, and so does a tools-used line in the
+# trailer, so a trailer, an indent or a tools-used line the parse does not
+# expect stays malformed; tools-used lines are accepted only ahead of the frame.
+# Sets PIS_VUNWRAPPED to 1 when it unwrapped, else 0.
 pis_unwrap_vlines() {
   local n=${#PIS_VLINES[@]} i=0 m=0 line
   local -a reply
   PIS_VUNWRAPPED=0
-  while [ "$i" -lt "$n" ] && [ -z "${PIS_VLINES[$i]//[[:space:]]/}" ]; do
+  while [ "$i" -lt "$n" ]; do
+    line="${PIS_VLINES[$i]}"
+    [ -z "${line//[[:space:]]/}" ] || pis_is_tools_used_line "$line" || break
     i=$((i + 1))
   done
   [ "$i" -lt "$n" ] || return 0
@@ -1042,6 +1064,12 @@ pis_unwrap_vlines() {
       esac
     fi
     m=$((m + 1))
+    i=$((i + 1))
+  done
+  while [ "$i" -lt "$n" ]; do
+    if pis_is_tools_used_line "${PIS_VLINES[$i]}"; then
+      return 0
+    fi
     i=$((i + 1))
   done
   PIS_VLINES=()
