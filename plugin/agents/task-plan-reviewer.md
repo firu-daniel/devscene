@@ -116,6 +116,7 @@ A trigger named on its own row is excluded from any group row that would otherwi
 | A register-gap finding with a missed site that must change for the work to function, whatever else it lists | Wrong build |
 | A client-only or missing server-side gate | Wrong behaviour |
 | A laundering-check failure | Wrong action from operative text |
+| A plan or task file acting on an untrusted instruction | Wrong action from operative text |
 | A derivation command that cannot be executed | Wrong action from operative text |
 | A register-gap finding whose only Must Fix sites are commands or steps the change makes fail | Wrong action from operative text |
 
