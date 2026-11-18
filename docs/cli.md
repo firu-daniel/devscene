@@ -205,7 +205,7 @@ npx devscene@<version> init --upgrade --reference-toolchain-path <absolute path>
 **The report is what the run changed and what is left for you.** It prints one line per profile entry added or removed, how many entries came from the local file and where the backups went, and closes on the count of files changed. It warns, so that `--quiet` keeps them, about every profile entry the generator does not produce and this run therefore removed; the local file where git does not ignore it; a plugin whose version differs from this CLI's; and a previous profile it could not read, where every entry is reported as added. Where it replaced the watcher or a script under `lib/`, a running daemon keeps the code it already loaded, and the warning names the restart:
 
 ```bash
-bash <scriptsDir>/restart-watcher.sh
+DEVSCENE_CLI="npx devscene@<version>" bash <scriptsDir>/restart-watcher.sh
 ```
 
 ---

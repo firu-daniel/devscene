@@ -37,6 +37,7 @@ const report = (overrides = {}) =>
     backupDir: BACKUP_DIR,
     localFileIgnored: undefined,
     cliVersion: '1.2.3',
+    cliCommand: 'npx devscene@1.2.3',
     pluginVersion: undefined,
     pluginCliCommand: undefined,
     ...overrides,
@@ -167,13 +168,13 @@ for (const [name, entry] of [
   test(`${name} prints the restart instruction, in the tense of the run`, () => {
     const real = report({ applied: [entry] });
     assert.deepEqual(restartLines(real.warnings), [
-      'A running daemon keeps the code it already loaded: restart it with bash scripts/restart-watcher.sh',
+      'A running daemon keeps the code it already loaded: restart it with DEVSCENE_CLI="npx devscene@1.2.3" bash scripts/restart-watcher.sh',
     ]);
     assert.deepEqual(restartLines(real.notes), []);
 
     const dry = report({ applied: [entry], dryRun: true });
     assert.deepEqual(restartLines(dry.notes), [
-      'Would change the watcher or its libraries: restart the daemon afterwards with bash scripts/restart-watcher.sh',
+      'Would change the watcher or its libraries: restart the daemon afterwards with DEVSCENE_CLI="npx devscene@1.2.3" bash scripts/restart-watcher.sh',
     ]);
     assert.deepEqual(restartLines(dry.warnings), []);
   });

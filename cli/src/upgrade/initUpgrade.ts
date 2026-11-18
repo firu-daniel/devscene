@@ -57,6 +57,7 @@ export function runInitUpgrade(
   const applied = plan.apply({ repoRoot, report, dryRun, force: false, backupDir });
 
   const pluginVersion = installedPluginVersion(repoRoot);
+  const cliVersion = ownManifestString('version');
   const outcome = upgradeReport({
     dryRun,
     daemonLoadedPaths: daemonLoadedScriptPaths(repoRoot, config),
@@ -69,7 +70,8 @@ export function runInitUpgrade(
     localFileIgnored: existsSync(join(repoRoot, PROFILE_LOCAL_PATH))
       ? pathIsIgnored(repoRoot, PROFILE_LOCAL_PATH)
       : undefined,
-    cliVersion: ownManifestString('version'),
+    cliVersion,
+    cliCommand: pinnedCliCommand(cliVersion),
     pluginVersion,
     pluginCliCommand: pluginVersion === undefined ? undefined : pinnedCliCommand(pluginVersion),
   });

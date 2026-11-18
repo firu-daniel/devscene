@@ -424,13 +424,15 @@ test('a script running during the upgrade finishes on its original contents', as
 test('the restart line appears when the watcher changes, and not otherwise', async (t) => {
   const repo = await wired(t);
   const restart = scriptInvocation(repo.scriptsDir, RESTART_WATCHER_SCRIPT_NAME);
+  const { name, version } = readJson(join(PACKAGE_ROOT, 'package.json'));
+  const pinned = `DEVSCENE_CLI="npx ${name}@${version}" ${restart}`;
   const quiet = await upgrade(repo);
   assert.ok(!quiet.stderr.includes(restart), quiet.stderr);
 
   appendFileSync(repo.scriptPath(WATCHER), EDIT);
 
   const preview = await upgrade(repo, DRY_RUN);
-  assert.ok(preview.stdout.includes(`restart the daemon afterwards with ${restart}`), preview.stdout);
+  assert.ok(preview.stdout.includes(`restart the daemon afterwards with ${pinned}`), preview.stdout);
   const applied = await upgrade(repo);
-  assert.ok(applied.stderr.includes(`restart it with ${restart}`), applied.stderr);
+  assert.ok(applied.stderr.includes(`restart it with ${pinned}`), applied.stderr);
 });

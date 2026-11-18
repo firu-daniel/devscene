@@ -32,6 +32,8 @@ export interface UpgradeReportInput {
   /** `undefined` when there is no local file to ask about. */
   readonly localFileIgnored: boolean | undefined;
   readonly cliVersion: string;
+  /** The `pinnedCliCommand(cliVersion)` value: what the restart script runs the daemon verbs through. */
+  readonly cliCommand: string;
   readonly pluginVersion: string | undefined;
   /** The `pinnedCliCommand(pluginVersion)` value; `undefined` when `pluginVersion` is. */
   readonly pluginCliCommand: string | undefined;
@@ -77,7 +79,7 @@ function removedEntriesWarning(removed: readonly string[], dryRun: boolean): str
 /** Turn the outcome of an upgrade or a dry run into the lines the command reports. */
 export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
   const { dryRun, daemonLoadedPaths, scriptsDir, applied, delta, localAdditionCount, backupDir } = input;
-  const { previousUnreadable, localFileIgnored, cliVersion, pluginVersion, pluginCliCommand } = input;
+  const { previousUnreadable, localFileIgnored, cliVersion, cliCommand, pluginVersion, pluginCliCommand } = input;
 
   const notes: string[] = [...profileLines(delta, dryRun)];
   const warnings: string[] = [];
@@ -102,7 +104,7 @@ export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
   // A replacement with no backup corrected permission bits only, which a running daemon does not load.
   const contentChanged = changed.filter(({ effect, backupPath }) => effect === 'created' || backupPath !== undefined);
   if (contentChanged.some(({ path }) => daemonLoadedPaths.has(path))) {
-    const restart = scriptInvocation(scriptsDir, RESTART_WATCHER_SCRIPT_NAME);
+    const restart = `DEVSCENE_CLI="${cliCommand}" ${scriptInvocation(scriptsDir, RESTART_WATCHER_SCRIPT_NAME)}`;
     if (dryRun) {
       notes.push(`Would change the watcher or its libraries: restart the daemon afterwards with ${restart}`);
     } else {
