@@ -23,3 +23,5 @@
 
 - `cli/test/upgrade-report.test.mjs` passes.
 - `report.ts` imports no `node:fs` function and calls no `console` method.
+
+**Deviations from plan:** The plan's removed-entries warning sends anything still wanted to `PROFILE_LOCAL_PATH`; `readLocalAdditions` refuses every key outside `LOCAL_ADDITION_LISTS`, and a removed entry can come from another list. The warning therefore limits that advice to the four accepted lists, read from `LOCAL_ADDITION_LISTS`.
