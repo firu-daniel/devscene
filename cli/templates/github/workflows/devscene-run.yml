@@ -322,9 +322,9 @@
 # `deliver` job's last step, runs `remote-run.sh deliver` on the bundle
 # `Download the state bundle` fetched from the `run` job's upload, after that
 # job's final push, so the pull request's head carries the run's last commit.
-# It is `continue-on-error`: a repository that re-rendered this file without
-# `init --force` still runs scripts with no `deliver` verb, and a finished run
-# must not be marked failed for its report.
+# It is `continue-on-error`: a repository that re-rendered this file but has not
+# brought its scripts current with `init --upgrade` still runs scripts with no
+# `deliver` verb, and a finished run must not be marked failed for its report.
 #
 # WHY THE OPEN STEP RUNS ONLY WHEN chain IS 0. `Open the draft pull request`,
 # the `open` job's last step, runs `remote-run.sh open` before the `run` job, so

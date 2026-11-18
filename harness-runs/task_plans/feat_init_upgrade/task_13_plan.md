@@ -28,6 +28,8 @@ The story index's `## Scope register` rows 62, 69, 70, 88, 89, 92, 95, 97, 98, 1
 - [ ] `task-offer-check.sh`, **TWO SETTLED STATES**: name `init --upgrade` as the upgrade route for every outer-loop script. `autonomous-watcher.sh`: in the `PLANNING_DRIVER_OFF_REASON` message and the `run analytics` log message, change `` `devscene init --force` rewrites it `` to `` `devscene init --upgrade` rewrites it ``. `cli/test/watcher-run-analytics.test.mjs`, subtest `a missing run-analytics.sh changes neither the status nor the notifications`: change the log predicate's `init --force` to `init --upgrade`.
 - [ ] `cli/templates/repo/mcp.retrieval.json`, `_comment_docs_retrieval`: say that turning retrieval on after the profile was written needs `init --upgrade` to reach it.
 
+**Deviations from plan:** `cli/templates/repo/README.md` had no paragraph on the managed ignore block, so the sentence naming the local additions file went into the opening paragraph, which introduces the ignore templates.
+
 **Verification:**
 
 - `grep -n 'init --upgrade' cli/templates/scripts/README.md` finds the fenced command on a line of its own.
