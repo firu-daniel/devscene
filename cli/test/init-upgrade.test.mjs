@@ -359,6 +359,20 @@ test('a retired generated entry disappears and is reported', async (t) => {
   assert.ok(stderr.includes(RETIRED_ENTRY), stderr);
 });
 
+test('a retired entry for a server the profile does not start is not sent to the local file', async (t) => {
+  const repo = await wired(t);
+  const entry = 'mcp__retired-server__click';
+  editProfile(repo, (profile) => profile.permissions.allow.push(entry));
+  const refusal = `cannot be moved to ${PROFILE_LOCAL_PATH}, because this profile does not start its MCP server: ${entry}.`;
+
+  const dry = await upgrade(repo, DRY_RUN);
+  assert.ok(dry.stderr.includes(`1 permissions.allow entry would be removed and ${refusal}`), dry.stderr);
+
+  const real = await upgrade(repo);
+  assert.ok(real.stderr.includes(`1 permissions.allow entry was removed and ${refusal}`), real.stderr);
+  assert.ok(!real.stderr.includes('still wanted'), real.stderr);
+});
+
 test('a setting outside the entry lists is reset and named, and a dry run names it first', async (t) => {
   const repo = await wired(t);
   editProfile(repo, (profile) => {

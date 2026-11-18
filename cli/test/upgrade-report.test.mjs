@@ -33,6 +33,7 @@ const report = (overrides = {}) =>
     applied: [],
     delta: [],
     settingChanges: [],
+    startedMcpServers: [],
     previousUnreadable: false,
     localAdditionCount: 0,
     backupDir: BACKUP_DIR,
@@ -126,6 +127,67 @@ test('removed entries get one warning, naming the local file and only the lists 
   const dry = report({ delta: DELTA, dryRun: true }).warnings;
   assert.equal(dry.length, 1);
   assert.match(dry[0], /so they would be removed and would not be moved automatically: /);
+});
+
+const LOCAL_LISTS = 'permissions.allow, permissions.ask, permissions.deny, sandbox.filesystem.denyWrite';
+const UNSTARTED_TOOL = 'mcp__gone__click';
+const STARTED_TOOL = 'mcp__playwright__click';
+const allowRemoved = (...removed) => ({ list: 'permissions.allow', added: [], removed });
+const removedWarning = (delta, overrides = {}) => {
+  const { warnings } = report({ delta, startedMcpServers: ['playwright'], ...overrides });
+  assert.equal(warnings.length, 1);
+  return warnings[0];
+};
+
+test('with no refused entry the removed-entries warning keeps its exact wording, in either mode', () => {
+  const delta = [allowRemoved('Bash(old)'), { list: 'sandbox.network.allowedDomains', added: [], removed: ['old.example'] }];
+  assert.equal(
+    removedWarning(delta),
+    `The generator does not produce 2 profile entries, so they were removed and were not moved automatically: Bash(old), old.example. Anything still wanted in ${LOCAL_LISTS} belongs in ${LOCAL_FILE}, followed by another npx devscene init --upgrade.`,
+  );
+  assert.equal(
+    removedWarning(delta, { dryRun: true }),
+    `The generator does not produce 2 profile entries, so they would be removed and would not be moved automatically: Bash(old), old.example. Anything still wanted in ${LOCAL_LISTS} belongs in ${LOCAL_FILE}, followed by another npx devscene init --upgrade.`,
+  );
+});
+
+test('an entry for a server the profile starts keeps the advice to use the local file', () => {
+  assert.equal(
+    removedWarning([allowRemoved(STARTED_TOOL)]),
+    `The generator does not produce 1 profile entry, so they were removed and were not moved automatically: ${STARTED_TOOL}. Anything still wanted in ${LOCAL_LISTS} belongs in ${LOCAL_FILE}, followed by another npx devscene init --upgrade.`,
+  );
+});
+
+test('an entry the local file would refuse is told it cannot move there, and gets no advice to', () => {
+  assert.equal(
+    removedWarning([allowRemoved(UNSTARTED_TOOL)]),
+    `1 permissions.allow entry was removed and cannot be moved to ${LOCAL_FILE}, because this profile does not start its MCP server: ${UNSTARTED_TOOL}.`,
+  );
+  assert.equal(
+    removedWarning([allowRemoved(UNSTARTED_TOOL, 'mcp__other__read')], { dryRun: true }),
+    `2 permissions.allow entries would be removed and cannot be moved to ${LOCAL_FILE}, because this profile does not start their MCP servers: ${UNSTARTED_TOOL}, mcp__other__read.`,
+  );
+});
+
+test('refused and movable entries are named apart, and the advice covers only the movable ones', () => {
+  assert.equal(
+    removedWarning([allowRemoved('Bash(old)', UNSTARTED_TOOL, STARTED_TOOL)]),
+    `The generator does not produce 2 profile entries, so they were removed and were not moved automatically: Bash(old), ${STARTED_TOOL}. Any of these still wanted in ${LOCAL_LISTS} belongs in ${LOCAL_FILE}, followed by another npx devscene init --upgrade. ` +
+      `1 permissions.allow entry was removed and cannot be moved to ${LOCAL_FILE}, because this profile does not start its MCP server: ${UNSTARTED_TOOL}.`,
+  );
+});
+
+test('only permissions.allow is refused for an unstarted server', () => {
+  const warning = removedWarning([{ list: 'permissions.ask', added: [], removed: [UNSTARTED_TOOL] }]);
+  assert.ok(warning.startsWith('The generator does not produce 1 profile entry'), warning);
+  assert.ok(!warning.includes('cannot be moved'), warning);
+});
+
+test('every refused entry is named, however many there are', () => {
+  const entries = Array.from({ length: 9 }, (_, index) => `mcp__gone__tool_${index}`);
+  const warning = removedWarning([allowRemoved(...entries)]);
+  for (const entry of entries) assert.ok(warning.includes(entry), entry);
+  assert.ok(!warning.includes('more'), warning);
 });
 
 test('entries that were only added raise no warning', () => {

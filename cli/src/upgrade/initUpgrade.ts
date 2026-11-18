@@ -65,6 +65,7 @@ export function runInitUpgrade(
     applied,
     delta: profile.delta,
     settingChanges: profile.settingChanges,
+    startedMcpServers: profile.startedMcpServers,
     previousUnreadable: profile.previousUnreadable,
     localAdditionCount: profile.localAdditionCount,
     backupDir,

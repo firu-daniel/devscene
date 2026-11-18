@@ -22,6 +22,7 @@ import type { WritePlan } from '../core/writer.js';
 import {
   CREDENTIAL_LISTS,
   ENABLED_SERVERS_KEY,
+  enabledServers,
   isToolchainEntry,
   isUnderDirectory,
   PERMISSION_LISTS,
@@ -35,7 +36,7 @@ import { readLocalAdditions, type LocalAdditions } from './profileLocal.js';
 import { SANDBOX_KEY } from './sandboxProfile.js';
 
 /** The one list whose plugin-root shapes {@link profileDrift} accepts. */
-const ALLOW_LIST_PATH = 'permissions.allow';
+export const ALLOW_LIST_PATH = 'permissions.allow';
 
 /** One list the render can produce. */
 export interface ProfileEntryList {
@@ -101,6 +102,8 @@ export interface ProfileUpgradePlan {
   readonly delta: readonly ProfileEntryDelta[];
   /** {@link profileSettingChanges} from the file it replaces; empty when there is none to compare. */
   readonly settingChanges: readonly string[];
+  /** The MCP servers {@link rendered} starts. The local file cannot add to them. */
+  readonly startedMcpServers: readonly string[];
   readonly localAdditionCount: number;
   /** A file exists at {@link path} and is not a readable JSON object. */
   readonly previousUnreadable: boolean;
@@ -238,6 +241,7 @@ export function planProfileUpgrade({
     rendered,
     delta: profileEntryDelta(previous, rendered),
     settingChanges: previous === undefined ? [] : profileSettingChanges(previous, rendered),
+    startedMcpServers: enabledServers(rendered),
     localAdditionCount: localAdditions?.count ?? 0,
     previousUnreadable: unreadable,
     warnings,

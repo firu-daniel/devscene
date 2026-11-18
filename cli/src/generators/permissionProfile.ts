@@ -1009,8 +1009,23 @@ function assertRetrievalGrant(fragment: JsonObject): void {
   }
 }
 
+/** The server an `mcp__<server>__<tool>` entry names; `undefined` for any other shape. */
+function mcpEntryServer(entry: string): string | undefined {
+  return MCP_SERVER_PATTERN.exec(entry)?.[1];
+}
+
+/**
+ * Does this `allow` entry name a tool of a server outside `started`? Such an entry is what
+ * {@link assertLocalAdditionsUsable} refuses from the local file when `started` is the profile's
+ * {@link enabledServers}.
+ */
+export function namesUnstartedMcpServer(entry: string, started: readonly string[]): boolean {
+  const server = mcpEntryServer(entry);
+  return server !== undefined && !started.includes(server);
+}
+
 /** The servers the profile starts for the run, or none when it carries no such key. */
-function enabledServers(profile: JsonObject): readonly string[] {
+export function enabledServers(profile: JsonObject): readonly string[] {
   const value = profile[ENABLED_SERVERS_KEY];
   if (value === undefined) return [];
   if (!Array.isArray(value)) throw internal(`the generated \`${ENABLED_SERVERS_KEY}\` is not a list`);
@@ -1083,7 +1098,7 @@ function assertLocalAdditionsUsable(profile: JsonObject, additions: LocalAdditio
   const enabled = enabledServers(profile);
   for (const entry of localPermissionEntries(additions, 'allow')) {
     if (!entry.startsWith(MCP_ENTRY_PREFIX)) continue;
-    const server = MCP_SERVER_PATTERN.exec(entry)?.[1];
+    const server = mcpEntryServer(entry);
     if (server === undefined) {
       throw new HarnessError(
         `${PROFILE_LOCAL_PATH}: permissions.allow entry ${JSON.stringify(entry)} does not name an MCP server and a tool; write it as ${MCP_ENTRY_PREFIX}<server>__<tool>.`,

@@ -12,9 +12,10 @@
 import { nameList } from '../core/nameList.js';
 import type { WriteEffect, WriteResult } from '../core/writer.js';
 import { RESTART_WATCHER_SCRIPT_NAME } from '../generators/outerLoopScripts.js';
+import { namesUnstartedMcpServer } from '../generators/permissionProfile.js';
 import { PROFILE_LOCAL_PATH, PROFILE_PATH } from '../generators/profileEntries.js';
 import { LOCAL_ADDITION_LISTS } from '../generators/profileLocal.js';
-import type { ProfileEntryDelta } from '../generators/profileUpgrade.js';
+import { ALLOW_LIST_PATH, type ProfileEntryDelta } from '../generators/profileUpgrade.js';
 import { scriptInvocation } from '../generators/scripts.js';
 
 /** What {@link upgradeReport} is told about the run. */
@@ -28,6 +29,8 @@ export interface UpgradeReportInput {
   readonly delta: readonly ProfileEntryDelta[];
   /** The `ProfileUpgradePlan.settingChanges` value. */
   readonly settingChanges: readonly string[];
+  /** The `ProfileUpgradePlan.startedMcpServers` value. */
+  readonly startedMcpServers: readonly string[];
   readonly previousUnreadable: boolean;
   readonly localAdditionCount: number;
   readonly backupDir: string;
@@ -68,26 +71,57 @@ function profileLines(delta: readonly ProfileEntryDelta[], dryRun: boolean): rea
 }
 
 /** Names only the lists the local file accepts: it refuses a key outside them. */
-function removedEntriesWarning(removed: readonly string[], dryRun: boolean): string {
+function movableEntriesAdvice(movable: readonly string[], anyRefused: boolean, dryRun: boolean): string {
   const outcome = dryRun ? 'they would be removed and would not be moved' : 'they were removed and were not moved';
   const lists = LOCAL_ADDITION_LISTS.map((list) => list.join('.')).join(', ');
+  const wanted = anyRefused ? 'Any of these' : 'Anything';
   return (
-    `The generator does not produce ${counted(removed.length, 'profile entry', 'profile entries')}, so ${outcome} ` +
-    `automatically: ${nameList(removed)}. Anything still wanted in ${lists} belongs in ${PROFILE_LOCAL_PATH}, ` +
+    `The generator does not produce ${counted(movable.length, 'profile entry', 'profile entries')}, so ${outcome} ` +
+    `automatically: ${nameList(movable)}. ${wanted} still wanted in ${lists} belongs in ${PROFILE_LOCAL_PATH}, ` +
     `followed by another ${UPGRADE_COMMAND}.`
   );
+}
+
+/** Every entry is spelled out, past `nameList`'s cap: the notes naming them do not survive `--quiet`. */
+function refusedEntriesNotice(refused: readonly string[], dryRun: boolean): string {
+  const one = refused.length === 1;
+  const entries = counted(refused.length, `${ALLOW_LIST_PATH} entry`, `${ALLOW_LIST_PATH} entries`);
+  const verb = dryRun ? 'would be' : one ? 'was' : 'were';
+  const servers = one ? 'its MCP server' : 'their MCP servers';
+  return (
+    `${entries} ${verb} removed and cannot be moved to ${PROFILE_LOCAL_PATH}, because this profile does not start ` +
+    `${servers}: ${refused.join(', ')}.`
+  );
+}
+
+function removedEntriesWarning(
+  delta: readonly ProfileEntryDelta[],
+  startedMcpServers: readonly string[],
+  dryRun: boolean,
+): string {
+  const refusedIn = (list: string, entry: string): boolean =>
+    list === ALLOW_LIST_PATH && namesUnstartedMcpServer(entry, startedMcpServers);
+  const refused = delta.flatMap(({ list, removed }) => removed.filter((entry) => refusedIn(list, entry)));
+  const movable = delta.flatMap(({ list, removed }) => removed.filter((entry) => !refusedIn(list, entry)));
+
+  const parts: string[] = [];
+  if (movable.length > 0) parts.push(movableEntriesAdvice(movable, refused.length > 0, dryRun));
+  if (refused.length > 0) parts.push(refusedEntriesNotice(refused, dryRun));
+  return parts.join(' ');
 }
 
 /** Turn the outcome of an upgrade or a dry run into the lines the command reports. */
 export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
   const { dryRun, daemonLoadedPaths, scriptsDir, applied, delta, settingChanges, localAdditionCount, backupDir } = input;
   const { previousUnreadable, localFileIgnored, cliVersion, cliCommand, pluginVersion, pluginCliCommand } = input;
+  const { startedMcpServers } = input;
 
   const notes: string[] = [...profileLines(delta, dryRun)];
   const warnings: string[] = [];
 
-  const removed = delta.flatMap((list) => list.removed);
-  if (removed.length > 0) warnings.push(removedEntriesWarning(removed, dryRun));
+  if (delta.some(({ removed }) => removed.length > 0)) {
+    warnings.push(removedEntriesWarning(delta, startedMcpServers, dryRun));
+  }
   if (settingChanges.length > 0) {
     const names = settingChanges.join(', ');
     warnings.push(
