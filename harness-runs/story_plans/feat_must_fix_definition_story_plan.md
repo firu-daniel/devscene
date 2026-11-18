@@ -39,7 +39,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_must_fix_definition/tas
 12. [x] **Task 12** — Route refused round files through both planning cores _(layer: plugin)_ _(points: 15)_
 13. [x] **Task 13** — Record the round-file check decision _(layer: general)_ _(points: 8)_
 14. [x] **Task 14** — Mark `Review severity markers` done in the roadmap _(layer: general)_ _(points: 5)_
-15. [ ] **Task 15** — Sync the self-adopted copies and run the closure checks _(layer: general)_ _(points: 8)_
+15. [x] **Task 15** — Sync the self-adopted copies and run the closure checks _(layer: general)_ _(points: 8)_
 
 ## Scope register
 

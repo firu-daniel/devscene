@@ -22,6 +22,12 @@
 #   bash <scripts_dir>/flow-walker.sh start   --flow <flow> --branch <branch> [--entry <node>] [--skipped <ids|none>]
 #   bash <scripts_dir>/flow-walker.sh next    --flow <flow> --branch <branch> --outcome <outcome> [--node <node>] [--findings <path>] [--skipped <ids|none>]
 #   bash <scripts_dir>/flow-walker.sh current --flow <flow> --branch <branch>
+#   bash <scripts_dir>/flow-walker.sh check-round-file --findings <path>
+#
+#   `check-round-file` runs the check a round gate's return must pass, for a
+#   flow routed by prose. It is read-only, takes no lock, reads no configuration
+#   or graph, and refuses `--flow` and `--branch`; a relative <path> resolves
+#   against the repository root.
 #
 #   `current` is read-only and takes no lock: it re-prints the saved pending
 #   action byte for byte, and is how a planning (re-)entry finds a saved walk
@@ -39,8 +45,10 @@
 #   --node     the node the outcome is for, `[a-z0-9_]` only. Required while a
 #              set is pending, naming a gate of the set with no recorded
 #              outcome; otherwise optional and, when given, the pending node.
-#   --findings the reviewer's findings_file; it may not carry a tab.
-#   --skipped  the run mode's skipped ids; read only when no flow-progress
+#   --findings the reviewer's findings_file; it may not carry a tab. A round
+#              gate's `PASS` or `FAIL` reads it, absolute as given and relative
+#              under the repository root (ROUNDS, on a refused file).
+#   --skipped the run mode's skipped ids; read only when no flow-progress
 #              ledger exists, and re-read on every arrival at a gated node.
 #   The graph is `<this script's dir>/flows/<flow>.graph.json`, formatVersion
 #   3; the root is a bare `git rev-parse --show-toplevel` in the working
@@ -63,6 +71,14 @@
 # is the same index in every gate's folder, and carries on across the branch's
 # planning history.
 #
+# A REFUSED ROUND FILE records no verdict. A gate's `PASS` or `FAIL` whose
+# --findings `fw_round_file_check` refuses marks the gate for re-dispatch, and
+# the walker waits for the gates still out. With none out: a held gate
+# escalates; otherwise every marked gate is dispatched again as one set, in the
+# same round. The third refusal of one gate in a round holds it as `error`. A
+# refusal moves neither the round number nor the counter, and never reaches the
+# writer.
+#
 # OUTPUT — stdout, `key: value` lines, in this order:
 #
 #   dispatch  action: dispatch / node: / agent: / prompt: (writer nodes) /
@@ -79,9 +95,14 @@
 #             heartbeat: <template, {iteration} = the counter>  (#<total_dispatches>)
 #   set       one dispatch block per due gate, in `gates` order, back to back;
 #             the passed-through skip: / round: / ledger: lines in the first
-#             block only. A set of one gate is a single dispatch block.
-#   wait      action: wait / node: <round> / recorded: <gate> <outcome> /
-#             pending: <gate> per gate still out, in `gates` order
+#             block only. A set of one gate is a single dispatch block. A set
+#             re-dispatched after a refusal adds, among the first block's
+#             passed-through lines, refused: <gate> attempt <n> of 3: <reason>
+#             per gate in it
+#   wait      action: wait / node: <round> / recorded: <gate> <outcome>, or
+#             for a refused file refused: <gate> attempt <n> of 3: <reason> /
+#             pending: <gate> per gate still out, in `gates` order; a gate
+#             marked for re-dispatch is not out
 #   binding   action: binding / binding: <name> / node: / then
 #             <ask>               agent: / resume: <node>
 #             <escalate>          agent: (none when node: is a round node) /
@@ -94,13 +115,15 @@
 #                                 at a join with a held outcome, node: and
 #                                 agent: are the first held gate's in `gates`
 #                                 order, reason: its outcome, then held: <gate>
-#                                 <outcome> per held gate, and no round: line
+#                                 <outcome> per held gate, one refused: line
+#                                 per gate held by refusal, and no round: line
 #             <terminal_handoff>  report: <key> <value> per recorded key
 #             then its skip: / round: / ledger: lines.
 #
 # EXIT CODES
 #
-#   0  an action was printed (and, for start / next, the state written)
+#   0  an action was printed (and, for start / next, the state written); for
+#      check-round-file, the named round file is valid and nothing is printed
 #   1  refusal: bad usage, undeclared outcome, `next` before `start`, `current`
 #      with no walk saved (a re-entry's "no saved walk"), a flow or
 #      branch other than the state's, unknown flow, a formatVersion other than
@@ -111,10 +134,13 @@
 #      one gate
 #   2  the configuration, the graph or the state file cannot be resolved or
 #      written (a graph entering at a round's gate included), the round
-#      evidence cannot be read, lib/harness-run-lib.sh predates this walker,
-#      or the lock was held for over 120 s — once no flow-walker.sh call is
-#      running, remove the lock directory (and its `.break` sibling, if
-#      present) with `rmdir`, then run `current`
+#      evidence cannot be read, lib/harness-run-lib.sh or
+#      lib/flow-walker-gates.sh predates this walker, the working directory is
+#      outside a repository, or the lock was held for over 120 s — once no
+#      flow-walker.sh call is running, remove the lock directory (and its
+#      `.break` sibling, if present) with `rmdir`, then run `current`
+#   3  check-round-file only: the named round file is invalid or absent. That
+#      command's usage refusals stay 1 and its faults 2
 #   Every non-zero exit prints one `flow-walker: <cause>` line on stderr and
 #   leaves the state file byte-identical.
 #
@@ -123,7 +149,9 @@
 # pending), `awaiting` (dispatch / set / answer / done), `counter.<name>`,
 # `round.number`, the open round's `round.verdict.<gate>` and
 # `round.findings.<gate>`, a gate's held `error` / `blocker` as
-# `round.held.<gate>`, the set's gates (`set.gates`) and its first block's
+# `round.held.<gate>`, a refused round file's count, last reason and re-dispatch
+# mark as `round.refused.<gate>`, `round.refusal.<gate>` and `round.redo.<gate>`
+# (all cleared when the round closes), the set's gates (`set.gates`) and its first block's
 # passed-through lines (`set.pass`), `revision_findings` (the closed round's
 # files, TAB-joined; `ui_review`'s FAIL stores one), the prompt variants, the
 # recorded `report.<key>` values, the nodes skipped as `skipped`, and the
@@ -174,6 +202,12 @@
 #   cp <scripts_dir>/lib/harness-run-lib.sh <scripts_dir>/lib/flow-walker-gates.sh "$d/s/lib/"
 #   cp <scripts_dir>/flows/task_plan_writing.graph.json "$d/s/flows/"
 #   cd "$d"
+#   printf 'verdict: PASS\n' > p0.md; cp p0.md b0.md; cp p0.md a0.md
+#   printf 'verdict: FAIL\n## Must Fix\n1. **f**\n   **Class:** c\n   **Failure:** x\n' > f0.md
+#   printf 'verdict: FAIL\n## Must Fix\n1. **f**\n   **Failure:** x\n' > bad.md
+#   bash s/flow-walker.sh check-round-file --findings p0.md   -> exit 0, no output
+#   bash s/flow-walker.sh check-round-file --findings bad.md
+#     -> exit 3, stderr flow-walker: bad.md: Must Fix entry 1 lacks **Class:**
 #   bash s/flow-walker.sh start --flow task_plan_writing --branch feat_x --skipped none
 #     -> dispatch plan_writer, prompt: initial, arg.iteration: 0
 #   ... next --flow task_plan_writing --branch feat_x --outcome returned --skipped none
@@ -192,13 +226,23 @@
 #   ... next ... --outcome PASS   -> exit 1: the walk has finished
 #   A FAIL round: start again, `returned`, then the three gates in any order,
 #   b0.md and p0.md PASS and `--node architecture_review --outcome FAIL
-#   --findings a0.md`; the last call
+#   --findings f0.md`; the last call
 #     -> round: 0 FAIL, plan_writer, prompt: revision, arg.iteration: 1,
-#        arg.findings_file: b0.md / a0.md / p0.md, heartbeat iter 1
+#        arg.findings_file: b0.md / f0.md / p0.md, heartbeat iter 1
 #   A held round: start again, `returned`, `--node architecture_review
 #   --outcome error`, then the other two PASS; the last call
 #     -> binding: <escalate>, node: architecture_review, reason: error,
 #        held: architecture_review error, no round: line
+#   A refused file: start again, `returned`, `--node plan_review --outcome FAIL
+#   --findings bad.md`
+#     -> wait, refused: plan_review attempt 1 of 3: Must Fix entry 1 lacks
+#        **Class:**, pending: business_parity_review / architecture_review
+#   then the other two PASS; the last call
+#     -> plan_review alone, arg.iteration: 0, its refused: line, no round: line
+#   ... --node plan_review --outcome FAIL --findings bad.md, twice more
+#     -> attempt 2 dispatches plan_review again; attempt 3 -> binding:
+#        <escalate>, node: plan_review, reason: error, held: plan_review error,
+#        refused: plan_review attempt 3 of 3: Must Fix entry 1 lacks **Class:**
 
 set -uo pipefail
 
@@ -217,10 +261,16 @@ if ! declare -F hr_phase_enabled >/dev/null; then
   printf 'flow-walker: %s predates this walker (it defines no hr_phase_enabled): delete that file and re-run devscene init, which writes the current copy\n' "$fw_dir/lib/harness-run-lib.sh" >&2
   exit 2
 fi
+# The same create-if-absent gap: without this, a missing check reads as a refused file.
+if ! declare -F fw_round_file_check >/dev/null; then
+  printf 'flow-walker: %s predates this walker (it defines no fw_round_file_check): delete that file and re-run devscene init, which writes the current copy\n' "$fw_dir/lib/flow-walker-gates.sh" >&2
+  exit 2
+fi
 
 NL='
 '
 TAB=$'\t'
+FW_ROUND_FILE_ATTEMPTS=3
 
 refuse() {
   printf 'flow-walker: %s\n' "$1" >&2
@@ -235,14 +285,22 @@ fault() {
 # Every lookup below sets a global rather than printing, because `refuse` and
 # `fault` inside a `$(…)` would exit the subshell only.
 
+# Set RF to round file <path>: absolute as given, relative under <root>.
+round_file_path() {
+  case "$2" in
+    /*) RF="$2" ;;
+    *) RF="$1/$2" ;;
+  esac
+}
+
 # --- Arguments ------------------------------------------------------------
 
-[ "$#" -gt 0 ] || refuse "missing subcommand: start, next or current"
+[ "$#" -gt 0 ] || refuse "missing subcommand: start, next, current or check-round-file"
 CMD="$1"
 shift
 case "$CMD" in
-  start|next|current) ;;
-  *) refuse "unknown subcommand '$CMD': expected start, next or current" ;;
+  start|next|current|check-round-file) ;;
+  *) refuse "unknown subcommand '$CMD': expected start, next, current or check-round-file" ;;
 esac
 
 A_FLOW=""
@@ -255,6 +313,8 @@ A_NODE=""
 while [ "$#" -gt 0 ]; do
   flag="$1"
   case "$CMD:$flag" in
+    check-round-file:--findings) ;;
+    check-round-file:*) refuse "'$flag' is not a flag of '$CMD'" ;;
     *:--flow|*:--branch|start:--entry|start:--skipped|next:--skipped|next:--outcome|next:--findings|next:--node) ;;
     *) refuse "'$flag' is not a flag of '$CMD'" ;;
   esac
@@ -283,6 +343,17 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+
+if [ "$CMD" = check-round-file ]; then
+  [ -n "$A_FINDINGS" ] || refuse "missing required flag --findings"
+  ROOT="$(hr_repo_root)" || fault "not inside a git repository"
+  round_file_path "$ROOT" "$A_FINDINGS"
+  if reason="$(fw_round_file_check "$RF")"; then
+    exit 0
+  fi
+  printf 'flow-walker: %s: %s\n' "$A_FINDINGS" "$reason" >&2
+  exit 3
+fi
 
 [ -n "$A_FLOW" ] || refuse "missing required flag --flow"
 [ -n "$A_BRANCH" ] || refuse "missing required flag --branch"
@@ -657,16 +728,53 @@ gate_recorded() {
   return 1
 }
 
+# Set RL to gate <g>'s `refused:` line, from its recorded count and reason.
+refused_line() {
+  local count
+  st_num "round.refused.$1"
+  count="$SV"
+  st_get "round.refusal.$1"
+  RL="refused: $1 attempt $count of $FW_ROUND_FILE_ATTEMPTS: $SV$NL"
+}
+
+# Exit 0 when gate <g> has used every attempt, which is what holds it by refusal
+# rather than by an `error` its reviewer returned.
+refusals_spent() {
+  st_get "round.refused.$1" || return 1
+  st_num "round.refused.$1"
+  [ "$SV" -ge "$FW_ROUND_FILE_ATTEMPTS" ]
+}
+
+# Count a refusal of gate <g>'s round file for <reason>: mark the gate for
+# re-dispatch, or hold it as `error` at the last attempt.
+refuse_round_file() {
+  local g="$1" reason="$2" count=0
+  if st_get "round.refused.$g"; then
+    st_num "round.refused.$g"
+    count="$SV"
+  fi
+  count=$((count + 1))
+  st_set "round.refused.$g" "$count"
+  st_set "round.refusal.$g" "$reason"
+  if [ "$count" -ge "$FW_ROUND_FILE_ATTEMPTS" ]; then
+    st_unset "round.redo.$g"
+    st_set "round.held.$g" error
+  else
+    st_set "round.redo.$g" 1
+  fi
+}
+
 # Set OUT to the blocks of round <rn>'s set gates with no recorded outcome, in
-# `gates` order, the first carrying the fan-out's passed-through lines. Set
-# SET_PENDING to those gates, one `pending: <gate>` line each.
+# `gates` order, the first carrying the fan-out's passed-through lines and then
+# <extra>. Set SET_PENDING to those of them not marked for re-dispatch, one
+# `pending: <gate>` line each.
 render_set() {
-  local rn="$1" i=0 g gates pass
+  local rn="$1" extra="${2-}" i=0 g gates pass
   st_get set.gates
   gates="$SV"
   st_get set.pass
   list_lines "" "$SV"
-  pass="$LL"
+  pass="$LL$extra"
   OUT=""
   SET_PENDING=""
   while g_get "nodes.$rn.gates.$i"; do
@@ -677,7 +785,8 @@ render_set() {
     render_block "$g" "" "$pass"
     OUT="$OUT$BLOCK"
     pass=""
-    SET_PENDING="${SET_PENDING}pending: $g$NL"
+    st_get "round.redo.$g"
+    [ -n "$SV" ] || SET_PENDING="${SET_PENDING}pending: $g$NL"
   done
 }
 
@@ -865,10 +974,12 @@ open_round() {
   render_set "$rn"
 }
 
-# Record <outcome> for gate <g> of the set pending at round <rn>, then print
-# `wait`, or at the set's last outcome, the join.
+# Record <outcome> for gate <g> of the set pending at round <rn>, or refuse its
+# round file, then print `wait` while a gate is out. With none out: a held
+# gate's binding, else the re-dispatch of the marked gates, else the join.
 record_in_set() {
   local rn="$1" g="$A_NODE" n edge i=0 h first="" first_outcome="" held=""
+  local gate outcome reason noted="recorded: $g $A_OUTCOME" refused="" redo=""
   [ -n "$g" ] || refuse "a round's set is pending at '$rn': name the gate with --node"
   st_num round.number
   n="$SV"
@@ -881,39 +992,68 @@ record_in_set() {
     PASS|FAIL)
       [ -n "$A_FINDINGS" ] \
         || refuse "outcome $A_OUTCOME at round gate '$g' requires --findings with the reviewer's findings_file"
-      st_set "round.verdict.$g" "$A_OUTCOME"
-      st_set "round.findings.$g" "$A_FINDINGS"
-      record_reports "$edge"
+      round_file_path "$ROOT" "$A_FINDINGS"
+      if reason="$(fw_round_file_check "$RF")"; then
+        st_unset "round.redo.$g"
+        st_set "round.verdict.$g" "$A_OUTCOME"
+        st_set "round.findings.$g" "$A_FINDINGS"
+        record_reports "$edge"
+      else
+        refuse_round_file "$g" "$reason"
+        refused_line "$g"
+        noted="${RL%"$NL"}"
+      fi
       ;;
     *)
       g_get "$edge.binding" || fault "graph gives round gate '$g' the outcome '$A_OUTCOME', neither a verdict nor a binding"
+      st_unset "round.redo.$g"
       st_set "round.held.$g" "$A_OUTCOME"
       ;;
   esac
   render_set "$rn"
   if [ -n "$SET_PENDING" ]; then
     SAVE_OUT="$OUT"
-    OUT="action: wait${NL}node: $rn${NL}recorded: $g $A_OUTCOME$NL$SET_PENDING"
+    OUT="action: wait${NL}node: $rn${NL}$noted$NL$SET_PENDING"
     return 0
   fi
-  # The join. A held outcome stops the round: no `round:` line, no counter move.
+  # A held outcome stops the round: no `round:` line, no counter move.
   while g_get "nodes.$rn.gates.$i"; do
+    gate="$GV"
     i=$((i + 1))
-    st_get "round.held.$GV"
-    [ -n "$SV" ] || continue
-    held="${held}held: $GV $SV$NL"
-    if [ -z "$first" ]; then first="$GV"; first_outcome="$SV"; fi
+    st_get "round.held.$gate"
+    outcome="$SV"
+    [ -n "$outcome" ] || continue
+    held="${held}held: $gate $outcome$NL"
+    if [ -z "$first" ]; then first="$gate"; first_outcome="$outcome"; fi
+    if refusals_spent "$gate"; then
+      refused_line "$gate"
+      refused="$refused$RL"
+    fi
   done
-  if [ -z "$first" ]; then
-    close_round "$rn"
+  if [ -n "$first" ]; then
+    g_need "nodes.$first.outcomes.$first_outcome.binding"
+    h="$GV"
+    g_need "nodes.$first.agent"
+    OUT="action: binding${NL}binding: $h${NL}node: $first${NL}agent: $GV${NL}reason: $first_outcome$NL$held$refused"
+    st_set node "$first"
+    st_set awaiting done
     return 0
   fi
-  g_need "nodes.$first.outcomes.$first_outcome.binding"
-  h="$GV"
-  g_need "nodes.$first.agent"
-  OUT="action: binding${NL}binding: $h${NL}node: $first${NL}agent: $GV${NL}reason: $first_outcome$NL$held"
-  st_set node "$first"
-  st_set awaiting done
+  i=0
+  while g_get "nodes.$rn.gates.$i"; do
+    gate="$GV"
+    i=$((i + 1))
+    st_get "round.redo.$gate"
+    [ -n "$SV" ] || continue
+    st_unset "round.redo.$gate"
+    refused_line "$gate"
+    redo="$redo$RL"
+  done
+  if [ -n "$redo" ]; then
+    render_set "$rn" "$redo"
+    return 0
+  fi
+  close_round "$rn"
 }
 
 # A round node dispatches nothing: at the join it routes on the verdicts its
@@ -935,6 +1075,9 @@ close_round() {
     st_unset "round.verdict.$g"
     st_unset "round.findings.$g"
     st_unset "round.held.$g"
+    st_unset "round.refused.$g"
+    st_unset "round.refusal.$g"
+    st_unset "round.redo.$g"
   done
   [ "$i" -gt 0 ] || fault "round node '$rn' lists no gates"
   st_unset set.gates

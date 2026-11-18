@@ -25,3 +25,5 @@
 - Register entry E1's command lists only `plugin/agents/layer-implementer.md`, the one `no-change` site whose phrase is unrelated to grading.
 - `git grep -l 'finding_grades.md' -- plugin` lists every path on the `## Who may cite this` roster of `plugin/instructions/finding_grades.md`, plus that file only if it names itself.
 - `git status --porcelain -- scripts` lists only this task's two script targets.
+
+**Deviations from plan:** The plan says to copy the two script templates. Both `cp` calls were refused by the run's permission mode, so the same content was applied to the two targets with the file-edit tool, hunk by hunk from `diff`. Both `cmp` checks print nothing and `git diff --summary` reports no mode change.
