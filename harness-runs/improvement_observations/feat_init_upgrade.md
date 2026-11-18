@@ -1,7 +1,7 @@
 ## The plan loop's cap has no recorded outcome for an operator who proceeds anyway
 - **category:** agent-contract
 - **evidence:** `harness-runs/flow_progress/feat_init_upgrade_progress.md` keeps `P1` at `[ ]`. `scripts/flow-walker.sh` printed `binding: <escalate>`, `reason: cap` after plan round 4, with `plan_review` open. Asked at that escalation, the operator chose to implement the current plan. No ledger marker or walker outcome records that choice, so the Phase D completion check halts on `P1` after every other phase has passed.
-- **cost this run:** the run stopped before the `D` flip and the Done summary, and waits on an operator decision
+- **cost this run:** the run stopped before the `D` flip and the Done summary until the operator directed that `P1` be marked `[x]` with a note recording the accepted cap
 - **hypothesis:** a guess only: the check is doing what it was written to do, and this case was not anticipated
 
 ## A layer-implementer finished its work and returned no return object, twice
