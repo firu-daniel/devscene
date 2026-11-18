@@ -186,6 +186,24 @@ npx devscene doctor
 
 Which keys are written is [`docs/cli.md`](docs/cli.md) §2. `devscene.config.json` is committed; the permission profile is not committed, which is why the teammate runs `init` once.
 
+**G. Update — each time you move to a new release.** Update the plugin first, then restart any open session so it takes effect:
+
+```bash
+claude plugin update devscene@devscene
+```
+
+Then, in the main checkout, bring the outer-loop scripts and the permission profile up to the latest release. Nothing else is written, so the conventions documents `/devscene:analyze` filled stay as they are. What it refuses and what it leaves for you to commit are [`docs/cli.md`](docs/cli.md#updating-an-adopted-repository):
+
+```bash
+npx devscene@latest init --upgrade
+```
+
+`init --upgrade` leaves the GitHub workflows alone, so a repository using remote runs also runs the command below. What to commit and push afterwards is [`docs/remote-execution.md`](docs/remote-execution.md#upgrading):
+
+```bash
+npx devscene@latest init --upgrade-workflows
+```
+
 ### Working from GitHub
 
 Once the setup is done, labelling an issue `devscene` starts a run, and a review that requests changes on a pull request from the run's branch starts a user-review round. Who may start or work a run from GitHub is an allow-list: by default only the owner of a repository a personal account owns, and nobody in an organisation-owned one, and the maintainer names anyone else in the repository variable `DEVSCENE_RUN_ACTORS` ([`docs/github-issue-trigger.md`](docs/github-issue-trigger.md#3-who-can-start-a-run)). With `forge` set to `github` and `execution.target` to `github-actions`, a team member the list admits who uses only this route needs nothing local: no clone, no plugin and no `init`. Anyone may use both routes at once.

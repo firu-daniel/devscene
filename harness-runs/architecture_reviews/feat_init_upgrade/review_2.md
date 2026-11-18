@@ -1,0 +1,16 @@
+# Architecture review — round 2
+
+verdict: FAIL
+review_mode: converging
+
+Round 1's Must Fix is resolved: Task 4 exports `PERMISSION_LISTS`, `SANDBOX_LISTS`, `CREDENTIAL_LISTS` and `ENABLED_SERVERS_KEY` unchanged, Task 5 builds `PROFILE_ENTRY_LISTS` from them and adds only the two rows they do not cover, and Task 5's **Depends on** and the story index's shared-names row both state the exports.
+
+## Must Fix
+1. **`task_4_plan.md` scopes its module-header update so that the header's carry-forward and filesystem statements stay false** — violates `.claude/context/cli.md` → `## What "done" means here` ("Where the header states a rule, the change either satisfies it or amends the header in the same edit — a header a review reads as a guarantee is worth exactly what the code under it still does").
+   The new carry-forward bullet withholds from the carry-forward every entry the local file supplies or the replaced profile records as local. The header of `cli/src/generators/permissionProfile.ts`, under `## What this module deliberately does not do`, states that `renderProfile` "carries forward every entry naming a plugin root this machine resolves" and, where no root resolves, "every absolute entry outside this checkout, unverified". Both become untrue. The same bullet opens "It touches no filesystem beyond reading its two templates — and, on a forced run, the profile it is about to replace; under `init --plugin-root-entries`, the agent runner's plugin records", which stops being complete once `writePermissionProfile` calls `readLocalAdditions`; that function's own doc comment says "Nothing here touches the filesystem". The doc comment on `carriedPluginRootEntries` repeats the unconditional carry ("every absolute entry outside this checkout is carried forward unverified"). Task 4 asks only for the hand-tuned statements to change, so an implementer following it leaves these guarantees contradicting the code beneath them.
+   **Raised against:** "Update the module header's statements that the profile is hand-tuned."
+   **Must hold:** Task 4 calls out every statement in `permissionProfile.ts`'s module header and in the doc comments of the functions it changes that its carry-forward exclusion or its local-file read makes untrue, so each is amended in the same task.
+   **Fix:** In `task_4_plan.md`, widen that sentence to also require: the header's carry-forward statements say that an entry the local file supplies or the replaced profile records as local is not carried; the header's filesystem statement names the local additions file, read only on a run that will write the profile; and the doc comments of `carriedPluginRootEntries` and `writePermissionProfile` are brought into line with the same two changes.
+
+## Should Fix
+- **`task_5_plan.md` keeps a header rule its revised render no longer matches literally.** The module's rule remains "`--upgrade` and `doctor` compare against one render", while the revised text has `--upgrade` render with `carryForward` on and `profileDrift` render with it off, so the two compare against different profiles whenever a carried entry exists. `.claude/context/cli.md` → `## Naming and file layout` makes the header where a reviewer finds the rule a change may break. The rule should say they share one render path, `renderCurrentProfile`, and differ only in the carry-forward.

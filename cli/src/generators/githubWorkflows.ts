@@ -27,7 +27,7 @@
  * 3. **`devscene-resume.yml` is copied verbatim, not rendered.** It carries no token, so there is no
  *    value for the renderer to check; a token added to it later belongs in this module first.
  * 4. **The upgrade mode ({@link GithubWorkflowsOptions.upgrade}) replaces through a per-request
- *    `forceOverride: 'always'`, not a fifth `WritePolicy`.** The engine's `.bak`-then-replace is
+ *    `forceOverride: 'always'`, not a further `WritePolicy`.** The engine's `.bak`-then-replace is
  *    exactly the operation wanted, and `core/writer.ts` reserves new policies for a new re-run
  *    contract. The condition is the pin `remote/githubActions.ts` → `renderedCliVersions` reads from
  *    `devscene-run.yml`: absent, or any value other than this CLI's version. A re-render writes that
