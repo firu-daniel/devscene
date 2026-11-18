@@ -18,10 +18,17 @@ const BACKUP_DIR = '/work/repo/.git/devscene/upgrade-backups/stamp';
 const LOCAL_FILE = '.claude/settings.autonomous.local.json';
 const PROFILE_FILE = '.claude/settings.autonomous.json';
 
+const loadedPaths = (...relativePaths) => new Set(relativePaths.map((relativePath) => join(REPO, relativePath)));
+const DAEMON_LOADED = loadedPaths(
+  'scripts/autonomous-watcher.sh',
+  'scripts/lib/harness-run-lib.sh',
+  'scripts/lib/unit-commit-lib.sh',
+);
+
 const report = (overrides = {}) =>
   upgradeReport({
     dryRun: false,
-    repoRoot: REPO,
+    daemonLoadedPaths: DAEMON_LOADED,
     scriptsDir: 'scripts',
     applied: [],
     delta: [],
@@ -172,11 +179,24 @@ for (const [name, entry] of [
 }
 
 test('the restart line follows scriptsDir, including the repository root', () => {
-  const atRoot = report({ scriptsDir: '.', applied: [replaced('autonomous-watcher.sh')] });
+  const rootLoaded = loadedPaths('autonomous-watcher.sh', 'lib/harness-run-lib.sh');
+  const atRoot = report({
+    scriptsDir: '.',
+    daemonLoadedPaths: rootLoaded,
+    applied: [replaced('autonomous-watcher.sh')],
+  });
   assert.ok(atRoot.warnings.some((line) => line.endsWith(' bash restart-watcher.sh')), atRoot.warnings.join('\n'));
-  const libAtRoot = report({ scriptsDir: '.', applied: [replaced('lib/harness-run-lib.sh')] });
+  const libAtRoot = report({
+    scriptsDir: '.',
+    daemonLoadedPaths: rootLoaded,
+    applied: [replaced('lib/harness-run-lib.sh')],
+  });
   assert.equal(restartLines(libAtRoot.warnings).length, 1);
-  const nested = report({ scriptsDir: 'tools/ci', applied: [replaced('tools/ci/autonomous-watcher.sh')] });
+  const nested = report({
+    scriptsDir: 'tools/ci',
+    daemonLoadedPaths: loadedPaths('tools/ci/autonomous-watcher.sh'),
+    applied: [replaced('tools/ci/autonomous-watcher.sh')],
+  });
   assert.ok(nested.warnings.some((line) => line.endsWith(' bash tools/ci/restart-watcher.sh')), nested.warnings.join('\n'));
 });
 

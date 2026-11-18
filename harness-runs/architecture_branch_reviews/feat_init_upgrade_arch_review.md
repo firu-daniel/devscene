@@ -10,7 +10,7 @@ The layering holds. The new `cli/src/upgrade/` area sits above `generators/`, `c
 
 1. [x] **Finding 1** — Use the shared stringsAt instead of a private copy in the permission profile _(layer: cli)_
 2. [x] **Finding 2** — Give the two lstatOrUndefined copies one owner in core _(layer: cli)_
-3. [ ] **Finding 3** — Resolve daemon-loaded script paths through the outer-loop table's owner _(layer: cli)_
+3. [x] **Finding 3** — Resolve daemon-loaded script paths through the outer-loop table's owner _(layer: cli)_
 4. [ ] **Finding 4** — Print the upgrade report's commands with the npx prefix _(layer: cli)_
 5. [ ] **Finding 5** — Move the upgrade refusal's run grading out of core _(layer: cli)_
 

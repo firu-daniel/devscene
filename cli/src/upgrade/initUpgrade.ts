@@ -14,7 +14,7 @@ import { EXIT } from '../core/errors.js';
 import { pathIsIgnored } from '../core/git.js';
 import { ownManifestString } from '../core/paths.js';
 import { WritePlan } from '../core/writer.js';
-import { planOuterLoopScriptUpgrade } from '../generators/outerLoopScripts.js';
+import { daemonLoadedScriptPaths, planOuterLoopScriptUpgrade } from '../generators/outerLoopScripts.js';
 import { PROFILE_LOCAL_PATH } from '../generators/profileEntries.js';
 import { planProfileUpgrade } from '../generators/profileUpgrade.js';
 import { installedPluginVersion } from '../machine/plugins.js';
@@ -57,7 +57,7 @@ export function runInitUpgrade(
 
   const outcome = upgradeReport({
     dryRun,
-    repoRoot,
+    daemonLoadedPaths: daemonLoadedScriptPaths(repoRoot, config),
     scriptsDir: scripts.scriptsDir,
     applied,
     delta: profile.delta,

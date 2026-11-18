@@ -368,6 +368,15 @@ export function outerLoopScriptPath(repoRoot: string, config: HarnessConfig, rel
   return join(repoRoot, outerLoopScriptsDir(config), ...relativePath.split('/'));
 }
 
+/** The scripts a running daemon has already loaded: the watcher and the libraries it sources. */
+export function daemonLoadedScriptPaths(repoRoot: string, config: HarnessConfig): ReadonlySet<string> {
+  return new Set(
+    OUTER_LOOP_SCRIPTS.filter(({ file, subdir }) => file === WATCHER_SCRIPT_NAME || subdir === 'lib').map((script) =>
+      outerLoopScriptPath(repoRoot, config, outerLoopRelativePath(script)),
+    ),
+  );
+}
+
 /** A shipped script's text, addressed by its path relative to `scriptsDir`. */
 function shippedScript(relativePath: string): string {
   return readTemplate(`${TEMPLATE_DIR}/${relativePath}`);

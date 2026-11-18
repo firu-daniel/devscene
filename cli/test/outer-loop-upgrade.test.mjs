@@ -23,6 +23,7 @@ import {
   OUTER_LOOP_SCRIPTS,
   RESTART_WATCHER_SCRIPT_NAME,
   WATCHER_SCRIPT_NAME,
+  daemonLoadedScriptPaths,
   outerLoopRelativePath,
   outerLoopScriptDrift,
   outerLoopScriptPath,
@@ -80,6 +81,23 @@ test('the restart script has one spelling, and its row is built from it', () => 
   assert.equal(RESTART_WATCHER_SCRIPT_NAME, 'restart-watcher.sh');
   assert.equal(RESTART, RESTART_WATCHER_SCRIPT_NAME);
   assert.equal(rowNamed(RESTART_WATCHER_SCRIPT_NAME).mode, 0o755);
+});
+
+test('the daemon-loaded paths are the watcher and every lib row, under a nested scriptsDir too', () => {
+  const repoRoot = join('/work', 'repo');
+  const libRows = OUTER_LOOP_SCRIPTS.filter((script) => script.subdir === 'lib').map(outerLoopRelativePath);
+  assert.ok(libRows.length > 0);
+
+  for (const [scriptsDir, segments] of [
+    ['scripts', ['scripts']],
+    ['tools/loop/', ['tools', 'loop']],
+  ]) {
+    const expected = [...libRows, WATCHER].map((relative) => join(repoRoot, ...segments, ...relative.split('/')));
+    const loaded = daemonLoadedScriptPaths(repoRoot, { scriptsDir });
+    assert.deepEqual([...loaded].sort(), expected.sort(), scriptsDir);
+    assert.equal(loaded.has(join(repoRoot, ...segments, RESTART)), false, scriptsDir);
+    assert.equal(loaded.has(join(repoRoot, ...segments, 'flows', 'task_plan_writing.graph.json')), false, scriptsDir);
+  }
 });
 
 test('the planner enqueues every table row under replace-if-changed and no wrapper', async (t) => {
