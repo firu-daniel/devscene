@@ -1,0 +1,89 @@
+# The review sweep
+
+> **Read this when:** you are the end-of-branch reviewer running the deterministic sweep over the lines a branch adds to this repository, or the analyze pass refreshing these rows from the conventions documents and the code. **Skip when:** you are a per-unit implementer or reviewer; neither loads this file.
+
+**Purpose.** The escape classes this project's end-of-branch review sweeps for: the ways a change can bypass a single owner or a mandated construct that `.claude/context/conventions.md`, `.claude/context/cli.md` and `.claude/context/plugin.md` state. Each row below is one class: a regex the sweep applies to the lines a branch adds under the paths the row covers, outside the sites it exempts. The reviewer then verifies every hit in context against the owning layer's conventions document.
+
+**How the rows are written and read**
+
+- The rows sit in the one table directly under the exact heading `## Sweep rows`.
+- The table's header row is exactly `| Escape class | Regex | Covers | Exempts | A hit is a candidate for |`, followed by its separator row and then one row per escape class.
+- The table ends at the first line that does not begin with `|`.
+- `Regex` is exactly one backtick code span holding a POSIX extended regular expression, the dialect `grep -E` reads. A literal `|` inside it is written `\|`, and a regex cannot contain a backtick.
+- `Covers` is one or more code-spanned repo-relative paths separated by `, `. Each is a `layers[].path` value or a path beneath one, and `.` is the whole repository.
+- `Exempts` is code-spanned repo-relative paths or git pathspec globs separated by `, `, or the single character `—` for none.
+- The last cell is prose.
+
+A hit is a lead to verify in context, never a finding by itself. The rows are maintained by you, by hand or with the command in the block that follows.
+
+```
+/devscene:analyze sweep
+```
+
+A lesson in the lessons ledger is not a row. The rows are read as the default branch commits them, so an edit made on a branch takes effect once it is merged.
+
+## Sweep rows
+
+| Escape class | Regex | Covers | Exempts | A hit is a candidate for |
+|---|---|---|---|---|
+| Raw console call | `console\.[a-z]+\(` | `cli/src` | `cli/src/cli.ts`, `cli/src/core/report.ts` | Output that belongs on `Reporter` (`.claude/context/conventions.md` → `## Output, logging and errors`). |
+| Direct process exit | `process\.exit\(` | `cli/src` | — | A failure that must be thrown as a `HarnessError` instead (`.claude/context/conventions.md` → `### Where a new responsibility goes`). |
+| Exit code set outside the entry point | `process\.exitCode[[:space:]]*=[^=]` | `cli/src` | `cli/src/cli.ts` | A second place turning a result into an exit code (`.claude/context/conventions.md` → `### Where a new responsibility goes`). |
+| Second Reporter | `new Reporter\(` | `cli/src` | `cli/src/cli.ts` | A module making its own reporter instead of taking `CommandContext.report` or a parameter (`.claude/context/cli.md` → `## How a module in this layer is written`). |
+| Hand-built internal error | `new HarnessError\(.*EXIT\.INTERNAL\|^[[:space:]]*EXIT\.INTERNAL,[[:space:]]*$` | `cli/src` | `cli/src/core/errors.ts` | A fault that must go through `internal()` (`.claude/context/conventions.md` → `## Output, logging and errors`). |
+| Git invoked outside its owner | `(execFileSync\|spawnSync\|execFile\|spawn)\('git'` | `cli/src` | `cli/src/core/git.ts`, `cli/src/generators/githooks.ts` | A repository-state or path query that belongs in `cli/src/core/git.ts` (`.claude/context/conventions.md` → `### Where a new responsibility goes`). |
+| Filesystem mutation outside its owner | `(^\|[^[:alnum:]_])(writeFile\|appendFile\|rename\|rm\|unlink\|mkdir\|copyFile\|chmod\|symlink\|rmdir\|cp\|truncate\|link)(Sync)?\(` | `cli/src` | `cli/src/core/writer.ts`, `cli/src/machine/registry.ts`, `cli/src/retrieval/setup.ts`, `cli/src/retrieval/store.ts`, `cli/src/retrieval/queryLog.ts` | A write that must be enqueued as a `WriteRequest` (`.claude/context/conventions.md` → `### Where a new responsibility goes`). |
+| Shell-string child process | `shell:[[:space:]]*true\|execSync\(\|[^[:alnum:]_.]exec\(` | `cli/src` | — | A child process that must use a fixed argument vector (`.claude/context/cli.md` → `## How a module in this layer is written`). |
+| Recursive removal | `(^\|[^[:alnum:]_])rm -[[:alpha:]]*[rR]\|rmSync\(.*recursive\|(execFileSync\|spawnSync)\('rm'` | `cli/src` | — | A teardown a user-level deny rule would block, or a removal that must stay non-recursive (`.claude/context/conventions.md` → `## Shell assets`). |
+| Package import outside docs retrieval | `^(import .*\|\} )from '(@\|[a-mo-z]\|n[^o])\|[^[:alnum:]_.]import\(` | `cli/src` | `cli/src/retrieval` | A new required runtime dependency, or a retrieval package loaded off the retrieval path (`.claude/context/conventions.md` → `## The stack, in the words the rules below use`). |
+| Configuration filename retyped | `['"]devscene\.config\.json['"]` | `cli/src` | `cli/src/config/model.ts` | A literal that must import `CONFIG_FILENAME` (`.claude/context/conventions.md` → `## Configuration is the source of truth, and it is read at run time`). |
+| Machine-registry filename retyped | `['"]repos\.json['"]` | `cli/src`, `cli/templates/scripts` | `cli/src/machine/registry.ts`, `cli/templates/scripts/autonomous-watcher.sh` | A second definition of the registry filename, or a mirror the owning module's header does not declare (`.claude/context/conventions.md` → `## Configuration is the source of truth, and it is read at run time`). |
+| Environment-variable name retyped | `CLAUDE_CONFIG_DIR\|HARNESS_SELF_ADOPT` | `cli/src` | `cli/src/machine/paths.ts`, `cli/src/commands/init.ts` | A name that must be read through `CLAUDE_HOME_VARIABLE` or `SELF_ADOPT_ENV`, messages included (`.claude/context/conventions.md` → `## Configuration is the source of truth, and it is read at run time`). |
+| Shipped script name retyped | `'[[:alnum:]_.-]+\.sh'` | `cli/src` | `cli/src/generators/scripts.ts`, `cli/src/generators/outerLoopScripts.ts` | A second source for `WRAPPER_SCRIPTS` or `OUTER_LOOP_SCRIPTS` where the name is resolved, joined or read as a path; a name used only inside a message is permitted (`.claude/context/cli.md` → `## How a module in this layer is written`). |
+| Guard answering deny | `permissionDecision.{1,6}deny` | `plugin/hooks` | `plugin/hooks/autonomous-protected-branch-guard.sh`, `plugin/hooks/git-trust-file-guard.sh`, `plugin/hooks/README.md` | An allow-only guard that must fail closed by emitting nothing (`.claude/context/conventions.md` → `## Output, logging and errors`). |
+| Guard aborting on error | `(^\|[^[:alnum:]_])set -[[:alpha:]]*e` | `plugin/hooks` | `plugin/hooks/README.md`, `plugin/hooks/lib` | A guard that could abort mid-decision (`.claude/context/conventions.md` → `## Shell assets`). |
+| Shell option in a sourced library | `(^\|[^[:alnum:]_])set [-+][[:alpha:]]` | `plugin/hooks/lib`, `cli/templates/scripts/lib` | — | A library changing the sourcing script's shell (`.claude/context/conventions.md` → `## Shell assets`). |
+| Plugin-root token dereferenced in a shell body | `^[[:space:]]*[^#[:space:]].*\$\{?CLAUDE_PLUGIN_ROOT` | `plugin/hooks`, `plugin/scripts` | `plugin/hooks/hooks.json`, `plugin/hooks/README.md`, `plugin/scripts/README.md` | A sibling that must be resolved from `${BASH_SOURCE[0]}` (`.claude/context/conventions.md` → `## Plugin asset authoring`). |
+| Repository or configuration resolved outside the library | `^[[:space:]]*[^#[:space:]].*(rev-parse --show-toplevel\|/devscene\.config\.json)` | `plugin/hooks`, `plugin/scripts` | `plugin/hooks/lib/harness-config-lib.sh`, `plugin/hooks/README.md`, `plugin/scripts/README.md` | An answer that must come from `plugin/hooks/lib/harness-config-lib.sh`; a path named only in a message is not one (`.claude/context/conventions.md` → `### Where a new responsibility goes`). |
+| Relative path between plugin assets | `\.\./(agents\|commands\|instructions\|hooks\|samples\|scripts\|docs)/` | `plugin` | `plugin/hooks/*.sh`, `plugin/scripts/*.sh` | A reference that must be written `${CLAUDE_PLUGIN_ROOT}/<path>` (`.claude/context/conventions.md` → `## Plugin asset authoring`). |
+| Repo-rooted plugin path in a contract | `(^\|[^/[:alnum:]_-])plugin/(agents\|commands\|instructions\|hooks\|samples\|scripts\|docs)/` | `plugin/agents`, `plugin/commands`, `plugin/instructions` | `plugin/agents/README.txt`, `plugin/commands/README.txt`, `plugin/instructions/README.md` | A reference that must be written `${CLAUDE_PLUGIN_ROOT}/<path>`; a path naming an adopter's copy of the tree is not one (`.claude/context/conventions.md` → `## Plugin asset authoring`). |
+| Whole-tree staging | `git( -C [^ ]+)? add (-A\|--all\|\.)([[:space:]]\|$)` | `plugin`, `cli/templates` | — | Staging that must name an explicit path set; a `REPRO` line against a throwaway fixture is not one (`.claude/context/conventions.md` → `## Shell assets`). |
+| Machine path | `(^\|[^[:alnum:]_.$/-])/(Users\|home)/[a-z]` | `.` | `cli/test`, `scripts`, `githooks` | A location on the machine that wrote the line; a fictional example path is not one (`.claude/context/conventions.md` → `## The testing bar`). |
+
+## Row provenance
+
+Each class comes from the conventions document and heading its last cell cites. Each regex was verified against:
+
+- **Raw console call** — `cli/src/core/report.ts` (`Reporter` constructor).
+- **Direct process exit** — `cli/src/core/errors.ts`, the header's *"Nothing calls `process.exit()`"*.
+- **Exit code set outside the entry point** — `cli/src/cli.ts` (`process.exitCode`).
+- **Second Reporter** — `cli/src/cli.ts` (`new Reporter`).
+- **Hand-built internal error** — `cli/src/core/errors.ts` (`internal`).
+- **Git invoked outside its owner** — `cli/src/core/git.ts` (`execFileSync('git'`).
+- **Filesystem mutation outside its owner** — `cli/src/core/writer.ts` (`writeFileSync`); the machine-state and retrieval exemptions are that file's header.
+- **Shell-string child process** — `cli/src/core/git.ts`, the header's *"no `shell: true`"*.
+- **Recursive removal** — `cli/src/cli.ts`, the header's *"never shell out to `rm -rf`"*.
+- **Package import outside docs retrieval** — `cli/src/retrieval/store.ts` (`import type * as Pglite`), `cli/src/retrieval/runtime.ts` (`import(specifier)`).
+- **Configuration filename retyped** — `cli/src/config/model.ts` (`CONFIG_FILENAME`).
+- **Machine-registry filename retyped** — `cli/src/machine/registry.ts` (`REGISTRY_FILENAME`), `cli/templates/scripts/autonomous-watcher.sh` (`MACHINE_REGISTRY_FILENAME`).
+- **Environment-variable name retyped** — `cli/src/machine/paths.ts` (`CLAUDE_HOME_VARIABLE`), `cli/src/commands/init.ts` (`SELF_ADOPT_ENV`).
+- **Shipped script name retyped** — `cli/src/generators/outerLoopScripts.ts` (`WATCHER_SCRIPT_NAME`), `cli/src/doctor/checks.ts` (`WORKTREE_SCRIPT`).
+- **Guard answering deny** — `plugin/hooks/autonomous-protected-branch-guard.sh` (`permissionDecision: "deny"`); both guard exemptions are the two guards `.claude/context/conventions.md` → `## Output, logging and errors` names.
+- **Guard aborting on error** — `plugin/hooks/README.md`, *"never `set -e`"*.
+- **Shell option in a sourced library** — `plugin/hooks/lib/harness-config-lib.sh` and `cli/templates/scripts/lib/harness-run-lib.sh`, each header's *"No `set -e` and no `set -u`"*.
+- **Plugin-root token dereferenced in a shell body** — `plugin/hooks/hooks.json` (`command`).
+- **Repository or configuration resolved outside the library** — `plugin/hooks/lib/harness-config-lib.sh` (`rev-parse --show-toplevel`).
+- **Relative path between plugin assets** — `plugin/scripts/reserve-qa-user.sh` (`../hooks/lib`).
+- **Repo-rooted plugin path in a contract** — `plugin/instructions/mode_contract.md`, *"returns hits only under `plugin/instructions/`"*.
+- **Whole-tree staging** — `cli/templates/scripts/commit-on-branch.sh`, its `REPRO` block's `add -A`.
+- **Machine path** — `docs/watcher.md`, a fictional path of the kind `docs/development.md` → **Gate 6 — self-containment.** names as a legitimate match.
+
+_Written by `/devscene:analyze sweep` in `existing` mode, from `.claude/context/conventions.md`, `.claude/context/cli.md`, `.claude/context/plugin.md`, `devscene.config.json`, `cli/templates/scripts/review-sweep.sh` for the row format, `docs/development.md` → **Gate 6 — self-containment.**, `plugin/hooks/README.md`, and each candidate regex run with `git grep` over its `Covers` in `cli/src`, `cli/templates`, `plugin` and the tracked tree. `## Not determined` and the **Guard answering deny** provenance were then edited by hand, once the conventions rules they named were settled._
+
+## Not determined
+
+Nothing here is an open question. These are accepted limits of a table of regexes over added lines.
+
+- **A class with nothing to verify a regex against has no row.** A row's regex must match a real occurrence inside its `Covers`, and the probes for these matched none: a shell shebang other than `#!/usr/bin/env bash` outside the excluded paths; a mocking framework or a stubbed `console` in `cli/test`; an exact line-number citation in `plugin`; the state-directory literal `harness-runs` in `plugin`; an agent `model:` other than `inherit`. A class gains a row when a real occurrence exists to write its regex against.
+- **A rule about a file's presence, position or absence, or about text outside the diff, has no row**, because the row format cannot express it: a frontmatter fence opening an instruction file; a `README.md` in `plugin/agents` or `plugin/commands`; an agent definition with no `tools:` line; a configuration key missing from one of its four places; the commit-message policy. Enforcing one takes a check outside this table, such as a `treeGuards` test.
+- **A branch-name literal in `plugin` has no row.** The bare words `main` and `dev` are ordinary prose there ("main checkout", "dev server"), so a regex on them is no usable lead.
