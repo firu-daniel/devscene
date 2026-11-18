@@ -53,6 +53,8 @@ export function runInitUpgrade(
   const pluginVersion = installedPluginVersion(repoRoot);
   const cliVersion = ownManifestString('version');
   const versionNotes = pluginVersionNotes({ mismatch: pluginCliMismatch(pluginVersion, cliVersion), dryRun });
+  // A dry run's mismatch is already a note; the report's pinned warning would contradict it.
+  const reportedPluginVersion = dryRun ? undefined : pluginVersion;
 
   const plan = new WritePlan();
   const scripts = planOuterLoopScriptUpgrade({ repoRoot, config, plan });
@@ -78,8 +80,8 @@ export function runInitUpgrade(
       : undefined,
     cliVersion,
     cliCommand: pinnedCliCommand(cliVersion),
-    pluginVersion,
-    pluginCliCommand: pluginVersion === undefined ? undefined : pinnedCliCommand(pluginVersion),
+    pluginVersion: reportedPluginVersion,
+    pluginCliCommand: reportedPluginVersion === undefined ? undefined : pinnedCliCommand(reportedPluginVersion),
   });
 
   for (const note of [...target.notes, ...versionNotes, ...profile.notes]) report.info(note);

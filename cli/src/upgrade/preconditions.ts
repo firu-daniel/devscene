@@ -52,6 +52,9 @@ export type ActiveRuns =
 
 const REFUSAL_PREFIX = 'refusing to upgrade';
 
+/** Opens every note saying what a `--dry-run` found that a real run would have refused on. */
+const WOULD_REFUSE_PREFIX = 'a real --upgrade run would refuse: ';
+
 /** The `execution` value of a run record whose run executes in a remote job, not on this machine. */
 const REMOTE_EXECUTION: HarnessExecutionTarget = 'github-actions';
 
@@ -160,7 +163,7 @@ function runRegistryNotes(registryPath: string, dryRun: boolean): readonly strin
   const refusal = runRegistryRefusal(registryPath);
   if (refusal === undefined) return [];
   if (!dryRun) throw new HarnessError(`${REFUSAL_PREFIX}: ${refusal}`);
-  return [`a real --upgrade run would refuse: ${refusal}`];
+  return [`${WOULD_REFUSE_PREFIX}${refusal}`];
 }
 
 /**
@@ -204,16 +207,16 @@ export interface PluginVersionRequest {
 }
 
 /**
- * Refuses a real run on a plugin and CLI version mismatch; a dry run is not refused.
+ * Refuses a real run on a plugin and CLI version mismatch; a dry run gets that refusal as a note.
  *
  * The caller reads the versions, and {@link resolveUpgradeTarget} must not: its suite calls it in
  * process with no scratch agent-runner home, so a read there would grade the host's real plugin.
  */
 export function pluginVersionNotes({ mismatch, dryRun }: PluginVersionRequest): readonly string[] {
-  if (mismatch === undefined || dryRun) return [];
-  throw new HarnessError(
-    `${REFUSAL_PREFIX}: ${pluginCliMismatchSummary(mismatch)}; ${pluginCliMismatchRemedy(mismatch)}`,
-  );
+  if (mismatch === undefined) return [];
+  const refusal = `${pluginCliMismatchSummary(mismatch)}; ${pluginCliMismatchRemedy(mismatch)}`;
+  if (!dryRun) throw new HarnessError(`${REFUSAL_PREFIX}: ${refusal}`);
+  return [`${WOULD_REFUSE_PREFIX}${refusal}`];
 }
 
 /**

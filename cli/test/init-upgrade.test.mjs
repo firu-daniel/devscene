@@ -304,6 +304,29 @@ for (const [name, pluginVersion, remedy] of [
     assert.deepEqual(await snapshotTree(repo.dir), before);
     assert.deepEqual(backupRuns(repo), []);
   });
+
+  test(`${name} is a note on a dry run, which still lists what would change`, async (t) => {
+    const repo = await filled(t);
+    recordPlugin(repo, pluginVersion);
+    const { name: packageName, version: cliVersion } = readJson(join(PACKAGE_ROOT, 'package.json'));
+    const before = await snapshotTree(repo.dir);
+
+    const { stdout, stderr } = await upgrade(repo, DRY_RUN);
+
+    assert.ok(
+      stdout.includes(
+        `a real --upgrade run would refuse: the installed plugin is version ${pluginVersion} and this CLI is version ${cliVersion}; ${remedy}`,
+      ),
+      stdout,
+    );
+    assert.match(stdout, /^Dry run: \d+ files? would change\.$/m);
+    assert.ok(stdout.includes(`Profile permissions.allow: would add ${repo.lost}`), stdout);
+    const pinned = `npx ${packageName}@${pluginVersion}`;
+    assert.ok(!stdout.includes(pinned), stdout);
+    assert.ok(!stderr.includes(pinned), stderr);
+    assert.deepEqual(await snapshotTree(repo.dir), before);
+    assert.deepEqual(backupRuns(repo), []);
+  });
 }
 
 test('a recorded plugin root with no readable manifest does not stop the upgrade', async (t) => {
@@ -313,6 +336,15 @@ test('a recorded plugin root with no readable manifest does not stop the upgrade
   const { stdout } = await upgrade(repo);
 
   assert.match(stdout, /^Upgrade complete: \d+ files? changed\.$/m);
+});
+
+test('a recorded plugin root with no readable manifest adds no refusal note to a dry run', async (t) => {
+  const repo = await filled(t);
+  recordPlugin(repo, undefined);
+
+  const { stdout } = await upgrade(repo, DRY_RUN);
+
+  assert.ok(!stdout.includes('a real --upgrade run would refuse'), stdout);
 });
 
 test("the harness's own repository is refused unless self-adoption is asked for", async (t) => {

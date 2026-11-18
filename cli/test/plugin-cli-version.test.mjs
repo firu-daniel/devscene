@@ -1,5 +1,6 @@
 /**
- * The plugin and CLI version comparison and its wording: `cli/src/machine/pluginCliVersion.ts`.
+ * The plugin and CLI version comparison and its wording: `cli/src/machine/pluginCliVersion.ts`, and
+ * the dry-run note `cli/src/upgrade/preconditions.ts` builds from them.
  *
  * **The rule this suite exists to enforce: a readable difference is ordered by semantic-version
  * precedence, every remedy moves forward to the latest release, and none pins the CLI to the older
@@ -15,6 +16,7 @@ import {
   pluginCliMismatchSummary,
   pluginCliMismatchWarning,
 } from '../dist/machine/pluginCliVersion.js';
+import { pluginVersionNotes } from '../dist/upgrade/preconditions.js';
 
 const UPGRADE_REMEDY = 'run `npx devscene@latest init --upgrade`';
 const UPDATE_REMEDY =
@@ -125,4 +127,15 @@ for (const { older, pluginVersion, cliVersion, remedy, warning } of WORDING) {
     assert.ok(!text.includes(`@${pluginVersion}`), text);
     assert.ok(!text.includes(`@${cliVersion}`), text);
   });
+
+  test(`a dry run notes the refusal when the older half is ${older}`, () => {
+    const mismatch = pluginCliMismatch(pluginVersion, cliVersion);
+    assert.deepEqual(pluginVersionNotes({ mismatch, dryRun: true }), [
+      `a real --upgrade run would refuse: the installed plugin is version ${pluginVersion} and this CLI is version ${cliVersion}; ${remedy}`,
+    ]);
+  });
 }
+
+test('a dry run with no mismatch has no version note', () => {
+  assert.deepEqual(pluginVersionNotes({ mismatch: undefined, dryRun: true }), []);
+});
