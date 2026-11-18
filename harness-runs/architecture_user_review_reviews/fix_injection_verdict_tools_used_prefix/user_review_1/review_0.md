@@ -1,0 +1,15 @@
+# Architecture review — round 0
+
+verdict: PASS
+review_mode: full
+
+## Should Fix
+
+1. **`finding_4.md` leaves a second passage of `docs/structured-agent-returns.md` stating the old accepted shape.** Finding 4 targets only the paragraph containing "and refuses the notice". The `**Decision — the third path, a script caller.**` paragraph of the same document also describes what `pis_unwrap_vlines` accepts: "The script unwraps only the whole measured shape (§3), optional tools-used lines and blank lines ahead of the frame, the frame line, a two-space indent on every reply line and an optional `agentId: ` trailer: a bare trailer, a bare indent, a frame over any other shape, any other text ahead of the frame, or a tools-used line anywhere after it stays malformed." Once Findings 1 and 2 land, that list omits both notice placements, and "any other text ahead of the frame" contradicts the replacement paragraph. `.claude/context/conventions.md` → `### Where a new responsibility goes` makes `docs/` the home of a decision of record. This is a Should Fix because a sentence that only describes the project and has become false is never a Must Fix on its own (`/Users/daniel/Work/devscene/plugin/instructions/finding_grades.md` → `## Never a Must Fix on its own`).
+   **Fix:** add this passage to Finding 4's targets and name the notice, its two placements and the one-per-result limit there, or point it at the replacement paragraph.
+
+2. **`finding_4.md` records a measured claim with no measurement behind it.** The replacement paragraph says the notice sits "as the first non-blank line of the reply, where a live `prompt-injection-reviewer` run delivered it and no recorded stream holds it". `.claude/context/conventions.md` → `## Documents of record` requires a measured fact to state what was measured, the command and the exact message. The sentence gives no Claude Code version and no command, and the document's published `jq` command prints only the text ahead of the frame, so it cannot show what the reply lines of the recorded streams hold.
+   **Fix:** state the live run's version and source, and either add the command that searched the reply lines or drop "no recorded stream holds it".
+
+3. **`finding_1.md`, `finding_2.md` and `finding_3.md` prescribe a tool that no harness contract requires.** Each says "Apply the same edits to `scripts/prompt-injection-screen.sh` with the file-edit tool, keeping its mode." The edit and the mode are the deliverable, but "with the file-edit tool" tells the implementer how to work, and neither the plugin nor a conventions document states it; its only precedent is this branch's `task_3_plan.md`, which is not a harness contract (`/Users/daniel/Work/devscene/plugin/instructions/untrusted_input.md` → `## The laundering check`). This is a Should Fix because following the clause produces no wrong result, so no failure sentence can be completed (`/Users/daniel/Work/devscene/plugin/instructions/finding_grades.md` → `### Checklist triggers`).
+   **Fix:** state only the required result: the same edits, byte-identical content and the file's mode unchanged.
