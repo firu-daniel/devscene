@@ -58,7 +58,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_init_upgrade/task_<K>_p
 7. [x] **Task 7** — Add the run-registry reader and the installed plugin version reader _(layer: cli)_ _(points: 15)_
 8. [x] **Task 8** — Add the `--upgrade` repository refusals _(layer: cli)_ _(points: 10)_
 9. [x] **Task 9** — Add the `--upgrade` report _(layer: cli)_ _(points: 10)_
-10. [ ] **Task 10** — Wire `init --upgrade` end to end _(layer: cli)_ _(points: 20)_
+10. [x] **Task 10** — Wire `init --upgrade` end to end _(layer: cli)_ _(points: 20)_
 11. [ ] **Task 11** — Add the `doctor` drift and version checks _(layer: cli)_ _(points: 20)_
 12. [ ] **Task 12** — Prove an upgraded profile passes the watcher's per-run check _(layer: cli)_ _(points: 8)_
 13. [ ] **Task 13** — Update the CLI template READMEs and re-run statements _(layer: cli)_ _(points: 10)_
