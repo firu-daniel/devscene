@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/feat_init_upgrade_task_prompt.md → `### Run 
   - screened: harness-runs/task_prompts/feat_init_upgrade_task_prompt.md sha256=6ce1d2033cea3424f8dc43cd33c8ea7f61eae8a96e51e2255f5b682e046478bc
   - screened: harness-runs/user_reviews/feat_init_upgrade_review.md sha256=4617640bffe3750c85a127284cc4817c0d5ea091ed94a88bece82967e60c66ee
   - screened: harness-runs/clarifications/feat_init_upgrade/answer_1.md sha256=9291c5f3e8d93ef5d8d597d14f4616005d6d625201316918742792348542f2e2
-- [ ] R1. Fix plan written & converged (parity + architecture gates PASS)
+- [x] R1. Fix plan written & converged (parity + architecture gates PASS)
 - [ ] R2. Fix plan + source review committed
 ## Fixing
 - [ ] R3. All fix-plan findings implemented (fix-plan index all [x])
