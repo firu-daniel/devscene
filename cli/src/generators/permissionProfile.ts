@@ -96,17 +96,20 @@
  *
  * ## What this module deliberately does not do
  *
- * - **It touches no filesystem beyond reading its two templates — and, on a forced run, the profile
- *   it is about to replace; under `init --plugin-root-entries`, the agent runner's plugin records.**
- *   {@link writePermissionProfile} enqueues the rendered profile into the
- *   command's write plan under the `create-if-absent` contract — the profile is hand-tuned after
- *   generation, and an overwrite silently drops the allow entries an adopter added to close a gap —
- *   and the write itself belongs to the write engine. `--force` is the one flag that suspends that
- *   contract, and therefore the one run under which those hand-added entries can be lost, so
- *   {@link carriedPluginRootEntries} reads the profile back and {@link renderProfile} carries forward
- *   every entry naming a plugin root this machine resolves (`machine/plugins.ts`, which reads the
- *   agent runner's own records) — and, where **no** root resolves at all, every absolute entry
- *   outside this checkout, unverified: a run that graded nothing revokes nothing. That is a read and
+ * - **It touches no filesystem beyond reading its templates; the local additions file
+ *   ({@link PROFILE_LOCAL_PATH}), only on a run that will write the profile; on any run that replaces
+ *   the profile, the file being replaced; and under `init --plugin-root-entries`, the agent runner's
+ *   plugin records.** {@link writePermissionProfile} enqueues the rendered profile into the
+ *   command's write plan under the `create-if-absent` contract — the profile is generated, an
+ *   adopter's additions belong in the local file, and a plain re-run keeps what exists — and the
+ *   write itself belongs to the write engine. Two routes replace the file: `--force` suspends that
+ *   contract, and `init --upgrade`'s planner enqueues the render under `replace-if-changed`. Lines
+ *   pasted into the profile can be lost on either, so {@link carriedPluginRootEntries} reads the
+ *   profile back and {@link renderProfile} carries forward each entry naming a plugin root this
+ *   machine resolves (`machine/plugins.ts`, which reads the agent runner's own records) — and, where
+ *   **no** root resolves at all, each absolute entry outside this checkout, unverified: a run that
+ *   graded nothing revokes nothing. On both arms an entry the local file supplies, or the replaced
+ *   profile records as local, is not carried. That is a read and
  *   not a question put to the adopter again: they
  *   were told once, by `doctor`, exactly which lines to paste. Preserving an entry is not generating
  *   one: by default nothing here generates one, and the once-open owner decision below is taken for
@@ -114,9 +117,9 @@
  *   {@link generatedPluginRootEntries} reads the plugin records through {@link resolvedPluginRoots}
  *   on every run, forced or not, and yields both halves of the grant: the `allow` entries, and each
  *   root in `permissions.additionalDirectories`, without which a shell read under the root is refused
- *   as outside the allowed working directories. It still never tests whether the profile exists: whether the render
+ *   as outside the allowed working directories. That switch never tests whether the profile exists: whether the render
  *   lands is the write engine's `create-if-absent` answer, which `init` hands back to
- *   {@link pluginRootEntriesNote}. On a forced run the generated lines are appended before the
+ *   {@link pluginRootEntriesNote}. On a run that replaces the profile the generated lines are appended before the
  *   carry-forward, which skips any line already in `allow`, so each line has one producer — the rule
  *   the browser-fragment section states.
  * - **It adds no `hooks` key.** The plugin ships its own guard hooks, which fire from the plugin,
@@ -140,8 +143,8 @@
  *   upgrade. The resolving is therefore done at check time rather than here — `doctor`'s
  *   `plugin-permissions` check re-derives the root on every run and prints each missing line — and
  *   {@link QA_TEMPLATE_PATH}'s `_README` carries the entry *form* an adopter adds by hand, which the
- *   `create-if-absent` contract above — and, on the run that suspends it, the carry-forward named
- *   there — is what makes survive every later `init`. Whether `init` should also *write* those
+ *   `create-if-absent` contract above — and, on a run that replaces the profile, the carry-forward
+ *   named there — is what makes survive every later `init`. Whether `init` should also *write* those
  *   entries was an open owner decision, now taken for `--plugin-root-entries` only, default unchanged:
  *   inside a remote job the plugin is installed immediately before `init` runs and the profile dies
  *   with the job, so neither reason above holds there, while both still hold for the default.
@@ -209,6 +212,15 @@
  * whose name and rule `core/mainRepoAnchor.ts` → `MAIN_REPO_ANCHOR_RULE` owns; {@link renderProfile}
  * appends it after the fragments merge, so the template carries no second spelling of the name.
  *
+ * ## The local additions
+ *
+ * {@link renderProfile} merges the validated {@link PROFILE_LOCAL_PATH} last, so generated entries
+ * stay first. Those entries are the adopter's, so one the closing assertions would bill to this CLI
+ * is refused first with an ordinary {@link HarnessError}. A local `allow` entry of a carry-forward
+ * shape is also recorded in a {@link LOCAL_ALLOW_RECORD_PREFIX} `_README` line: once the local file
+ * no longer lists it, that record is all that tells it from a pasted plugin-root line. The record
+ * only withholds an entry from the carry-forward; it never grants one.
+ *
  * Mirrors outside this package, each held equal by the suite named:
  * - `cli/templates/scripts/autonomous-watcher.sh` → `run_profile_wrapper_prefixes` holds a copy of
  *   the main-checkout wrapper-row prefix the repo-root-absolute rows of {@link WRAPPER_ROW_TOKENS},
@@ -220,6 +232,7 @@
  * A mirror this header does not declare is a defect.
  */
 
+import { lstatSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, sep } from 'node:path';
 
 import { browserWiringApplies, CONFIG_FILENAME, DEFAULTS, retrievalApplies, type HarnessConfig } from '../config/model.js';
@@ -252,11 +265,14 @@ import {
   FORBIDDEN_IN_ENTRY,
   INVOCATION_PREFIX,
   normalizedRoot,
+  PROFILE_LOCAL_PATH,
   PROFILE_PATH,
   QA_TEMPLATE_PATH,
+  README_KEY,
   RETRIEVAL_TEMPLATE_PATH,
   TEMPLATE_PATH,
 } from './profileEntries.js';
+import { readLocalAdditions, type LocalAdditions } from './profileLocal.js';
 import { applySandbox, SANDBOX_KEY } from './sandboxProfile.js';
 import {
   scriptInvocation,
@@ -270,11 +286,14 @@ import {
 import { applyWriteProtection } from './writeProtection.js';
 
 /** The key that starts the repository's declared MCP servers for the run. Absent unless a fragment adds it. */
-const ENABLED_SERVERS_KEY = 'enabledMcpjsonServers';
+export const ENABLED_SERVERS_KEY = 'enabledMcpjsonServers';
 
 /** The prefix every MCP tool entry carries, and the pattern its server name is read out of. */
 const MCP_ENTRY_PREFIX = 'mcp__';
 const MCP_SERVER_PATTERN = /^mcp__(.+?)__/;
+
+/** Opens the `_README` line recording one local `allow` entry of a carry-forward shape. */
+const LOCAL_ALLOW_RECORD_PREFIX = 'LOCAL ALLOW ENTRY: ';
 
 /**
  * The two token names one row family marks its rows with — one per form the base profile carries.
@@ -335,10 +354,10 @@ function tokenNames(tokens: RowTokens): readonly string[] {
 }
 
 /** The permission lists checked by {@link assertRunnable}, in the order the template writes them. */
-const PERMISSION_LISTS: readonly string[] = Object.freeze(['allow', 'deny', 'ask']);
+export const PERMISSION_LISTS: readonly string[] = Object.freeze(['allow', 'deny', 'ask']);
 
 /** The `sandbox` block's lists {@link assertRunnable} checks, as dotted paths under `sandbox`. */
-const SANDBOX_LISTS: readonly string[] = Object.freeze([
+export const SANDBOX_LISTS: readonly string[] = Object.freeze([
   'excludedCommands',
   'filesystem.allowWrite',
   'filesystem.denyWrite',
@@ -346,7 +365,7 @@ const SANDBOX_LISTS: readonly string[] = Object.freeze([
 ]);
 
 /** The `sandbox.credentials` lists {@link assertRunnable} checks, each with the field it names an entry by. */
-const CREDENTIAL_LISTS: ReadonlyArray<readonly [list: string, field: string]> = Object.freeze([
+export const CREDENTIAL_LISTS: ReadonlyArray<readonly [list: string, field: string]> = Object.freeze([
   ['files', 'path'],
   ['envVars', 'name'],
 ] as const);
@@ -419,12 +438,17 @@ export interface RenderProfileOptions {
    */
   readonly referenceToolchainPath?: string;
   /**
-   * The run's `--force` — the only condition under which the profile on disk is replaced, and
-   * therefore the only run whose hand-added plugin-root entries can be lost. Absent means unforced,
-   * and an unforced render calls {@link carriedPluginRootEntries} not at all, which is what keeps it
-   * byte-identical to what it produced before this step existed.
+   * This render replaces the profile on disk, so hand-added plugin-root entries could be lost: set by
+   * `--force` and by `init --upgrade`'s planner. Absent means it does not, and such a render calls
+   * {@link carriedPluginRootEntries} not at all, which is what keeps it byte-identical to what it
+   * produced before this step existed.
    */
   readonly force?: boolean;
+  /**
+   * The validated {@link PROFILE_LOCAL_PATH}, merged after every generated entry. Absent means no
+   * additions; the caller decides whether the file is read ({@link writePermissionProfile}).
+   */
+  readonly localAdditions?: LocalAdditions;
   /**
    * The run's `--dry-run`, which changes the carry-forward note's tense and nothing else: a dry run
    * computes and reports the carry-forward it would make and writes nothing (`docs/cli.md` §1's
@@ -447,7 +471,7 @@ export interface RenderProfileOptions {
    */
   readonly warn?: (message: string) => void;
   /**
-   * Sink for a line that needs no attention but has to be said — what a forced run carried forward.
+   * Sink for a line that needs no attention but has to be said — what a replacing run carried forward.
    * Called rather than printed for the same reason {@link RenderProfileOptions.warn} is, and
    * separate from it because a preservation that worked is not a warning.
    */
@@ -1045,6 +1069,34 @@ function assertBrowserWiring(profile: JsonObject): void {
   }
 }
 
+/**
+ * Refuse a local entry {@link assertNoBrowserDeny} or {@link assertBrowserWiring} would otherwise
+ * report as this CLI's fault. Runs before the merge, against the servers the generated profile starts.
+ */
+function assertLocalAdditionsUsable(profile: JsonObject, additions: LocalAdditions): void {
+  for (const entry of localPermissionEntries(additions, 'deny')) {
+    if (!namesBrowserTool(entry)) continue;
+    throw new HarnessError(
+      `${PROFILE_LOCAL_PATH}: permissions.deny entry ${JSON.stringify(entry)} names a browser tool. A deny cannot be overridden, so it would revoke the interactive-test agent's own grant; remove the entry.`,
+    );
+  }
+
+  const enabled = enabledServers(profile);
+  for (const entry of localPermissionEntries(additions, 'allow')) {
+    if (!entry.startsWith(MCP_ENTRY_PREFIX)) continue;
+    const server = MCP_SERVER_PATTERN.exec(entry)?.[1];
+    if (server === undefined) {
+      throw new HarnessError(
+        `${PROFILE_LOCAL_PATH}: permissions.allow entry ${JSON.stringify(entry)} does not name an MCP server and a tool; write it as ${MCP_ENTRY_PREFIX}<server>__<tool>.`,
+      );
+    }
+    if (enabled.includes(server)) continue;
+    throw new HarnessError(
+      `${PROFILE_LOCAL_PATH}: permissions.allow entry ${JSON.stringify(entry)} names a tool of the MCP server ${JSON.stringify(server)}, which this profile's \`${ENABLED_SERVERS_KEY}\` does not start. The tool would not exist at run time and would stall an unattended run; remove the entry.`,
+    );
+  }
+}
+
 /** The flag supplying the reference toolchain's directory, as a message should name it. */
 const TOOLCHAIN_FLAG = '--reference-toolchain-path';
 
@@ -1118,6 +1170,42 @@ function appendAdditionalDirectories(profile: JsonObject, directories: readonly 
   return appendToPermissionList(profile, 'additionalDirectories', directories);
 }
 
+/** One `permissions` list of the local additions, in file order; none when there are no additions. */
+function localPermissionEntries(additions: LocalAdditions | undefined, list: string): readonly string[] {
+  if (additions === undefined) return [];
+  return stringsIn(valueAt(additions.fragment, ['permissions', list]));
+}
+
+/** The `allow` entry for one reference-toolchain command path. */
+function toolchainRule(commandPath: string): string {
+  return `Bash(${commandPath}:*)`;
+}
+
+const [TOOLCHAIN_RULE_OPEN = '', TOOLCHAIN_RULE_CLOSE = ''] = toolchainRule(RULE_PROBE).split(RULE_PROBE);
+
+/** The configured `parity.toolchainCommands`, trimmed, without blanks. */
+function toolchainCommands(config: HarnessConfig): readonly string[] {
+  return (config.parity?.toolchainCommands ?? []).map((command) => command.trim()).filter((c) => c !== '');
+}
+
+/**
+ * Does `entry` have the shape {@link appendToolchainAllowances} writes — `Bash(<absolute dir>/<command>:*)`
+ * for a configured command, with the parity phase on? The directory is machine-local and appears in
+ * no config, so any absolute one is accepted.
+ */
+export function isToolchainEntry(entry: string, config: HarnessConfig): boolean {
+  if (config.phases?.parity !== true) return false;
+  const path = between(entry, TOOLCHAIN_RULE_OPEN, TOOLCHAIN_RULE_CLOSE);
+  if (path === undefined || !isAbsolute(path)) return false;
+
+  return toolchainCommands(config).some((command) => {
+    for (let directory = dirname(path); ; directory = dirname(directory)) {
+      if (join(directory, command) === path) return true;
+      if (directory === dirname(directory)) return false;
+    }
+  });
+}
+
 /** What {@link appendToolchainAllowances} reads. */
 interface ToolchainContext {
   readonly config: HarnessConfig;
@@ -1162,7 +1250,7 @@ function appendToolchainAllowances(profile: JsonObject, { config, referenceToolc
   }
   assertUsableInEntry(directory, `${TOOLCHAIN_FLAG} ${JSON.stringify(directory)}`);
 
-  const commands = (config.parity?.toolchainCommands ?? []).map((command) => command.trim()).filter((c) => c !== '');
+  const commands = toolchainCommands(config);
   if (commands.length === 0) {
     warn(
       `${TOOLCHAIN_FLAG} was given but parity.toolchainCommands lists nothing, so no reference-toolchain entry was written: name the reference implementation's own commands there - its static analysis, its formatter - and re-run init`,
@@ -1172,7 +1260,7 @@ function appendToolchainAllowances(profile: JsonObject, { config, referenceToolc
 
   const entries = commands.map((command) => {
     assertUsableInEntry(command, `the parity.toolchainCommands entry ${JSON.stringify(command)}`);
-    return `Bash(${join(directory, command)}:*)`;
+    return toolchainRule(join(directory, command));
   });
 
   appendAllow(profile, entries);
@@ -1190,7 +1278,7 @@ const DOCTOR_COMMAND = 'npx devscene doctor';
  * `undefined` of a machine that records neither removed and the ordinary machine's two spellings of
  * one directory collapsed to one. Each is re-derived here per call, per `machine/plugins.ts`'s rule.
  */
-function resolvedPluginRoots(repoRoot: string): readonly string[] {
+export function resolvedPluginRoots(repoRoot: string): readonly string[] {
   const roots = [pluginRuntimeRoot(repoRoot), pluginInstallRoot(repoRoot)];
   return [...new Set(roots.filter((root): root is string => root !== undefined).map(normalizedRoot))];
 }
@@ -1301,26 +1389,39 @@ export function pluginRootEntriesNote(outcome: PluginRootEntriesOutcome, effect:
 }
 
 /**
- * The `permissions.allow` entries of the profile currently on disk, or **an empty list for every way
- * that can fail** — absent, unreadable, not JSON, not an object, no `permissions`, no `allow`.
+ * The profile currently on disk, or `undefined` for **every way that can fail** — absent, unreadable,
+ * not JSON, not an object.
  *
- * This is a preservation courtesy on top of a `.bak` the write engine takes anyway, so it may never
- * turn a working `init` into a refusal; an element that is not a string is skipped for the same
- * reason rather than discarding the ones beside it.
+ * This is a preservation courtesy on top of the backup the write engine takes anyway, so it may never
+ * turn a working `init` into a refusal. Its two readers below skip a malformed part for the same
+ * reason rather than discarding what sits beside it.
  */
-function existingAllowEntries(repoRoot: string): readonly string[] {
+function existingProfile(repoRoot: string): JsonObject | undefined {
   let parsed: JsonValue | undefined;
   try {
     parsed = readJsonFile(join(repoRoot, PROFILE_PATH));
   } catch {
-    return [];
+    return undefined;
   }
-  if (!isJsonObject(parsed)) return [];
-  const permissions = parsed['permissions'];
-  if (!isJsonObject(permissions)) return [];
-  const allow = permissions['allow'];
-  if (!Array.isArray(allow)) return [];
-  return allow.filter((entry): entry is string => typeof entry === 'string');
+  return isJsonObject(parsed) ? parsed : undefined;
+}
+
+/** The strings of a list that may be missing or malformed. */
+function stringsIn(value: JsonValue | undefined): readonly string[] {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+}
+
+/** The `permissions.allow` entries of an on-disk profile. */
+function existingAllowEntries(profile: JsonObject | undefined): readonly string[] {
+  return profile === undefined ? [] : stringsIn(valueAt(profile, ['permissions', 'allow']));
+}
+
+/** The entries an on-disk profile's {@link LOCAL_ALLOW_RECORD_PREFIX} `_README` lines record as local. */
+function recordedLocalEntries(profile: JsonObject | undefined): readonly string[] {
+  if (profile === undefined) return [];
+  return stringsIn(profile[README_KEY])
+    .filter((line) => line.startsWith(LOCAL_ALLOW_RECORD_PREFIX))
+    .map((line) => line.slice(LOCAL_ALLOW_RECORD_PREFIX.length));
 }
 
 /** What the profile on disk carries that this generator cannot produce, split by whether it still resolves. */
@@ -1344,9 +1445,15 @@ interface CarryForward {
 }
 
 /**
- * Read the profile `--force` is about to replace, and split its absolute-directory `allow` entries
- * three ways: the ones a root on this machine still answers for, the helper-form ones nothing
- * answers for, and every other absolute entry this generator does not preserve.
+ * Read the profile being replaced, by `--force` or by `init --upgrade`, and split its
+ * absolute-directory `allow` entries three ways: the ones a root on this machine still answers for,
+ * the helper-form ones nothing answers for, and every other absolute entry this generator does not
+ * preserve.
+ *
+ * **A local entry is in none of the three.** An on-disk entry the local file supplies now
+ * (`localAllow`), or the replaced profile records as local, is skipped before any classification:
+ * the local file is its one source, so deleting it there removes it here, silently, whether or not a
+ * root resolves. An entry that was never local is classified as below.
  *
  * **The two left-behind lists are separate because only one of them has a cause and a remedy.** A
  * helper-form entry under no resolved root is what a plugin upgrade strands, and `doctor` re-derives
@@ -1364,8 +1471,8 @@ interface CarryForward {
  *
  * **Graded nothing, therefore revoke nothing.** Where no root resolved — the module header's own
  * ordinary case, `init` running before the plugin is enabled, plus a shell resolving another
- * `CLAUDE_CONFIG_DIR`/`HOME` and a record momentarily unreadable — every absolute entry outside this
- * checkout is carried forward unverified and both left-behind lists stay empty. Neither of their
+ * `CLAUDE_CONFIG_DIR`/`HOME` and a record momentarily unreadable — each non-local absolute entry
+ * outside this checkout is carried forward unverified and both left-behind lists stay empty. Neither of their
  * messages was earned: one blames an upgrade this run observed nothing about, the other claims
  * nothing re-derives an entry `doctor` re-derives on every run where a root answers. Preserving is
  * the only act the run has evidence for, and it is the direction {@link existingAllowEntries}'s
@@ -1377,15 +1484,24 @@ interface CarryForward {
  * carrying that machine's entries. The zero-root branch sits *after* the `here` skip, so this
  * generator's own output is still reported on by neither list.
  */
-function carriedPluginRootEntries({ repoRoot }: { readonly repoRoot: string }): CarryForward {
+function carriedPluginRootEntries({
+  repoRoot,
+  localAllow,
+}: {
+  readonly repoRoot: string;
+  readonly localAllow: readonly string[];
+}): CarryForward {
   const roots = resolvedPluginRoots(repoRoot);
   const rootsResolved = roots.length > 0;
   const here = normalizedRoot(repoRoot);
   const carried: string[] = [];
   const staleHelpers: string[] = [];
   const notPreserved: string[] = [];
+  const onDisk = existingProfile(repoRoot);
+  const local = new Set([...localAllow, ...recordedLocalEntries(onDisk)]);
 
-  for (const entry of existingAllowEntries(repoRoot)) {
+  for (const entry of existingAllowEntries(onDisk)) {
+    if (local.has(entry)) continue;
     const target = pluginRootEntryTarget(entry);
     if (target === undefined) continue;
     if (roots.some((root) => isUnderDirectory(target, root))) carried.push(entry);
@@ -1404,6 +1520,7 @@ function carriedPluginRootEntries({ repoRoot }: { readonly repoRoot: string }): 
 /** What {@link appendCarriedPluginRootEntries} reads, beyond the profile it appends to. */
 interface CarryForwardContext {
   readonly repoRoot: string;
+  readonly localAllow: readonly string[];
   readonly dryRun: boolean;
   readonly warn: (message: string) => void;
   readonly note: (message: string) => void;
@@ -1425,9 +1542,9 @@ interface CarryForwardContext {
  */
 function appendCarriedPluginRootEntries(
   profile: JsonObject,
-  { repoRoot, dryRun, warn, note }: CarryForwardContext,
+  { repoRoot, localAllow, dryRun, warn, note }: CarryForwardContext,
 ): void {
-  const { carried, staleHelpers, notPreserved, rootsResolved } = carriedPluginRootEntries({ repoRoot });
+  const { carried, staleHelpers, notPreserved, rootsResolved } = carriedPluginRootEntries({ repoRoot, localAllow });
   const already = new Set(entriesOf(permissionsOf(profile), 'allow'));
   const usable: string[] = [];
   // What the screening warnings below may claim about an entry's directory. Spelled once, because
@@ -1458,7 +1575,7 @@ function appendCarriedPluginRootEntries(
     appendAllow(profile, usable);
     note(
       rootsResolved
-        ? `${usable.length} \`permissions.allow\` ${entryWord(usable.length)} naming this machine's plugin roots ${dryRun ? 'would be carried' : 'were carried'} forward into the regenerated ${PROFILE_PATH}: those are the lines \`doctor\`'s plugin-permissions check dictates and \`init\` does not generate, so --force ${dryRun ? 'would leave' : 'left'} them in place rather than revoking a permission set that was pasted in by hand`
+        ? `${usable.length} \`permissions.allow\` ${entryWord(usable.length)} naming this machine's plugin roots ${dryRun ? 'would be carried' : 'were carried'} forward into the regenerated ${PROFILE_PATH}: those are the lines \`doctor\`'s plugin-permissions check dictates and \`init\` does not generate, so this run ${dryRun ? 'would leave' : 'left'} them in place rather than revoking a permission set that was pasted in by hand`
         : `${usable.length} \`permissions.allow\` ${entryWord(usable.length)} naming an absolute directory outside this checkout ${dryRun ? 'would be carried' : 'were carried'} forward into the regenerated ${PROFILE_PATH} unverified: ${installedPluginsPath()} records no install root for this plugin on this machine, so nothing here could tell an entry \`doctor\` dictated from one a plugin upgrade stranded, and revoking a permission set that was pasted in by hand is the worse of the two errors. Enable the plugin and run \`${DOCTOR_COMMAND}\`, which re-derives the roots and names any entry that has gone stale`,
     );
   }
@@ -1492,9 +1609,10 @@ function appendCarriedPluginRootEntries(
  * the runtime paths and the config in effect, and one group of two `allow` entries per wrapper
  * script that was written.
  *
- * Nothing here reads a path out of a file that ships and nothing here touches the filesystem beyond
- * reading the template: `<repo_root>`, `<work_root>` and `<worktree_glob>` are resolved per run
- * (`docs/config.md` §4), which is the whole reason the profile is generated rather than copied.
+ * Nothing here reads a path out of a file that ships, and the only files read are those the module
+ * header lists, the local additions excepted: the caller reads those and passes them in.
+ * `<repo_root>`, `<work_root>` and `<worktree_glob>` are resolved per run (`docs/config.md` §4), which
+ * is the whole reason the profile is generated rather than copied.
  */
 export function renderProfile({
   repoRoot,
@@ -1504,6 +1622,7 @@ export function renderProfile({
   writtenOuterLoop,
   referenceToolchainPath,
   force = false,
+  localAdditions,
   dryRun = false,
   pluginRootEntries: withPluginRootEntries = false,
   pluginRootOutcome,
@@ -1613,12 +1732,15 @@ export function renderProfile({
   pluginRootOutcome?.(outcome);
 
   // In the same window and for the same reason: a carried plugin helper whose basename happens to
-  // match a wrapper's would be counted as a third form of that wrapper above. Gated on `force`,
-  // which is the only run that replaces the file these entries are read out of — an unforced render
-  // reads nothing and produces exactly what it did before this step existed.
+  // match a wrapper's would be counted as a third form of that wrapper above. Gated on `force`, which
+  // `--force` and `init --upgrade`'s planner set when this render replaces the file these entries are
+  // read out of — any other render reads nothing and produces exactly what it did before this step
+  // existed.
+  const localAllow = localPermissionEntries(localAdditions, 'allow');
   if (force) {
     appendCarriedPluginRootEntries(profile, {
       repoRoot,
+      localAllow,
       dryRun,
       warn: warn ?? ((): void => {}),
       note: note ?? ((): void => {}),
@@ -1632,6 +1754,14 @@ export function renderProfile({
   // above never sees: it counts `allow` only.
   applyWriteProtection(profile, { repoRoot, workRoot, config });
 
+  if (localAdditions !== undefined) {
+    assertLocalAdditionsUsable(profile, localAdditions);
+    mergeInto(profile, localAdditions.fragment, '', 'local additions');
+    for (const entry of new Set(localAllow)) {
+      if (pluginRootEntryTarget(entry) !== undefined) appendReadme(profile, `${LOCAL_ALLOW_RECORD_PREFIX}${entry}`);
+    }
+  }
+
   assertRunnable(profile);
   assertNoBrowserDeny(profile);
   assertBrowserWiring(profile);
@@ -1640,7 +1770,7 @@ export function renderProfile({
 
 /** Everything {@link writePermissionProfile} needs, beyond what {@link renderProfile} takes. */
 export interface PermissionProfileOptions
-  extends Omit<RenderProfileOptions, 'workRoot' | 'warn' | 'note' | 'pluginRootOutcome'> {
+  extends Omit<RenderProfileOptions, 'workRoot' | 'warn' | 'note' | 'pluginRootOutcome' | 'localAdditions'> {
   /** The command's write plan; this generator enqueues into it and never touches `fs` itself. */
   readonly plan: WritePlan;
   /**
@@ -1671,14 +1801,16 @@ export interface PermissionProfileResult {
 /**
  * Render the profile and enqueue it at {@link PROFILE_PATH} under the `create-if-absent` contract.
  *
- * That contract is the whole reason this is a separate step from rendering. The profile is
- * **hand-tuned after generation** — the entry an adopter adds to close a gap is the most valuable
- * line in the file and the least reproducible — so a second `init` leaves an existing one
- * byte-identical, and `--force` regenerates it only after the write engine has copied it to a `.bak`
- * sibling — carrying the plugin-root entries of the file it replaces into the one it writes, which is
- * the one group in that file this generator knowingly cannot produce ({@link renderProfile}).
+ * That contract is the whole reason this is a separate step from rendering. The profile is the
+ * generated entries plus the adopter's {@link PROFILE_LOCAL_PATH}, so a second `init` leaves an
+ * existing one byte-identical, and `--force` regenerates it only after the write engine has copied it
+ * to a `.bak` sibling — carrying the non-local plugin-root entries of the file it replaces into the
+ * one it writes, the one group there this generator knowingly cannot produce ({@link renderProfile}).
  *
- * Nothing here touches the filesystem: the generator plans, and `init` applies the plan once.
+ * The local file is read, and can refuse the run, only when this run will write the profile: `force`
+ * is set or nothing exists at its path, the same `lstat` answer the write engine's `create-if-absent`
+ * gives. A plain re-run that keeps the profile never reads it. Nothing here writes: the generator
+ * plans, and `init` applies the plan once.
  */
 export function writePermissionProfile({
   repoRoot,
@@ -1696,6 +1828,10 @@ export function writePermissionProfile({
   const notes: string[] = [];
   let outcome: PluginRootEntriesOutcome = 'off';
 
+  const path = join(repoRoot, PROFILE_PATH);
+  const willWrite = force === true || lstatSync(path, { throwIfNoEntry: false }) === undefined;
+  const localAdditions = willWrite ? readLocalAdditions(repoRoot) : undefined;
+
   const profile = renderProfile({
     repoRoot,
     config,
@@ -1704,6 +1840,7 @@ export function writePermissionProfile({
     ...(writtenOuterLoop === undefined ? {} : { writtenOuterLoop }),
     ...(referenceToolchainPath === undefined ? {} : { referenceToolchainPath }),
     ...(force === undefined ? {} : { force }),
+    ...(localAdditions === undefined ? {} : { localAdditions }),
     ...(dryRun === undefined ? {} : { dryRun }),
     ...(pluginRootEntries === undefined ? {} : { pluginRootEntries }),
     pluginRootOutcome: (value) => {
@@ -1713,7 +1850,6 @@ export function writePermissionProfile({
     note: (message) => notes.push(message),
   });
 
-  const path = join(repoRoot, PROFILE_PATH);
   plan.add({ path, policy: 'create-if-absent', content: profile, label: 'unattended permission profile' });
 
   return {
