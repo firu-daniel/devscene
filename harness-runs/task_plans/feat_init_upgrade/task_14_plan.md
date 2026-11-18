@@ -26,3 +26,5 @@ The story index's `## Scope register` rows 57 to 60 and 101 are this task's site
 
 - Re-running the story index's D1, D2, D5 and D6 entries over `plugin` reaches no site outside the register.
 - `grep -c 'init --force' plugin/agents/layer-implementer.md` is lower than before this task, and the file's word count has not grown by more than the flag change requires.
+
+**Deviations from plan:** The `plugin/scripts/README.md` edit goes past naming `--upgrade`, because the sentence would otherwise be false under it: the carry-forward now states its exception for an entry `.claude/settings.autonomous.local.json` supplies or the profile records as local (`cli/src/generators/permissionProfile.ts` → `LOCAL_ALLOW_RECORD_PREFIX`), and "the forced run" in the no-root-resolves arm became "the replacing run", because `cli/src/generators/profileUpgrade.ts` → `renderWith` takes the same carry-forward path.
