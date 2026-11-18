@@ -22,3 +22,7 @@
 
 - `cli/test/upgrade-inputs.test.mjs` passes.
 - `runRegistry.ts` takes the registry path as an argument and imports nothing from `generators/` or `doctor/`.
+
+**Deviations from plan:**
+
+- Plan specified `pidIsAlive` with the semantics of `doctor/checks.ts` → `pidIsAlive` and an active record as one whose pid is alive "or is not yet a number". The watcher stores every registry value as a JSON string (`cli/templates/scripts/lib/harness-run-lib.sh` → `hr_registry_set` passes each through `jq --arg`; `autonomous-watcher.sh` → `registry_set "$branch" pid "$!"`), so a real pid reads `"12345"`. Taken literally, every real running record would count as active even with a dead pid, and `pidIsAlive` would answer `false` for every real pid. Implemented: `pidIsAlive` also accepts an integer in string form, with the rest of its semantics unchanged, and "not yet a number" means a pid holding no integer in either form (absent, `null`, `""`, other text).
