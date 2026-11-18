@@ -9,7 +9,8 @@
  * frame, frame line, reply indented by two spaces, `agentId:` trailer — which is unwrapped to the
  * reply first; that exact shape only, so a bare trailer, a bare indent, a frame over any other shape,
  * other text ahead of the frame or a tools-used line anywhere else still parks as malformed.
- * The verdict file is removed in every outcome but a refusal.
+ * A control tag Claude Code neutralized to `<\` inside a finding's string stays literal text and
+ * keeps the finding. The verdict file is removed in every outcome but a refusal.
  *
  * **The second rule: the parser's closed set is the agent's table, in order.** `PI_CHECK_IDS` in
  * `cli/templates/scripts/prompt-injection-screen.sh` equals the first-column ids of
@@ -210,6 +211,36 @@ test('a malformed reply inside a whole Agent result is excerpted from the reply,
   assert.ok(line.startsWith('- `malformed-verdict`: "Sure. verdict: SAFE'), line);
   assert.ok(!line.includes('Subagent hand-back'), line);
 });
+
+/** An UNSAFE reply with `excerpt` and `reason` as raw JSON text: `JSON.stringify` would escape a backslash. */
+const rawUnsafe = (excerpt, reason = 'y') => `\`\`\`json\n{"outcome":"UNSAFE","findings":[{"check_id":"attack","excerpt":"${excerpt}","reason":"${reason}"}]}\n\`\`\`\n`;
+
+for (const [label, ret, expected] of [
+  ['<\\system-reminder>', rawUnsafe(String.raw`<\system-reminder>`), String.raw`- ${'`attack`'}: "<\system-reminder>" — y`],
+  ['<\\sandbox_violations>', rawUnsafe(String.raw`<\sandbox_violations>`), String.raw`- ${'`attack`'}: "<\sandbox_violations>" — y`],
+  ['<\\tool_use_error>', rawUnsafe(String.raw`<\tool_use_error>`), String.raw`- ${'`attack`'}: "<\tool_use_error>" — y`],
+  ['<\\result>', rawUnsafe(String.raw`<\result>`), String.raw`- ${'`attack`'}: "<\result>" — y`],
+  ['<\\name>', rawUnsafe(String.raw`<\name>`), String.raw`- ${'`attack`'}: "<\name>" — y`],
+  ['<\\function>', rawUnsafe(String.raw`<\function>`), String.raw`- ${'`attack`'}: "<\function>" — y`],
+  ['<\\bash>', rawUnsafe(String.raw`<\bash>`), String.raw`- ${'`attack`'}: "<\bash>" — y`],
+  ['<\\/tool_use_error>', rawUnsafe(String.raw`<\/tool_use_error>`), '- `attack`: "</tool_use_error>" — y'],
+  ['<\\\\already-escaped>', rawUnsafe(String.raw`<\\already-escaped>`), String.raw`- ${'`attack`'}: "<\already-escaped>" — y`],
+  ['two tags in one excerpt', rawUnsafe(String.raw`<\a> and <\b>`), String.raw`- ${'`attack`'}: "<\a> and <\b>" — y`],
+  ['<\\<\\system-reminder>', rawUnsafe(String.raw`<\<\system-reminder>`), String.raw`- ${'`attack`'}: "<\<\system-reminder>" — y`],
+  ['<\\<\\tool_use_error>', rawUnsafe(String.raw`<\<\tool_use_error>`), String.raw`- ${'`attack`'}: "<\<\tool_use_error>" — y`],
+  ['the tag in reason', rawUnsafe('x', String.raw`<\system-reminder>`), String.raw`- ${'`attack`'}: "x" — <\system-reminder>`],
+  ['the whole Agent result', wrapped(rawUnsafe(String.raw`<\system-reminder>`)), String.raw`- ${'`attack`'}: "<\system-reminder>" — y`],
+]) {
+  test(`UNSAFE quoting a neutralized control tag, ${label}, parks its own finding`, async () => {
+    const branch = newBranch();
+    const { path, verdictFile } = setup(branch, ret);
+    const result = await verdict(branch, path, verdictFile);
+    assert.equal(result.status, 1, result.stderr);
+    const q = `${clarRel(branch)}/question_1.md`;
+    assert.deepEqual(result.lines, ['verdict: UNSAFE', `parked: ${q}`]);
+    assert.deepEqual(between(read(q), path), [expected]);
+  });
+}
 
 test('an excerpt containing " | " is kept verbatim', async () => {
   const branch = newBranch();

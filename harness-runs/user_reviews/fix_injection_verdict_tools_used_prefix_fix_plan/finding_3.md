@@ -70,3 +70,5 @@ Add a table-driven test asserting that each return exits 1 and parks exactly `` 
 Add two more cases: the tag in `reason` rather than `excerpt`, and `wrapped(rawUnsafe(String.raw`<\system-reminder>`))` as a whole `Agent` result.
 
 The cases that must stay malformed are added by Finding 4.
+
+**Deviations from plan:** The `## Fix` snippet's `sed -E 's|<\\([^"/\\])|<\\\\\1|g'` skips a `<\` directly following another `<\`. Per `harness-runs/user_review_fix_plan_point_reviews/fix_injection_verdict_tools_used_prefix_fix_plan/item_3/review_0.md`, the template uses `sed -E -e ':a' -e 's|<\\([^"/\\])|<\\\\\1|' -e 'ta'`, with a two-line addition to the comment above it, and the test table gains `<\<\system-reminder>` and `<\<\tool_use_error>`. `scripts/prompt-injection-screen.sh` is outside the `cli` layer's path: the `general` layer copies the template's current text, not this snippet.

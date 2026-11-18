@@ -141,7 +141,9 @@
 # whitespace-only lines at either end are dropped, the
 # text is one fenced block: the first line exactly ```json, the last exactly ```,
 # no line between beginning with ```. Anything else outside it — prose, a second
-# block, a trailer, an indented fence — is malformed. The lines between parse
+# block, a trailer, an indented fence — is malformed. Every `<\` not followed by
+# `"`, `/` or `\` has its backslash doubled before the parse, so a control tag
+# Claude Code neutralized reads as literal text. The lines between parse
 # as exactly one JSON object, of one of these shapes:
 #
 #   {"outcome":"SAFE"}                     key set exactly `outcome`, and the
@@ -1085,7 +1087,7 @@ pis_unwrap_vlines() {
 # kept, a whole `Agent` result already unwrapped by pis_unwrap_vlines). Set PIS_VERDICT to SAFE, UNSAFE or MALFORMED and append one findings
 # record per finding to PIS_VFINDINGS, for <path> <sha>.
 pis_parse_verdict() {
-  local path="$1" sha="$2" first=0 last i body="" out line
+  local path="$1" sha="$2" first=0 last i body="" repaired out line
   PIS_VERDICT=MALFORMED
   PIS_VFINDINGS=""
   last=$((${#PIS_VLINES[@]} - 1))
@@ -1104,8 +1106,16 @@ pis_parse_verdict() {
     body="$body${PIS_VLINES[$i]}$PIS_NL"
     i=$((i + 1))
   done
+  # Claude Code rewrites `<` in a control tag to `<\`, which inside a JSON string
+  # is a bad or wrong escape. Keep that backslash literal. The excluded bytes are
+  # left alone: `<\"` and `<\\` are valid JSON whose meaning must not change, and
+  # `<\/` already decodes to `</`. Only `excerpt` and `reason` can be affected: an
+  # `outcome`, `check_id` or key holding `<` is refused either way, and SAFE is
+  # still compared against the unrepaired text below. A loop, not `g`: `g` would
+  # consume the `<` of the second `<\` in `<\<\x` and leave that one unrepaired.
+  repaired=$(printf '%s' "$body" | sed -E -e ':a' -e 's|<\\([^"/\\])|<\\\\\1|' -e 'ta') || return 0
   # A jq parse failure is MALFORMED, never exit 2.
-  out=$(printf '%s' "$body" | jq -r -s --arg ids "$PI_CHECK_IDS" "$PIS_JQ_VERDICT" 2>/dev/null) \
+  out=$(printf '%s' "$repaired" | jq -r -s --arg ids "$PI_CHECK_IDS" "$PIS_JQ_VERDICT" 2>/dev/null) \
     || return 0
   case "$out" in
     SAFE)
