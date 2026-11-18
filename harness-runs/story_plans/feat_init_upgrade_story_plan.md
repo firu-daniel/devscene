@@ -125,17 +125,17 @@ No standing matrix under `harness-runs/` tracks these files, so no row-class ent
 | # | Site | Copy | Evidence | Disposition | Owning task or reason |
 |---|---|---|---|---|---|
 | 1 | `docs/cli.md` → `## 2.` flag table, the `--upgrade-workflows` row (the new `--upgrade` row sits beside it) | — | P1 | `change` | Task 15 |
-| 2 | `docs/cli.md` → `## 1.` the `--force` row ("Overwrite an existing generated file") | — | D2 | `change` | Task 15 — it states that `--upgrade` refuses this flag |
+| 2 | `docs/cli.md` → `## 1.` the `--force` row ("Overwrite an existing generated file") | — | D2 | `change` | Task 15 — it states that `--upgrade` refuses this flag, and its carry-forward clause excepts an entry the local file supplies or the replaced profile records as local |
 | 3 | `docs/cli.md` → the `--plugin-root-entries` row ("naming `init --force --plugin-root-entries`") | — | D2 | `no-change` | The kept-profile note still names that command, and `--upgrade` does not take this flag |
 | 4 | `docs/cli.md` → "To turn retrieval on after adoption" and its fenced `npx devscene init --force` | — | D1, D2 | `change` | Task 15 |
 | 5 | `docs/cli.md` → `### Generator order`, "`--force` included" | — | D2 | `no-change` | It states which configuration a run reads, which `--upgrade` does not alter |
 | 6 | `docs/cli.md` → `## 3.` opening, "one of four policies" | — | P1 | `change` | Task 15 |
 | 7 | `docs/cli.md` → `## 3.` row "The outer-loop scripts and `<scriptsDir>/lib/harness-run-lib.sh`" | — | P1 | `change` | Task 15 |
-| 8 | `docs/cli.md` → `## 3.` row "The permission profile `.claude/settings.autonomous.json`" | — | P1 | `change` | Task 15 |
+| 8 | `docs/cli.md` → `## 3.` row "The permission profile `.claude/settings.autonomous.json`" | — | P1 | `change` | Task 15 — including both carry-forward clauses, which take row 2's exception |
 | 9 | `docs/cli.md` → `## 3.` row "The permission profile's retrieval half" | — | D2 | `change` | Task 15 |
 | 10 | `docs/cli.md` → `## 3.` row "`.gitignore`" (the local file's new rule is added beside it) | — | P1 | `change` | Task 15 |
 | 11 | `docs/cli.md` → `## 3.` row "`.gitignore`'s `.bak` lines" | — | D2 | `no-change` | `--upgrade` takes no `.bak`, and this row names only the runs that do |
-| 12 | `docs/cli.md` → `## 3.` bullet "`--force` upgrades `create-if-absent` only" | — | D2 | `no-change` | `--force` keeps that behaviour; the new policy is stated in rows 6 to 8 |
+| 12 | `docs/cli.md` → `## 3.` bullet "`--force` upgrades `create-if-absent` only" | — | D2 | `change` | Task 15 — only the clause "A **profile entry** is kept when it names a plugin root this machine resolves", which takes row 2's exception |
 | 13 | `docs/cli.md` → `## 3.` bullet "Nothing is written outside the repository" (a linked checkout's backup rule is stated beside it) | — | P1 | `change` | Task 15 |
 | 14 | `docs/cli.md` → `## 5.` "Every wrapper anchors itself" | — | D2 | `no-change` | Wrappers are outside `--upgrade`, so `init --force` remains their route |
 | 15 | `docs/cli.md` → `## 5.` "Which wrappers are written" ("removed only by `init --force`") | — | D2 | `change` | Task 15 |
@@ -149,7 +149,7 @@ No standing matrix under `harness-runs/` tracks these files, so no row-class ent
 | 23 | `docs/cli.md` → `## 7.` bullet `command-wrappers` | — | D2 | `no-change` | It concerns wrappers |
 | 24 | `docs/cli.md` → `## 7.` bullet `command-permissions` ("the profile is a file the adopter owns") | — | D2, P1 | `change` | Task 15 — only the ownership clause; the printed remedy stands |
 | 25 | `docs/cli.md` → `## 7.` bullet `profile-paths` ("the profile is hand-tuned") | — | D1, D2 | `change` | Task 15 — only the ownership clause; the printed remedy stands |
-| 26 | `docs/cli.md` → `## 7.` bullet `plugin-permissions` | — | D2 | `no-change` | The carry-forward it describes stays, and the check's message is unchanged |
+| 26 | `docs/cli.md` → `## 7.` bullet `plugin-permissions` | — | D2 | `change` | Task 15 — only the clause "the same set `init --force` carries forward unverified on that arm", because the count can include local entries that run does not carry; the check's message is unchanged |
 | 27 | `docs/cli.md` → `## 7.` bullet `profile-main-anchor` | — | D2 | `no-change` | It reports the check's printed remedy |
 | 28 | `docs/cli.md` → `## 7.` bullet `profile-sandbox` | — | D2 | `no-change` | It reports the check's printed remedy |
 | 29 | `docs/cli.md` → the fenced `npx devscene init --force` under `profile-sandbox` | — | D2 | `no-change` | It is the remedy that check prints |
