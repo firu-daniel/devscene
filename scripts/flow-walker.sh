@@ -157,7 +157,8 @@
 # recorded `report.<key>` values, the nodes skipped as `skipped`, and the
 # pending action's printed lines (`out=`), which `current` re-prints
 # unchanged — while a set is pending, the blocks of the gates with no recorded
-# outcome, the first carrying the fan-out's passed-through lines. Only `start`
+# outcome and no re-dispatch mark, the first carrying the fan-out's
+# passed-through lines. Only `start`
 # overwrites it, and every `start` sets every counter to 0 — a fresh write, an
 # extend, an extend after a cap park and a skip past a loop alike; only a
 # re-entry that continues a saved walk (`current`, then `next` or a
@@ -764,9 +765,9 @@ refuse_round_file() {
   fi
 }
 
-# Set OUT to the blocks of round <rn>'s set gates with no recorded outcome, in
-# `gates` order, the first carrying the fan-out's passed-through lines and then
-# <extra>. Set SET_PENDING to those of them not marked for re-dispatch, one
+# Set OUT to the blocks of round <rn>'s set gates with no recorded outcome and
+# no re-dispatch mark, in `gates` order, the first carrying the fan-out's
+# passed-through lines and then <extra>. Set SET_PENDING to those gates, one
 # `pending: <gate>` line each.
 render_set() {
   local rn="$1" extra="${2-}" i=0 g gates pass
@@ -782,11 +783,12 @@ render_set() {
     i=$((i + 1))
     fw_id_in_list "$g" "$gates" || continue
     gate_recorded "$g" && continue
+    st_get "round.redo.$g"
+    [ -z "$SV" ] || continue
     render_block "$g" "" "$pass"
     OUT="$OUT$BLOCK"
     pass=""
-    st_get "round.redo.$g"
-    [ -n "$SV" ] || SET_PENDING="${SET_PENDING}pending: $g$NL"
+    SET_PENDING="${SET_PENDING}pending: $g$NL"
   done
 }
 

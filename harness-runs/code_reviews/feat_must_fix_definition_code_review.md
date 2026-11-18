@@ -19,7 +19,7 @@ The two copies of the walker and of its gate library are byte-identical, no comp
 1. [x] **Finding 4** — Restore the `--skipped` column alignment in the walker header _(layer: cli, general)_
 2. [x] **Finding 3** — Name `check-round-file` and its second caller in the watcher's script table _(layer: general)_
 3. [x] **Finding 2** — Give the untrusted-instruction Must Fix a class row in `task-plan-reviewer` _(layer: plugin)_
-4. [ ] **Finding 1** — Keep a gate marked for re-dispatch out of the blocks `current` re-prints _(layer: cli, general)_
+4. [x] **Finding 1** — Keep a gate marked for re-dispatch out of the blocks `current` re-prints _(layer: cli, general)_
 
 ---
 

@@ -329,14 +329,14 @@ test('(10) the third refusal of a gate escalates and never reaches the writer', 
   ]);
 });
 
-test("(11) `current` during the wait re-prints the refused gate's block", { skip: SKIP }, async (t) => {
+test('(11) `current` during the wait leaves out the refused gate, which the join re-dispatches', { skip: SKIP }, async (t) => {
   const dir = await fixture(t, { parity: true, qa: false });
   await run(dir, OPEN);
   await malformedPlan(dir);
 
   const current = await walk(dir, ['current', '--flow', WALKER_FLOW, '--branch', BRANCH]);
   assert.equal(current.status, 0, current.stderr);
-  assert.deepEqual(blocksOf(current.action), [PARITY_BLOCK(), ARCH_BLOCK(), PLAN_BLOCK()]);
+  assert.deepEqual(blocksOf(current.action), [PARITY_BLOCK(), ARCH_BLOCK()]);
 });
 
 test('(12) a PASS file carrying a numbered Must Fix entry is refused and records no verdict', { skip: SKIP }, async (t) => {
