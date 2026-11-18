@@ -9,7 +9,8 @@ Source: harness-runs/task_prompts/feat_init_upgrade_task_prompt.md → `### Run 
 ## Planning
 - [x] P0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_init_upgrade_task_prompt.md sha256=6ce1d2033cea3424f8dc43cd33c8ea7f61eae8a96e51e2255f5b682e046478bc
-- [ ] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
+- [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
+  - operator override: NOT converged. task-plan-reviewer still returned FAIL at the 5-revision cap (round 4, 3 Must Fix); the operator accepted the plan and directed this mark. See harness-runs/task_plan_reviews/feat_init_upgrade/review_4.md
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
 - [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
