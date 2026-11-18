@@ -33,6 +33,8 @@ export interface UpgradeReportInput {
   readonly localFileIgnored: boolean | undefined;
   readonly cliVersion: string;
   readonly pluginVersion: string | undefined;
+  /** The `pinnedCliCommand(pluginVersion)` value; `undefined` when `pluginVersion` is. */
+  readonly pluginCliCommand: string | undefined;
 }
 
 /** The lines of one report, for `Reporter.info`, `Reporter.warn` and `Reporter.result`. */
@@ -75,7 +77,7 @@ function removedEntriesWarning(removed: readonly string[], dryRun: boolean): str
 /** Turn the outcome of an upgrade or a dry run into the lines the command reports. */
 export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
   const { dryRun, daemonLoadedPaths, scriptsDir, applied, delta, localAdditionCount, backupDir } = input;
-  const { previousUnreadable, localFileIgnored, cliVersion, pluginVersion } = input;
+  const { previousUnreadable, localFileIgnored, cliVersion, pluginVersion, pluginCliCommand } = input;
 
   const notes: string[] = [...profileLines(delta, dryRun)];
   const warnings: string[] = [];
@@ -109,10 +111,10 @@ export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
   if (localFileIgnored === false) {
     warnings.push(`${PROFILE_LOCAL_PATH} is not ignored by git: a plain ${CLI} init merges the ignore rule.`);
   }
-  if (pluginVersion !== undefined && pluginVersion !== cliVersion) {
+  if (pluginVersion !== undefined && pluginCliCommand !== undefined && pluginVersion !== cliVersion) {
     warnings.push(
       `The installed plugin is version ${pluginVersion} and this CLI is version ${cliVersion}: ` +
-        `run ${UPGRADE_COMMAND} from the CLI matching the plugin.`,
+        `run ${pluginCliCommand} init --upgrade, from the CLI of the plugin's version.`,
     );
   }
   if (previousUnreadable) {

@@ -22,7 +22,7 @@ Seven findings follow: two Must Fix and five Should Fix.
 
 1. [x] **Finding 6** — Use the shared `lstatOrUndefined` probe in `writePermissionProfile` _(layer: cli)_
 2. [x] **Finding 5** — Correct `doctor`'s comments that call the profile the adopter's file _(layer: cli)_
-3. [ ] **Finding 4** — Print the pinned command in the upgrade report's version warning _(layer: cli)_
+3. [x] **Finding 4** — Print the pinned command in the upgrade report's version warning _(layer: cli)_
 4. [ ] **Finding 3** — Stop asking for a daemon restart after a permission-bits repair _(layer: cli)_
 5. [ ] **Finding 7** — Remove the test-only `renderCurrentProfile` export _(layer: cli)_
 6. [ ] **Finding 2** — Name the working route for restoring reference-toolchain entries _(layer: cli, general)_

@@ -14,6 +14,7 @@ import { EXIT } from '../core/errors.js';
 import { pathIsIgnored } from '../core/git.js';
 import { ownManifestString } from '../core/paths.js';
 import { WritePlan } from '../core/writer.js';
+import { pinnedCliCommand } from '../generators/githubWorkflows.js';
 import { daemonLoadedScriptPaths, planOuterLoopScriptUpgrade } from '../generators/outerLoopScripts.js';
 import { PROFILE_LOCAL_PATH } from '../generators/profileEntries.js';
 import { planProfileUpgrade } from '../generators/profileUpgrade.js';
@@ -55,6 +56,7 @@ export function runInitUpgrade(
   const backupDir = backupDirectory(target.gitCommonDir);
   const applied = plan.apply({ repoRoot, report, dryRun, force: false, backupDir });
 
+  const pluginVersion = installedPluginVersion(repoRoot);
   const outcome = upgradeReport({
     dryRun,
     daemonLoadedPaths: daemonLoadedScriptPaths(repoRoot, config),
@@ -68,7 +70,8 @@ export function runInitUpgrade(
       ? pathIsIgnored(repoRoot, PROFILE_LOCAL_PATH)
       : undefined,
     cliVersion: ownManifestString('version'),
-    pluginVersion: installedPluginVersion(repoRoot),
+    pluginVersion,
+    pluginCliCommand: pluginVersion === undefined ? undefined : pinnedCliCommand(pluginVersion),
   });
 
   for (const note of [...target.notes, ...profile.notes]) report.info(note);

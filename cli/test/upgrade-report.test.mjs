@@ -38,6 +38,7 @@ const report = (overrides = {}) =>
     localFileIgnored: undefined,
     cliVersion: '1.2.3',
     pluginVersion: undefined,
+    pluginCliCommand: undefined,
     ...overrides,
   });
 
@@ -227,14 +228,14 @@ test('a local file git does not ignore is named, in either mode, and only then',
 
 test('a differing plugin version names both versions, in either mode', () => {
   for (const dryRun of [false, true]) {
-    assert.deepEqual(report({ pluginVersion: '1.2.0', dryRun }).warnings, [
-      'The installed plugin is version 1.2.0 and this CLI is version 1.2.3: run npx devscene init --upgrade from the CLI matching the plugin.',
+    assert.deepEqual(report({ pluginVersion: '1.2.0', pluginCliCommand: 'npx devscene@1.2.0', dryRun }).warnings, [
+      "The installed plugin is version 1.2.0 and this CLI is version 1.2.3: run npx devscene@1.2.0 init --upgrade, from the CLI of the plugin's version.",
     ]);
   }
 });
 
 test('no version line when the versions match or the plugin version is unreadable', () => {
-  assert.deepEqual(report({ pluginVersion: '1.2.3' }).warnings, []);
+  assert.deepEqual(report({ pluginVersion: '1.2.3', pluginCliCommand: 'npx devscene@1.2.3' }).warnings, []);
   assert.deepEqual(report({ pluginVersion: undefined }).warnings, []);
 });
 
@@ -255,6 +256,7 @@ test('all of the wording is plain ASCII', () => {
     localAdditionCount: 3,
     localFileIgnored: false,
     pluginVersion: '9.9.9',
+    pluginCliCommand: 'npx devscene@9.9.9',
   };
   for (const dryRun of [false, true]) {
     for (const line of allLines(report({ ...everything, dryRun }))) {
