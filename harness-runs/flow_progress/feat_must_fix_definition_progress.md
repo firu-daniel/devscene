@@ -10,7 +10,7 @@ Source: harness-runs/task_prompts/feat_must_fix_definition_task_prompt.md → `#
 - [x] R0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_must_fix_definition_task_prompt.md sha256=ea01405612442f7284c44599568842025935472b0548c45b0ef5ee108603de61
   - screened: harness-runs/user_reviews/feat_must_fix_definition_review.md sha256=a0c45903840edf3a325377c7377b8a464274875667a7083c45aa0eaa7d04945a
-- [ ] R1. Fix plan written & converged (parity + architecture gates PASS)
+- [x] R1. Fix plan written & converged (parity + architecture gates PASS)
 - [ ] R2. Fix plan + source review committed
 ## Fixing
 - [ ] R3. All fix-plan findings implemented (fix-plan index all [x])
