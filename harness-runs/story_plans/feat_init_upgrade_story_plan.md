@@ -63,7 +63,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_init_upgrade/task_<K>_p
 12. [x] **Task 12** — Prove an upgraded profile passes the watcher's per-run check _(layer: cli)_ _(points: 8)_
 13. [x] **Task 13** — Update the CLI template READMEs and re-run statements _(layer: cli)_ _(points: 10)_
 14. [x] **Task 14** — Point the plugin contracts at `init --upgrade` _(layer: plugin)_ _(points: 10)_
-15. [ ] **Task 15** — Document `init --upgrade` in `docs/cli.md` _(layer: general)_ _(points: 20)_
+15. [x] **Task 15** — Document `init --upgrade` in `docs/cli.md` _(layer: general)_ _(points: 20)_
 16. [ ] **Task 16** — Update the remaining adopter and contributor documents _(layer: general)_ _(points: 15)_
 17. [ ] **Task 17** — Bring the root ignore file and the notes-app example in step _(layer: general)_ _(points: 10)_
 
