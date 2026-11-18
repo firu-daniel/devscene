@@ -48,7 +48,7 @@
 #   --findings the reviewer's findings_file; it may not carry a tab. A round
 #              gate's `PASS` or `FAIL` reads it, absolute as given and relative
 #              under the repository root (ROUNDS, on a refused file).
-#   --skipped the run mode's skipped ids; read only when no flow-progress
+#   --skipped  the run mode's skipped ids; read only when no flow-progress
 #              ledger exists, and re-read on every arrival at a gated node.
 #   The graph is `<this script's dir>/flows/<flow>.graph.json`, formatVersion
 #   3; the root is a bare `git rev-parse --show-toplevel` in the working

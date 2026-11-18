@@ -16,7 +16,7 @@ The two copies of the walker and of its gate library are byte-identical, no comp
 
 **This section is the single source of truth for the per-item fix loop.** The orchestrator walks the `[ ]` entries top to bottom, and the committing role flips each one to `[x]` as that fix lands. `[ ]` markers anywhere else are informational only.
 
-1. [ ] **Finding 4** — Restore the `--skipped` column alignment in the walker header _(layer: cli, general)_
+1. [x] **Finding 4** — Restore the `--skipped` column alignment in the walker header _(layer: cli, general)_
 2. [ ] **Finding 3** — Name `check-round-file` and its second caller in the watcher's script table _(layer: general)_
 3. [ ] **Finding 2** — Give the untrusted-instruction Must Fix a class row in `task-plan-reviewer` _(layer: plugin)_
 4. [ ] **Finding 1** — Keep a gate marked for re-dispatch out of the blocks `current` re-prints _(layer: cli, general)_
