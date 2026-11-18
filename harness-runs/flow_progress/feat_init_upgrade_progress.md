@@ -12,7 +12,7 @@ Source: harness-runs/task_prompts/feat_init_upgrade_task_prompt.md → `### Run 
   - screened: harness-runs/user_reviews/feat_init_upgrade_review.md sha256=4617640bffe3750c85a127284cc4817c0d5ea091ed94a88bece82967e60c66ee
   - screened: harness-runs/clarifications/feat_init_upgrade/answer_1.md sha256=9291c5f3e8d93ef5d8d597d14f4616005d6d625201316918742792348542f2e2
 - [x] R1. Fix plan written & converged (parity + architecture gates PASS)
-- [ ] R2. Fix plan + source review committed
+- [x] R2. Fix plan + source review committed
 ## Fixing
 - [ ] R3. All fix-plan findings implemented (fix-plan index all [x])
 - [-] R4. QA passed (UI-test index all [x], or only blocked tests left / no_ui / no-op augment)
