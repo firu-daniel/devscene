@@ -28,6 +28,12 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 
 - **A rename declared breaking ships no compatibility path: no fallback to the old value, no repair of a file an earlier release wrote, and no sentence that names the old value or says a name changed; adopters migrate by hand.** _(taught by: chore_devscene_github_surface)_
 
+- **A remedy never sends an adopter to a place the CLI refuses: derive the advice from the same predicate as the refusal.** _(taught by: feat_init_upgrade)_
+
+- **When two halves ship at one version, an upgrade refuses a mismatch before writing anything; a warning after the write leaves them split.** _(taught by: feat_init_upgrade)_
+
+- **A version-mismatch remedy moves the older half forward and never pins the newer half back.** _(taught by: feat_init_upgrade)_
+
 ## Evidence and measurement
 
 - **A figure measured under a test stub or a fixture-sized corpus never justifies a design decision: the branch that makes the decision also ships the gate step that produces the real-shape figure, and the decision cites that step rather than the stub.** _(taught by: feat_docs_catalog_retrieval)_
