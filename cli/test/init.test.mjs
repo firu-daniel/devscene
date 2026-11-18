@@ -108,6 +108,7 @@ const SHARED_STUB = '.claude/context/conventions.md';
 const CONTEXT_DIR = '.claude/context';
 const QA_SCENARIOS_FILE = '.claude/qa_test_scenarios.md';
 const TASK_OFFER_FILE = '.claude/devscene-task-offer.md';
+const REVIEW_SWEEP_FILE = '.claude/review-sweep.md';
 const MCP_FILE = '.mcp.json';
 const GITIGNORE_FILE = '.gitignore';
 
@@ -314,6 +315,7 @@ const OUTER_LOOP_SCRIPT_FILES = [
   'run-analytics.sh',
   'task-offer-check.sh',
   'prompt-injection-screen.sh',
+  'review-sweep.sh',
 ];
 
 /** A left-over template token — none may survive into a generated file. */
@@ -861,6 +863,106 @@ test('a first init writes the context files and the settings wiring with no toke
     offer.includes(`${plugin.name}:branch-prompt`),
     `${TASK_OFFER_FILE} does not name the skill \`${plugin.name}:branch-prompt\`, so the offer sends its reader at a plugin slug that is not the one shipped`,
   );
+});
+
+/** The sweep document's row-table header, exactly as `review-sweep.sh` parses it. */
+const SWEEP_ROWS_HEADING = '## Sweep rows';
+const SWEEP_HEADER_ROW = '| Escape class | Regex | Covers | Exempts | A hit is a candidate for |';
+
+/**
+ * The review-sweep skeleton: written on a fresh run, carrying both halves of the untouched-skeleton
+ * test, the row wire's exact heading and header row, and its analyze target only as a fenced line.
+ *
+ * The fenced-only leg is asserted line by line, because a prose mention of the command is the
+ * inline-invocation shape the adopter-facing documentation rule refuses, and a substring check
+ * cannot tell the two apart.
+ */
+test('a first init writes the review-sweep skeleton, its row header and its fenced analyze target', async (t) => {
+  const dir = await fixtureFor(t, { files: nodeProjectFiles() });
+
+  await initOk(dir);
+
+  assertRendered(dir, REVIEW_SWEEP_FILE);
+  const sweep = text(dir, REVIEW_SWEEP_FILE);
+  for (const marker of ['<!-- devscene:unfilled -->', '**What belongs here**']) {
+    assert.ok(sweep.includes(marker), `${REVIEW_SWEEP_FILE} lacks the untouched-skeleton marker ${marker}`);
+  }
+
+  const lines = sweep.split('\n');
+  const heading = lines.indexOf(SWEEP_ROWS_HEADING);
+  assert.notEqual(heading, -1, `${REVIEW_SWEEP_FILE} has no exact ${SWEEP_ROWS_HEADING} heading`);
+  const tableStart = lines.findIndex((line, index) => index > heading && line !== '');
+  assert.equal(lines[tableStart], SWEEP_HEADER_ROW, `the table under ${SWEEP_ROWS_HEADING} does not open with the exact header row`);
+  assert.match(lines[tableStart + 1], /^\|(---\|){5}$/, 'the header row is not followed by its separator row');
+  assert.ok(!(lines[tableStart + 2] ?? '').startsWith('|'), 'the skeleton ships a data row');
+
+  const invocation = `${ANALYZE_COMMAND} sweep`;
+  let fenced = false;
+  let fencedHits = 0;
+  for (const [index, line] of lines.entries()) {
+    if (line.startsWith('```')) {
+      fenced = !fenced;
+      continue;
+    }
+    if (!line.includes(invocation)) continue;
+    assert.ok(fenced, `line ${index + 1} names ${invocation} in prose rather than in a fenced block:\n${line}`);
+    assert.equal(line, invocation, `line ${index + 1} carries more than the command on its fenced line:\n${line}`);
+    fencedHits += 1;
+  }
+  assert.equal(fenced, false, `${REVIEW_SWEEP_FILE} leaves a fence open`);
+  assert.ok(fencedHits > 0, `${REVIEW_SWEEP_FILE} never names ${invocation}`);
+
+  // Its footer names the command: the last fenced block before the marker carries it.
+  const footer = sweep.slice(sweep.lastIndexOf(SWEEP_HEADER_ROW));
+  assert.ok(footer.includes(`\n${invocation}\n`), `${REVIEW_SWEEP_FILE}'s footer does not name ${invocation}`);
+
+  // No per-unit agent may load it, so the always-loaded file's routing table must not name it.
+  assert.ok(!text(dir, CLAUDE_MD).includes('review-sweep.md'), `${CLAUDE_MD} names the review-sweep document`);
+});
+
+/**
+ * The review-sweep document's `create-if-absent` contract, both legs side by side: an unforced re-run
+ * keeps an adopter-edited copy byte for byte, and `--force` takes a `.bak` of it before regenerating.
+ */
+test('a second init keeps an edited review-sweep document, and --force regenerates it after a .bak', async (t) => {
+  const dir = await fixtureFor(t, { files: nodeProjectFiles() });
+
+  await initOk(dir);
+  appendFileSync(join(dir, REVIEW_SWEEP_FILE), '\nThis sentence was added by hand.\n', 'utf8');
+  const edited = text(dir, REVIEW_SWEEP_FILE);
+
+  await initOk(dir);
+  assert.equal(text(dir, REVIEW_SWEEP_FILE), edited, 'an unforced re-run rewrote the edited review-sweep document');
+  assert.equal(await exists(dir, `${REVIEW_SWEEP_FILE}.bak`), false, 'an unforced re-run backed the document up');
+
+  await initOk(dir, ['--force']);
+  assert.equal(text(dir, `${REVIEW_SWEEP_FILE}.bak`), edited, `${REVIEW_SWEEP_FILE}.bak does not hold what was replaced`);
+  assert.ok(
+    !text(dir, REVIEW_SWEEP_FILE).includes('This sentence was added by hand.'),
+    'the review-sweep document was not regenerated, so --force did nothing but write a backup',
+  );
+});
+
+/**
+ * The review-sweep document's conditional `--force` keep: a second forced pass over an untouched
+ * skeleton whose `.bak` holds filled rows keeps the document, so the rescued rows are not spent.
+ */
+test('a second --force keeps an already-skeletal review-sweep document whose .bak holds the filled rows', async (t) => {
+  const dir = await fixtureFor(t, { files: nodeProjectFiles() });
+  await initOk(dir);
+  const filled = '# The review sweep\n\n## Sweep rows\n\n| Escape class | Regex | Covers | Exempts | A hit is a candidate for |\n|---|---|---|---|---|\n| Raw console | `console\\.log` | `.` | — | the logger |\n';
+  writeFileSync(join(dir, REVIEW_SWEEP_FILE), filled, 'utf8');
+
+  // Pass 1: the filled document goes back to a skeleton, its rows in the .bak.
+  await initOk(dir, ['--force']);
+  assert.ok(text(dir, REVIEW_SWEEP_FILE).includes(UNFILLED_MARKER), 'the first --force did not put the document back to a skeleton');
+  assert.equal(text(dir, `${REVIEW_SWEEP_FILE}.bak`), filled, 'the first --force did not rescue the filled rows into the .bak');
+
+  // Pass 2: nothing is left to rescue, so the .bak must not be spent.
+  const { stdout } = await initOk(dir, ['--force']);
+  assert.equal(text(dir, `${REVIEW_SWEEP_FILE}.bak`), filled, 'the second --force overwrote the rescued rows with a skeleton');
+  const note = keptForBackupNote(stdout);
+  assert.ok(note.includes(REVIEW_SWEEP_FILE), `the run kept ${REVIEW_SWEEP_FILE} and the note does not name it:\n${note}`);
 });
 
 test('a first init writes the pre-push guard, executable and rendered', async (t) => {
@@ -6031,12 +6133,12 @@ test('--dry-run writes nothing and still reports the wording it would have recor
 
 /**
  * The closing pointer's target list is the settled vocabulary: the configured layer names **and** the
- * three reserved names, which name no layer and which a layer list alone can never produce.
+ * four reserved names, which name no layer and which a layer list alone can never produce.
  *
  * Asserted on the list itself rather than as substrings of the whole line, and on its order, because
  * `conventions` and `project` are ordinary English words elsewhere in the same sentence.
  */
-test('the closing pointer names every analyze target: the configured layers and the three reserved names', async (t) => {
+test('the closing pointer names every analyze target: the configured layers and the four reserved names', async (t) => {
   const dir = await fixtureFor(t, everyPresetSeed());
 
   const { stdout } = await initOk(dir, ['--preset', 'layered-clean-arch']);
@@ -6052,6 +6154,7 @@ test('the closing pointer names every analyze target: the configured layers and 
     'project',
     'conventions',
     'layers',
+    'sweep',
   ]);
 });
 

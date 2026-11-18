@@ -1,6 +1,7 @@
 /**
- * Generator: the always-loaded project file, the conventions stubs behind it, and the two
- * `*.env.example` companions an adopter copies and completes.
+ * Generator: the always-loaded project file, the conventions stubs behind it, the review-sweep
+ * skeleton the end-of-branch reviewer reads, and the two `*.env.example` companions an adopter
+ * copies and completes.
  *
  * **The rule this module exists to enforce: which stubs are written, and which rows the routing
  * table carries, are both read off `layers[]` — never off a list kept here.** `layers[].conventions`
@@ -91,6 +92,17 @@ export const QA_SCENARIOS_PATH = `${CLAUDE_DIR}/qa_test_scenarios.md`;
  */
 export const TASK_OFFER_PATH = `${CLAUDE_DIR}/devscene-task-offer.md`;
 
+/**
+ * The review-sweep document, relative to the repository root — planned on every run, whatever the
+ * configured phases are, and created where it is absent.
+ *
+ * **The basename is dereferenced by name**, by the plugin's `branch-reviewer`, its analyze command
+ * and the `review-sweep.sh` outer-loop script, so renaming it here leaves all three reading a file
+ * nothing writes. It is deliberately outside `context/` and has no routing-table row, so no per-unit
+ * agent loads it. Exported because `doctor` addresses the same file rather than re-spelling it.
+ */
+export const REVIEW_SWEEP_PATH = `${CLAUDE_DIR}/review-sweep.md`;
+
 /** The templates' subdirectory under `cli/templates/`, addressed as {@link readTemplate} wants it. */
 const TEMPLATE_DIR = 'claude';
 
@@ -162,8 +174,9 @@ const GENERIC_STUB_TEMPLATE = 'layer.md';
  * Read by: `doctor`'s `setup-analysis` check, `init`'s "is anything left to fill" question, and the
  * analyze command's decision about whether it may write a target without asking (it clears the
  * marker when it writes). The literal strings also live in every skeleton under
- * `templates/claude/context/` — `ls cli/templates/claude/context/` enumerates them — which is
- * where they are produced: a template and these constants disagreeing makes every consumer report
+ * `templates/claude/context/` — `ls cli/templates/claude/context/` enumerates them — and in
+ * `templates/claude/review-sweep.md`, which is where they are produced: a template and these
+ * constants disagreeing makes every consumer report
  * every document as filled.
  */
 export const UNFILLED_STUB_MARKER = '<!-- devscene:unfilled -->';
@@ -187,15 +200,18 @@ export function isUntouchedSkeletonText(content: string): boolean {
 
 /**
  * The analyze targets that are **not** layer names: the layer profile itself, the always-loaded
- * project file, and the shared cross-layer document that is generated whether or not a layer points
- * at it (`docs/analyze.md` §1).
+ * project file, the shared cross-layer document that is generated whether or not a layer points
+ * at it (`docs/analyze.md` §1), and the {@link REVIEW_SWEEP_PATH} document.
  *
- * Read by: the invocation this generator renders into each stub footer, and `init`'s closing pointer.
- * The config schema's `name` pattern admits all three, so a layer may legitimately carry one — that
- * layer loses the one-word invocation to the reserved meaning, visibly rather than silently, and is
- * still covered by the no-argument pass.
+ * Read by: the invocation this generator renders into each stub footer and into the review-sweep
+ * skeleton, and `init`'s closing pointer. The config schema's `name` pattern admits all four, so a
+ * layer may legitimately carry one — that layer loses the one-word invocation to the reserved
+ * meaning, visibly rather than silently, and is still covered by the no-argument pass.
  */
-export const RESERVED_ANALYZE_TARGETS = ['project', 'conventions', 'layers'] as const;
+export const RESERVED_ANALYZE_TARGETS = ['project', 'conventions', 'layers', 'sweep'] as const;
+
+/** The reserved target that fills {@link REVIEW_SWEEP_PATH}, typed against the list so dropping it is a compile error here. */
+const SWEEP_TARGET: (typeof RESERVED_ANALYZE_TARGETS)[number] = 'sweep';
 
 /**
  * The delimiters of the **setup-pending banner** the generated project file carries under its
@@ -558,12 +574,13 @@ function analyzeInvocation(layerNames: readonly string[], stubPath: string, warn
 function reservedMeaning(target: string): string {
   if (target === 'project') return 'the always-loaded project file';
   if (target === 'conventions') return 'the shared cross-layer document';
+  if (target === 'sweep') return 'the review-sweep document';
   return 'the layer profile itself';
 }
 
 /**
- * Enqueue the always-loaded project file, one conventions stub per configured document, and the
- * `*.env.example` companions — every one of them `create-if-absent`.
+ * Enqueue the always-loaded project file, one conventions stub per configured document, the
+ * review-sweep skeleton and the `*.env.example` companions — every one of them `create-if-absent`.
  *
  * Selection, and why each rule is what it is:
  *
@@ -574,6 +591,10 @@ function reservedMeaning(target: string): string {
  * - **One stub per distinct `layers[].conventions` path**, plus the shared cross-layer document
  *   whether or not a layer names it. A configured path with no document behind it is a pointer an
  *   implementer follows to nothing.
+ * - **The {@link REVIEW_SWEEP_PATH} skeleton always**, gated on no phase, because the end-of-branch
+ *   review runs in every flow. It is neither a stub nor a routing row: no layer owns it. It carries
+ *   the same two markers as a stub, so a forced run keeps it on the same {@link keepsRescuedBackup}
+ *   test.
  * - **`push-notify.env.example` always**, because the push settings are read whatever the phases
  *   are, and **`qa-accounts.env.example` plus the {@link QA_SCENARIOS_PATH} skeleton only when
  *   `phases.qa`** — an adopter who never runs the interactive test phase has no accounts to put in
@@ -588,7 +609,8 @@ function reservedMeaning(target: string): string {
  * {@link ClaudeContextResult.claudeMdBackupExisted}. On
  * a forced run only, that file's own text against the text rendered here, which decides
  * {@link keepsIdenticalProjectFile} and {@link ClaudeContextResult.claudeMdBackupWouldCarryContent}.
- * And, on a forced run only, each conventions document and its `.bak` sibling, which decide
+ * And, on a forced run only, each conventions document and the review-sweep document, each with its
+ * `.bak` sibling, which decide
  * {@link keepsRescuedBackup} and the note below it. Those last two kinds are reads rather than a
  * policy change
  * because the answer is a fact about **this** tree at **this** moment: the corpus keeps the
@@ -685,6 +707,16 @@ export function writeClaudeContext({
     });
     written.push({ path: stub.path, dedicated: stub.dedicated, layers: layerNames });
   }
+
+  const keepSweep = force && keepsRescuedBackup(repoRoot, REVIEW_SWEEP_PATH);
+  if (keepSweep) keptForBackup.push(REVIEW_SWEEP_PATH);
+  plan.add({
+    path: join(repoRoot, REVIEW_SWEEP_PATH),
+    policy: 'create-if-absent',
+    ...(keepSweep ? { forceOverride: 'never' as const } : {}),
+    content: render('review-sweep.md', { analyzeInvocation: `${ANALYZE_COMMAND} ${SWEEP_TARGET}` }),
+    label: 'review sweep skeleton',
+  });
 
   if (keptForBackup.length > 0) {
     // `init`'s `analyzeRecordSentence` needs no edit to stay truthful beside this note, and this is

@@ -164,7 +164,9 @@ import { LAYERLESS_BY_DESIGN_PRESETS, SHARED_CONVENTIONS_PATH, TESTS_LAYER_NAME 
 import { FORCED_SIGNAL_ID } from '../detect/signals.js';
 import {
   CLAUDE_MD_PATH,
+  isUntouchedSkeletonText,
   RESERVED_ANALYZE_TARGETS,
+  REVIEW_SWEEP_PATH,
   SETUP_PENDING_CLOSE,
   SETUP_PENDING_OPEN,
   SKELETON_GUIDANCE_MARKER,
@@ -4384,6 +4386,43 @@ function taskOfferCheckFindings(repoRoot: string, config: HarnessConfig, invocat
   return findings;
 }
 
+/** The analyze target that fills the review-sweep document, typed against the list for the reason {@link LAYERS_TARGET} is. */
+const SWEEP_TARGET: (typeof RESERVED_ANALYZE_TARGETS)[number] = 'sweep';
+
+/**
+ * Whether the document the end-of-branch reviewer's grep sweep reads its rows from exists and has
+ * been filled in, so a sweep that never runs shows at setup rather than in every review.
+ *
+ * It grades substring facts and never prose, and every state warns and none fails, both for
+ * {@link SETUP_ANALYSIS_CHECK}'s reasons. "Unfilled" is {@link isUntouchedSkeletonText}.
+ *
+ * It reads one file and writes none.
+ */
+const REVIEW_SWEEP_CHECK: Check = {
+  id: 'review-sweep',
+  title: 'the review-sweep document the end-of-branch reviewer reads exists and has been filled in',
+  run: (ctx) => {
+    if (ctx.repoRoot === undefined) return unevaluated('the repository root did not resolve (see the git check)');
+
+    let content: string;
+    try {
+      content = readFileSync(join(ctx.repoRoot, REVIEW_SWEEP_PATH), 'utf8');
+    } catch {
+      return warn(
+        `${REVIEW_SWEEP_PATH} is not there, so the end-of-branch reviewer's grep sweep has no rows to apply: it reports a configuration gap in every review and does not run. Run \`${CLI} init\`, which creates the skeleton and rewrites nothing else, then fill it with \`${ANALYZE_COMMAND} ${SWEEP_TARGET}\` or by hand`,
+      );
+    }
+
+    if (isUntouchedSkeletonText(content)) {
+      return warn(
+        `${REVIEW_SWEEP_PATH} is still an untouched skeleton, so the end-of-branch reviewer's grep sweep has no rows to apply. Fill it with \`${ANALYZE_COMMAND} ${SWEEP_TARGET}\` in a session here, or by hand, replacing the guidance block as the document's own footer says — and commit it on the default branch, which is where the sweep reads its rows`,
+      );
+    }
+
+    return pass(`${REVIEW_SWEEP_PATH} is there and is no longer an untouched skeleton`);
+  },
+};
+
 /**
  * The analyze target that addresses the layer profile, taken from the one list that declares the
  * reserved targets (`generators/claudeContext.ts`). Typed against that list rather than indexed into
@@ -6413,7 +6452,8 @@ const RETRIEVAL_PYTHON_INDEX_CHECK: Check = {
  * "what did `init` write": the directories a run puts artifacts in, and the documents the agents it
  * dispatches read their rules from. `task-offer-rules` sits immediately under `setup-analysis`
  * because the two read the same file and grade the same namespace, and an operator reads them
- * together. `layer-profile` follows under those two, because
+ * together. `review-sweep` follows them because it grades one more document `init` writes into
+ * `.claude/`, by the same untouched-skeleton test `setup-analysis` applies. `layer-profile` follows under those, because
  * it asks the remaining question about the same act — whether the profile routing a dispatch to one
  * of those documents was detected or fallen back to — and it is the line a reader whose
  * `setup-analysis` line just passed needs next:
@@ -6490,6 +6530,7 @@ export const CHECKS: readonly Check[] = Object.freeze([
   STATE_DIR_TREE_CHECK,
   SETUP_ANALYSIS_CHECK,
   TASK_OFFER_RULES_CHECK,
+  REVIEW_SWEEP_CHECK,
   LAYER_PROFILE_CHECK,
   LAYER_DRIFT_CHECK,
   TREE_GUARDS_CHECK,

@@ -2955,7 +2955,7 @@ function analyzeRecordSentence(
  * unresolved arm can offer it only after one of the two routes it names is taken.
  *
  * **Step 2 carries the settled vocabulary** (`docs/analyze.md` §1): the no-argument form, and
- * `<target>` over the configured layer names *plus* {@link RESERVED_ANALYZE_TARGETS} — the three
+ * `<target>` over the configured layer names *plus* {@link RESERVED_ANALYZE_TARGETS} — the four
  * targets that name no layer. It states what the command does in the settled terms, including the
  * one thing it does not do: a layer-profile revision is proposed and reaches
  * `devscene.config.json` only through {@link CONFIG_SET_LAYERS_COMMAND} after an explicit yes

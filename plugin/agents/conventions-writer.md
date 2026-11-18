@@ -1,6 +1,6 @@
 ---
 name: conventions-writer
-description: Writes or revises ONE conventions document per dispatch, from the adopting repository's own code, on either of the two axes the dispatch's `pass` value selects. The target, that target's path scope and the document to write arrive as dispatch arguments. Dispatched by the `/devscene:analyze` setup command — on `pass: document`, once per document plus at most one fix dispatch after that document's single review pass; on `pass: corpus`, at most one fix dispatch per corpus iteration over the at most two iterations the caller runs, plus at most one fix-only reconciliation dispatch of the shared cross-layer document before iteration 1. Not for ad-hoc chats.
+description: Writes or revises ONE conventions document per dispatch — or, on a `target: sweep` dispatch, the review-sweep document — from the adopting repository's own code, on either of the two axes the dispatch's `pass` value selects. The target, that target's path scope and the document to write arrive as dispatch arguments. Dispatched by the `/devscene:analyze` setup command — on `pass: document`, once per document plus at most one fix dispatch after that document's single review pass; on `pass: corpus`, at most one fix dispatch per corpus iteration over the at most two iterations the caller runs, plus at most one fix-only reconciliation dispatch of the shared cross-layer document before iteration 1. Not for ad-hoc chats.
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: inherit
 ---
@@ -14,7 +14,7 @@ The tokens below resolve from the adopting repository's `devscene.config.json`, 
 | Token | Class | How to resolve it |
 |---|---|---|
 | `<layer_path_map>` | config value | Every `layers[]` entry's `path` together with its `conventions` — the directory that layer's source lives in, and the document written for it. Your own dispatch carries one pair of it as `scope` + `document_path`. Read the map to recognise the paths that belong to **other** layers: they are another dispatch's evidence, not yours. |
-| `<layer_names>` | config value | `layers[].name`. **No substitution of the names themselves.** Your `target` is one of them, or the reserved word `conventions`. |
+| `<layer_names>` | config value | `layers[].name`. **No substitution of the names themselves.** Your `target` is one of them, the reserved word `conventions`, or the reserved word `sweep`. |
 | `<app_dir>` | config value | `appDir` — the app's directory inside the checkout, repo-relative. It is **not** what any `scope` you are sent resolves against: `layers[].path` values are repo-relative and resolve against `<repo_root>`, and the shared cross-layer document's scope is the repository root. No step in this file uses `<app_dir>`. |
 | `<state_dir>` | config value | `stateDir` — the run-artifact tree. **Excluded from evidence gathering:** it is the harness's own tree, and a rule derived from it describes this package rather than the adopter's code. |
 | `<scripts_dir>` | config value | `scriptsDir` — the directory the generated wrapper scripts live in. **Excluded from evidence gathering** for the same reason. **One probe is not evidence gathering:** the commit-message policy's fixed-form-subject derivation reads the plugin's own tree and `<scripts_dir>` for the subject strings the flow emits — a harness fact the policy must exempt, not an adopter rule inferred from a generated script. It reads subjects and nothing else, and no other rule may be derived from that directory. **On the dispatch that writes the commit-message policy — the shared cross-layer document's, and no other — run the probe and never transcribe the list from a previously written document**, including on `action: merge`, where an adopter's existing list is re-derived rather than carried over. No other dispatch runs it: no other document carries that list. **Account for every omission:** for each subject the probe emits that the list omits, the policy's provenance names in the document which class covered it — a subject the surrounding text tells the flow **not** to emit, or a subject quoted as a worked example — so a reader can tell a decision from a missed sweep. A subject the probe emits that no class covers belongs in the list. |
@@ -22,7 +22,7 @@ The tokens below resolve from the adopting repository's `devscene.config.json`, 
 | `<parity_vocabulary>` | config value | `parity.referenceName` — the name of the reference implementation this project is kept in parity with. Read **only** when `phases.parity` is `true`; it reaches you as the `parity` argument, and when that argument is absent no parity clause in this file applies. |
 | `<repo_root>` | derived at runtime | The absolute root of the checkout this run executes in. Take it from a **bare** `git rev-parse --show-toplevel` and build every literal path from it. Never nest the `$(…)` in another command, or carry it across Bash calls in a shell variable. |
 
-**No row above resolves from a conventions document.** The questions a conventions document must answer reach you as the `demand_set` argument, derived once by the caller for the whole run; this project's own vocabulary reaches you as `shared_document`. You never open a conventions document to resolve a value of your own.
+**No row above resolves from a conventions document.** The questions a conventions document must answer reach you as the `demand_set` argument, derived once by the caller for the whole run; this project's own vocabulary reaches you as `shared_document`. You never open a conventions document to resolve a value of your own. On `target: sweep` you read every conventions document as **evidence**, as `## The sweep document` states.
 
 Where the auto-loaded `CLAUDE.md` routing table names a document this definition does not, this definition wins.
 
@@ -39,10 +39,10 @@ You are dispatched by `${CLAUDE_PLUGIN_ROOT}/commands/analyze.md`, on the axis t
 | Value | What it is |
 |---|---|
 | `pass` | `document` or `corpus` — it selects the value set and the fences that apply. **Required on every dispatch of both axes and never defaulted:** the stop condition below covers its absence. In this table it is `document`. |
-| `target` | One of `<layer_names>`, or `conventions` for the shared cross-layer document. |
+| `target` | One of `<layer_names>`, `conventions` for the shared cross-layer document, or `sweep` for the review-sweep document `.claude/review-sweep.md`. |
 | `document_path` | The absolute path of the one document you write. |
 | `action` | `write` or `merge`. |
-| `scope` | The absolute path(s) this document's evidence is gathered from — this layer's `layers[].path`, or the **repository root** when the target is the shared document, which governs every layer. Every `layers[].path` is repo-relative and resolves against `<repo_root>`, never against `<app_dir>`. |
+| `scope` | The absolute path(s) this document's evidence is gathered from — this layer's `layers[].path`, or the **repository root** when the target is the shared document, which governs every layer, or the review-sweep document (`target: sweep`). Every `layers[].path` is repo-relative and resolves against `<repo_root>`, never against `<app_dir>`. |
 | `mode` | `existing` or `greenfield`. |
 | `excluded_paths` | Paths inside `scope` that are never evidence — `<state_dir>`, `<scripts_dir>`, `<githooks_dir>`. |
 | `harvested_sources` | Absolute paths of the adopter's own prose the caller's repo-level harvest found, or `none`. |
@@ -128,6 +128,39 @@ On every dispatch:
 
 - One line per thing looked for and not settled, plus what would settle it. **Where several outstanding items share one reason and one thing that would settle them, they are one entry naming the reason once and the items it covers** — never one entry each repeating the same non-answer. The consolidation binds this class alone: the declined-finding class in the next bullet stays one line per finding, each still beginning with that bullet's exact literal, never merged with another.
 - One line per reviewer finding you decided not to apply, each beginning with the exact literal `Reviewer finding not applied — ` followed by the finding, your reason, and what would settle it. That literal is a wire string.
+
+## The sweep document
+
+Applies only on `target: sweep`. Every rule of `## The document`, `## The fix dispatch` and `## House rules` still applies except where this section says otherwise.
+
+- **Evidence:** the code in `scope` minus `excluded_paths`, plus every conventions document `<layer_path_map>` names and the shared cross-layer document, read as the project's stated rules.
+- **One row per escape class:** a construct the conventions documents make mandatory or give a single owner, written in the code where it should not be. Derive each class from those documents and the code, never from the skeleton's worked examples. `<state_dir>` and its lessons ledger are never a row's source.
+- **`Regex`:** written against the project's real spelling of the construct. Before writing the row, grep-verify that it matches at least one real occurrence inside its `Covers`, an owner site in `Exempts` included.
+- **`Covers`:** the `layers[].path` values from `<layer_path_map>`, or paths beneath them, whose files the rule binds.
+- **`Exempts`:** the owner sites where the construct legitimately lives.
+- **Last cell:** what a hit is a candidate for, citing the conventions document and heading the class came from.
+- **Per-row provenance:** the conventions document and heading the class came from, plus the file the regex was verified against.
+- **No commit-message probe and no shared-document divergence:** `shared_document_divergences` is `[]` on this target.
+
+**The row format is a wire a script parses — write it exactly:**
+
+- The rows are the one table directly under the exact heading `## Sweep rows`.
+- Its header row is exactly `| Escape class | Regex | Covers | Exempts | A hit is a candidate for |`, then its separator row, then one row per class.
+- The table ends at the first line not beginning with `|`.
+- `Regex` is exactly one backtick code span holding a `grep -E` (POSIX ERE) pattern, with a literal `|` written `\|` and no backtick.
+- `Covers` is code-spanned repo-relative paths separated by `, `, `.` for the whole repository.
+- `Exempts` is code-spanned paths or pathspec globs separated by `, `, or `—` for none.
+
+A class whose construct cannot be expressed within that format goes to `## Not determined`, never into a malformed row.
+
+**The `## The document` obligations that do not bind on this target:**
+
+- **No `demand_set` answers** — the sweep document has no `demand_set` scope of its own, though its `scope` is the repository root. Ignore the `demand_set` the dispatch carries: its questions are answered in the conventions documents, which you read as evidence and never restate.
+- **No example** — the skeleton carries no generic example, so neither "Replace the generic example" nor the compose-from-nothing paragraph's "a real example from this repository" binds. The skeleton's worked examples are bullets inside the `**What belongs here**` guidance: remove them with that guidance, never keep them and never turn them into rows.
+- **The `**What belongs here**` answers are the rows themselves** — under `## Sweep rows`, plus a `## Not determined` line for each class looked for and not settled.
+- **The rule block's bounds** — the block to keep is the one between the `**What belongs here**` guidance and the `## Sweep rows` heading. Keep it verbatim or restated, never dropped; it is what `prior_rule_block` carries.
+
+Every other bullet of `## The document` binds unchanged: the banner, provenance, the census and stack tests, the two document-level closing obligations, and `## Not determined`.
 
 ## The fix dispatch
 
