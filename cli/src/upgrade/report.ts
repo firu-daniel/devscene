@@ -99,7 +99,9 @@ export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
     notes.push(dryRun ? `Would back up ${files} first.` : `Backed up ${files} under ${backupDir}.`);
   }
 
-  if (changed.some(({ path }) => daemonLoadedPaths.has(path))) {
+  // A replacement with no backup corrected permission bits only, which a running daemon does not load.
+  const contentChanged = changed.filter(({ effect, backupPath }) => effect === 'created' || backupPath !== undefined);
+  if (contentChanged.some(({ path }) => daemonLoadedPaths.has(path))) {
     const restart = scriptInvocation(scriptsDir, RESTART_WATCHER_SCRIPT_NAME);
     if (dryRun) {
       notes.push(`Would change the watcher or its libraries: restart the daemon afterwards with ${restart}`);

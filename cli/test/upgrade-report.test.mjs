@@ -208,6 +208,7 @@ test('no restart line when the watcher and lib rows are untouched', () => {
     'a non-lib subdirectory changed': [replaced('scripts/flows/task_plan_writing.graph.json')],
     'the watcher was kept': [write('scripts/autonomous-watcher.sh', 'kept')],
     'the lib row was kept': [write('scripts/lib/harness-run-lib.sh', 'kept')],
+    'the watcher only had its permission bits corrected': [write('scripts/autonomous-watcher.sh', 'backed-up-and-replaced')],
   };
   for (const [name, applied] of Object.entries(cases)) {
     for (const dryRun of [false, true]) {
