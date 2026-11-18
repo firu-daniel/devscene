@@ -67,8 +67,8 @@ export interface ProfileEntry {
   readonly entry: string;
 }
 
-/** What {@link renderCurrentProfile} takes. */
-export interface RenderCurrentProfileOptions {
+/** What {@link renderWith} takes, beyond the local additions. */
+interface RenderCurrentProfileOptions {
   readonly repoRoot: string;
   readonly config: HarnessConfig;
   readonly referenceToolchainPath?: string;
@@ -133,11 +133,6 @@ function renderWith(
     warn,
     note,
   });
-}
-
-/** The profile this repository should have now. A refused local file throws. */
-export function renderCurrentProfile(options: RenderCurrentProfileOptions): JsonObject {
-  return renderWith(readLocalAdditions(options.repoRoot), options);
 }
 
 /** The name a row's entries are reported under: `assertRunnable`'s spelling. */

@@ -12,7 +12,7 @@
 
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 
 import { requireConfig } from '../dist/config/io.js';
@@ -20,13 +20,13 @@ import { HarnessError } from '../dist/core/errors.js';
 import { formatJson } from '../dist/core/json.js';
 import { Reporter } from '../dist/core/report.js';
 import { WritePlan } from '../dist/core/writer.js';
+import { renderProfile } from '../dist/generators/permissionProfile.js';
 import { PLUGIN_KEY } from '../dist/generators/projectSettings.js';
 import {
   PROFILE_ENTRY_LISTS,
   planProfileUpgrade,
   profileDrift,
   profileEntryDelta,
-  renderCurrentProfile,
 } from '../dist/generators/profileUpgrade.js';
 import { createFixture, readJson, runCli, snapshotTree } from './helpers/fixture.mjs';
 
@@ -118,6 +118,7 @@ function planned({ dir, config }, options = {}) {
   return { plan, result: planProfileUpgrade({ repoRoot: dir, config, plan, dryRun: false, ...options }) };
 }
 
+const freshRender = (repo) => renderProfile({ repoRoot: repo.dir, config: repo.config, workRoot: dirname(repo.dir) });
 const drift = ({ dir, config }, onDisk = profileOf(dir)) => profileDrift({ repoRoot: dir, config, onDisk });
 const entriesOf = (found, list) => found.filter((item) => item.list === list).map((item) => item.entry);
 const deltaOf = (delta, list) => delta.find((row) => row.list === list);
@@ -203,7 +204,7 @@ test('a local entry is counted, lands once, and survives a second render', async
   assert.equal(second.plan.apply(context)[0].effect, 'kept');
 });
 
-test('carried plugin-root entries stay, and renderCurrentProfile can leave them out', async (t) => {
+test('carried plugin-root entries stay, and a fresh render leaves them out', async (t) => {
   const machine = await machineWithPlugin(t);
   const repo = await adopted(t, machine);
   const entries = [`Read(/${machine.root}/**)`, `Bash(bash ${machine.root}/scripts/helper.sh:*)`];
@@ -214,7 +215,7 @@ test('carried plugin-root entries stay, and renderCurrentProfile can leave them 
   for (const entry of entries) assert.ok(rendered.permissions.allow.includes(entry), entry);
   assert.equal(notes.length, 1, 'the carry-forward was not reported');
 
-  const { allow } = renderCurrentProfile({ repoRoot: repo.dir, config: repo.config, carryForward: false }).permissions;
+  const { allow } = freshRender(repo).permissions;
   for (const entry of entries) assert.ok(!allow.includes(entry), entry);
 });
 
@@ -296,7 +297,7 @@ test('a hand-added sandbox entry or credential is in the delta and is unaccounte
     ['sandbox.credentials.envVars[].name', 'HAND_ADDED'],
   ];
 
-  const next = renderCurrentProfile({ repoRoot: repo.dir, config: repo.config, carryForward: false });
+  const next = freshRender(repo);
   assert.deepEqual(
     profileEntryDelta(onDisk, next),
     expected.map(([list, entry]) => ({ list, added: [], removed: [entry] })),
@@ -386,7 +387,7 @@ function arrayPaths(value, prefix = '') {
 
 test('with the browser fragment on, every array in the render has a row', async (t) => {
   const repo = await adopted(t, await machineWithoutPlugin(t), ['--qa']);
-  const rendered = renderCurrentProfile({ repoRoot: repo.dir, config: repo.config });
+  const rendered = freshRender(repo);
   assert.ok(Array.isArray(rendered.enabledMcpjsonServers), 'the browser fragment is not on');
 
   const rows = new Set(PROFILE_ENTRY_LISTS.map(({ path }) => path));
