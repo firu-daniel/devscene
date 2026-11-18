@@ -15,9 +15,9 @@
 
 **Work:**
 
-- [ ] `writeProtection.ts` → `protectedPaths`: add `{ path: join(repoRoot, PROFILE_LOCAL_PATH), kind: 'file', reason }` directly after the `PROFILE_PATH` entry. The reason states that its entries are merged into the profile every run is rendered from. Update the module header's list of the set.
+- [ ] `writeProtection.ts` → `protectedPaths`: add `{ path: join(repoRoot, PROFILE_LOCAL_PATH), kind: 'file', reason }` directly after the `PROFILE_PATH` entry. The reason states that its entries are merged into the profile every run is rendered from. Update the module header's list of the set. Export the existing `runRegistryPath(repoRoot: string, config: HarnessConfig): string` unchanged, so Task 8 reads the registry from the path this module protects.
 - [ ] `repoRoot.ts` and `cli/templates/repo/gitignore`: add a `{{permissionProfileLocalPath}}` token rendered from `PROFILE_LOCAL_PATH`, on its own line after `{{permissionProfilePath}}`, with a comment saying the file holds one machine's additions and is never committed.
-- [ ] `profile-local-protection.test.mjs`: on a fixture wired by the compiled CLI, assert the absolute path is in `sandbox.filesystem.denyWrite`, its exact `Edit` rule is in `permissions.deny`, `doctor`'s `profile-write-protection` line passes, git ignores the path (`ignoredAmong`), `jobSurfacePaths` includes `.claude/settings.autonomous.local.json`, and `copySurfacePaths` does not. The last pair is why the shell mirror `hr_run_protected_rel_paths` needs no change.
+- [ ] `profile-local-protection.test.mjs`: on a fixture wired by the compiled CLI, assert the absolute path is in `sandbox.filesystem.denyWrite`, its exact `Edit` rule is in `permissions.deny`, `doctor`'s `profile-write-protection` line passes, git ignores the path (`ignoredAmong`), `jobSurfacePaths` includes `.claude/settings.autonomous.local.json`, and `copySurfacePaths` does not. The last pair is why the shell mirror `hr_run_protected_rel_paths` needs no change. Also assert that `runRegistryPath` falls back to the default state directory when `stateDir` is absent from the configuration and normalizes a configured value with a trailing `/`.
 
 **Verification:**
 

@@ -18,12 +18,13 @@ The story index's `## Scope register` rows owned by Task 15 are this task's site
   npx devscene@<version> init --upgrade
   ```
 - [ ] `## 2.`, the retrieval paragraph: replace the forced route with a plain `init`, which merges `.mcp.json` and the ignore rules and sets up retrieval, followed by `init --upgrade`, each in its own fenced line.
-- [ ] `## 3.`: change the policy count, add `replace-if-changed` and its atomic replacement, update the outer-loop and profile rows, add the local file and its ignore rule, state what `--upgrade` leaves alone, and state that backups live under `<git-common-dir>/devscene/upgrade-backups/<timestamp>/` with none for an unchanged file.
+- [ ] `## 3.`: change the policy count, add `replace-if-changed` and its atomic replacement, update the outer-loop and profile rows, add the local file and its ignore rule, state what `--upgrade` leaves alone, and state that backups live under `<git-common-dir>/devscene/upgrade-backups/<timestamp>/` with none for an unchanged file. In the `devscene-trigger.yml` and `devscene-control.yml` rows, keep `--force` after a `.bak` as each workflow's upgrade path and remove the claim that it shares the scripts' re-run contract.
 - [ ] `## 5.` and `## 6.`: update the sites the register names, and describe generated-plus-local ownership: the four addable lists, the refused keys, render-time merging, the first-upgrade report of entries not moved, the plugin-root carry-forward, the tracked-file refusal, the placeholder shapes read as absent, and remote jobs running without the file.
-- [ ] `## 7.`: add table rows and grading bullets for `profile-drift`, `outer-loop-scripts` and `plugin-cli-version`, and change only the ownership clause of the `profile-paths` bullet.
+- [ ] `## 7.`: add table rows and grading bullets for `profile-drift`, `outer-loop-scripts` and `plugin-cli-version`, and change the ownership clauses of the `command-permissions`, `profile-paths` and `profile-write-protection` bullets so each grade rests on the profile being generated and on the run still proceeding. The remedies those checks print stay as they are.
 
 **Verification:**
 
 - The `## 7.` table lists every id in `CHECKS`, which `grep -n "id: '" cli/src/doctor/checks.ts` confirms.
-- Re-running D1 and D2 over `docs/cli.md` reaches only sites the register lists.
+- Re-running D1, D2 and D5 over `docs/cli.md` reaches only sites the register lists.
+- `grep -nE 'file the adopter owns|hand-tuned|shares their re-run contract' docs/cli.md` finds nothing.
 - Each adopter command added sits alone on a line in a fenced block.

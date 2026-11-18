@@ -16,7 +16,7 @@
 - [ ] Factor `writeOuterLoopScripts` over a private helper taking the write policy, so its `create-if-absent` behaviour and its notes stay as they are.
 - [ ] Export `planOuterLoopScriptUpgrade({ repoRoot, config, plan }): OuterLoopScriptsResult`, which enqueues the same directories and rows under `replace-if-changed`, with each row's mode.
 - [ ] Export `outerLoopScriptDrift(repoRoot: string, config: HarnessConfig): { readonly missing: readonly string[]; readonly changed: readonly string[] }`. Paths are relative to `scriptsDir`, in table order, compared by bytes against `readTemplate`. A row whose executable bit differs from its table mode counts as changed. It writes nothing.
-- [ ] Update the module header's re-run paragraph and the `writeOuterLoopScripts` doc comment to name both contracts.
+- [ ] Export `RESTART_WATCHER_SCRIPT_NAME = 'restart-watcher.sh'`, documented beside `WATCHER_SCRIPT_NAME`, and use it in that script's `OUTER_LOOP_SCRIPTS` row. Update the module header's re-run paragraph and the `writeOuterLoopScripts` doc comment to name both contracts.
 - [ ] `outer-loop-upgrade.test.mjs`: with compiled imports and a wired fixture, assert the planned requests cover every table row and no `WRAPPER_SCRIPTS` file, and that the drift reader reports nothing on a fresh fixture, then a deleted row, an edited row and a row in `lib/`.
 
 **Verification:**

@@ -15,10 +15,11 @@ The work runs bottom-up through the configured layers. The `cli` tasks come firs
 | write policy `replace-if-changed`, `WriteContext.backupDir` | Task 1, `cli/src/core/writer.ts` | Create when absent, keep when bytes and mode match, otherwise replace atomically after a backup under `backupDir` |
 | `gitCommonDir(repoRoot)` | Task 1, `cli/src/core/git.ts` | The absolute git common directory, or `undefined` |
 | `PROFILE_LOCAL_PATH`, `readLocalAdditions`, `LocalAdditions` | Task 2 | The local file's path, its reader and validator, and the validated result |
+| `runRegistryPath` (newly exported) | Task 3, `cli/src/generators/writeProtection.ts` | The one resolver of the run registry's path |
 | `renderProfile`'s `localAdditions` option, `isToolchainEntry` | Task 4 | The merge at render time, and the shape test for reference-toolchain entries |
 | `renderCurrentProfile`, `profileEntryDelta`, `planProfileUpgrade`, `profileDrift` | Task 5, `cli/src/generators/profileUpgrade.ts` | Everything `--upgrade` and `doctor` need to know about the profile |
-| `planOuterLoopScriptUpgrade`, `outerLoopScriptDrift` | Task 6 | The script half of the same two callers |
-| `readActiveRuns`, `pidIsAlive`, `RUNNING_STATUS` | Task 7, `cli/src/core/runRegistry.ts` | The run registry, read for a refusal |
+| `planOuterLoopScriptUpgrade`, `outerLoopScriptDrift`, `RESTART_WATCHER_SCRIPT_NAME` | Task 6 | The script half of the same two callers, and the restart script's one spelling |
+| `readRegistryRecords`, `readActiveRuns`, `pidIsAlive`, `RUNNING_STATUS` | Task 7, `cli/src/core/runRegistry.ts` | The run registry's one parser and record walk, and the refusal's reading of it |
 | `installedPluginVersion` | Task 7, `cli/src/machine/plugins.ts` | The plugin version, when one can be read |
 | `resolveUpgradeTarget` | Task 8 | Every repository-level refusal |
 | `upgradeReport` | Task 9 | What the run says |
@@ -49,17 +50,17 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_init_upgrade/task_<K>_p
 1. [ ] **Task 1** — Add the atomic `replace-if-changed` write policy and `gitCommonDir` _(layer: cli)_ _(points: 20)_
 2. [ ] **Task 2** — Read and validate the local permission additions file _(layer: cli)_ _(points: 15)_
 3. [ ] **Task 3** — Write-protect and ignore the local additions file _(layer: cli)_ _(points: 10)_
-4. [ ] **Task 4** — Merge local additions when the permission profile is rendered _(layer: cli)_ _(points: 15)_
+4. [ ] **Task 4** — Merge local additions when the permission profile is rendered _(layer: cli)_ _(points: 20)_
 5. [ ] **Task 5** — Add the profile upgrade planner, entry delta and drift comparison _(layer: cli)_ _(points: 15)_
 6. [ ] **Task 6** — Add the outer-loop script upgrade planner and drift reader _(layer: cli)_ _(points: 10)_
-7. [ ] **Task 7** — Add the run-registry reader and the installed plugin version reader _(layer: cli)_ _(points: 10)_
+7. [ ] **Task 7** — Add the run-registry reader and the installed plugin version reader _(layer: cli)_ _(points: 15)_
 8. [ ] **Task 8** — Add the `--upgrade` repository refusals _(layer: cli)_ _(points: 10)_
 9. [ ] **Task 9** — Add the `--upgrade` report _(layer: cli)_ _(points: 10)_
 10. [ ] **Task 10** — Wire `init --upgrade` end to end _(layer: cli)_ _(points: 20)_
 11. [ ] **Task 11** — Add the `doctor` drift and version checks _(layer: cli)_ _(points: 20)_
 12. [ ] **Task 12** — Prove an upgraded profile passes the watcher's per-run check _(layer: cli)_ _(points: 8)_
-13. [ ] **Task 13** — Update the CLI package and template READMEs _(layer: cli)_ _(points: 5)_
-14. [ ] **Task 14** — Point the plugin contracts at `init --upgrade` _(layer: plugin)_ _(points: 8)_
+13. [ ] **Task 13** — Update the CLI template READMEs and re-run statements _(layer: cli)_ _(points: 10)_
+14. [ ] **Task 14** — Point the plugin contracts at `init --upgrade` _(layer: plugin)_ _(points: 10)_
 15. [ ] **Task 15** — Document `init --upgrade` in `docs/cli.md` _(layer: general)_ _(points: 20)_
 16. [ ] **Task 16** — Update the remaining adopter and contributor documents _(layer: general)_ _(points: 15)_
 17. [ ] **Task 17** — Bring the root ignore file and the notes-app example in step _(layer: general)_ _(points: 10)_
@@ -99,6 +100,14 @@ The `cli/src/core/writer.ts` table is a source comment rather than corpus text, 
 
 `grep -rnI --include='*.md' -e 'plugin marketplace update' -e 'update the plugin' -e 'updating the plugin' -e 'lag a plugin upgrade' -e 'plugin upgrade' docs/cli.md docs/config.md docs/watcher.md docs/remote-execution.md docs/flow-graph-walker.md README.md plugin cli/README.md`
 
+**Derivation entry D5 — hand-edit instructions and shared re-run claims (command).**
+
+`grep -rnIE 'their re-run contract|as for the scripts it calls|upgrade route, as for|one literal entry here|one more entry here|Add to it freely|yours once written|init --force.{1,2} rewrites it|without .init --force. leaves' cli/templates plugin/scripts examples/notes-app/.claude/settings.autonomous.json docs/cli.md cli/src/core/writer.ts`
+
+**Derivation entry D6 — the forced run named outside Markdown, and the self-adopted script copies (command).**
+
+`grep -rnIE 'init --force|--force run|re-run it with --force|ADD THEM BY HAND' cli/templates/scripts cli/templates/github/workflows cli/templates/githooks cli/templates/repo cli/templates/claude/settings.autonomous.json cli/templates/claude/settings.autonomous.qa.json cli/templates/claude/settings.autonomous.retrieval.json plugin/scripts examples/notes-app/.claude/settings.autonomous.json scripts/autonomous-watcher.sh scripts/task-offer-check.sh`
+
 **Derivation entry P1 — the sections the prompt names (procedure).** **Artifact:** `docs/cli.md` and `docs/config.md`. **Traversal:** in `docs/cli.md`, the `## 2.` flag table, every row and bullet of `## 3. The re-run contract`, the opening of `## 6.`, and the check table and check bullets of `## 7.`; in `docs/config.md`, `## 1. The three resolution classes`. **Decision rule:** a row or paragraph is a site when it states how many write policies exist, what happens to the outer-loop scripts or the profile on a re-run, who owns the profile, or the list of `doctor` checks, or when the new flag or local file belongs beside it.
 
 **Derivation entry P2 — the template and example descriptions (procedure).** **Artifact:** `cli/templates/claude/README.md`, `cli/templates/repo/README.md`, `examples/notes-app/README.md`. **Traversal:** each file's paragraphs in order, reading those about the permission profile or the managed ignore block. **Decision rule:** a paragraph is a site when it enumerates the profile's parts, or states a figure or history of `examples/notes-app/.claude/settings.autonomous.json` that this branch's re-render changes.
@@ -132,7 +141,7 @@ No standing matrix under `harness-runs/` tracks these files, so no row-class ent
 | 21 | `docs/cli.md` → `## 7.` check table (three rows are added) | — | P1 | `change` | Task 15 |
 | 22 | `docs/cli.md` → `## 7.` bullet `forge` | — | D2 | `no-change` | That warning concerns the forge workflows, which `--upgrade` does not write |
 | 23 | `docs/cli.md` → `## 7.` bullet `command-wrappers` | — | D2 | `no-change` | It concerns wrappers |
-| 24 | `docs/cli.md` → `## 7.` bullet `command-permissions` | — | D2 | `no-change` | It reports the message the check prints, which still names `init --force` |
+| 24 | `docs/cli.md` → `## 7.` bullet `command-permissions` ("the profile is a file the adopter owns") | — | D2, P1 | `change` | Task 15 — only the ownership clause; the printed remedy stands |
 | 25 | `docs/cli.md` → `## 7.` bullet `profile-paths` ("the profile is hand-tuned") | — | D1, D2 | `change` | Task 15 — only the ownership clause; the printed remedy stands |
 | 26 | `docs/cli.md` → `## 7.` bullet `plugin-permissions` | — | D2 | `no-change` | The carry-forward it describes stays, and the check's message is unchanged |
 | 27 | `docs/cli.md` → `## 7.` bullet `profile-main-anchor` | — | D2 | `no-change` | It reports the check's printed remedy |
@@ -170,7 +179,7 @@ No standing matrix under `harness-runs/` tracks these files, so no row-class ent
 | 59 | `plugin/agents/layer-implementer.md` → "**A sandbox refusal is the boundary working, in every mode.**" ("followed by `init --force`") | — | D2 | `change` | Task 14 |
 | 60 | `plugin/scripts/README.md` → "**One adopter step these scripts need**" | — | D2 | `change` | Task 14 |
 | 61 | `cli/README.md` → the global-flags sentence naming `--force` | — | D2 | `no-change` | It lists global flags, and `--upgrade` is an `init` flag |
-| 62 | `cli/templates/scripts/README.md` → the fenced `npx devscene init --force` | — | D2 | `change` | Task 13 |
+| 62 | `cli/templates/scripts/README.md` → the fenced `npx devscene init --force` | — | D2, D6 | `change` | Task 13 |
 | 63 | `cli/templates/claude/settings.autonomous.json` → `_README` "UNATTENDED SETTINGS PROFILE" | template | D1 | `change` | Task 4 |
 | 64 | `cli/templates/claude/settings.autonomous.json` → `_README` "COMPLETENESS IS LOAD-BEARING" | template | D1 | `change` | Task 4 |
 | 65 | `examples/notes-app/.claude/settings.autonomous.json` → `_README` "UNATTENDED SETTINGS PROFILE" | rendered example | D1 | `change` | Task 17 |
@@ -180,3 +189,38 @@ No standing matrix under `harness-runs/` tracks these files, so no row-class ent
 | 69 | `cli/templates/claude/README.md` → the paragraph on the profile fragments | — | P2 | `change` | Task 13 |
 | 70 | `cli/templates/repo/README.md` → the paragraph on the managed ignore block | — | P2 | `change` | Task 13 |
 | 71 | `examples/notes-app/README.md` → the profile's `/workspace` figures and re-render history | — | P2 | `change` | Task 17 |
+| 72 | `docs/cli.md` → `## 7.` bullet `profile-write-protection` ("the profile is a file the adopter owns") | — | P1 | `change` | Task 15 — only the ownership clause; the printed remedy stands |
+| 73 | `docs/cli.md` → `## 3.` row `.github/workflows/devscene-trigger.yml` ("shares their re-run contract") | — | P1, D5 | `change` | Task 15 |
+| 74 | `docs/cli.md` → `## 3.` row `.github/workflows/devscene-control.yml` ("shares their re-run contract") | — | P1, D5 | `change` | Task 15 |
+| 75 | `cli/templates/claude/settings.autonomous.json` → `_README` "THE PACKAGE MANAGER" ("one literal entry here") | template | D5 | `change` | Task 4 |
+| 76 | `cli/templates/claude/settings.autonomous.json` → `_README` "`deny` IS A FLOOR" ("Add to it freely") | template | D5 | `change` | Task 4 |
+| 77 | `cli/templates/claude/settings.autonomous.qa.json` → `_README` "THE BROWSER HALF" ("yours once written") | template | D5, D6 | `change` | Task 4 |
+| 78 | `cli/templates/claude/settings.autonomous.qa.json` → `_README` "THE ALLOWED TOOL SET" ("one more entry here") | template | D5 | `change` | Task 4 |
+| 79 | `cli/templates/claude/settings.autonomous.qa.json` → `_README` "THE PORT PROBE" ("add the one line by hand") | template | D6 | `change` | Task 4 |
+| 80 | `cli/templates/claude/settings.autonomous.qa.json` → `_README` "THE PHASE'S OWN HELPER SCRIPTS" | template | D6 | `change` | Task 4 — the carry-forward is stated for `--upgrade` too |
+| 81 | `cli/templates/claude/settings.autonomous.retrieval.json` → `_README` "THE DOCS-RETRIEVAL HALF" | template | D5, D6 | `change` | Task 4 |
+| 82 | `examples/notes-app/.claude/settings.autonomous.json` → `_README` "THE PACKAGE MANAGER" | rendered example | D5 | `change` | Task 17 |
+| 83 | `examples/notes-app/.claude/settings.autonomous.json` → `_README` "`deny` IS A FLOOR" | rendered example | D5 | `change` | Task 17 |
+| 84 | `examples/notes-app/.claude/settings.autonomous.json` → `_README` "THE BROWSER HALF" | rendered example | D5, D6 | `change` | Task 17 |
+| 85 | `examples/notes-app/.claude/settings.autonomous.json` → `_README` "THE ALLOWED TOOL SET" | rendered example | D5 | `change` | Task 17 |
+| 86 | `examples/notes-app/.claude/settings.autonomous.json` → `_README` "THE PORT PROBE" | rendered example | D6 | `change` | Task 17 |
+| 87 | `examples/notes-app/.claude/settings.autonomous.json` → `_README` "THE PHASE'S OWN HELPER SCRIPTS" | rendered example | D6 | `change` | Task 17 |
+| 88 | `cli/templates/github/workflows/devscene-trigger.yml` → **WHO WRITES IT** ("their re-run contract") | — | D5, D6 | `change` | Task 13 |
+| 89 | `cli/templates/github/workflows/devscene-control.yml` → **WHO WRITES IT** ("their re-run contract") | — | D5, D6 | `change` | Task 13 |
+| 90 | `cli/templates/github/workflows/devscene-trigger.yml` → the action pin comment ("only when `init --force` replaces it") | — | D6 | `no-change` | It is this workflow's own route, which stays the forced run |
+| 91 | `cli/templates/github/workflows/devscene-control.yml` → the action pin comment ("only when `init --force` replaces it") | — | D6 | `no-change` | It is this workflow's own route, which stays the forced run |
+| 92 | `cli/templates/github/workflows/devscene-run.yml` → the `deliver` step comment ("without `init --force`") | — | D6 | `change` | Task 13 — the scripts lacking the verb now come current through `--upgrade` |
+| 93 | `cli/src/core/writer.ts` → re-run table row `.github/workflows/devscene-trigger.yml` ("as for the scripts it calls") | — | D5 | `change` | Task 1 |
+| 94 | `cli/src/core/writer.ts` → re-run table row `.github/workflows/devscene-control.yml` ("as for the scripts it calls") | — | D5 | `change` | Task 1 |
+| 95 | `cli/templates/scripts/task-offer-check.sh` → **TWO SETTLED STATES** ("upgrade route, as for every outer-loop script") | template | D5, D6 | `change` | Task 13 |
+| 96 | `scripts/task-offer-check.sh` → **TWO SETTLED STATES** | self-adopted | D6 | `no-change` | It is `init`'s output in this checkout, brought current from the template by a re-render after this branch lands, not edited by hand |
+| 97 | `cli/templates/scripts/autonomous-watcher.sh` → `PLANNING_DRIVER_OFF_REASON` message ("rewrites it") | template | D5, D6 | `change` | Task 13 |
+| 98 | `cli/templates/scripts/autonomous-watcher.sh` → `run analytics` log message ("rewrites it") | template | D5, D6 | `change` | Task 13 |
+| 99 | `scripts/autonomous-watcher.sh` → `PLANNING_DRIVER_OFF_REASON` message | self-adopted | D6 | `no-change` | The reason in row 96 |
+| 100 | `scripts/autonomous-watcher.sh` → `run analytics` log message | self-adopted | D6 | `no-change` | The reason in row 96 |
+| 101 | `plugin/scripts/reserve-qa-user.sh` → header comment ("changed without `init --force`") | — | D5, D6 | `change` | Task 14 |
+| 102 | `cli/templates/githooks/pre-push` → the comment naming `init --force` | — | D6 | `no-change` | It is the hook's route, and `--upgrade` does not write the hook |
+| 103 | `cli/templates/githooks/README.md` → the sentence naming `init --force` | — | D6 | `no-change` | It is the hook's route, and `--upgrade` does not write the hook |
+| 104 | `cli/templates/repo/gitignore` → the comment on the two workflows' `.bak` copies | — | D6 | `no-change` | It concerns the workflows' backups, which `--upgrade` does not take |
+| 105 | `cli/templates/repo/mcp.retrieval.json` → `_comment_docs_retrieval` ("needs `init --force` to reach it") | — | D6 | `change` | Task 13 |
+| 106 | `cli/templates/scripts/lib/harness-run-lib.sh` → the protected-branch comment ("only after `init --force`") | — | D6 | `no-change` | It is the hook's route, and `--upgrade` does not write the hook |
