@@ -118,6 +118,20 @@ function changedKeys(before, after) {
 const statusLines = async (dir) =>
   (await runGit(dir, ['status', '--porcelain'])).stdout.split('\n').filter((line) => line !== '');
 
+/** Records a plugin root under the repository's agent-runner home; no `version`, no manifest there. */
+function recordPlugin(repo, version) {
+  const root = join(repo.home, 'plugin-root');
+  mkdirSync(join(root, '.claude-plugin'), { recursive: true });
+  mkdirSync(join(repo.home, 'plugins'), { recursive: true });
+  writeFileSync(
+    join(repo.home, 'plugins', 'installed_plugins.json'),
+    formatJson({ version: 2, plugins: { [PLUGIN_KEY]: [{ scope: 'user', installPath: root }] } }),
+  );
+  if (version !== undefined) {
+    writeFileSync(join(root, '.claude-plugin', 'plugin.json'), formatJson({ name: 'devscene', version }));
+  }
+}
+
 /**
  * A wired repository holding everything an upgrade must leave alone, committed, plus one edited
  * outer-loop script and a profile that has lost one generated entry and gained a retired one.
@@ -262,6 +276,43 @@ test('an active run refuses the upgrade, and a dry run reports that it would', a
   assert.match(stdout, WOULD_REFUSE);
   assert.deepEqual(await snapshotTree(repo.dir), before);
   assert.deepEqual(backupRuns(repo), []);
+});
+
+for (const [name, pluginVersion, remedy] of [
+  [
+    'a plugin older than this CLI',
+    '0.0.0',
+    'update the plugin with `claude plugin update devscene@devscene`, restart any open session, then run `npx devscene@latest init --upgrade`',
+  ],
+  ['a CLI older than the plugin', '9999.0.0', 'run `npx devscene@latest init --upgrade`'],
+]) {
+  test(`${name} refuses the upgrade before anything is written`, async (t) => {
+    const repo = await filled(t);
+    recordPlugin(repo, pluginVersion);
+    const { version: cliVersion } = readJson(join(PACKAGE_ROOT, 'package.json'));
+    const before = await snapshotTree(repo.dir);
+
+    const result = await repo.run(UPGRADE);
+
+    assert.equal(result.status, 1, result.stdout);
+    assert.ok(
+      result.stderr.includes(
+        `refusing to upgrade: the installed plugin is version ${pluginVersion} and this CLI is version ${cliVersion}; ${remedy}`,
+      ),
+      result.stderr,
+    );
+    assert.deepEqual(await snapshotTree(repo.dir), before);
+    assert.deepEqual(backupRuns(repo), []);
+  });
+}
+
+test('a recorded plugin root with no readable manifest does not stop the upgrade', async (t) => {
+  const repo = await filled(t);
+  recordPlugin(repo, undefined);
+
+  const { stdout } = await upgrade(repo);
+
+  assert.match(stdout, /^Upgrade complete: \d+ files? changed\.$/m);
 });
 
 test("the harness's own repository is refused unless self-adoption is asked for", async (t) => {

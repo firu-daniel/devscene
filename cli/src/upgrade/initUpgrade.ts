@@ -18,8 +18,9 @@ import { pinnedCliCommand } from '../generators/githubWorkflows.js';
 import { daemonLoadedScriptPaths, planOuterLoopScriptUpgrade } from '../generators/outerLoopScripts.js';
 import { PROFILE_LOCAL_PATH } from '../generators/profileEntries.js';
 import { planProfileUpgrade } from '../generators/profileUpgrade.js';
+import { pluginCliMismatch } from '../machine/pluginCliVersion.js';
 import { installedPluginVersion } from '../machine/plugins.js';
-import { resolveUpgradeTarget } from './preconditions.js';
+import { pluginVersionNotes, resolveUpgradeTarget } from './preconditions.js';
 import { upgradeReport } from './report.js';
 
 /** Where backups live under the git common directory, which every checkout shares and git never lists. */
@@ -49,6 +50,10 @@ export function runInitUpgrade(
   const target = resolveUpgradeTarget({ cwd: ctx.cwd, dryRun, assertRepositoryAllowed });
   const { repoRoot, config } = target;
 
+  const pluginVersion = installedPluginVersion(repoRoot);
+  const cliVersion = ownManifestString('version');
+  const versionNotes = pluginVersionNotes({ mismatch: pluginCliMismatch(pluginVersion, cliVersion), dryRun });
+
   const plan = new WritePlan();
   const scripts = planOuterLoopScriptUpgrade({ repoRoot, config, plan });
   const profile = planProfileUpgrade({ repoRoot, config, plan, referenceToolchainPath, dryRun });
@@ -56,8 +61,6 @@ export function runInitUpgrade(
   const backupDir = backupDirectory(target.gitCommonDir);
   const applied = plan.apply({ repoRoot, report, dryRun, force: false, backupDir });
 
-  const pluginVersion = installedPluginVersion(repoRoot);
-  const cliVersion = ownManifestString('version');
   const outcome = upgradeReport({
     dryRun,
     daemonLoadedPaths: daemonLoadedScriptPaths(repoRoot, config),
@@ -79,7 +82,7 @@ export function runInitUpgrade(
     pluginCliCommand: pluginVersion === undefined ? undefined : pinnedCliCommand(pluginVersion),
   });
 
-  for (const note of [...target.notes, ...profile.notes]) report.info(note);
+  for (const note of [...target.notes, ...versionNotes, ...profile.notes]) report.info(note);
   for (const warning of profile.warnings) report.warn(warning);
   for (const note of outcome.notes) report.info(note);
   for (const warning of outcome.warnings) report.warn(warning);

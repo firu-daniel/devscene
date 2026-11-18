@@ -15,7 +15,7 @@
 Each entry resolves to a self-contained `harness-runs/user_reviews/feat_init_upgrade_fix_plan/finding_<K>.md` file through its `**Finding K**` reference. Finding numbers match the user's observation numbers. The list runs from lowest blast radius to widest, and it is also the dependency order: Findings 2, 3 and 5 build on Finding 1, and Finding 4 documents the finished behaviour.
 
 1. [x] **Finding 6** — Stop advising the local file for bare MCP allow entries and browser deny entries. _(layer: cli)_
-2. [ ] **Finding 1** — Refuse a plugin and CLI version mismatch before the upgrade writes anything. _(layer: cli)_
+2. [x] **Finding 1** — Refuse a plugin and CLI version mismatch before the upgrade writes anything. _(layer: cli)_
 3. [ ] **Finding 2** — Report a version mismatch as a dry-run note and still show the preview. _(layer: cli)_
 4. [ ] **Finding 3** — Keep a version mismatch a warning under harness self-adoption. _(layer: cli)_
 5. [ ] **Finding 5** — Make the doctor remedy and upgrade report update the older half. _(layer: cli)_

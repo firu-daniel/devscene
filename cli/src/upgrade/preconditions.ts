@@ -20,6 +20,11 @@ import { gitCommonDir, mainWorktreeRoot, probeRepoRoot } from '../core/git.js';
 import { nameList } from '../core/nameList.js';
 import { pidIsAlive, pidNumber, readRegistryRecords, RUNNING_STATUS } from '../core/runRegistry.js';
 import { runRegistryPath } from '../generators/writeProtection.js';
+import {
+  pluginCliMismatchRemedy,
+  pluginCliMismatchSummary,
+  type PluginCliMismatch,
+} from '../machine/pluginCliVersion.js';
 
 /** The repository an upgrade may proceed in. */
 export interface UpgradeTarget {
@@ -190,6 +195,25 @@ function checkRunCopy(root: string, commonDir: string, config: HarnessConfig): R
     ({ record }) => record['worktree'] === root && record['copy_kind'] === 'clone',
   );
   return recorded ? { kind: 'run-copy', main: candidate } : NOT_A_RUN_COPY;
+}
+
+/** What {@link pluginVersionNotes} is asked. */
+export interface PluginVersionRequest {
+  readonly mismatch: PluginCliMismatch | undefined;
+  readonly dryRun: boolean;
+}
+
+/**
+ * Refuses a real run on a plugin and CLI version mismatch; a dry run is not refused.
+ *
+ * The caller reads the versions, and {@link resolveUpgradeTarget} must not: its suite calls it in
+ * process with no scratch agent-runner home, so a read there would grade the host's real plugin.
+ */
+export function pluginVersionNotes({ mismatch, dryRun }: PluginVersionRequest): readonly string[] {
+  if (mismatch === undefined || dryRun) return [];
+  throw new HarnessError(
+    `${REFUSAL_PREFIX}: ${pluginCliMismatchSummary(mismatch)}; ${pluginCliMismatchRemedy(mismatch)}`,
+  );
 }
 
 /**
