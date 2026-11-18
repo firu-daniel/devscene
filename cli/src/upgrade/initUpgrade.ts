@@ -18,7 +18,7 @@ import { pinnedCliCommand } from '../generators/githubWorkflows.js';
 import { daemonLoadedScriptPaths, planOuterLoopScriptUpgrade } from '../generators/outerLoopScripts.js';
 import { PROFILE_LOCAL_PATH } from '../generators/profileEntries.js';
 import { planProfileUpgrade } from '../generators/profileUpgrade.js';
-import { pluginCliMismatch } from '../machine/pluginCliVersion.js';
+import { pluginCliMismatch, pluginCliMismatchWarning } from '../machine/pluginCliVersion.js';
 import { installedPluginVersion } from '../machine/plugins.js';
 import { pluginVersionNotes, resolveUpgradeTarget } from './preconditions.js';
 import { upgradeReport } from './report.js';
@@ -55,13 +55,8 @@ export function runInitUpgrade(
 
   const pluginVersion = installedPluginVersion(repoRoot);
   const cliVersion = ownManifestString('version');
-  const versionNotes = pluginVersionNotes({
-    mismatch: pluginCliMismatch(pluginVersion, cliVersion),
-    dryRun,
-    selfAdopted: target.selfAdopted,
-  });
-  // Any other run's mismatch has already refused or become a note; the report's warning would contradict it.
-  const reportedPluginVersion = target.selfAdopted ? pluginVersion : undefined;
+  const mismatch = pluginCliMismatch(pluginVersion, cliVersion);
+  const versionNotes = pluginVersionNotes({ mismatch, dryRun, selfAdopted: target.selfAdopted });
 
   const plan = new WritePlan();
   const scripts = planOuterLoopScriptUpgrade({ repoRoot, config, plan });
@@ -85,10 +80,9 @@ export function runInitUpgrade(
     localFileIgnored: existsSync(join(repoRoot, PROFILE_LOCAL_PATH))
       ? pathIsIgnored(repoRoot, PROFILE_LOCAL_PATH)
       : undefined,
-    cliVersion,
     cliCommand: pinnedCliCommand(cliVersion),
-    pluginVersion: reportedPluginVersion,
-    pluginCliCommand: reportedPluginVersion === undefined ? undefined : pinnedCliCommand(reportedPluginVersion),
+    // Any other run's mismatch has already refused or become a note; the report's warning would contradict it.
+    pluginMismatchWarning: target.selfAdopted && mismatch !== undefined ? pluginCliMismatchWarning(mismatch) : undefined,
   });
 
   for (const note of [...target.notes, ...versionNotes, ...profile.notes]) report.info(note);

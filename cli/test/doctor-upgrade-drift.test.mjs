@@ -39,6 +39,7 @@ const TOOLCHAIN_COMMAND = 'reference-analyze';
 const TOOLCHAIN_ENTRY = `Bash(/opt/reference/${TOOLCHAIN_COMMAND}:*)`;
 const STRAY_PLUGIN_ENTRY = 'Bash(bash /tmp/absent-plugin/scripts/helper.sh:*)';
 const OTHER_VERSION = '0.0.0-other';
+const NEWER_VERSION = '9999.0.0';
 
 async function temporaryDir(t) {
   const fixture = await createFixture({ git: false });
@@ -286,8 +287,24 @@ describe('doctor upgrade drift', { concurrency: CASE_CONCURRENCY }, () => {
     writeFileSync(manifest, formatJson({ name: 'devscene', version: OTHER_VERSION }));
     const line = warning(await doctor(repo), VERSION_CHECK);
     const cliVersion = ownManifestString('version');
-    assert.ok(line.includes(OTHER_VERSION) && line.includes(cliVersion), line);
-    assert.ok(line.includes(`npx ${ownManifestString('name')}@${OTHER_VERSION} ${REMEDY}`), line);
+    const latest = `npx ${ownManifestString('name')}@latest ${REMEDY}`;
+    assert.ok(
+      line.includes(
+        `The installed plugin is version ${OTHER_VERSION} and this CLI is version ${cliVersion}. Update the plugin with \`claude plugin update devscene@devscene\`, restart any open session, then run \`${latest}\`.`,
+      ),
+      line,
+    );
+    assert.ok(!line.includes(`@${OTHER_VERSION}`), line);
+
+    writeFileSync(manifest, formatJson({ name: 'devscene', version: NEWER_VERSION }));
+    const newer = warning(await doctor(repo), VERSION_CHECK);
+    assert.ok(
+      newer.includes(
+        `The installed plugin is version ${NEWER_VERSION} and this CLI is version ${cliVersion}. Run \`${latest}\`.`,
+      ),
+      newer,
+    );
+    assert.ok(!newer.includes('claude plugin update'), newer);
 
     writeFileSync(manifest, formatJson({ name: 'devscene', version: cliVersion }));
     assert.ok(checkLine(await doctor(repo), 'PASS', VERSION_CHECK).includes(cliVersion));

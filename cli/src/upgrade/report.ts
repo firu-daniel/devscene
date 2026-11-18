@@ -38,12 +38,10 @@ export interface UpgradeReportInput {
   readonly backupDir: string;
   /** `undefined` when there is no local file to ask about. */
   readonly localFileIgnored: boolean | undefined;
-  readonly cliVersion: string;
   /** The `pinnedCliCommand(cliVersion)` value: what the restart script runs the daemon verbs through. */
   readonly cliCommand: string;
-  readonly pluginVersion: string | undefined;
-  /** The `pinnedCliCommand(pluginVersion)` value; `undefined` when `pluginVersion` is. */
-  readonly pluginCliCommand: string | undefined;
+  /** The `pluginCliMismatchWarning(mismatch)` value, set only for a self-adopted run. */
+  readonly pluginMismatchWarning: string | undefined;
 }
 
 /** The lines of one report, for `Reporter.info`, `Reporter.warn` and `Reporter.result`. */
@@ -151,7 +149,7 @@ function removedEntriesWarning(
 /** Turn the outcome of an upgrade or a dry run into the lines the command reports. */
 export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
   const { dryRun, daemonLoadedPaths, scriptsDir, applied, delta, settingChanges, localAdditionCount, backupDir } = input;
-  const { previousUnreadable, localFileIgnored, cliVersion, cliCommand, pluginVersion, pluginCliCommand } = input;
+  const { previousUnreadable, localFileIgnored, cliCommand, pluginMismatchWarning } = input;
   const { startedMcpServers, browserMcpServers } = input;
 
   const notes: string[] = [...profileLines(delta, dryRun)];
@@ -197,12 +195,7 @@ export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
   if (localFileIgnored === false) {
     warnings.push(`${PROFILE_LOCAL_PATH} is not ignored by git: a plain ${CLI} init merges the ignore rule.`);
   }
-  if (pluginVersion !== undefined && pluginCliCommand !== undefined && pluginVersion !== cliVersion) {
-    warnings.push(
-      `The installed plugin is version ${pluginVersion} and this CLI is version ${cliVersion}: ` +
-        `run ${pluginCliCommand} init --upgrade, from the CLI of the plugin's version.`,
-    );
-  }
+  if (pluginMismatchWarning !== undefined) warnings.push(pluginMismatchWarning);
   if (previousUnreadable) {
     warnings.push(
       `The previous ${PROFILE_PATH} could not be read, so the old profile could not be compared: ` +

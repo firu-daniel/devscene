@@ -31,7 +31,8 @@
  *    {@link pidIsAlive}, the permission profile's drift is `generators/profileUpgrade.ts`'s
  *    {@link profileDrift} and the outer-loop scripts' `generators/outerLoopScripts.ts`'s
  *    {@link outerLoopScriptDrift}, both the comparison `init --upgrade` acts on, the installed plugin's
- *    version is `machine/plugins.ts`'s {@link installedPluginVersion}, the
+ *    version is `machine/plugins.ts`'s {@link installedPluginVersion} and its comparison with this
+ *    CLI `machine/pluginCliVersion.ts`'s {@link pluginCliMismatch}, the
  *    remote-execution switch is `config/model.ts`'s {@link remoteExecutionApplies} and the
  *    issue-trigger switch its {@link forgeTriggerApplies}, the workflow paths and the binary run as
  *    `gh` are `remote/githubActions.ts`'s ({@link WORKFLOW_RUN_PATH}, {@link WORKFLOW_RESUME_PATH},
@@ -270,6 +271,7 @@ import {
 } from '../generators/scripts.js';
 import { RUN_LOGS_DIR, RUN_REGISTRY_FILENAME, selectedStateDirs } from '../generators/stateDir.js';
 import { machineConfigDir } from '../machine/paths.js';
+import { pluginCliMismatch, pluginCliMismatchWarning } from '../machine/pluginCliVersion.js';
 import {
   installedPluginsPath,
   installedPluginVersion,
@@ -5916,8 +5918,8 @@ const PLUGIN_PERMISSIONS_CHECK: Check = {
  * Is the plugin installed on this machine the version of this CLI?
  *
  * A machine with no readable version passes and says so, for the reason `machine/plugins.ts` gives:
- * "not installed" is {@link PLUGIN_PERMISSIONS_CHECK}'s to report. The remedy pins the plugin's version
- * because the scripts and profile have to come from the CLI released with that plugin.
+ * "not installed" is {@link PLUGIN_PERMISSIONS_CHECK}'s to report. The remedy updates whichever half
+ * is older, so it never moves this CLI back to an older plugin.
  */
 const PLUGIN_CLI_VERSION_CHECK: Check = {
   id: 'plugin-cli-version',
@@ -5928,10 +5930,9 @@ const PLUGIN_CLI_VERSION_CHECK: Check = {
     if (pluginVersion === undefined) {
       return pass(`no installed plugin version could be read on this machine, so nothing was compared with this CLI's ${cliVersion}`);
     }
-    if (pluginVersion === cliVersion) return pass(`the installed plugin and this CLI are both version ${cliVersion}`);
-    return warn(
-      `the installed plugin is version ${pluginVersion} and this CLI is version ${cliVersion}. Run \`${pinnedCliCommand(pluginVersion)} init --upgrade\`, from the CLI of the plugin's version`,
-    );
+    const mismatch = pluginCliMismatch(pluginVersion, cliVersion);
+    if (mismatch === undefined) return pass(`the installed plugin and this CLI are both version ${cliVersion}`);
+    return warn(pluginCliMismatchWarning(mismatch));
   },
 };
 

@@ -39,10 +39,8 @@ const report = (overrides = {}) =>
     localAdditionCount: 0,
     backupDir: BACKUP_DIR,
     localFileIgnored: undefined,
-    cliVersion: '1.2.3',
     cliCommand: 'npx devscene@1.2.3',
-    pluginVersion: undefined,
-    pluginCliCommand: undefined,
+    pluginMismatchWarning: undefined,
     ...overrides,
   });
 
@@ -392,17 +390,17 @@ test('a local file git does not ignore is named, in either mode, and only then',
   }
 });
 
-test('a differing plugin version names both versions, in either mode', () => {
+test('a supplied plugin mismatch warning appears unchanged and once, in either mode', () => {
+  const pluginMismatchWarning = 'the supplied mismatch sentence';
   for (const dryRun of [false, true]) {
-    assert.deepEqual(report({ pluginVersion: '1.2.0', pluginCliCommand: 'npx devscene@1.2.0', dryRun }).warnings, [
-      "The installed plugin is version 1.2.0 and this CLI is version 1.2.3: run npx devscene@1.2.0 init --upgrade, from the CLI of the plugin's version.",
-    ]);
+    assert.deepEqual(report({ pluginMismatchWarning, dryRun }).warnings, [pluginMismatchWarning]);
   }
 });
 
-test('no version line when the versions match or the plugin version is unreadable', () => {
-  assert.deepEqual(report({ pluginVersion: '1.2.3', pluginCliCommand: 'npx devscene@1.2.3' }).warnings, []);
-  assert.deepEqual(report({ pluginVersion: undefined }).warnings, []);
+test('no version line when no plugin mismatch warning is supplied, in either mode', () => {
+  for (const dryRun of [false, true]) {
+    assert.deepEqual(report({ pluginMismatchWarning: undefined, dryRun }).warnings, []);
+  }
 });
 
 test('an unreadable previous profile is reported as not compared, in either mode', () => {
@@ -422,8 +420,7 @@ test('all of the wording is plain ASCII', () => {
     previousUnreadable: true,
     localAdditionCount: 3,
     localFileIgnored: false,
-    pluginVersion: '9.9.9',
-    pluginCliCommand: 'npx devscene@9.9.9',
+    pluginMismatchWarning: 'The installed plugin is version 9.9.9 and this CLI is version 1.2.3.',
   };
   for (const dryRun of [false, true]) {
     for (const line of allLines(report({ ...everything, dryRun }))) {

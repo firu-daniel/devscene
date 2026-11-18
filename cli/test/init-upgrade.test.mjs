@@ -141,10 +141,14 @@ function markAsHarness(repo) {
   writeFileSync(join(repo.dir, 'cli', 'package.json'), formatJson({ name }));
 }
 
-/** The opening of the report's warning about a plugin at `pluginVersion`. */
-function versionsDiffer(pluginVersion) {
-  const { version } = readJson(join(PACKAGE_ROOT, 'package.json'));
-  return `The installed plugin is version ${pluginVersion} and this CLI is version ${version}`;
+/** Asserts `stderr` carries the forward remedy and neither stream pins the CLI to the plugin's version. */
+function assertForwardWarning({ stdout, stderr }, pluginVersion, remedy) {
+  const { name, version } = readJson(join(PACKAGE_ROOT, 'package.json'));
+  const warning = `The installed plugin is version ${pluginVersion} and this CLI is version ${version}. ${remedy}`;
+  assert.ok(stderr.includes(warning), stderr);
+  const pinned = `${name}@${pluginVersion}`;
+  assert.ok(!stdout.includes(pinned), stdout);
+  assert.ok(!stderr.includes(pinned), stderr);
 }
 
 /**
@@ -375,18 +379,22 @@ test("the harness's own repository is refused unless self-adoption is asked for"
   await upgrade(repo, UPGRADE, SELF_ADOPT);
 });
 
-for (const [name, pluginVersion] of [
-  ['an older plugin', '0.0.0'],
-  ['a newer plugin', '9999.0.0'],
+for (const [name, pluginVersion, remedy] of [
+  [
+    'an older plugin',
+    '0.0.0',
+    'Update the plugin with `claude plugin update devscene@devscene`, restart any open session, then run `npx devscene@latest init --upgrade`.',
+  ],
+  ['a newer plugin', '9999.0.0', 'Run `npx devscene@latest init --upgrade`.'],
 ]) {
   test(`self-adoption with ${name} upgrades and warns`, async (t) => {
     const repo = await filled(t);
     markAsHarness(repo);
     recordPlugin(repo, pluginVersion);
 
-    const { stderr } = await upgrade(repo, UPGRADE, SELF_ADOPT);
+    const result = await upgrade(repo, UPGRADE, SELF_ADOPT);
 
-    assert.ok(stderr.includes(versionsDiffer(pluginVersion)), stderr);
+    assertForwardWarning(result, pluginVersion, remedy);
     assert.deepEqual(readFileSync(repo.scriptPath(SCRATCH_RUN)), shipped(SCRATCH_RUN));
   });
 
@@ -396,10 +404,10 @@ for (const [name, pluginVersion] of [
     recordPlugin(repo, pluginVersion);
     const before = await snapshotTree(repo.dir);
 
-    const { stdout, stderr } = await upgrade(repo, DRY_RUN, SELF_ADOPT);
+    const result = await upgrade(repo, DRY_RUN, SELF_ADOPT);
 
-    assert.ok(stderr.includes(versionsDiffer(pluginVersion)), stderr);
-    assert.ok(!stdout.includes('a real --upgrade run would refuse'), stdout);
+    assertForwardWarning(result, pluginVersion, remedy);
+    assert.ok(!result.stdout.includes('a real --upgrade run would refuse'), result.stdout);
     assert.deepEqual(await snapshotTree(repo.dir), before);
   });
 }
