@@ -20,6 +20,7 @@ import { isJsonObject, readJsonFile, valueAt, type JsonObject, type JsonValue } 
 import { workRoot } from '../core/paths.js';
 import type { WritePlan } from '../core/writer.js';
 import {
+  browserServerNames,
   CREDENTIAL_LISTS,
   ENABLED_SERVERS_KEY,
   enabledServers,
@@ -37,6 +38,9 @@ import { SANDBOX_KEY } from './sandboxProfile.js';
 
 /** The one list whose plugin-root shapes {@link profileDrift} accepts. */
 export const ALLOW_LIST_PATH = 'permissions.allow';
+
+/** The one list from which the local file refuses an entry naming a browser tool. */
+export const DENY_LIST_PATH = 'permissions.deny';
 
 /** One list the render can produce. */
 export interface ProfileEntryList {
@@ -104,6 +108,8 @@ export interface ProfileUpgradePlan {
   readonly settingChanges: readonly string[];
   /** The MCP servers {@link rendered} starts. The local file cannot add to them. */
   readonly startedMcpServers: readonly string[];
+  /** The `browserServerNames()` value. The local file cannot deny their tools. */
+  readonly browserMcpServers: readonly string[];
   readonly localAdditionCount: number;
   /** A file exists at {@link path} and is not a readable JSON object. */
   readonly previousUnreadable: boolean;
@@ -242,6 +248,7 @@ export function planProfileUpgrade({
     delta: profileEntryDelta(previous, rendered),
     settingChanges: previous === undefined ? [] : profileSettingChanges(previous, rendered),
     startedMcpServers: enabledServers(rendered),
+    browserMcpServers: browserServerNames(),
     localAdditionCount: localAdditions?.count ?? 0,
     previousUnreadable: unreadable,
     warnings,

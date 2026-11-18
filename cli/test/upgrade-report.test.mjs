@@ -34,6 +34,7 @@ const report = (overrides = {}) =>
     delta: [],
     settingChanges: [],
     startedMcpServers: [],
+    browserMcpServers: ['playwright'],
     previousUnreadable: false,
     localAdditionCount: 0,
     backupDir: BACKUP_DIR,
@@ -188,6 +189,87 @@ test('every refused entry is named, however many there are', () => {
   const warning = removedWarning([allowRemoved(...entries)]);
   for (const entry of entries) assert.ok(warning.includes(entry), entry);
   assert.ok(!warning.includes('more'), warning);
+});
+
+const BROWSER_TOOL = 'mcp__playwright__browser_click';
+const BROWSER_SERVER = 'mcp__playwright';
+const noToolReason = (subject) => `because ${subject} an MCP server and no tool`;
+const BROWSER_REASON = "because a deny naming a browser tool would revoke the interactive-test agent's own grant";
+const denyRemoved = (...removed) => ({ list: 'permissions.deny', added: [], removed });
+
+test('an allow entry naming a server and no tool is told it cannot move, singular and plural, in either mode', () => {
+  assert.equal(
+    removedWarning([allowRemoved('mcp__foo')]),
+    `1 permissions.allow entry was removed and cannot be moved to ${LOCAL_FILE}, ${noToolReason('it names')}: mcp__foo.`,
+  );
+  assert.equal(
+    removedWarning([allowRemoved('mcp__foo')], { dryRun: true }),
+    `1 permissions.allow entry would be removed and cannot be moved to ${LOCAL_FILE}, ${noToolReason('it names')}: mcp__foo.`,
+  );
+  assert.equal(
+    removedWarning([allowRemoved('mcp__foo', 'mcp__bar')]),
+    `2 permissions.allow entries were removed and cannot be moved to ${LOCAL_FILE}, ${noToolReason('they name')}: mcp__foo, mcp__bar.`,
+  );
+  assert.equal(
+    removedWarning([allowRemoved('mcp__foo', 'mcp__bar')], { dryRun: true }),
+    `2 permissions.allow entries would be removed and cannot be moved to ${LOCAL_FILE}, ${noToolReason('they name')}: mcp__foo, mcp__bar.`,
+  );
+});
+
+test('a deny entry naming a browser tool is told it cannot move, singular and plural, in either mode', () => {
+  assert.equal(
+    removedWarning([denyRemoved(BROWSER_TOOL)]),
+    `1 permissions.deny entry was removed and cannot be moved to ${LOCAL_FILE}, ${BROWSER_REASON}: ${BROWSER_TOOL}.`,
+  );
+  assert.equal(
+    removedWarning([denyRemoved(BROWSER_TOOL)], { dryRun: true }),
+    `1 permissions.deny entry would be removed and cannot be moved to ${LOCAL_FILE}, ${BROWSER_REASON}: ${BROWSER_TOOL}.`,
+  );
+  assert.equal(
+    removedWarning([denyRemoved(BROWSER_TOOL, BROWSER_SERVER)]),
+    `2 permissions.deny entries were removed and cannot be moved to ${LOCAL_FILE}, ${BROWSER_REASON}: ${BROWSER_TOOL}, ${BROWSER_SERVER}.`,
+  );
+  assert.equal(
+    removedWarning([denyRemoved(BROWSER_TOOL, BROWSER_SERVER)], { dryRun: true }),
+    `2 permissions.deny entries would be removed and cannot be moved to ${LOCAL_FILE}, ${BROWSER_REASON}: ${BROWSER_TOOL}, ${BROWSER_SERVER}.`,
+  );
+});
+
+test('all three refused groups and a movable entry are each named once, under their own sentence', () => {
+  assert.equal(
+    removedWarning([allowRemoved('Bash(old)', UNSTARTED_TOOL, 'mcp__foo'), denyRemoved(BROWSER_TOOL)]),
+    `The generator does not produce 1 profile entry, so they were removed and were not moved automatically: Bash(old). Any of these still wanted in ${LOCAL_LISTS} belongs in ${LOCAL_FILE}, followed by another npx devscene init --upgrade. ` +
+      `1 permissions.allow entry was removed and cannot be moved to ${LOCAL_FILE}, because this profile does not start its MCP server: ${UNSTARTED_TOOL}. ` +
+      `1 permissions.allow entry was removed and cannot be moved to ${LOCAL_FILE}, ${noToolReason('it names')}: mcp__foo. ` +
+      `1 permissions.deny entry was removed and cannot be moved to ${LOCAL_FILE}, ${BROWSER_REASON}: ${BROWSER_TOOL}.`,
+  );
+});
+
+test('a bare allow entry is refused even when the profile starts that server', () => {
+  assert.equal(
+    removedWarning([allowRemoved(BROWSER_SERVER)]),
+    `1 permissions.allow entry was removed and cannot be moved to ${LOCAL_FILE}, ${noToolReason('it names')}: ${BROWSER_SERVER}.`,
+  );
+});
+
+test('a deny of a non-browser server stays movable', () => {
+  assert.equal(
+    removedWarning([denyRemoved('mcp__other__read')]),
+    `The generator does not produce 1 profile entry, so they were removed and were not moved automatically: mcp__other__read. Anything still wanted in ${LOCAL_LISTS} belongs in ${LOCAL_FILE}, followed by another npx devscene init --upgrade.`,
+  );
+});
+
+test('the browser servers are the ones the report is given', () => {
+  const warning = removedWarning([denyRemoved(BROWSER_TOOL)], { browserMcpServers: ['other-browser'] });
+  assert.ok(warning.startsWith('The generator does not produce 1 profile entry'), warning);
+  assert.ok(!warning.includes('cannot be moved'), warning);
+});
+
+test('a browser-named entry in permissions.ask stays movable', () => {
+  const warning = removedWarning([{ list: 'permissions.ask', added: [], removed: [BROWSER_TOOL] }]);
+  assert.ok(warning.startsWith('The generator does not produce 1 profile entry'), warning);
+  assert.ok(warning.includes('Anything still wanted'), warning);
+  assert.ok(!warning.includes('cannot be moved'), warning);
 });
 
 test('entries that were only added raise no warning', () => {

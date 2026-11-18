@@ -965,9 +965,10 @@ export function browserServerNames(): readonly string[] {
  * whole-server `mcp__<server>` and the per-tool `mcp__<server>__<tool>`, with or without a trailing
  * `*`? Matched against {@link browserServerNames} rather than on the bare `mcp__` prefix, so a deny
  * of an unrelated MCP server is neither refused here nor reported as a browser deny by `doctor`.
+ * A caller that must read no file passes `servers`.
  */
-export function namesBrowserTool(entry: string): boolean {
-  return browserServerNames().some((server) => {
+export function namesBrowserTool(entry: string, servers: readonly string[] = browserServerNames()): boolean {
+  return servers.some((server) => {
     const namespace = `${MCP_ENTRY_PREFIX}${server}`;
     const index = entry.indexOf(namespace);
     if (index < 0) return false;
@@ -1022,6 +1023,11 @@ function mcpEntryServer(entry: string): string | undefined {
 export function namesUnstartedMcpServer(entry: string, started: readonly string[]): boolean {
   const server = mcpEntryServer(entry);
   return server !== undefined && !started.includes(server);
+}
+
+/** Is this an MCP entry naming no server and tool? {@link assertLocalAdditionsUsable} refuses it from `allow`. */
+export function namesMcpServerWithoutTool(entry: string): boolean {
+  return entry.startsWith(MCP_ENTRY_PREFIX) && mcpEntryServer(entry) === undefined;
 }
 
 /** The servers the profile starts for the run, or none when it carries no such key. */

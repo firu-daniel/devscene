@@ -12,10 +12,10 @@
 import { nameList } from '../core/nameList.js';
 import type { WriteEffect, WriteResult } from '../core/writer.js';
 import { RESTART_WATCHER_SCRIPT_NAME } from '../generators/outerLoopScripts.js';
-import { namesUnstartedMcpServer } from '../generators/permissionProfile.js';
+import { namesBrowserTool, namesMcpServerWithoutTool, namesUnstartedMcpServer } from '../generators/permissionProfile.js';
 import { PROFILE_LOCAL_PATH, PROFILE_PATH } from '../generators/profileEntries.js';
 import { LOCAL_ADDITION_LISTS } from '../generators/profileLocal.js';
-import { ALLOW_LIST_PATH, type ProfileEntryDelta } from '../generators/profileUpgrade.js';
+import { ALLOW_LIST_PATH, DENY_LIST_PATH, type ProfileEntryDelta } from '../generators/profileUpgrade.js';
 import { scriptInvocation } from '../generators/scripts.js';
 
 /** What {@link upgradeReport} is told about the run. */
@@ -31,6 +31,8 @@ export interface UpgradeReportInput {
   readonly settingChanges: readonly string[];
   /** The `ProfileUpgradePlan.startedMcpServers` value. */
   readonly startedMcpServers: readonly string[];
+  /** The `ProfileUpgradePlan.browserMcpServers` value. */
+  readonly browserMcpServers: readonly string[];
   readonly previousUnreadable: boolean;
   readonly localAdditionCount: number;
   readonly backupDir: string;
@@ -82,31 +84,67 @@ function movableEntriesAdvice(movable: readonly string[], anyRefused: boolean, d
   );
 }
 
+/** One kind of entry `assertLocalAdditionsUsable` refuses from the local file. */
+interface RefusedGroup {
+  readonly list: string;
+  readonly refuses: (entry: string) => boolean;
+  /** The clause after `because`, agreeing with whether one entry is named. */
+  readonly reason: (one: boolean) => string;
+}
+
+function refusedGroups(startedMcpServers: readonly string[], browserMcpServers: readonly string[]): readonly RefusedGroup[] {
+  return [
+    {
+      list: ALLOW_LIST_PATH,
+      refuses: (entry) => namesUnstartedMcpServer(entry, startedMcpServers),
+      reason: (one) => `this profile does not start ${one ? 'its MCP server' : 'their MCP servers'}`,
+    },
+    {
+      list: ALLOW_LIST_PATH,
+      refuses: (entry) => namesMcpServerWithoutTool(entry),
+      reason: (one) => `${one ? 'it names' : 'they name'} an MCP server and no tool`,
+    },
+    {
+      list: DENY_LIST_PATH,
+      refuses: (entry) => namesBrowserTool(entry, browserMcpServers),
+      reason: () => "a deny naming a browser tool would revoke the interactive-test agent's own grant",
+    },
+  ];
+}
+
 /** Every entry is spelled out, past `nameList`'s cap: the notes naming them do not survive `--quiet`. */
-function refusedEntriesNotice(refused: readonly string[], dryRun: boolean): string {
+function refusedEntriesNotice({ list, reason }: RefusedGroup, refused: readonly string[], dryRun: boolean): string {
   const one = refused.length === 1;
-  const entries = counted(refused.length, `${ALLOW_LIST_PATH} entry`, `${ALLOW_LIST_PATH} entries`);
+  const entries = counted(refused.length, `${list} entry`, `${list} entries`);
   const verb = dryRun ? 'would be' : one ? 'was' : 'were';
-  const servers = one ? 'its MCP server' : 'their MCP servers';
   return (
-    `${entries} ${verb} removed and cannot be moved to ${PROFILE_LOCAL_PATH}, because this profile does not start ` +
-    `${servers}: ${refused.join(', ')}.`
+    `${entries} ${verb} removed and cannot be moved to ${PROFILE_LOCAL_PATH}, because ${reason(one)}: ` +
+    `${refused.join(', ')}.`
   );
 }
 
 function removedEntriesWarning(
   delta: readonly ProfileEntryDelta[],
   startedMcpServers: readonly string[],
+  browserMcpServers: readonly string[],
   dryRun: boolean,
 ): string {
-  const refusedIn = (list: string, entry: string): boolean =>
-    list === ALLOW_LIST_PATH && namesUnstartedMcpServer(entry, startedMcpServers);
-  const refused = delta.flatMap(({ list, removed }) => removed.filter((entry) => refusedIn(list, entry)));
-  const movable = delta.flatMap(({ list, removed }) => removed.filter((entry) => !refusedIn(list, entry)));
+  const groups = refusedGroups(startedMcpServers, browserMcpServers);
+  const refused = groups
+    .map((group) => ({
+      group,
+      entries: delta.flatMap(({ list, removed }) =>
+        list === group.list ? removed.filter((entry) => group.refuses(entry)) : [],
+      ),
+    }))
+    .filter(({ entries }) => entries.length > 0);
+  const movable = delta.flatMap(({ list, removed }) =>
+    removed.filter((entry) => !groups.some((group) => group.list === list && group.refuses(entry))),
+  );
 
   const parts: string[] = [];
   if (movable.length > 0) parts.push(movableEntriesAdvice(movable, refused.length > 0, dryRun));
-  if (refused.length > 0) parts.push(refusedEntriesNotice(refused, dryRun));
+  for (const { group, entries } of refused) parts.push(refusedEntriesNotice(group, entries, dryRun));
   return parts.join(' ');
 }
 
@@ -114,13 +152,13 @@ function removedEntriesWarning(
 export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
   const { dryRun, daemonLoadedPaths, scriptsDir, applied, delta, settingChanges, localAdditionCount, backupDir } = input;
   const { previousUnreadable, localFileIgnored, cliVersion, cliCommand, pluginVersion, pluginCliCommand } = input;
-  const { startedMcpServers } = input;
+  const { startedMcpServers, browserMcpServers } = input;
 
   const notes: string[] = [...profileLines(delta, dryRun)];
   const warnings: string[] = [];
 
   if (delta.some(({ removed }) => removed.length > 0)) {
-    warnings.push(removedEntriesWarning(delta, startedMcpServers, dryRun));
+    warnings.push(removedEntriesWarning(delta, startedMcpServers, browserMcpServers, dryRun));
   }
   if (settingChanges.length > 0) {
     const names = settingChanges.join(', ');

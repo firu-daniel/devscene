@@ -373,6 +373,28 @@ test('a retired entry for a server the profile does not start is not sent to the
   assert.ok(!real.stderr.includes('still wanted'), real.stderr);
 });
 
+test('retired entries the local file would refuse for their shape are not sent to it', async (t) => {
+  const repo = await wired(t);
+  const bare = 'mcp__retired-server';
+  const browserDeny = 'mcp__playwright__browser_click';
+  editProfile(repo, (profile) => {
+    profile.permissions.allow.push(bare);
+    profile.permissions.deny.push(browserDeny);
+  });
+  const bareRefusal = `cannot be moved to ${PROFILE_LOCAL_PATH}, because it names an MCP server and no tool: ${bare}.`;
+  const denyRefusal = `cannot be moved to ${PROFILE_LOCAL_PATH}, because a deny naming a browser tool would revoke the interactive-test agent's own grant: ${browserDeny}.`;
+
+  const dry = await upgrade(repo, DRY_RUN);
+  assert.ok(dry.stderr.includes(`1 permissions.allow entry would be removed and ${bareRefusal}`), dry.stderr);
+  assert.ok(dry.stderr.includes(`1 permissions.deny entry would be removed and ${denyRefusal}`), dry.stderr);
+  assert.ok(!dry.stderr.includes('still wanted'), dry.stderr);
+
+  const real = await upgrade(repo);
+  assert.ok(real.stderr.includes(`1 permissions.allow entry was removed and ${bareRefusal}`), real.stderr);
+  assert.ok(real.stderr.includes(`1 permissions.deny entry was removed and ${denyRefusal}`), real.stderr);
+  assert.ok(!real.stderr.includes('still wanted'), real.stderr);
+});
+
 test('a setting outside the entry lists is reset and named, and a dry run names it first', async (t) => {
   const repo = await wired(t);
   editProfile(repo, (profile) => {
