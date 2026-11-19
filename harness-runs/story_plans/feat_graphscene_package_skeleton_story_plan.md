@@ -58,7 +58,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_graphs
 1. [x] **Task 1** — Create the `graphscene/` package: manifest, empty typed `graphscene` package, the import-boundary test and its README _(layer: general)_ _(points: 20)_
 2. [x] **Task 2** — Add `graphscene` to `scripts/python-service.sh`'s package table, refuse `run` and `container-test` on a row without them, and lock the package _(layer: general)_ _(points: 10)_
 3. [x] **Task 3** — Add gate 13's GraphScene legs 13e–13g to `scripts/run-gates.sh` and retitle gate 13 as the Python packages _(layer: general)_ _(points: 10)_
-4. [ ] **Task 4** — Pin the `graphscene` row, its two refusals and the two-row `provision` in `cli/test/python-service.test.mjs` _(layer: cli)_ _(points: 15)_
+4. [x] **Task 4** — Pin the `graphscene` row, its two refusals and the two-row `provision` in `cli/test/python-service.test.mjs` _(layer: cli)_ _(points: 15)_
 5. [ ] **Task 5** — Document gate 13's GraphScene legs in `docs/development.md` and move GraphScene's roadmap row to in progress _(layer: general)_ _(points: 10)_
 
 ## Scope register
