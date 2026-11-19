@@ -20,7 +20,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Skip a relative dynamic import in the boundary test's rule (b), as the static path already skips a relative `from` import _(layer: general)_
+1. [x] **Finding 1** — Skip a relative dynamic import in the boundary test's rule (b), as the static path already skips a relative `from` import _(layer: general)_
 
 ---
 

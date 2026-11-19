@@ -4,9 +4,10 @@ the standard library, itself and its declared runtime dependencies, never names
 
 `scan` parses every module under `src/graphscene/` with `ast` and flags (a) an `import` or an
 absolute `from ... import` of a top-level name outside the allowed set; (b) a call to
-`importlib.import_module`, `import_module` or `__import__` with a string-constant module name
-outside it; (c) any top-level name from (a) or (b) starting with `devscene`, allowed or not; and
-(d) any string constant containing `devscene.config.json`.
+`importlib.import_module`, `import_module` or `__import__` with an absolute string-constant module
+name outside it (a relative one, with a leading `.` or a non-zero constant `level`, is skipped, as
+a relative `from` import is); (c) any top-level name from (a) or (b) starting with `devscene`,
+allowed or not; and (d) any string constant containing `devscene.config.json`.
 
 Deliberately not covered:
 - `tests/` is not scanned, because this file has to carry the forbidden literal.
@@ -71,8 +72,18 @@ def _dynamic_import_target(call: ast.Call) -> str | None:
         return None
     first = call.args[0]
     if isinstance(first, ast.Constant) and isinstance(first.value, str):
+        if first.value.startswith(".") or _relative_level(call):
+            return None
         return first.value
     return None
+
+
+def _relative_level(call: ast.Call) -> bool:
+    level: ast.expr | None = call.args[4] if len(call.args) > 4 else None
+    for keyword in call.keywords:
+        if keyword.arg == "level":
+            level = keyword.value
+    return isinstance(level, ast.Constant) and isinstance(level.value, int) and level.value != 0
 
 
 def _imported_modules(node: ast.AST) -> list[tuple[int, str]]:
@@ -144,6 +155,18 @@ def test_rule_b_flags_a_constant_dynamic_import_outside_the_allowed_set(tmp_path
         _, violations = scan(package, _STDLIB_AND_SELF)
         line = source.count("\n")
         assert violations == [f"__init__.py:{line}: imports yaml, outside the allowed set"], name
+
+
+def test_a_relative_dynamic_import_is_not_flagged(tmp_path: Path) -> None:
+    sources = {
+        "dotted": 'import importlib\n\nimportlib.import_module(".engine", __package__)\n',
+        "positional_level": '__import__("engine", globals(), None, [], 1)\n',
+        "keyword_level": '__import__("engine", globals(), level=1)\n',
+    }
+    for name, source in sources.items():
+        package = _plant(tmp_path / name, source)
+        _, violations = scan(package, _STDLIB_AND_SELF)
+        assert violations == [], name
 
 
 def test_rule_c_flags_a_devscene_prefixed_import_even_when_allowed(tmp_path: Path) -> None:
