@@ -13,7 +13,7 @@ This branch creates GraphScene, the flow-graph navigation library of `ROADMAP.md
 5. **A table row serves only the sub-commands it can.** `graphscene` has no console script and no compose file. So `run` and `container-test` on that row exit `2` with a line naming the package and what it lacks, and they never reach `uv` or `docker`. Task 2 adds this, and Task 4 pins it.
 6. **The layer is a manual action owed after merge.** A `graphscene` row in `devscene.config.json` → `layers` needs a conventions document, and its `CLAUDE.md` row is under `.claude/`. Neither is work a run plans. The run reports it as an `undescribed-layer` staleness entry, and the steps are listed under **Manual setup required** below.
 
-**What no unit runs.** `## The test-run rule` forbids running a gate script or a test file outside `<test_file_cmd>`, so no task runs the new package's `pytest`, `ruff` or `mypy`. Their evidence is gate 13's legs 13e–13g in the Run gates round. Those legs grade `BLOCKED`, not failed, until the run copy is provisioned with the new row. This branch's copy was bootstrapped with the one-row wrapper. The first manual step below provisions it at Task 2's park, so that the round grades the legs for real. Without that step, the first real grading is the first hand run after merge.
+**What no unit runs.** `## The test-run rule` forbids running a gate script or a test file outside `<test_file_cmd>`, so no task runs the new package's `pytest`, `ruff` or `mypy`. Their evidence is gate 13's legs 13e–13g in the Run gates round. Those legs grade `BLOCKED`, not failed, until the run copy is provisioned with the new row. This branch's copy was bootstrapped with the one-row wrapper. The first manual step below provisions it at Task 2's park, so that the round grades the legs for real. Without that step, the first real grading is the first hand run after merge. That step has now been taken (clarification Q1), so this run's Run gates round is expected to grade 13e–13g rather than report them `BLOCKED`.
 
 **Ship order.** The three `general` tasks come first, because they create what is pinned: the package (Task 1), its wrapper row and lock (Task 2), and the gate legs (Task 3). The `cli` suite that pins the wrapper row follows (Task 4). The catch-all documentation task comes last (Task 5). This puts `cli` after `general` for the test task, against the configured layer order, because a suite cannot pin a table row that does not exist yet. `harness-runs/story_plans/fix_python_gate_run_copies_story_plan.md` ordered its wrapper and that wrapper's suite the same way.
 
@@ -25,7 +25,7 @@ This branch creates GraphScene, the flow-graph navigation library of `ROADMAP.md
 
 **Manual setup required:**
 
-- **When Task 2 parks on the lock** (expected in a sandboxed run), run these two commands from an ordinary unsandboxed terminal at the run copy's root, then resume the run. Depends on Task 2.
+- **When Task 2 parks on the lock** (expected in a sandboxed run), run these two commands from an ordinary unsandboxed terminal at the run copy's root, then resume the run. Depends on Task 2. **Done for this run:** Task 2 parked as expected (clarification Q1), and the user answered "lock produced". Both commands exited 0, `lock` resolving 14 packages and `provision` syncing both rows. `graphscene/uv.lock` is left untracked for Task 2's commit. The resumed Task 2 re-runs neither command; see its file's resume bullet.
 
   ```
   bash scripts/python-service.sh --package graphscene lock

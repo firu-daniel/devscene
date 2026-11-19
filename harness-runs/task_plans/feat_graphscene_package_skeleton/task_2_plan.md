@@ -32,10 +32,15 @@
   - It reaches PyPI and writes the shared `uv` cache. A sandboxed run is expected to refuse one or both.
   - **If the call is refused, exits non-zero or leaves no `graphscene/uv.lock`, return a blocker and commit nothing.** The blocker names these two commands, to be run from an unsandboxed terminal at this checkout's root, after which the task resumes: `bash scripts/python-service.sh --package graphscene lock`, then `bash scripts/python-service.sh provision`. They are the story index's first manual-setup step.
   - Never write or edit `uv.lock` by hand, and never land the row without the lock. A row with no lock makes `provision`'s `uv sync --frozen` fail for that row, and so the bootstrap of every later run copy.
+- [ ] **Resuming after the lock park (clarification Q1, answered (a) "lock produced").** The first attempt at this task parked on the lock: the sandbox refused the shared `uv` cache. The user then ran both manual-setup commands from an unsandboxed terminal at the run copy's root; both exited 0, `lock` resolving 14 packages and `provision` syncing both rows. The resumed task therefore:
+  - **Does not re-run `lock` or `provision`.** The sandbox refuses them exactly as before, and the lock now exists. The lock bullet above applies only when `graphscene/uv.lock` is absent.
+  - **Keeps the uncommitted `scripts/python-service.sh` edits already in the working copy** (the row, the two refusals, the header). Read them against the three bullets above and finish or correct them in place; never revert them and redo the work.
+  - **Leaves `graphscene/uv.lock` exactly as the user produced it**, untracked and unedited, so the commit step stages it beside `scripts/python-service.sh` in this task's one commit.
+  - Runs no `lint`, `typecheck` or `test` leg on the package. The user's check that those three exited 0 is a heads-up only, not this task's evidence; gate 13's legs 13e–13g grade them in the Run gates round.
 
 **Verification:**
 
-- `graphscene/uv.lock` exists and is in this task's change beside `scripts/python-service.sh`. Its root package entry is `name = "graphscene"`, and it pins `ruff`, `mypy` and `pytest`.
+- `graphscene/uv.lock` exists and is in this task's change beside `scripts/python-service.sh`. Its root package entry is `name = "graphscene"`, and it pins `ruff`, `mypy` and `pytest`. On the resumed attempt, `git status --short` shows exactly `M scripts/python-service.sh` and `?? graphscene/uv.lock` before the commit step runs. The lock is the user's file, not one this task wrote.
 - The new arms use no bash-4 construct (no `${var,,}`, no associative array), so the script still parses under `/bin/bash`, the 3.2 floor. Gate 16 grades that in the Run gates round. An unattended run refuses a free-standing `bash -n`.
 - `git diff scripts/python-service.sh` shows no change to the `# PROVIDES: provision` line.
 - Read the `run` and `container-test` arms: each empty-field check is the arm's first statement after its argument check, ahead of `require_env` and of the `command -v docker` probe.
