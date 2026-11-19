@@ -72,16 +72,23 @@ test('(b) the excluded places print nothing, while the clarifications README and
     '__pycache__/mod.pyc',
     'harness-runs/clarifications/some_branch/answer.md',
     'harness-runs/.flow_walker_state',
+    'docs-retrieval-service/.venv/pyvenv.cfg',
+    'docs-retrieval-service/.mypy_cache/3.12/mod.meta.json',
+    'docs-retrieval-service/.ruff_cache/0.1/cache',
+    'docs-retrieval-service/.pytest_cache/v/cache/nodeids',
+    'other-package/.venv/bin/activate',
   ];
   await writeTree(tree, {
     ...Object.fromEntries(silent.map((path) => [path, `${HIT_TEXT}\n`])),
     'harness-runs/clarifications/README.md': `${HIT_TEXT}\n`,
     'nested/.flow_walker_state': `${HIT_TEXT}\n`,
+    'docs-retrieval-service/venv-notes.txt': `${HIT_TEXT}\n`,
   });
   const run = await runCheck(tree);
   assert.equal(run.status, 0, run.stderr);
   const printed = run.stdout.split('\n').filter(Boolean).sort();
   assert.deepEqual(printed, [
+    `./docs-retrieval-service/venv-notes.txt:1:${HIT_TEXT}`,
     `./harness-runs/clarifications/README.md:1:${HIT_TEXT}`,
     `./nested/.flow_walker_state:1:${HIT_TEXT}`,
   ]);

@@ -35,7 +35,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/fix_python_
 2. [x] **Task 2** — Gate 6a skips the Python environment and tool-cache directories, and the root `.gitignore` ignores `.venv/` in any package _(layer: general)_ _(points: 8)_
 3. [x] **Task 3** — Bootstrap provisions the Python packages through `commands.depInstall`, and `run-gates.sh`'s gate-13 remedy names `provision` _(layer: general)_ _(points: 10)_
 4. [x] **Task 4** — Pin `python-service.sh`'s package selection, write locations and exit contract in `cli/test/python-service.test.mjs` _(layer: cli)_ _(points: 20)_
-5. [ ] **Task 5** — Extend `cli/test/check-machine-paths.test.mjs`'s excluded-places case to the four Python directories _(layer: cli)_ _(points: 5)_
+5. [x] **Task 5** — Extend `cli/test/check-machine-paths.test.mjs`'s excluded-places case to the four Python directories _(layer: cli)_ _(points: 5)_
 6. [ ] **Task 6** — Document run-copy provisioning, the in-tree environment and gate 6a's new exclusions in `docs/development.md`, the service README and `docs/retrieval-eval.md` _(layer: general)_ _(points: 15)_
 
 ## Scope register
