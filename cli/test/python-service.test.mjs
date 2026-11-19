@@ -237,12 +237,13 @@ test(`the legs under --package ${LIBRARY}: each records its argv, ${LIBRARY}/ an
   await assertNothingUnderHome(fixture, all);
 });
 
-test(`run and container-test under --package ${LIBRARY} exit 2 with the row's refusal line and call no uv`, async (t) => {
+test(`run, container-test and sync --with-models under --package ${LIBRARY} exit 2 with the row's refusal line and call no uv`, async (t) => {
   const fixture = await buildFixture(t);
   await fixture.plantVenv(LIBRARY);
   const refusals = [
     [['--package', LIBRARY, 'run', 'serve'], `python-service: package '${LIBRARY}' has no console script`],
     [['--package', LIBRARY, 'container-test'], `python-service: package '${LIBRARY}' has no container tests`],
+    [['--package', LIBRARY, 'sync', '--with-models'], `python-service: package '${LIBRARY}' has no models extra`],
   ];
   for (const [args, line] of refusals) {
     const result = await fixture.runScript(args);

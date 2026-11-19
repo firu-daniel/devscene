@@ -6,9 +6,10 @@
 # Hand-written, like `scripts/run-gates.sh`: not in the set `init --force` rewrites.
 #
 # The package table (`PACKAGES`, `package_row`) is closed: a package directory, repo-relative at the
-# root, with the console script `run` invokes and the compose project prefix `container-test` uses.
-# Its rows are `docs-retrieval-service` (`devscene-docs-retrieval`, `devscene-docs-retrieval-test`)
-# and `graphscene` (no console script, no compose project).
+# root, with the console script `run` invokes, the compose project prefix `container-test` uses and
+# the extra `sync --with-models` installs. Its rows are `docs-retrieval-service`
+# (`devscene-docs-retrieval`, `devscene-docs-retrieval-test`, `models`) and `graphscene` (no console
+# script, no compose project, no `models` extra).
 #
 # Sub-commands (paths and arguments are relative to the selected package's directory):
 #   [--package <dir>]    selects a table row, before the sub-command; default
@@ -40,7 +41,8 @@
 #   1  the tool reported failure (any non-zero status from it, pytest's own 2-5 included),
 #      container-test could not start its Postgres, or a `provision` sync failed
 #   2  usage: missing or unknown sub-command, an unknown package, or a bad option, or `run` /
-#      `container-test` on a row that has no console script / no compose project
+#      `container-test` on a row that has no console script / no compose project, or
+#      `sync --with-models` on a row that has no `models` extra
 #   3  not provisioned: `uv` is not on PATH, or no synced environment exists. Never from `provision`.
 #   4  container-test only: SKIPPED, because `docker` is not on PATH. A loud skip, not a pass.
 #
@@ -73,10 +75,12 @@ package_row() {
     docs-retrieval-service)
       row_console_script="devscene-docs-retrieval"
       row_compose_prefix="devscene-docs-retrieval-test"
+      row_models_extra="models"
       ;;
     graphscene)
       row_console_script=""
       row_compose_prefix=""
+      row_models_extra=""
       ;;
     *)
       return 1
@@ -197,7 +201,12 @@ case "$command_name" in
   sync)
     extra=()
     if [ "$#" -eq 1 ] && [ "$1" = "--with-models" ]; then
-      extra=(--extra models)
+      if [ -z "$row_models_extra" ]; then
+        echo "python-service: package '${package}' has no models extra" >&2
+        usage
+        exit 2
+      fi
+      extra=(--extra "$row_models_extra")
     elif [ "$#" -ne 0 ]; then
       usage
       exit 2

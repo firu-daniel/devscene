@@ -51,3 +51,6 @@ What happens next is up to `uv`, not the wrapper. If `uv` rejects the undefined 
    That test file is the one this fix edits, so it is the only test file the fix runs. The full suite runs in the Run gates phase.
 
 5. In `docs/development.md` → `**Gate 13 — the Python packages.**`'s closing paragraph, change "so `run` and `container-test` on it exit `2`" to "so `run` and `container-test` on it exit `2`, and so does `sync --with-models`, because it has no `models` extra".
+
+**Deviations from plan:**
+- `cli` layer dispatch implemented step 4 only; steps 1–3 (`scripts/python-service.sh`) and 5 (`docs/development.md`) lie outside `cli/` and belong to this finding's `general` layer dispatch. `npm test --workspace cli -- test/python-service.test.mjs` run after the `cli` edit: `# tests 13`, `# pass 12`, `# fail 1` — the failing test is the retitled refusal test, on its new `sync --with-models` entry (`0 !== 2`), because the `sync)` arm still hardcodes `extra=(--extra models)`. It is expected to pass once the `general` layer's script change lands; that dispatch's own rerun of this file is the after-result.
