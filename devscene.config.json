@@ -20,8 +20,8 @@
     "commandFamily": "npm",
     "review": {
       "verdict": "applied",
-      "rationale": "Read root package.json#workspaces, cli/package.json, cli/tsconfig.json, cli/src, cli/test, cli/templates, plugin/.claude-plugin/plugin.json, plugin/agents, plugin/commands, plugin/instructions and plugin/hooks; the compiled TypeScript CLI under cli/ and the Markdown agent/command/instruction contracts plus shell hooks under plugin/ are governed by different rules and different gates, so the single catch-all general row was split into cli, plugin and a retained general catch-all at path .",
-      "at": "2026-09-16"
+      "rationale": "Read docs-retrieval-service/pyproject.toml, graphscene/pyproject.toml, graphscene/README.md and scripts/python-service.sh PACKAGES; the two Python packages (ruff/mypy/pytest via scripts/python-service.sh) fell to the general catch-all and no conventions document covered them, so each was given its own layer and conventions document beside cli, plugin and the retained general catch-all at path .",
+      "at": "2026-11-19"
     }
   },
   "layers": [
@@ -34,6 +34,16 @@
       "name": "plugin",
       "path": "plugin",
       "conventions": ".claude/context/plugin.md"
+    },
+    {
+      "name": "docs-retrieval",
+      "path": "docs-retrieval-service",
+      "conventions": ".claude/context/docs-retrieval.md"
+    },
+    {
+      "name": "graphscene",
+      "path": "graphscene",
+      "conventions": ".claude/context/graphscene.md"
     },
     {
       "name": "general",
