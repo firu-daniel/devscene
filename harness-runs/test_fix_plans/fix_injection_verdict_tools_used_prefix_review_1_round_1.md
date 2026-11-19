@@ -13,7 +13,7 @@ Gate 13's three sub-gates (13a, 13b, 13c) report `BLOCKED` and 13d `SKIPPED`; th
 This list is the **single source of truth** for the fix loop. `[ ]` markers anywhere else in this plan or its per-finding files are informational only.
 
 1. [x] **Finding 2** — Replace the home-directory paths in three tracked review artifacts. _(layer: general)_
-2. [ ] **Finding 1** — Give the daemon-path test's gh stub a name no fixture path can contain. _(layer: cli)_
+2. [x] **Finding 1** — Give the daemon-path test's gh stub a name no fixture path can contain. _(layer: cli)_
 
 ## Must Fix
 

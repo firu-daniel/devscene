@@ -28,3 +28,9 @@ not ok 91 - daemon-path names gh when remote execution is on, and not when it is
 - [ ] In `cli/test/doctor.test.mjs`, change the value of `FIXTURE_GH_CLI` to a name that no fixture path or launchd label in this suite can contain — one that does not begin with `harness-fixture-` or with any other `mkdtemp` prefix the file uses (`harness-home-`, `harness-gh-stub-`, `harness-gh-answers-`, …), for example `'fixture-unit-gh-cli'`. Keep the constant's name and every use of it unchanged, so the `-absent` variants and the stub file name follow automatically.
 - [ ] Add a one-line comment above the constant stating why its value must not share a prefix with a fixture directory (the daemon-path case asserts its absence from a line that prints the fixture's path).
 - [ ] Do not weaken, skip or delete either assertion of the daemon-path test; the fix is the name alone.
+
+**Deviations from plan:**
+
+- Row-`G.4` check: the named test passed before the fix (`npm test --workspace cli -- test/doctor.test.mjs`: `ok 91`, `# tests 297`, `# pass 297`, `# fail 0`). I did not close it as already passing. The failure depends on the random `mkdtemp` suffix, so one passing run is not evidence of an earlier fix, and the fix site still held `const FIXTURE_GH_CLI = 'harness-fixture-gh';`. I implemented the fix as specified.
+- The after-fix pass shows that the new value breaks nothing. It cannot show the collision is gone, because the collision is probabilistic. That rests on reading the code: `'fixture-unit-gh-cli'` does not start with `harness-`, which every `mkdtemp` prefix in the file and `FIXTURE_PREFIX` use.
+- `cli/test/doctor-branch-protection.test.mjs` declares its own `FIXTURE_GH_CLI = 'harness-fixture-gh'`. It only uses it as a stub file name and never asserts on its absence, so I left it alone: it is outside this finding's scope.
