@@ -61,3 +61,8 @@ The file is hand-written (its own header says so) and is not in the set `init --
 - `grep -cx '# PROVIDES: provision' scripts/python-service.sh` prints `1`.
 - The usage string, the unknown-package line, the `SKIPPED` line, the `provisioned` line and the exit codes appear in the file exactly as spelled above. Task 4's suite asserts them byte for byte, so a respelling here is a break there.
 - The behaviour itself is pinned by Task 4's suite, which drives this file against a throwaway fixture with a fake `uv`. This task runs none of the wrapper's sub-commands, because each one is a gate-13 leg.
+
+**Deviations from plan:**
+
+- Spellings the plan left open, which Task 4 should pin as implemented: the unknown-package row list is joined with `, ` (comma and space); a missing `--package` value prints `unknown package ''`; the `--package` / unknown-package check runs before the checkout root is resolved, and `provision` is dispatched before the per-package `cd`, so a missing default package directory cannot block it; a `cd` failure inside a `provision` row is reported as that row's `failed (exit 1)`. The exit-`1` resolution message keeps today's wording with the package name in place of `docs-retrieval-service`.
+- Evidence: the four `**Verification:**` greps were run and matched the plan. A standalone `bash -n` parse of the wrapper was refused by the tool layer; the parse rests instead on `bash scripts/typecheck.sh`'s `check-shell-parse` step (bash 3.2.57, every `git ls-files`-listed `*.sh`, 0 failed).
