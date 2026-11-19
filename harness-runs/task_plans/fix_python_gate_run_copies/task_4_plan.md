@@ -70,6 +70,7 @@
   - With no `uv` on `PATH` it exits `0`, prints the `SKIPPED` line, and leaves `git status --porcelain --ignored` in the fixture unchanged.
   - `provision extra` and `--package docs-retrieval-service provision` each exit `2`.
   - `sync` records no `--no-cache`, and `sync --with-models` appends `--extra models`.
+  - The script carries exactly one line that is, in full, `# PROVIDES: provision`. Task 3's `commands.depInstall` line tests for that exact line before it runs `provision`, so a respelling would silently stop every run copy from provisioning. The assertion names that consumer.
 
 **Verification:**
 

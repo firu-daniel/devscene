@@ -51,11 +51,13 @@ The file is hand-written (its own header says so) and is not in the set `init --
     - Only `lock`, `sync` and `provision` touch the shared `uv` cache.
 
     It closes with the reason: a run copy's two sandboxes allow writes to that copy and to a temporary directory only (`scripts/launch-sandboxed-gates.sh` → `THE BWRAP VECTOR`).
+  - **The capability marker.** One header line that is, in full, `# PROVIDES: provision`, with a comment line right above it. That comment says Task 3's `commands.depInstall` line tests for this exact line with `grep -qx`, so that a checkout whose wrapper predates `provision` still bootstraps. It also says the line must not be reworded or removed while `provision` exists.
   - **`provision`'s trust.** A short paragraph: it runs unsandboxed from `commands.depInstall` during `setup-worktree.sh`'s bootstrap, inside the residual that script's header names (`THE RESIDUAL --target DOES NOT CLOSE`).
 
 **Verification:**
 
 - `grep -nE '^[^#]*(XDG_CACHE_HOME|\$HOME)' scripts/python-service.sh` prints nothing: no code line names the home directory any more.
 - Every line `grep -nE '^[^#]*uv run' scripts/python-service.sh` prints contains `--no-sync --no-cache`. No line `grep -nE '^[^#]*uv (lock|sync)' scripts/python-service.sh` prints contains `--no-cache`.
+- `grep -cx '# PROVIDES: provision' scripts/python-service.sh` prints `1`.
 - The usage string, the unknown-package line, the `SKIPPED` line, the `provisioned` line and the exit codes appear in the file exactly as spelled above. Task 4's suite asserts them byte for byte, so a respelling here is a break there.
 - The behaviour itself is pinned by Task 4's suite, which drives this file against a throwaway fixture with a fake `uv`. This task runs none of the wrapper's sub-commands, because each one is a gate-13 leg.
