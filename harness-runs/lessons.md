@@ -54,6 +54,8 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 
 - **When a check moves to reading a field one producer writes, the same change makes every path that stands in for that producer (a probe's setup, a fixture helper) write the field too.** _(taught by: fix_linux_detached_gate_run)_
 
+- **Before a strict parser accepts text a host tool adds to a result, check every position the tool can put it and whether the tool also rewrites the payload; recorded runs prove only the placements they captured.** _(taught by: fix_injection_verdict_tools_used_prefix)_
+
 ## Unattended control loops
 
 - **A process that turns off a shared switch another actor can turn on must check the enabling condition again after switching it off, and switch it back on if needed, so an enable that races its check is never undone.** _(taught by: feat_remote_execution_github_actions)_

@@ -5979,7 +5979,8 @@ test('Acceptance 1: with docs.retrievalBackend absent, doctor reports what an ex
  * above are spelled out.
  */
 const GH_CLI_VARIABLE = 'DEVSCENE_GH_CLI';
-const FIXTURE_GH_CLI = 'harness-fixture-gh';
+// Shares no prefix with any fixture or mkdtemp directory: the daemon-path case asserts its absence from a line printing the fixture's path.
+const FIXTURE_GH_CLI = 'fixture-unit-gh-cli';
 const REMOTE_RUN_WORKFLOW = '.github/workflows/devscene-run.yml';
 const REMOTE_RESUME_WORKFLOW = '.github/workflows/devscene-resume.yml';
 
