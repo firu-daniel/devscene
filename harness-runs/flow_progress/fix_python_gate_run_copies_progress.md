@@ -9,7 +9,7 @@ Source: harness-runs/task_prompts/fix_python_gate_run_copies_task_prompt.md → 
 ## Planning
 - [x] P0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/fix_python_gate_run_copies_task_prompt.md sha256=dd7e6c0d13a55095c72dbac3fe985f42315b62ec08ab279f20d924dd222ce043
-- [ ] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
+- [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
 - [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
