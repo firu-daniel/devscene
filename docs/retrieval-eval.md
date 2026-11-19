@@ -377,13 +377,13 @@ bash scripts/scratch-run.sh harness-runs/scratch/mcp-backend-pass.mjs python > h
 ```
 
 **5. The footprint**, each output appended to `footprint.txt`. The Python weight cache, the Xenova
-cache, and this checkout's synced Python environment, whose directory is keyed by the `cksum` of the
-checkout root (`scripts/python-service.sh` → `checkout_key`):
+cache, and this checkout's synced Python environment, `docs-retrieval-service/.venv`
+(`scripts/python-service.sh` → `WHERE IT WRITES`):
 
 ```
 du -sh "${XDG_CACHE_HOME:-$HOME/.cache}/devscene-docs-retrieval/models" >> harness-runs/scratch/backend-comparison/footprint.txt
 du -sh "${XDG_CACHE_HOME:-$HOME/.cache}/devscene/retrieval/models/Xenova" >> harness-runs/scratch/backend-comparison/footprint.txt
-du -sh "${XDG_CACHE_HOME:-$HOME/.cache}/devscene-docs-retrieval/venvs/$(printf '%s' "$(git rev-parse --show-toplevel)" | cksum | awk '{print $1}')" >> harness-runs/scratch/backend-comparison/footprint.txt
+du -sh docs-retrieval-service/.venv >> harness-runs/scratch/backend-comparison/footprint.txt
 ```
 
 Then, from `docs-retrieval-service/`, the two compose images — `service` lists nothing unless

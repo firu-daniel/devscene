@@ -45,3 +45,8 @@ This task edits exactly the sites the story index's `## Scope register` marks `c
 - `grep -n 'devscene-docs-retrieval/venvs\|checkout_key' docs/retrieval-eval.md docs/development.md docs-retrieval-service/README.md` prints nothing.
 - Every command this task writes into a document sits in a fenced block, one command per line (`harness-runs/lessons.md` → `## Adopter-facing documentation`, first rule).
 - Read the rewritten gate 13 paragraph against `scripts/python-service.sh`'s header and `scripts/run-gates.sh`'s `python_gate`. Every sub-command, flag, exit status and path the prose names exists there as spelled.
+
+**Deviations from plan:**
+
+- `docs-retrieval-service/README.md` → `## Standing it up`: the sentence after the new `provision` block ("For real models, install the `models` extra … instead. A plain `sync` afterwards removes it again") was reworded to "in place of a plain `sync`. A plain `sync`, or `provision`, afterwards removes it again", because with the `provision` block inserted above it "instead" no longer pointed at `sync`; `provision` runs the same `uv sync --frozen --group dev` with no `--extra models` (`scripts/python-service.sh` → the `provision` arm), so it removes the extra too.
+- `docs/development.md` gate 13: `sync` and `sync --with-models` each got their own fenced block (the plan required only `provision`'s), so no command is left inline.

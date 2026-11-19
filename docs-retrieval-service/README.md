@@ -16,13 +16,19 @@ It is local-only: a Postgres the operator runs, no hosted API and no key.
 
 ## Standing it up
 
-Every Python command goes through `scripts/python-service.sh`, run from the repository root. Install `uv` first. Provision the environment, which lives outside the checkout:
+Every Python command goes through `scripts/python-service.sh`, run from the repository root. Install `uv` first. Provision the environment, which lives in the checkout at `docs-retrieval-service/.venv`, with its tool caches beside it (`scripts/python-service.sh` → `WHERE IT WRITES`):
 
 ```
 bash scripts/python-service.sh sync
 ```
 
-For real models, install the `models` extra (`sentence-transformers`, `torch`) instead. A plain `sync` afterwards removes it again:
+A run copy's bootstrap runs `provision` instead, which syncs every package the wrapper serves, this one among them; run it the same way, outside any sandbox:
+
+```
+bash scripts/python-service.sh provision
+```
+
+For real models, install the `models` extra (`sentence-transformers`, `torch`) in place of a plain `sync`. A plain `sync`, or `provision`, afterwards removes it again:
 
 ```
 bash scripts/python-service.sh sync --with-models
@@ -164,7 +170,7 @@ The `DocStore` contract carried over method for method, `rebuildIndexes` include
 
 ## Testing
 
-The suite is gate 13 in `scripts/run-gates.sh`, which grades `lint`, `typecheck` and `test` through the wrapper by exit status (`docs/development.md` → `## 5. Verifying a change`). Each leg is reported `BLOCKED`, not failed, where `uv` or the synced environment is missing. To run the legs by hand:
+The suite is gate 13 in `scripts/run-gates.sh`, which grades `lint`, `typecheck` and `test` through the wrapper by exit status (`docs/development.md` → `## 5. Verifying a change`). Each leg is reported `BLOCKED`, not failed, where `uv` or the synced environment is missing. A run copy is provisioned at bootstrap: `commands.depInstall` runs `bash scripts/python-service.sh provision` wherever `uv` resolves. To run the legs by hand:
 
 ```
 bash scripts/python-service.sh lint
