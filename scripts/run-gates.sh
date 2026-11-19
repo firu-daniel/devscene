@@ -190,8 +190,7 @@ dot_namespace_hits() {
 # its bootstrap found no `uv`, or ran before `provision` was wired into `commands.depInstall`.
 # Status 4 is `container-test`'s no-Docker skip, honoured only when the caller says the leg may
 # produce it ($2 = skip4); on any other leg the wrapper never produces it, so it falls through to
-# a failure. 13c's bridge cases run
-# `cli/dist`, so 13c depends on gate 2a.
+# a failure. 13c's bridge cases run `cli/dist`, so 13c depends on gate 2a.
 python_gate() {
   local name="$1" skip4="$2"; shift 2
   local start=$SECONDS
