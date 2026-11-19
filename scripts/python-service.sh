@@ -173,7 +173,7 @@ if [ "$command_name" = "provision" ]; then
 fi
 
 if ! cd "$repo_root/$package"; then
-  echo "python-service: could not resolve ${package}/ from '${script_dir}' (is git on PATH?)" >&2
+  echo "python-service: no ${package}/ directory under the repository root '${repo_root}'" >&2
   exit 1
 fi
 export_locations "$package"
