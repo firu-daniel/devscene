@@ -14,7 +14,7 @@ The log's `SKIPPED` lines (13d Python container tests, 14d zizmor) and its `== g
 
 This list is the **single source of truth** for the fix loop: it walks these entries in order and flips only these markers. Any `[ ]` marker elsewhere in this plan or its per-finding files is informational only.
 
-1. [ ] **Finding 1** — Sort the `fakes` import after the `devscene_docs_retrieval` imports in seven service test files. _(layer: general)_
+1. [x] **Finding 1** — Sort the `fakes` import after the `devscene_docs_retrieval` imports in seven service test files. _(layer: general)_
 
 ## Must Fix
 

@@ -26,7 +26,6 @@ from mcp import Client, types
 from mcp.client.stdio import StdioServerParameters
 from mcp.shared.message import SessionMessage
 
-from fakes import FakeSession
 from devscene_docs_retrieval import mcp_server
 from devscene_docs_retrieval.jscompat import json_stringify
 from devscene_docs_retrieval.mcp_server import _encode_outgoing, _EncodingWriteStream, build_server
@@ -35,6 +34,7 @@ from devscene_docs_retrieval.service import CONFIG_FILENAME
 from devscene_docs_retrieval.store import DATABASE_URL_ENV
 from devscene_docs_retrieval.stubs import RETRIEVAL_STUB_ENV
 from devscene_docs_retrieval.wire import SEARCH_TOOL_NAME
+from fakes import FakeSession
 from ts_bridge import ts_fixture
 
 CORPUS = {
