@@ -1,0 +1,4836 @@
+{
+  "branch": "feat_graphscene_package_skeleton",
+  "gate_logs": [],
+  "rounds": [],
+  "run": {
+    "active_ms": 1116028,
+    "api_retries": 0,
+    "cache_hit_ratio": 0.9451,
+    "cache_read_tokens": 15007764,
+    "cache_write_1h_tokens": 740242,
+    "cache_write_5m_tokens": 0,
+    "cache_write_tokens": 871009,
+    "complete_sessions": 5,
+    "duration_api_ms": 1156829,
+    "duration_ms": 1208024,
+    "engine_sessions": 2,
+    "first_at": "2026-11-19T11:09:02.597Z",
+    "host_suspended_ms": 0,
+    "idle_ms": 0,
+    "input_tokens": 310,
+    "last_at": "2026-11-19T11:28:18.800Z",
+    "network": {
+      "gate_log_matches": [],
+      "gate_logs_scanned": 0,
+      "refusals": [],
+      "sessions_not_scanned": 0,
+      "sessions_scanned": 5
+    },
+    "node_sessions": 3,
+    "output_tokens": 122278,
+    "permission_denials": 3,
+    "planning_nodes": [
+      {
+        "active_ms": 491437,
+        "complete": true,
+        "duration_ms": 492992,
+        "idle_ms": 0,
+        "node": "1-plan_writer",
+        "session": 2,
+        "session_id": "9360c2b9-126e-46ea-bfff-9c4c64da0368",
+        "total_cost_usd": 3.275059,
+        "wall_ms": 491437
+      },
+      {
+        "active_ms": 83957,
+        "complete": true,
+        "duration_ms": 85370,
+        "idle_ms": 0,
+        "node": "2-architecture_review",
+        "session": 3,
+        "session_id": "2b50df55-3a37-43b9-9699-8e535c104c59",
+        "total_cost_usd": 1.255277,
+        "wall_ms": 83957
+      },
+      {
+        "active_ms": 260278,
+        "complete": true,
+        "duration_ms": 261720,
+        "idle_ms": 0,
+        "node": "3-plan_review",
+        "session": 4,
+        "session_id": "b8047493-e048-4900-ad0d-0625fd5aee21",
+        "total_cost_usd": 2.713381,
+        "wall_ms": 260278
+      }
+    ],
+    "rate_limit_peak": {
+      "seven_day": 0.31
+    },
+    "requests": {
+      "count": 150,
+      "max_ms": 55241,
+      "over_threshold": 0,
+      "p50_ms": 2075,
+      "p90_ms": 12053,
+      "p99_ms": 48613
+    },
+    "session_wall_sum_ms": 1199953,
+    "sessions": 5,
+    "slowest_subagent": {
+      "description": "Implement Task 1 (general)",
+      "duration_ms": 162056,
+      "session": 5,
+      "type": "devscene:layer-implementer"
+    },
+    "span_ms": 1156203,
+    "subagents_failed": 0,
+    "subagents_killed": 0,
+    "thinking_tokens": 48847,
+    "token_sessions": 5,
+    "total_cost_usd": 12.024124,
+    "wall_ms": 1116028
+  },
+  "schema": 4,
+  "sessions": [
+    {
+      "complete": true,
+      "cost": {
+        "by_model": {
+          "claude-opus-5-5": 0.8250249999999999
+        },
+        "cache_hit_ratio": 0.9067,
+        "cache_read_tokens": 751800,
+        "cache_write_1h_tokens": 60843,
+        "cache_write_5m_tokens": 0,
+        "cache_write_tokens": 77316,
+        "input_tokens": 34,
+        "output_tokens": 5271,
+        "thinking_tokens": 324,
+        "token_source": "model_usage",
+        "total_cost_usd": 0.8250249999999999
+      },
+      "first_at": "2026-11-19T11:09:02.597Z",
+      "kind": "engine",
+      "last_at": "2026-11-19T11:09:57.584Z",
+      "network_refusals": [],
+      "node": null,
+      "reliability": {
+        "api_retries": 0,
+        "api_retry_errors": {},
+        "num_turns": 23,
+        "permission_denials": 0,
+        "rate_limit_peak": {
+          "seven_day": 0.3
+        },
+        "stop_reason": "end_turn",
+        "subagents_failed": 0,
+        "subagents_killed": 0,
+        "subagents_spawned": 1,
+        "terminal_reason": "completed",
+        "ttft_ms": 1723
+      },
+      "requests": {
+        "by_context": {
+          "devscene:prompt-injection-reviewer": {
+            "count": 1,
+            "max_ms": 1966,
+            "over_threshold": 0,
+            "p50_ms": 1966,
+            "p90_ms": 1966,
+            "p99_ms": 1966
+          },
+          "orchestrator": {
+            "count": 14,
+            "max_ms": 7035,
+            "over_threshold": 0,
+            "p50_ms": 1602,
+            "p90_ms": 4941,
+            "p99_ms": 7035
+          }
+        },
+        "items": [
+          {
+            "after_retry": false,
+            "cache_read_tokens": 12121,
+            "cache_write_tokens": 25120,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": null,
+            "message_id": "msg_011ChCBXygWbpgYHo8yVFKhz",
+            "output_tokens": 4,
+            "started_at": "2026-11-19T11:09:02.597Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 37241,
+            "cache_write_tokens": 6741,
+            "context": "orchestrator",
+            "input_tokens": 4,
+            "latency_ms": 1558,
+            "message_id": "msg_011ChCBY8kDqaTgEhkBkDeDo",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:09:04.688Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 43982,
+            "cache_write_tokens": 4751,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 926,
+            "message_id": "msg_011ChCBYUqSfwSrqZ3uzoSnG",
+            "output_tokens": 35,
+            "started_at": "2026-11-19T11:09:08.749Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 48733,
+            "cache_write_tokens": 6735,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1602,
+            "message_id": "msg_011ChCBYmRMBvHmAoZPZz1gU",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:09:13.322Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 55468,
+            "cache_write_tokens": 249,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1520,
+            "message_id": "msg_011ChCBYuR4Jr2LDqmmqXwm4",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:09:15.111Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 55717,
+            "cache_write_tokens": 144,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2105,
+            "message_id": "msg_011ChCBZ3D7xM41TJFMzELRF",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:09:17.510Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 10501,
+            "context": "devscene:prompt-injection-reviewer",
+            "input_tokens": 2,
+            "latency_ms": 1966,
+            "message_id": "msg_011ChCBZCopqahUWAAxkUu55",
+            "output_tokens": 186,
+            "started_at": "2026-11-19T11:09:19.486Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 55861,
+            "cache_write_tokens": 483,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 3309,
+            "message_id": "msg_011ChCBZUSQmxMBziRUTgSF2",
+            "output_tokens": 17,
+            "started_at": "2026-11-19T11:09:24.606Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 56344,
+            "cache_write_tokens": 499,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2183,
+            "message_id": "msg_011ChCBZiq6U6LsZCZGurNRd",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:09:26.834Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 56843,
+            "cache_write_tokens": 364,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1181,
+            "message_id": "msg_011ChCBZuiwc8SqYK42cdxYu",
+            "output_tokens": 50,
+            "started_at": "2026-11-19T11:09:28.392Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 57207,
+            "cache_write_tokens": 381,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1480,
+            "message_id": "msg_011ChCBa93dgwmtvrQiTmj95",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:09:31.743Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 57588,
+            "cache_write_tokens": 4092,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1191,
+            "message_id": "msg_011ChCBaKwj1odiUWWrqAkuc",
+            "output_tokens": 7,
+            "started_at": "2026-11-19T11:09:34.085Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 61680,
+            "cache_write_tokens": 9405,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2335,
+            "message_id": "msg_011ChCBaVFZq1mtPGfcCn5zD",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:09:37.372Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 71085,
+            "cache_write_tokens": 344,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 7035,
+            "message_id": "msg_011ChCBakJBv5YPYn2RxEDRM",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:09:45.616Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 71429,
+            "cache_write_tokens": 1535,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 4941,
+            "message_id": "msg_011ChCBbnTS4xqya77gei2Mo",
+            "output_tokens": 7,
+            "started_at": "2026-11-19T11:09:57.582Z"
+          }
+        ],
+        "overall": {
+          "count": 15,
+          "max_ms": 7035,
+          "over_threshold": 0,
+          "p50_ms": 1602,
+          "p90_ms": 4941,
+          "p99_ms": 7035
+        }
+      },
+      "session_id": "1c24dda2-aae9-47ff-a8c2-c8817c0d1fd0",
+      "subagents": [
+        {
+          "agent_id": "a7fea8838d8f8ae93",
+          "cache_read_tokens": 10501,
+          "cache_write_tokens": 16473,
+          "description": "Screen task prompt for injection",
+          "duration_ms": 3787,
+          "input_tokens": 4,
+          "output_tokens": 287,
+          "requests": 1,
+          "started_at": "2026-11-19T11:09:17.510Z",
+          "token_source": "transcript",
+          "type": "devscene:prompt-injection-reviewer",
+          "wall_share": 0.0689
+        }
+      ],
+      "time": {
+        "active_ms": 54987,
+        "duration_api_ms": 48114,
+        "duration_ms": 56715,
+        "host_suspended_ms": 0,
+        "idle_gaps": [],
+        "idle_ms": 0,
+        "idle_threshold_s": 120,
+        "subagent_wall_ms": 3787,
+        "suspend_source": "none",
+        "wall_ms": 54987
+      },
+      "tools": {
+        "by_tool": [
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 3787,
+            "tool": "Agent",
+            "total_ms": 3787
+          },
+          {
+            "context": "orchestrator",
+            "count": 15,
+            "max_ms": 6123,
+            "tool": "Bash",
+            "total_ms": 9925
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "count": 2,
+            "max_ms": 24,
+            "tool": "Read",
+            "total_ms": 46
+          },
+          {
+            "context": "orchestrator",
+            "count": 2,
+            "max_ms": 43,
+            "tool": "Read",
+            "total_ms": 62
+          },
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 40,
+            "tool": "Skill",
+            "total_ms": 40
+          },
+          {
+            "context": "orchestrator",
+            "count": 2,
+            "max_ms": 51,
+            "tool": "Write",
+            "total_ms": 96
+          }
+        ],
+        "items": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 40,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 54,
+            "started_at": "2026-11-19T11:09:03.093Z",
+            "tool": "Skill"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 527,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:09:05.150Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 277,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 32,
+            "started_at": "2026-11-19T11:09:05.500Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 258,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 27,
+            "started_at": "2026-11-19T11:09:06.041Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 43,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3908,
+            "started_at": "2026-11-19T11:09:06.642Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 228,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 6629,
+            "started_at": "2026-11-19T11:09:07.595Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 210,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 6,
+            "started_at": "2026-11-19T11:09:09.597Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 224,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 782,
+            "started_at": "2026-11-19T11:09:11.296Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 19,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 15262,
+            "started_at": "2026-11-19T11:09:11.701Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 269,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 160,
+            "started_at": "2026-11-19T11:09:13.322Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 294,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 6,
+            "started_at": "2026-11-19T11:09:15.111Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 3787,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 708,
+            "started_at": "2026-11-19T11:09:17.510Z",
+            "tool": "Agent"
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "duration_ms": 24,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1293,
+            "started_at": "2026-11-19T11:09:19.486Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:prompt-injection-reviewer",
+            "duration_ms": 22,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 10809,
+            "started_at": "2026-11-19T11:09:19.492Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 45,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 247,
+            "started_at": "2026-11-19T11:09:24.606Z",
+            "tool": "Write"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 377,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 159,
+            "started_at": "2026-11-19T11:09:26.834Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 229,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:09:29.030Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 232,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:09:30.031Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 216,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 10370,
+            "started_at": "2026-11-19T11:09:32.678Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 159,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 24119,
+            "started_at": "2026-11-19T11:09:34.878Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 302,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 6,
+            "started_at": "2026-11-19T11:09:38.279Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 51,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 230,
+            "started_at": "2026-11-19T11:09:45.616Z",
+            "tool": "Write"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 6123,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 611,
+            "started_at": "2026-11-19T11:09:46.518Z",
+            "tool": "Bash"
+          }
+        ],
+        "polling": [],
+        "slowest": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 6123,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 611,
+            "started_at": "2026-11-19T11:09:46.518Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 527,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:09:05.150Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 377,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 159,
+            "started_at": "2026-11-19T11:09:26.834Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 302,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 6,
+            "started_at": "2026-11-19T11:09:38.279Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 294,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 6,
+            "started_at": "2026-11-19T11:09:15.111Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 277,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 32,
+            "started_at": "2026-11-19T11:09:05.500Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 269,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 160,
+            "started_at": "2026-11-19T11:09:13.322Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 258,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 27,
+            "started_at": "2026-11-19T11:09:06.041Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 232,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:09:30.031Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 229,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:09:29.030Z",
+            "tool": "Bash"
+          }
+        ]
+      }
+    },
+    {
+      "complete": true,
+      "cost": {
+        "by_model": {
+          "claude-opus-5-5": 3.2750588000000005
+        },
+        "cache_hit_ratio": 0.9546,
+        "cache_read_tokens": 3901574,
+        "cache_write_1h_tokens": 185584,
+        "cache_write_5m_tokens": 0,
+        "cache_write_tokens": 185584,
+        "input_tokens": 68,
+        "output_tokens": 50490,
+        "thinking_tokens": 25831,
+        "token_source": "model_usage",
+        "total_cost_usd": 3.2750588000000005
+      },
+      "first_at": "2026-11-19T11:10:00.963Z",
+      "kind": "planning_node",
+      "last_at": "2026-11-19T11:18:12.400Z",
+      "network_refusals": [],
+      "node": "1-plan_writer",
+      "reliability": {
+        "api_retries": 0,
+        "api_retry_errors": {},
+        "num_turns": 47,
+        "permission_denials": 1,
+        "rate_limit_peak": {
+          "seven_day": 0.31
+        },
+        "stop_reason": "end_turn",
+        "subagents_failed": 0,
+        "subagents_killed": 0,
+        "subagents_spawned": 0,
+        "terminal_reason": "completed",
+        "ttft_ms": 1532
+      },
+      "requests": {
+        "by_context": {
+          "orchestrator": {
+            "count": 34,
+            "max_ms": 44612,
+            "over_threshold": 0,
+            "p50_ms": 2189,
+            "p90_ms": 39188,
+            "p99_ms": 44612
+          }
+        },
+        "items": [
+          {
+            "after_retry": false,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 21587,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": null,
+            "message_id": "msg_011ChCBcHpXHHPCvF2YBnXoV",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:10:00.963Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 21587,
+            "cache_write_tokens": 144,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1270,
+            "message_id": "msg_011ChCBcRfKfmN4XVLVi6BPN",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:10:02.627Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 21731,
+            "cache_write_tokens": 2529,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1527,
+            "message_id": "msg_011ChCBcZny9GGMRU7bC7hyt",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:10:04.778Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 24260,
+            "cache_write_tokens": 47960,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1586,
+            "message_id": "msg_011ChCBcxD6vkKcrHBdgpN6a",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:10:10.071Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 72220,
+            "cache_write_tokens": 3247,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1937,
+            "message_id": "msg_011ChCBd9t4VuG76pQypJU7c",
+            "output_tokens": 5,
+            "started_at": "2026-11-19T11:10:13.177Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 75467,
+            "cache_write_tokens": 6180,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2011,
+            "message_id": "msg_011ChCBdPvfHXZEZmivkmhqB",
+            "output_tokens": 5,
+            "started_at": "2026-11-19T11:10:16.541Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 81647,
+            "cache_write_tokens": 1312,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1906,
+            "message_id": "msg_011ChCBdg7FqE88SUEUFSLfi",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:10:20.217Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 82959,
+            "cache_write_tokens": 5090,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 3415,
+            "message_id": "msg_011ChCBdqcWCSbtqQU1WeTSW",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:10:23.934Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 88049,
+            "cache_write_tokens": 7084,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1724,
+            "message_id": "msg_011ChCBeFcsbbRVkvq84DrzG",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:10:27.859Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 95133,
+            "cache_write_tokens": 4904,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 5020,
+            "message_id": "msg_011ChCBeYNhVXFbhfYjbkM58",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:10:35.064Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 100037,
+            "cache_write_tokens": 864,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1533,
+            "message_id": "msg_011ChCBf1aJV36REpCnvXReK",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:10:37.929Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 100901,
+            "cache_write_tokens": 4457,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1717,
+            "message_id": "msg_011ChCBfCKiQtzJSQWMQDJpK",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:10:40.655Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 105358,
+            "cache_write_tokens": 403,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1745,
+            "message_id": "msg_011ChCBfSNZmU4rqBoAxcYpv",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:10:43.969Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 105761,
+            "cache_write_tokens": 7230,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 11503,
+            "message_id": "msg_011ChCBfd7yMnncQcm7dyHXP",
+            "output_tokens": 7,
+            "started_at": "2026-11-19T11:10:55.962Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 112991,
+            "cache_write_tokens": 1712,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 23844,
+            "message_id": "msg_011ChCBgYSU3WpWzZCRbyo3m",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:11:21.050Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 114703,
+            "cache_write_tokens": 3426,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1342,
+            "message_id": "msg_011ChCBiTbZnJcaBFf37ki8a",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:11:24.524Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 118129,
+            "cache_write_tokens": 8059,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 3218,
+            "message_id": "msg_011ChCBiZJNRi3RErBcR2ZHQ",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:11:27.764Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 126188,
+            "cache_write_tokens": 483,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1083,
+            "message_id": "msg_011ChCBisdvoAGYF2FX6SNnf",
+            "output_tokens": 48,
+            "started_at": "2026-11-19T11:11:29.919Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 126671,
+            "cache_write_tokens": 3051,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 5565,
+            "message_id": "msg_011ChCBj1ELBLKnidvMc6kTT",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:11:36.165Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 129722,
+            "cache_write_tokens": 1417,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 44612,
+            "message_id": "msg_011ChCBjZr8X1D8giWavfrPB",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:12:22.784Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 131139,
+            "cache_write_tokens": 5466,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1527,
+            "message_id": "msg_011ChCBo3eJhfRUtsqKWtNRF",
+            "output_tokens": 6,
+            "started_at": "2026-11-19T11:12:26.908Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 136605,
+            "cache_write_tokens": 1823,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 43632,
+            "message_id": "msg_011ChCBoHJpyUpghJmvrCBTz",
+            "output_tokens": 7,
+            "started_at": "2026-11-19T11:13:12.244Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 138428,
+            "cache_write_tokens": 5988,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2339,
+            "message_id": "msg_011ChCBrfhJZJHSZbDkx4ewN",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:13:16.822Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 144416,
+            "cache_write_tokens": 2248,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2169,
+            "message_id": "msg_011ChCBrx9m7kTgsouY2UNHY",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:13:20.581Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 146664,
+            "cache_write_tokens": 3020,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 4369,
+            "message_id": "msg_011ChCBsGc26M4JfrNHoDcRE",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:13:27.093Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 149684,
+            "cache_write_tokens": 3988,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 42286,
+            "message_id": "msg_011ChCBsekn9mUWEttRXzAv6",
+            "output_tokens": 4,
+            "started_at": "2026-11-19T11:14:10.181Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 153672,
+            "cache_write_tokens": 4680,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 18572,
+            "message_id": "msg_011ChCBvtZaWenPyPFop7dU2",
+            "output_tokens": 5,
+            "started_at": "2026-11-19T11:14:30.374Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 158352,
+            "cache_write_tokens": 3842,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 12053,
+            "message_id": "msg_011ChCBxPsDr3bLxBMiWVAxh",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:14:44.270Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 162194,
+            "cache_write_tokens": 1620,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 39188,
+            "message_id": "msg_011ChCBySMpNGHAkAkaYsYoD",
+            "output_tokens": 6,
+            "started_at": "2026-11-19T11:15:25.570Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 163814,
+            "cache_write_tokens": 9614,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1779,
+            "message_id": "msg_011ChCC5iQ9LA2tUKYiXrhjD",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:16:13.291Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 173428,
+            "cache_write_tokens": 3305,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1734,
+            "message_id": "msg_011ChCC7sKEDzPwAVZ9osnbg",
+            "output_tokens": 7,
+            "started_at": "2026-11-19T11:16:42.469Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 176733,
+            "cache_write_tokens": 2601,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2911,
+            "message_id": "msg_011ChCC9NdsQ2n6UQ1gNny4y",
+            "output_tokens": 10,
+            "started_at": "2026-11-19T11:17:04.058Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 179334,
+            "cache_write_tokens": 4263,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2189,
+            "message_id": "msg_011ChCCBoiXy2Vrtt2U91xX9",
+            "output_tokens": 4,
+            "started_at": "2026-11-19T11:17:36.290Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 183597,
+            "cache_write_tokens": 1987,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 10960,
+            "message_id": "msg_011ChCCD5wdjnP82WAxq7kij",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:18:02.491Z"
+          }
+        ],
+        "overall": {
+          "count": 34,
+          "max_ms": 44612,
+          "over_threshold": 0,
+          "p50_ms": 2189,
+          "p90_ms": 39188,
+          "p99_ms": 44612
+        }
+      },
+      "session_id": "9360c2b9-126e-46ea-bfff-9c4c64da0368",
+      "subagents": [],
+      "time": {
+        "active_ms": 491437,
+        "duration_api_ms": 485306,
+        "duration_ms": 492992,
+        "host_suspended_ms": 0,
+        "idle_gaps": [],
+        "idle_ms": 0,
+        "idle_threshold_s": 120,
+        "subagent_wall_ms": null,
+        "suspend_source": "none",
+        "wall_ms": 491437
+      },
+      "tools": {
+        "by_tool": [
+          {
+            "context": "orchestrator",
+            "count": 22,
+            "max_ms": 773,
+            "tool": "Bash",
+            "total_ms": 7408
+          },
+          {
+            "context": "orchestrator",
+            "count": 2,
+            "max_ms": 39,
+            "tool": "Edit",
+            "total_ms": 72
+          },
+          {
+            "context": "orchestrator",
+            "count": 16,
+            "max_ms": 307,
+            "tool": "Read",
+            "total_ms": 852
+          },
+          {
+            "context": "orchestrator",
+            "count": 6,
+            "max_ms": 54,
+            "tool": "Write",
+            "total_ms": 254
+          }
+        ],
+        "items": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 388,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:10:00.969Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 32,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3908,
+            "started_at": "2026-11-19T11:10:02.627Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 23,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1293,
+            "started_at": "2026-11-19T11:10:03.228Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 307,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 46614,
+            "started_at": "2026-11-19T11:10:05.058Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 29,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 18999,
+            "started_at": "2026-11-19T11:10:05.602Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 251,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31668,
+            "started_at": "2026-11-19T11:10:06.185Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 28,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 13548,
+            "started_at": "2026-11-19T11:10:06.605Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 19,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 8506,
+            "started_at": "2026-11-19T11:10:07.055Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 19,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3465,
+            "started_at": "2026-11-19T11:10:07.555Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 20,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4238,
+            "started_at": "2026-11-19T11:10:08.075Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 24,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3380,
+            "started_at": "2026-11-19T11:10:08.461Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 331,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 6787,
+            "started_at": "2026-11-19T11:10:10.909Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 247,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 13506,
+            "started_at": "2026-11-19T11:10:14.283Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 354,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2259,
+            "started_at": "2026-11-19T11:10:17.957Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 302,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 11345,
+            "started_at": "2026-11-19T11:10:20.217Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 544,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 11765,
+            "started_at": "2026-11-19T11:10:25.591Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 445,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 11920,
+            "started_at": "2026-11-19T11:10:29.599Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 128,
+            "is_error": true,
+            "permission_denied": true,
+            "result_bytes": 727,
+            "started_at": "2026-11-19T11:10:36.268Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 19,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 6213,
+            "started_at": "2026-11-19T11:10:37.929Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 169,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3818,
+            "started_at": "2026-11-19T11:10:38.769Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 315,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 288,
+            "started_at": "2026-11-19T11:10:41.909Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 11,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1234,
+            "started_at": "2026-11-19T11:10:43.969Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 12,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 16485,
+            "started_at": "2026-11-19T11:10:44.447Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 268,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1392,
+            "started_at": "2026-11-19T11:10:56.938Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 232,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1919,
+            "started_at": "2026-11-19T11:11:22.950Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 22,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 17107,
+            "started_at": "2026-11-19T11:11:24.524Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 214,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 24,
+            "started_at": "2026-11-19T11:11:28.622Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 21,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 7382,
+            "started_at": "2026-11-19T11:11:30.579Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 352,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1312,
+            "started_at": "2026-11-19T11:11:37.820Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 773,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2824,
+            "started_at": "2026-11-19T11:12:24.608Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 372,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4108,
+            "started_at": "2026-11-19T11:12:28.240Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 408,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3763,
+            "started_at": "2026-11-19T11:13:14.075Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 192,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4583,
+            "started_at": "2026-11-19T11:13:18.220Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 340,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 7342,
+            "started_at": "2026-11-19T11:13:22.384Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 15,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 10932,
+            "started_at": "2026-11-19T11:13:27.880Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 287,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 622,
+            "started_at": "2026-11-19T11:14:11.515Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 292,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3754,
+            "started_at": "2026-11-19T11:14:31.925Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 455,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 610,
+            "started_at": "2026-11-19T11:14:45.927Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 47,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 230,
+            "started_at": "2026-11-19T11:16:11.465Z",
+            "tool": "Write"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 36,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 230,
+            "started_at": "2026-11-19T11:16:40.699Z",
+            "tool": "Write"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 33,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 240,
+            "started_at": "2026-11-19T11:16:44.270Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 31,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 230,
+            "started_at": "2026-11-19T11:17:01.116Z",
+            "tool": "Write"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 39,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 240,
+            "started_at": "2026-11-19T11:17:06.669Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 50,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 230,
+            "started_at": "2026-11-19T11:17:19.413Z",
+            "tool": "Write"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 36,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 230,
+            "started_at": "2026-11-19T11:17:34.065Z",
+            "tool": "Write"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 54,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 230,
+            "started_at": "2026-11-19T11:17:51.477Z",
+            "tool": "Write"
+          }
+        ],
+        "polling": [],
+        "slowest": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 773,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2824,
+            "started_at": "2026-11-19T11:12:24.608Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 544,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 11765,
+            "started_at": "2026-11-19T11:10:25.591Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 455,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 610,
+            "started_at": "2026-11-19T11:14:45.927Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 445,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 11920,
+            "started_at": "2026-11-19T11:10:29.599Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 408,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3763,
+            "started_at": "2026-11-19T11:13:14.075Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 388,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:10:00.969Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 372,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4108,
+            "started_at": "2026-11-19T11:12:28.240Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 354,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2259,
+            "started_at": "2026-11-19T11:10:17.957Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 352,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1312,
+            "started_at": "2026-11-19T11:11:37.820Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 340,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 7342,
+            "started_at": "2026-11-19T11:13:22.384Z",
+            "tool": "Bash"
+          }
+        ]
+      }
+    },
+    {
+      "complete": true,
+      "cost": {
+        "by_model": {
+          "claude-opus-5-5": 1.2552772
+        },
+        "cache_hit_ratio": 0.8961,
+        "cache_read_tokens": 958786,
+        "cache_write_1h_tokens": 111162,
+        "cache_write_5m_tokens": 0,
+        "cache_write_tokens": 111162,
+        "input_tokens": 26,
+        "output_tokens": 8706,
+        "thinking_tokens": 4011,
+        "token_source": "model_usage",
+        "total_cost_usd": 1.2552772
+      },
+      "first_at": "2026-11-19T11:18:16.113Z",
+      "kind": "planning_node",
+      "last_at": "2026-11-19T11:19:40.070Z",
+      "network_refusals": [],
+      "node": "2-architecture_review",
+      "reliability": {
+        "api_retries": 0,
+        "api_retry_errors": {},
+        "num_turns": 26,
+        "permission_denials": 0,
+        "rate_limit_peak": {
+          "seven_day": 0.31
+        },
+        "stop_reason": "end_turn",
+        "subagents_failed": 0,
+        "subagents_killed": 0,
+        "subagents_spawned": 0,
+        "terminal_reason": "completed",
+        "ttft_ms": 1394
+      },
+      "requests": {
+        "by_context": {
+          "orchestrator": {
+            "count": 13,
+            "max_ms": 15436,
+            "over_threshold": 0,
+            "p50_ms": 2370,
+            "p90_ms": 9659,
+            "p99_ms": 15436
+          }
+        },
+        "items": [
+          {
+            "after_retry": false,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 23109,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": null,
+            "message_id": "msg_011ChCCEocg3yNqnbVYhZbP4",
+            "output_tokens": 4,
+            "started_at": "2026-11-19T11:18:16.113Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 23109,
+            "cache_write_tokens": 3019,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2370,
+            "message_id": "msg_011ChCCEzdhCJWeBjwzyTudK",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:18:19.804Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 26128,
+            "cache_write_tokens": 1081,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1472,
+            "message_id": "msg_011ChCCFBc1MszsVJVV3m6Dx",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:18:21.489Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 27209,
+            "cache_write_tokens": 42456,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 888,
+            "message_id": "msg_011ChCCFUmsYM6d4YYT2ZvnT",
+            "output_tokens": 34,
+            "started_at": "2026-11-19T11:18:24.890Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 69665,
+            "cache_write_tokens": 10733,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1640,
+            "message_id": "msg_011ChCCFoRnB3e99B8QwGqKb",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:18:29.994Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 80398,
+            "cache_write_tokens": 15672,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1471,
+            "message_id": "msg_011ChCCG8FNbZGnLqqT3rzuT",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:18:34.241Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 96070,
+            "cache_write_tokens": 3233,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 15436,
+            "message_id": "msg_011ChCCGEn2xeki34SGdHzQh",
+            "output_tokens": 4,
+            "started_at": "2026-11-19T11:18:49.753Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 99303,
+            "cache_write_tokens": 4329,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 8333,
+            "message_id": "msg_011ChCCHVcnPbdSDqn3jKkvo",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:18:59.628Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 103632,
+            "cache_write_tokens": 2488,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2163,
+            "message_id": "msg_011ChCCJEZSAjmh7Qs8qVqFo",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:19:03.563Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 106120,
+            "cache_write_tokens": 1362,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 9659,
+            "message_id": "msg_011ChCCJTRqkXwmgoU8KDG4s",
+            "output_tokens": 2,
+            "started_at": "2026-11-19T11:19:14.064Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 107482,
+            "cache_write_tokens": 2007,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 5942,
+            "message_id": "msg_011ChCCKKEzk3cnEDnVwgKJj",
+            "output_tokens": 7,
+            "started_at": "2026-11-19T11:19:22.004Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 109489,
+            "cache_write_tokens": 692,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 8468,
+            "message_id": "msg_011ChCCKqLzkh1zin2vzVwNr",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:19:31.530Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 110181,
+            "cache_write_tokens": 981,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 7898,
+            "message_id": "msg_011ChCCLTpxP3bbMFE8DFSyu",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:19:39.472Z"
+          }
+        ],
+        "overall": {
+          "count": 13,
+          "max_ms": 15436,
+          "over_threshold": 0,
+          "p50_ms": 2370,
+          "p90_ms": 9659,
+          "p99_ms": 15436
+        }
+      },
+      "session_id": "2b50df55-3a37-43b9-9699-8e535c104c59",
+      "subagents": [],
+      "time": {
+        "active_ms": 83957,
+        "duration_api_ms": 82666,
+        "duration_ms": 85370,
+        "host_suspended_ms": 0,
+        "idle_gaps": [],
+        "idle_ms": 0,
+        "idle_threshold_s": 120,
+        "subagent_wall_ms": null,
+        "suspend_source": "none",
+        "wall_ms": 83957
+      },
+      "tools": {
+        "by_tool": [
+          {
+            "context": "orchestrator",
+            "count": 8,
+            "max_ms": 559,
+            "tool": "Bash",
+            "total_ms": 2536
+          },
+          {
+            "context": "orchestrator",
+            "count": 16,
+            "max_ms": 432,
+            "tool": "Read",
+            "total_ms": 991
+          },
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 44,
+            "tool": "Write",
+            "total_ms": 44
+          }
+        ],
+        "items": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 559,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:18:16.577Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 294,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 5810,
+            "started_at": "2026-11-19T11:18:17.140Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 213,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1555,
+            "started_at": "2026-11-19T11:18:19.804Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 32,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1293,
+            "started_at": "2026-11-19T11:18:21.489Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 11,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 15236,
+            "started_at": "2026-11-19T11:18:22.019Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 303,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 46614,
+            "started_at": "2026-11-19T11:18:22.569Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 10,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 18999,
+            "started_at": "2026-11-19T11:18:23.120Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 432,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31668,
+            "started_at": "2026-11-19T11:18:23.570Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 14,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 8232,
+            "started_at": "2026-11-19T11:18:25.719Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 11,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 5051,
+            "started_at": "2026-11-19T11:18:26.389Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 12,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3527,
+            "started_at": "2026-11-19T11:18:27.040Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 12,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4310,
+            "started_at": "2026-11-19T11:18:27.745Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 10,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4426,
+            "started_at": "2026-11-19T11:18:28.344Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 10,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 5124,
+            "started_at": "2026-11-19T11:18:30.327Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 10,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 9663,
+            "started_at": "2026-11-19T11:18:30.778Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 10,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 10809,
+            "started_at": "2026-11-19T11:18:31.280Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 10,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 13548,
+            "started_at": "2026-11-19T11:18:31.832Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 239,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 166,
+            "started_at": "2026-11-19T11:18:32.531Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 76,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 7867,
+            "started_at": "2026-11-19T11:18:34.241Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 369,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 7118,
+            "started_at": "2026-11-19T11:18:50.926Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 364,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4350,
+            "started_at": "2026-11-19T11:19:01.036Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 28,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3114,
+            "started_at": "2026-11-19T11:19:04.377Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 246,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1873,
+            "started_at": "2026-11-19T11:19:15.816Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 252,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:19:22.810Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 44,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 237,
+            "started_at": "2026-11-19T11:19:31.530Z",
+            "tool": "Write"
+          }
+        ],
+        "polling": [],
+        "slowest": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 559,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:18:16.577Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 432,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31668,
+            "started_at": "2026-11-19T11:18:23.570Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 369,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 7118,
+            "started_at": "2026-11-19T11:18:50.926Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 364,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4350,
+            "started_at": "2026-11-19T11:19:01.036Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 303,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 46614,
+            "started_at": "2026-11-19T11:18:22.569Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 294,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 5810,
+            "started_at": "2026-11-19T11:18:17.140Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 252,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:19:22.810Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 246,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1873,
+            "started_at": "2026-11-19T11:19:15.816Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 239,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 166,
+            "started_at": "2026-11-19T11:18:32.531Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 213,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1555,
+            "started_at": "2026-11-19T11:18:19.804Z",
+            "tool": "Bash"
+          }
+        ]
+      }
+    },
+    {
+      "complete": true,
+      "cost": {
+        "by_model": {
+          "claude-opus-5-5": 2.7133806000000003
+        },
+        "cache_hit_ratio": 0.9492,
+        "cache_read_tokens": 3477283,
+        "cache_write_1h_tokens": 186091,
+        "cache_write_5m_tokens": 0,
+        "cache_write_tokens": 186091,
+        "input_tokens": 54,
+        "output_tokens": 26449,
+        "thinking_tokens": 17219,
+        "token_source": "model_usage",
+        "total_cost_usd": 2.7133806000000003
+      },
+      "first_at": "2026-11-19T11:18:16.145Z",
+      "kind": "planning_node",
+      "last_at": "2026-11-19T11:22:36.423Z",
+      "network_refusals": [],
+      "node": "3-plan_review",
+      "reliability": {
+        "api_retries": 0,
+        "api_retry_errors": {},
+        "num_turns": 45,
+        "permission_denials": 1,
+        "rate_limit_peak": {
+          "seven_day": 0.31
+        },
+        "stop_reason": "end_turn",
+        "subagents_failed": 0,
+        "subagents_killed": 0,
+        "subagents_spawned": 0,
+        "terminal_reason": "completed",
+        "ttft_ms": 1425
+      },
+      "requests": {
+        "by_context": {
+          "orchestrator": {
+            "count": 27,
+            "max_ms": 48613,
+            "over_threshold": 0,
+            "p50_ms": 3680,
+            "p90_ms": 28735,
+            "p99_ms": 48613
+          }
+        },
+        "items": [
+          {
+            "after_retry": false,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 22990,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": null,
+            "message_id": "msg_011ChCCEocg7eZzDmEgHJr1v",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:18:16.145Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 22990,
+            "cache_write_tokens": 4092,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1570,
+            "message_id": "msg_011ChCCF2Kf3B84tKfBtZpyv",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:18:19.411Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 27082,
+            "cache_write_tokens": 17306,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1494,
+            "message_id": "msg_011ChCCFRd7aUxd6HAtHkk9Q",
+            "output_tokens": 6,
+            "started_at": "2026-11-19T11:18:24.722Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 44388,
+            "cache_write_tokens": 931,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1264,
+            "message_id": "msg_011ChCCFi848a8PJJPsGZCYX",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:18:28.418Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 45319,
+            "cache_write_tokens": 46551,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1470,
+            "message_id": "msg_011ChCCFzSaPX7RQDrHiJM9A",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:18:32.310Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 91870,
+            "cache_write_tokens": 19189,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1853,
+            "message_id": "msg_011ChCCGCdJMTVWUS8CBdQLS",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:18:35.644Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 111059,
+            "cache_write_tokens": 10303,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 43799,
+            "message_id": "msg_011ChCCGXHTnyW959yqNcz6Q",
+            "output_tokens": 7,
+            "started_at": "2026-11-19T11:19:21.977Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 121362,
+            "cache_write_tokens": 8413,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1589,
+            "message_id": "msg_011ChCCKsC83z9tf683Cqidr",
+            "output_tokens": 6,
+            "started_at": "2026-11-19T11:19:25.097Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 129775,
+            "cache_write_tokens": 4543,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 4915,
+            "message_id": "msg_011ChCCL28dHMqx1NCUX8MYD",
+            "output_tokens": 2,
+            "started_at": "2026-11-19T11:19:30.541Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 134318,
+            "cache_write_tokens": 1621,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2952,
+            "message_id": "msg_011ChCCLUFG7svvxxjiiJs5X",
+            "output_tokens": 2,
+            "started_at": "2026-11-19T11:19:34.686Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 135939,
+            "cache_write_tokens": 5043,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1819,
+            "message_id": "msg_011ChCCLuVoYneZfKDEgXhTC",
+            "output_tokens": 7,
+            "started_at": "2026-11-19T11:19:39.444Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 140982,
+            "cache_write_tokens": 1721,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2748,
+            "message_id": "msg_011ChCCMCMKBKXVZ14dWEgji",
+            "output_tokens": 3,
+            "started_at": "2026-11-19T11:19:44.331Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 142703,
+            "cache_write_tokens": 8875,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 8891,
+            "message_id": "msg_011ChCCMeCpS9fEWSnX79c8o",
+            "output_tokens": 5,
+            "started_at": "2026-11-19T11:19:56.516Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 151578,
+            "cache_write_tokens": 1310,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 5516,
+            "message_id": "msg_011ChCCNSgK3jpSoccv9UEZ7",
+            "output_tokens": 6,
+            "started_at": "2026-11-19T11:20:03.966Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 152888,
+            "cache_write_tokens": 1727,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 3790,
+            "message_id": "msg_011ChCCNxzx2axTwSNMTLhHH",
+            "output_tokens": 7,
+            "started_at": "2026-11-19T11:20:09.389Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 154615,
+            "cache_write_tokens": 1230,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1792,
+            "message_id": "msg_011ChCCPLKc2b72fN2xtbCat",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:20:12.374Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 155845,
+            "cache_write_tokens": 1894,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 4544,
+            "message_id": "msg_011ChCCPV3ULps6dqFvPTkMq",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:20:17.158Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 157739,
+            "cache_write_tokens": 3587,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 4073,
+            "message_id": "msg_011ChCCPwyi5AqmgBbgQqueY",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:20:22.975Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 161326,
+            "cache_write_tokens": 1862,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 28735,
+            "message_id": "msg_011ChCCQR5NgFMfiyTtXz7P4",
+            "output_tokens": 6,
+            "started_at": "2026-11-19T11:20:53.963Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 163188,
+            "cache_write_tokens": 5557,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 9817,
+            "message_id": "msg_011ChCCSh9a4QvTpfExC1JVo",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:21:05.943Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 168745,
+            "cache_write_tokens": 3716,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 5406,
+            "message_id": "msg_011ChCCTYD5bPK51LqC6YTcC",
+            "output_tokens": 10,
+            "started_at": "2026-11-19T11:21:13.002Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 172461,
+            "cache_write_tokens": 942,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1589,
+            "message_id": "msg_011ChCCU4pLfs6T7XevbEvpC",
+            "output_tokens": 5,
+            "started_at": "2026-11-19T11:21:16.366Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 173403,
+            "cache_write_tokens": 2024,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1617,
+            "message_id": "msg_011ChCCUFdx9itaEeSszZp8H",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:21:18.929Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 175427,
+            "cache_write_tokens": 3288,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 3680,
+            "message_id": "msg_011ChCCUNjbQ9ewrRDHEkXa8",
+            "output_tokens": 4,
+            "started_at": "2026-11-19T11:21:22.633Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 178715,
+            "cache_write_tokens": 500,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 48613,
+            "message_id": "msg_011ChCCUivHZCsjVYAWeusGQ",
+            "output_tokens": 6,
+            "started_at": "2026-11-19T11:22:12.305Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 179215,
+            "cache_write_tokens": 5136,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 15122,
+            "message_id": "msg_011ChCCYPDyYdTov2cABKc5S",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:22:28.395Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 184351,
+            "cache_write_tokens": 1740,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 7993,
+            "message_id": "msg_011ChCCZVifxwiktnnA7Wtt6",
+            "output_tokens": 735,
+            "started_at": "2026-11-19T11:22:36.423Z"
+          }
+        ],
+        "overall": {
+          "count": 27,
+          "max_ms": 48613,
+          "over_threshold": 0,
+          "p50_ms": 3680,
+          "p90_ms": 28735,
+          "p99_ms": 48613
+        }
+      },
+      "session_id": "b8047493-e048-4900-ad0d-0625fd5aee21",
+      "subagents": [],
+      "time": {
+        "active_ms": 260278,
+        "duration_api_ms": 256062,
+        "duration_ms": 261720,
+        "host_suspended_ms": 0,
+        "idle_gaps": [],
+        "idle_ms": 0,
+        "idle_threshold_s": 120,
+        "subagent_wall_ms": null,
+        "suspend_source": "none",
+        "wall_ms": 260278
+      },
+      "tools": {
+        "by_tool": [
+          {
+            "context": "orchestrator",
+            "count": 25,
+            "max_ms": 505,
+            "tool": "Bash",
+            "total_ms": 6821
+          },
+          {
+            "context": "orchestrator",
+            "count": 18,
+            "max_ms": 308,
+            "tool": "Read",
+            "total_ms": 987
+          },
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 35,
+            "tool": "Write",
+            "total_ms": 35
+          }
+        ],
+        "items": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 505,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:18:16.577Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 292,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 7963,
+            "started_at": "2026-11-19T11:18:17.549Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 26,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1293,
+            "started_at": "2026-11-19T11:18:19.411Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 9,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 15236,
+            "started_at": "2026-11-19T11:18:19.921Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 19,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 8232,
+            "started_at": "2026-11-19T11:18:20.616Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 20,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 5051,
+            "started_at": "2026-11-19T11:18:21.272Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 9,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3527,
+            "started_at": "2026-11-19T11:18:21.972Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 13,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4310,
+            "started_at": "2026-11-19T11:18:22.617Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 10,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4426,
+            "started_at": "2026-11-19T11:18:23.218Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 338,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1108,
+            "started_at": "2026-11-19T11:18:26.816Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 308,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 46614,
+            "started_at": "2026-11-19T11:18:28.418Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 10,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 18999,
+            "started_at": "2026-11-19T11:18:28.916Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 216,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31668,
+            "started_at": "2026-11-19T11:18:29.465Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 10,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 5124,
+            "started_at": "2026-11-19T11:18:29.918Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 10,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 9663,
+            "started_at": "2026-11-19T11:18:30.416Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 14,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 10809,
+            "started_at": "2026-11-19T11:18:30.826Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 217,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 30778,
+            "started_at": "2026-11-19T11:18:32.310Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 322,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 9261,
+            "started_at": "2026-11-19T11:18:33.183Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 27,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 13548,
+            "started_at": "2026-11-19T11:18:33.764Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 18,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 7561,
+            "started_at": "2026-11-19T11:18:36.405Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 27,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 8506,
+            "started_at": "2026-11-19T11:18:36.900Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 224,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 10851,
+            "started_at": "2026-11-19T11:18:37.954Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 341,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 9962,
+            "started_at": "2026-11-19T11:19:23.167Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 238,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 10299,
+            "started_at": "2026-11-19T11:19:25.388Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 147,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2221,
+            "started_at": "2026-11-19T11:19:31.587Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 326,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 9200,
+            "started_at": "2026-11-19T11:19:35.886Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 284,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 632,
+            "started_at": "2026-11-19T11:19:37.341Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 252,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2944,
+            "started_at": "2026-11-19T11:19:41.331Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 217,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4982,
+            "started_at": "2026-11-19T11:19:45.956Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 322,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 16033,
+            "started_at": "2026-11-19T11:19:47.303Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 426,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 486,
+            "started_at": "2026-11-19T11:19:58.024Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 289,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2320,
+            "started_at": "2026-11-19T11:20:05.310Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 218,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1695,
+            "started_at": "2026-11-19T11:20:10.364Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 240,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4510,
+            "started_at": "2026-11-19T11:20:12.374Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 288,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 7878,
+            "started_at": "2026-11-19T11:20:18.614Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 334,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3244,
+            "started_at": "2026-11-19T11:20:24.894Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 265,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 7702,
+            "started_at": "2026-11-19T11:20:55.861Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 252,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 6298,
+            "started_at": "2026-11-19T11:21:07.344Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 145,
+            "is_error": true,
+            "permission_denied": true,
+            "result_bytes": 727,
+            "started_at": "2026-11-19T11:21:14.632Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 217,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4936,
+            "started_at": "2026-11-19T11:21:17.095Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 24,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 8208,
+            "started_at": "2026-11-19T11:21:18.929Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 155,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 82,
+            "started_at": "2026-11-19T11:21:23.537Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 184,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:22:13.089Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 35,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 234,
+            "started_at": "2026-11-19T11:22:28.395Z",
+            "tool": "Write"
+          }
+        ],
+        "polling": [],
+        "slowest": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 505,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:18:16.577Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 426,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 486,
+            "started_at": "2026-11-19T11:19:58.024Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 341,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 9962,
+            "started_at": "2026-11-19T11:19:23.167Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 338,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1108,
+            "started_at": "2026-11-19T11:18:26.816Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 334,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3244,
+            "started_at": "2026-11-19T11:20:24.894Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 326,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 9200,
+            "started_at": "2026-11-19T11:19:35.886Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 322,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 9261,
+            "started_at": "2026-11-19T11:18:33.183Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 322,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 16033,
+            "started_at": "2026-11-19T11:19:47.303Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 308,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 46614,
+            "started_at": "2026-11-19T11:18:28.418Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 292,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 7963,
+            "started_at": "2026-11-19T11:18:17.549Z",
+            "tool": "Bash"
+          }
+        ]
+      }
+    },
+    {
+      "complete": true,
+      "cost": {
+        "by_model": {
+          "claude-opus-5-5": 3.9553822
+        },
+        "cache_hit_ratio": 0.9501,
+        "cache_read_tokens": 5918321,
+        "cache_write_1h_tokens": 196562,
+        "cache_write_5m_tokens": 0,
+        "cache_write_tokens": 310856,
+        "input_tokens": 128,
+        "output_tokens": 31362,
+        "thinking_tokens": 1462,
+        "token_source": "model_usage",
+        "total_cost_usd": 3.9553822
+      },
+      "first_at": "2026-11-19T11:23:09.506Z",
+      "kind": "engine",
+      "last_at": "2026-11-19T11:28:18.800Z",
+      "network_refusals": [],
+      "node": null,
+      "reliability": {
+        "api_retries": 0,
+        "api_retry_errors": {},
+        "num_turns": 42,
+        "permission_denials": 1,
+        "rate_limit_peak": {
+          "seven_day": 0.31
+        },
+        "stop_reason": "end_turn",
+        "subagents_failed": 0,
+        "subagents_killed": 0,
+        "subagents_spawned": 2,
+        "terminal_reason": "completed",
+        "ttft_ms": 1890
+      },
+      "requests": {
+        "by_context": {
+          "devscene:layer-implementer": {
+            "count": 28,
+            "max_ms": 55241,
+            "over_threshold": 0,
+            "p50_ms": 2448,
+            "p90_ms": 12671,
+            "p99_ms": 55241
+          },
+          "orchestrator": {
+            "count": 33,
+            "max_ms": 9535,
+            "over_threshold": 0,
+            "p50_ms": 1530,
+            "p90_ms": 2530,
+            "p99_ms": 9535
+          }
+        },
+        "items": [
+          {
+            "after_retry": false,
+            "cache_read_tokens": 12121,
+            "cache_write_tokens": 25033,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": null,
+            "message_id": "msg_011ChCCcPmpUaKWgEAHjuWKX",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:23:09.506Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 37154,
+            "cache_write_tokens": 6730,
+            "context": "orchestrator",
+            "input_tokens": 4,
+            "latency_ms": 1672,
+            "message_id": "msg_011ChCCcXYeF9fh9TX1fGU3L",
+            "output_tokens": 10,
+            "started_at": "2026-11-19T11:23:11.209Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 43884,
+            "cache_write_tokens": 2395,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1289,
+            "message_id": "msg_011ChCCcoNe9wTuerLkKkg7D",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:23:14.523Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 46279,
+            "cache_write_tokens": 3725,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1697,
+            "message_id": "msg_011ChCCd1uDMakFXmzzwXMGm",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:23:17.835Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 50004,
+            "cache_write_tokens": 2269,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2461,
+            "message_id": "msg_011ChCCdEmsfXGRNbwvFc334",
+            "output_tokens": 5,
+            "started_at": "2026-11-19T11:23:21.662Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 52273,
+            "cache_write_tokens": 651,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1107,
+            "message_id": "msg_011ChCCdXiatYvojTjpYAwqN",
+            "output_tokens": 54,
+            "started_at": "2026-11-19T11:23:24.280Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 52924,
+            "cache_write_tokens": 20267,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1720,
+            "message_id": "msg_011ChCCdfPxiWCzwHL4XEw2z",
+            "output_tokens": 6,
+            "started_at": "2026-11-19T11:23:26.687Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 73191,
+            "cache_write_tokens": 5966,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1812,
+            "message_id": "msg_011ChCCdpkGVh7X79ThgQZyF",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:23:28.940Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 79157,
+            "cache_write_tokens": 247,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1719,
+            "message_id": "msg_011ChCCdymzoi4qHVXnXa6g8",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:23:30.975Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 79404,
+            "cache_write_tokens": 343,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1503,
+            "message_id": "msg_011ChCCeBXgRFBdy7ki2uSmf",
+            "output_tokens": 6,
+            "started_at": "2026-11-19T11:23:33.502Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 79747,
+            "cache_write_tokens": 24061,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2530,
+            "message_id": "msg_011ChCCeLmJu4Egs59zQuP5M",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:23:36.679Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 103808,
+            "cache_write_tokens": 10485,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1530,
+            "message_id": "msg_011ChCCebzLmh7uVJXHTW3xC",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:23:39.244Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 114293,
+            "cache_write_tokens": 5683,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1530,
+            "message_id": "msg_011ChCCemyN28iLTYaa9Epes",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:23:41.594Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 119976,
+            "cache_write_tokens": 299,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1783,
+            "message_id": "msg_011ChCCex4b69bTx3a6euWEH",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:23:44.211Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 120275,
+            "cache_write_tokens": 192,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1711,
+            "message_id": "msg_011ChCCf6fksHwqd3xZ3DMq8",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:23:46.120Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 120467,
+            "cache_write_tokens": 1194,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 2519,
+            "message_id": "msg_011ChCCfE4WCaPNLsPSZTfLg",
+            "output_tokens": 175,
+            "started_at": "2026-11-19T11:23:48.662Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 121661,
+            "cache_write_tokens": 18866,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1670,
+            "message_id": "msg_011ChCCfSQubcbPyAqrWMKpb",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:23:50.725Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 140527,
+            "cache_write_tokens": 12104,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 981,
+            "message_id": "msg_011ChCCfaYobqfdJuoL4cL9x",
+            "output_tokens": 32,
+            "started_at": "2026-11-19T11:23:51.936Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 152631,
+            "cache_write_tokens": 943,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1365,
+            "message_id": "msg_011ChCCfidEcBxceUQtj4psf",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:23:54.209Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 153574,
+            "cache_write_tokens": 11694,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1485,
+            "message_id": "msg_011ChCCfqVjKq9ocbmUVYnVt",
+            "output_tokens": 4,
+            "started_at": "2026-11-19T11:23:55.928Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 165268,
+            "cache_write_tokens": 23863,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1353,
+            "message_id": "msg_011ChCCfyUCPhXKxzGHQ7P4A",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:23:57.675Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 189131,
+            "cache_write_tokens": 10212,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 963,
+            "message_id": "msg_011ChCCg747T9TCkTFYx9fCF",
+            "output_tokens": 40,
+            "started_at": "2026-11-19T11:23:59.062Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 199343,
+            "cache_write_tokens": 326,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1534,
+            "message_id": "msg_011ChCCgGjmvU4hhDiQ9Nfnj",
+            "output_tokens": 6,
+            "started_at": "2026-11-19T11:24:01.879Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 199669,
+            "cache_write_tokens": 769,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1412,
+            "message_id": "msg_011ChCCgWFNXeCj9cCnxCcfJ",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:24:04.930Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 200438,
+            "cache_write_tokens": 96,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1252,
+            "message_id": "msg_011ChCCgd5eC2J2qKsR8ksdB",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:24:06.362Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 200534,
+            "cache_write_tokens": 249,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 819,
+            "message_id": "msg_011ChCCgjQ9SJxCVKpW9koox",
+            "output_tokens": 48,
+            "started_at": "2026-11-19T11:24:07.364Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 3304,
+            "cache_write_tokens": 19219,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 1577,
+            "message_id": "msg_011ChCCgwTvQwm6z2bWqNTJv",
+            "output_tokens": 85,
+            "started_at": "2026-11-19T11:24:10.852Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 22523,
+            "cache_write_tokens": 866,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 1762,
+            "message_id": "msg_011ChCCh4e2YMTBxNz5bREzV",
+            "output_tokens": 277,
+            "started_at": "2026-11-19T11:24:12.845Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 23389,
+            "cache_write_tokens": 22635,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 3179,
+            "message_id": "msg_011ChCChFabg3Yr7eiBMAGVe",
+            "output_tokens": 348,
+            "started_at": "2026-11-19T11:24:16.821Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 46024,
+            "cache_write_tokens": 556,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 2184,
+            "message_id": "msg_011ChCChWUnSosGmBGb8FkRR",
+            "output_tokens": 417,
+            "started_at": "2026-11-19T11:24:19.273Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 46580,
+            "cache_write_tokens": 4975,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 1398,
+            "message_id": "msg_011ChCChngNLW3HFNPRDnew7",
+            "output_tokens": 131,
+            "started_at": "2026-11-19T11:24:22.311Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 51555,
+            "cache_write_tokens": 3720,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 3241,
+            "message_id": "msg_011ChCChtgGmQtNKyfeDcWB6",
+            "output_tokens": 320,
+            "started_at": "2026-11-19T11:24:25.563Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 55275,
+            "cache_write_tokens": 2349,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 2664,
+            "message_id": "msg_011ChCCi9rb6Wt4Nnht6a7pd",
+            "output_tokens": 250,
+            "started_at": "2026-11-19T11:24:28.540Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 57624,
+            "cache_write_tokens": 4350,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 55241,
+            "message_id": "msg_011ChCCiNJCPJ9gYWJ3FPWS1",
+            "output_tokens": 6884,
+            "started_at": "2026-11-19T11:25:24.040Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 61974,
+            "cache_write_tokens": 7169,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 19838,
+            "message_id": "msg_011ChCCnc8zh7hPCtKgziwz2",
+            "output_tokens": 2967,
+            "started_at": "2026-11-19T11:25:46.071Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 69143,
+            "cache_write_tokens": 3041,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 12671,
+            "message_id": "msg_011ChCCp4srjoNSCPHr9fAkJ",
+            "output_tokens": 1358,
+            "started_at": "2026-11-19T11:25:58.774Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 72184,
+            "cache_write_tokens": 1415,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 4659,
+            "message_id": "msg_011ChCCq2SnSCae5CaA6v5sE",
+            "output_tokens": 504,
+            "started_at": "2026-11-19T11:26:03.739Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 73599,
+            "cache_write_tokens": 581,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 6815,
+            "message_id": "msg_011ChCCqNWnDVdKtzhqePz2c",
+            "output_tokens": 781,
+            "started_at": "2026-11-19T11:26:10.604Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 74180,
+            "cache_write_tokens": 848,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 2448,
+            "message_id": "msg_011ChCCqsmfqKVakn4Xkm8pS",
+            "output_tokens": 251,
+            "started_at": "2026-11-19T11:26:13.090Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 75028,
+            "cache_write_tokens": 389,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 2189,
+            "message_id": "msg_011ChCCr5wujcVxkrC8WCCSx",
+            "output_tokens": 324,
+            "started_at": "2026-11-19T11:26:15.680Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 75417,
+            "cache_write_tokens": 558,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 2075,
+            "message_id": "msg_011ChCCrhXozaVWV5yhimfn5",
+            "output_tokens": 259,
+            "started_at": "2026-11-19T11:26:23.873Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 75975,
+            "cache_write_tokens": 397,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 1554,
+            "message_id": "msg_011ChCCru1s1MSKs9iDUjJYu",
+            "output_tokens": 129,
+            "started_at": "2026-11-19T11:26:26.048Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 76372,
+            "cache_write_tokens": 379,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 6118,
+            "message_id": "msg_011ChCCsN3K9f4ZF5deVhatR",
+            "output_tokens": 646,
+            "started_at": "2026-11-19T11:26:36.877Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 76751,
+            "cache_write_tokens": 742,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 1873,
+            "message_id": "msg_011ChCCsp7xSyX5twLn7b62p",
+            "output_tokens": 175,
+            "started_at": "2026-11-19T11:26:38.785Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 200783,
+            "cache_write_tokens": 2056,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1884,
+            "message_id": "msg_011ChCCtsiXfeWYUsFkWeLfi",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:26:53.199Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 202839,
+            "cache_write_tokens": 525,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 991,
+            "message_id": "msg_011ChCCuViEHfCjHGMSXx9au",
+            "output_tokens": 64,
+            "started_at": "2026-11-19T11:27:00.744Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 203364,
+            "cache_write_tokens": 347,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 1384,
+            "message_id": "msg_011ChCCugCGn8Qd76WNvcW6t",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:27:03.551Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 203711,
+            "cache_write_tokens": 110,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 979,
+            "message_id": "msg_011ChCCunkffboPHCnTLYQ1u",
+            "output_tokens": 48,
+            "started_at": "2026-11-19T11:27:04.709Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 14491,
+            "cache_write_tokens": 8040,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 1721,
+            "message_id": "msg_011ChCCv1QRDGLcEMk8p9ZMi",
+            "output_tokens": 84,
+            "started_at": "2026-11-19T11:27:08.251Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 22531,
+            "cache_write_tokens": 865,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 1701,
+            "message_id": "msg_011ChCCv9GCJtgpMjJuGJU6T",
+            "output_tokens": 280,
+            "started_at": "2026-11-19T11:27:10.211Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 23396,
+            "cache_write_tokens": 24501,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 2663,
+            "message_id": "msg_011ChCCvLTesjE5vZM6M3c2M",
+            "output_tokens": 268,
+            "started_at": "2026-11-19T11:27:13.809Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 47897,
+            "cache_write_tokens": 612,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 3718,
+            "message_id": "msg_011ChCCvYfcQ2J8L873ecSwM",
+            "output_tokens": 1765,
+            "started_at": "2026-11-19T11:27:17.729Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 48509,
+            "cache_write_tokens": 2323,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 1880,
+            "message_id": "msg_011ChCCwTaoT4jqSvRAJZ9z7",
+            "output_tokens": 173,
+            "started_at": "2026-11-19T11:27:28.261Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 50832,
+            "cache_write_tokens": 409,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 2456,
+            "message_id": "msg_011ChCCwc5n1H2QK5tCnsGgF",
+            "output_tokens": 264,
+            "started_at": "2026-11-19T11:27:30.734Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 51241,
+            "cache_write_tokens": 319,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 1506,
+            "message_id": "msg_011ChCCwnPeQgenR4AFEJK6o",
+            "output_tokens": 134,
+            "started_at": "2026-11-19T11:27:32.286Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 51560,
+            "cache_write_tokens": 230,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 3433,
+            "message_id": "msg_011ChCCwvaGBi5Czp4oSF4mT",
+            "output_tokens": 307,
+            "started_at": "2026-11-19T11:27:36.070Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 51790,
+            "cache_write_tokens": 396,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 3118,
+            "message_id": "msg_011ChCCxCnbFnWkxpMFfDKUC",
+            "output_tokens": 268,
+            "started_at": "2026-11-19T11:27:39.605Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 52186,
+            "cache_write_tokens": 1930,
+            "context": "devscene:layer-implementer",
+            "input_tokens": 2,
+            "latency_ms": 2218,
+            "message_id": "msg_011ChCCxSwPhbjWD5mGzUhX8",
+            "output_tokens": 241,
+            "started_at": "2026-11-19T11:27:42.014Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 203821,
+            "cache_write_tokens": 1749,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 7513,
+            "message_id": "msg_011ChCCyU2uCB9dbg9WbTKRU",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:28:01.105Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 205570,
+            "cache_write_tokens": 1991,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 9535,
+            "message_id": "msg_011ChCCz2BfFbvtsJW9dcWUH",
+            "output_tokens": 16,
+            "started_at": "2026-11-19T11:28:10.657Z"
+          },
+          {
+            "after_retry": false,
+            "cache_read_tokens": 207561,
+            "cache_write_tokens": 1122,
+            "context": "orchestrator",
+            "input_tokens": 2,
+            "latency_ms": 7595,
+            "message_id": "msg_011ChCCzjMQs6CQBw8bX4uTL",
+            "output_tokens": 8,
+            "started_at": "2026-11-19T11:28:18.303Z"
+          }
+        ],
+        "overall": {
+          "count": 61,
+          "max_ms": 55241,
+          "over_threshold": 0,
+          "p50_ms": 1762,
+          "p90_ms": 6815,
+          "p99_ms": 55241
+        }
+      },
+      "session_id": "020f1708-5577-4edb-993a-c9635f26c7fe",
+      "subagents": [
+        {
+          "agent_id": "a66f0589bed6d1dc3",
+          "cache_read_tokens": 1114390,
+          "cache_write_tokens": 74373,
+          "description": "Implement Task 1 (general)",
+          "duration_ms": 162056,
+          "input_tokens": 38,
+          "output_tokens": 17526,
+          "requests": 18,
+          "started_at": "2026-11-19T11:24:09.259Z",
+          "token_source": "transcript",
+          "type": "devscene:layer-implementer",
+          "wall_share": 0.524
+        },
+        {
+          "agent_id": "a1e732233feeb3edc",
+          "cache_read_tokens": 468549,
+          "cache_write_tokens": 39921,
+          "description": "Implement Task 2 (general)",
+          "duration_ms": 47076,
+          "input_tokens": 22,
+          "output_tokens": 5039,
+          "requests": 10,
+          "started_at": "2026-11-19T11:27:06.516Z",
+          "token_source": "transcript",
+          "type": "devscene:layer-implementer",
+          "wall_share": 0.1522
+        }
+      ],
+      "time": {
+        "active_ms": 309294,
+        "duration_api_ms": 284681,
+        "duration_ms": 311227,
+        "host_suspended_ms": 0,
+        "idle_gaps": [],
+        "idle_ms": 0,
+        "idle_threshold_s": 120,
+        "subagent_wall_ms": 209132,
+        "suspend_source": "none",
+        "wall_ms": 309294
+      },
+      "tools": {
+        "by_tool": [
+          {
+            "context": "orchestrator",
+            "count": 2,
+            "max_ms": 162056,
+            "tool": "Agent",
+            "total_ms": 209132
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "count": 17,
+            "max_ms": 5475,
+            "tool": "Bash",
+            "total_ms": 14363
+          },
+          {
+            "context": "orchestrator",
+            "count": 22,
+            "max_ms": 6554,
+            "tool": "Bash",
+            "total_ms": 11116
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "count": 11,
+            "max_ms": 50,
+            "tool": "Edit",
+            "total_ms": 460
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "count": 10,
+            "max_ms": 228,
+            "tool": "Read",
+            "total_ms": 590
+          },
+          {
+            "context": "orchestrator",
+            "count": 14,
+            "max_ms": 311,
+            "tool": "Read",
+            "total_ms": 1827
+          },
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 30,
+            "tool": "Skill",
+            "total_ms": 30
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "count": 5,
+            "max_ms": 46,
+            "tool": "Write",
+            "total_ms": 200
+          },
+          {
+            "context": "orchestrator",
+            "count": 1,
+            "max_ms": 51,
+            "tool": "Write",
+            "total_ms": 51
+          }
+        ],
+        "items": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 30,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 54,
+            "started_at": "2026-11-19T11:23:09.510Z",
+            "tool": "Skill"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 337,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:23:11.638Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 190,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 27,
+            "started_at": "2026-11-19T11:23:12.297Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 216,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 32,
+            "started_at": "2026-11-19T11:23:12.747Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 27,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3908,
+            "started_at": "2026-11-19T11:23:13.207Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 256,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 7431,
+            "started_at": "2026-11-19T11:23:15.882Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 21,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2081,
+            "started_at": "2026-11-19T11:23:17.835Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 269,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2080,
+            "started_at": "2026-11-19T11:23:18.932Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 152,
+            "is_error": true,
+            "permission_denied": true,
+            "result_bytes": 727,
+            "started_at": "2026-11-19T11:23:23.021Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 236,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 59446,
+            "started_at": "2026-11-19T11:23:24.731Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 24,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 15262,
+            "started_at": "2026-11-19T11:23:27.104Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 316,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 155,
+            "started_at": "2026-11-19T11:23:28.940Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 208,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:23:30.975Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 213,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:23:31.786Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 244,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 65616,
+            "started_at": "2026-11-19T11:23:33.905Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 189,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 27382,
+            "started_at": "2026-11-19T11:23:37.525Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 15,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 8690,
+            "started_at": "2026-11-19T11:23:39.244Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 20,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 5819,
+            "started_at": "2026-11-19T11:23:40.044Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 267,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 240,
+            "started_at": "2026-11-19T11:23:42.161Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 198,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 78,
+            "started_at": "2026-11-19T11:23:44.211Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 23,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2551,
+            "started_at": "2026-11-19T11:23:46.120Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 311,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 49208,
+            "started_at": "2026-11-19T11:23:48.744Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 230,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 32878,
+            "started_at": "2026-11-19T11:23:50.725Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 200,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1926,
+            "started_at": "2026-11-19T11:23:52.644Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 234,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 29706,
+            "started_at": "2026-11-19T11:23:54.209Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 212,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 63280,
+            "started_at": "2026-11-19T11:23:56.110Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 217,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 29254,
+            "started_at": "2026-11-19T11:23:57.882Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 160,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:23:59.616Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 184,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 110,
+            "started_at": "2026-11-19T11:24:00.161Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 194,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1032,
+            "started_at": "2026-11-19T11:24:03.324Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 180,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1,
+            "started_at": "2026-11-19T11:24:04.930Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 183,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:24:06.362Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 162056,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4487,
+            "started_at": "2026-11-19T11:24:09.259Z",
+            "tool": "Agent"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 231,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:24:10.852Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 22,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 8232,
+            "started_at": "2026-11-19T11:24:12.845Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 218,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 46614,
+            "started_at": "2026-11-19T11:24:13.171Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 21,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3908,
+            "started_at": "2026-11-19T11:24:13.621Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 268,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 442,
+            "started_at": "2026-11-19T11:24:16.821Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 11,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 8042,
+            "started_at": "2026-11-19T11:24:19.273Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 11,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 2674,
+            "started_at": "2026-11-19T11:24:19.888Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 226,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 78,
+            "started_at": "2026-11-19T11:24:20.687Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 11,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 9713,
+            "started_at": "2026-11-19T11:24:22.311Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 313,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 5117,
+            "started_at": "2026-11-19T11:24:25.563Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 259,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 10944,
+            "started_at": "2026-11-19T11:24:28.540Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 46,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 184,
+            "started_at": "2026-11-19T11:25:24.040Z",
+            "tool": "Write"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 43,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 196,
+            "started_at": "2026-11-19T11:25:25.589Z",
+            "tool": "Write"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 41,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 193,
+            "started_at": "2026-11-19T11:25:26.192Z",
+            "tool": "Write"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 32,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 192,
+            "started_at": "2026-11-19T11:25:46.071Z",
+            "tool": "Write"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 306,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 108,
+            "started_at": "2026-11-19T11:25:58.774Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 50,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 202,
+            "started_at": "2026-11-19T11:26:03.739Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 38,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 179,
+            "started_at": "2026-11-19T11:26:10.604Z",
+            "tool": "Write"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 401,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 280,
+            "started_at": "2026-11-19T11:26:13.090Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 40,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 202,
+            "started_at": "2026-11-19T11:26:15.680Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 5475,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 217,
+            "started_at": "2026-11-19T11:26:16.323Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 262,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 153,
+            "started_at": "2026-11-19T11:26:23.873Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 218,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:26:24.276Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 4711,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 507,
+            "started_at": "2026-11-19T11:26:26.048Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 35,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 240,
+            "started_at": "2026-11-19T11:26:36.877Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 273,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 6,
+            "started_at": "2026-11-19T11:26:38.785Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 6554,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 782,
+            "started_at": "2026-11-19T11:26:53.199Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 245,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 1,
+            "started_at": "2026-11-19T11:27:01.393Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 226,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 110,
+            "started_at": "2026-11-19T11:27:01.941Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 179,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 31,
+            "started_at": "2026-11-19T11:27:03.551Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 47076,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3757,
+            "started_at": "2026-11-19T11:27:06.516Z",
+            "tool": "Agent"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 259,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:27:08.251Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 14,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 5051,
+            "started_at": "2026-11-19T11:27:10.211Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 228,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 46614,
+            "started_at": "2026-11-19T11:27:10.654Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 37,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 11232,
+            "started_at": "2026-11-19T11:27:11.109Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 202,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 704,
+            "started_at": "2026-11-19T11:27:13.809Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 45,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 194,
+            "started_at": "2026-11-19T11:27:17.729Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 40,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 194,
+            "started_at": "2026-11-19T11:27:19.082Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 40,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 194,
+            "started_at": "2026-11-19T11:27:20.481Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 36,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 194,
+            "started_at": "2026-11-19T11:27:23.485Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 41,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 194,
+            "started_at": "2026-11-19T11:27:24.783Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 42,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 194,
+            "started_at": "2026-11-19T11:27:26.339Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 17,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 522,
+            "started_at": "2026-11-19T11:27:28.261Z",
+            "tool": "Read"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 46,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 126,
+            "started_at": "2026-11-19T11:27:30.734Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 351,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 182,
+            "started_at": "2026-11-19T11:27:32.286Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 417,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 175,
+            "started_at": "2026-11-19T11:27:36.070Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 191,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 3913,
+            "started_at": "2026-11-19T11:27:39.605Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 45,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 126,
+            "started_at": "2026-11-19T11:27:42.014Z",
+            "tool": "Edit"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 13,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 4321,
+            "started_at": "2026-11-19T11:28:01.109Z",
+            "tool": "Read"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 51,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 233,
+            "started_at": "2026-11-19T11:28:10.657Z",
+            "tool": "Write"
+          }
+        ],
+        "polling": [],
+        "slowest": [
+          {
+            "context": "orchestrator",
+            "duration_ms": 6554,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 782,
+            "started_at": "2026-11-19T11:26:53.199Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 5475,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 217,
+            "started_at": "2026-11-19T11:26:16.323Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 4711,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 507,
+            "started_at": "2026-11-19T11:26:26.048Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 417,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 175,
+            "started_at": "2026-11-19T11:27:36.070Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 401,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 280,
+            "started_at": "2026-11-19T11:26:13.090Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 351,
+            "is_error": true,
+            "permission_denied": false,
+            "result_bytes": 182,
+            "started_at": "2026-11-19T11:27:32.286Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 337,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 60,
+            "started_at": "2026-11-19T11:23:11.638Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 316,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 155,
+            "started_at": "2026-11-19T11:23:28.940Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "devscene:layer-implementer",
+            "duration_ms": 313,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 5117,
+            "started_at": "2026-11-19T11:24:25.563Z",
+            "tool": "Bash"
+          },
+          {
+            "context": "orchestrator",
+            "duration_ms": 311,
+            "is_error": false,
+            "permission_denied": false,
+            "result_bytes": 49208,
+            "started_at": "2026-11-19T11:23:48.744Z",
+            "tool": "Read"
+          }
+        ]
+      }
+    }
+  ]
+}
