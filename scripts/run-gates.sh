@@ -186,10 +186,11 @@ dot_namespace_hits() {
 # Hand-written beside gate 11 and for the same reason: `gate` grades two outcomes, and
 # `scripts/python-service.sh`'s exit contract has two more that are neither a pass nor a failure.
 # Status 3 is an unprovisioned toolchain (`uv` missing, or no synced environment), BLOCKED on gate
-# 11's terms: provisioning a checkout is not a property of the code. Status 4 is `container-test`'s
-# no-Docker skip, honoured only when the caller says the leg may produce it ($2 = skip4); on any
-# other leg the wrapper never produces it, so it falls through to a failure. 13c's bridge cases run
-# `cli/dist`, so 13c depends on gate 2a.
+# 11's terms: provisioning a checkout is not a property of the code. In a run copy, status 3 means
+# its bootstrap found no `uv`, or ran before `provision` was wired into `commands.depInstall`.
+# Status 4 is `container-test`'s no-Docker skip, honoured only when the caller says the leg may
+# produce it ($2 = skip4); on any other leg the wrapper never produces it, so it falls through to
+# a failure. 13c's bridge cases run `cli/dist`, so 13c depends on gate 2a.
 python_gate() {
   local name="$1" skip4="$2"; shift 2
   local start=$SECONDS
@@ -207,7 +208,7 @@ python_gate() {
       *" $name "*) ;;
       *) python_blocked+=("$name") ;;
     esac
-    gr_gate_line BLOCKED "$name" "$unit_secs" "uv or the synced Python environment is missing; run bash scripts/python-service.sh sync"
+    gr_gate_line BLOCKED "$name" "$unit_secs" "uv or the synced Python environment is missing; run bash scripts/python-service.sh provision outside the sandbox (a run copy's bootstrap runs it)"
     sed 's/^/        /' "$log" | tail -25
   elif [ "$status" -eq 4 ] && [ "$skip4" = "skip4" ]; then
     unit_status=SKIPPED
@@ -511,8 +512,8 @@ if [ "$floor_blocked" -eq 1 ]; then
 fi
 if [ -n "$python_blocked_list" ]; then
   echo "  13 the Python docs-retrieval service, reported BLOCKED above (${python_blocked_list}): it runs"
-  echo "     unattended once bash scripts/python-service.sh sync has provisioned its environment, and is"
-  echo "     listed here until then"
+  echo "     unattended once bash scripts/python-service.sh provision has provisioned its environment (a run"
+  echo "     copy's bootstrap runs it wherever uv is on PATH), and is listed here until then"
 fi
 if [ -n "$typos_skip_reason" ]; then
   echo "  6f typos over the shipped files, reported SKIPPED above: ${typos_skip_reason}"
@@ -534,7 +535,7 @@ if [ "$floor_blocked" -eq 1 ]; then
   hand_run="$hand_run, and gate 11 with them — it runs unattended only where the model cache is provisioned and the workspace's retrieval packages are installed"
 fi
 if [ -n "$python_blocked_list" ]; then
-  hand_run="$hand_run; gate 13 was BLOCKED (${python_blocked_list}) — those legs ran no Python; provision it with bash scripts/python-service.sh sync"
+  hand_run="$hand_run; gate 13 was BLOCKED (${python_blocked_list}) — those legs ran no Python; provision it with bash scripts/python-service.sh provision, which a run copy's bootstrap runs wherever uv is on PATH"
 fi
 if [ -n "$typos_skip_reason" ]; then
   hand_run="$hand_run; 6f was SKIPPED — ${typos_skip_reason}"

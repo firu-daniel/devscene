@@ -26,7 +26,13 @@
 # model caches, a stream-json session's init line), so 6a would otherwise fail on files that can
 # never be committed. `__pycache__` holds Python bytecode, which records each source's absolute
 # path: gitignored, never committed, and written by any Python run against the editable install that
-# does not carry `PYTHONDONTWRITEBYTECODE`.
+# does not carry `PYTHONDONTWRITEBYTECODE`. `.venv`, `.mypy_cache`, `.ruff_cache` and
+# `.pytest_cache` hold the per-package environment and tool caches `scripts/python-service.sh` keeps
+# inside the checkout, which record the interpreter's and the stubs' absolute paths: gitignored by
+# the root `.gitignore`, never committed, and matched by `--exclude-dir` against the base name, so
+# the exclusion holds for every table package. `.pytest_cache` is a backstop:
+# `docs-retrieval-service` turns pytest's cache off (`-p no:cacheprovider`), and a later package may
+# not.
 #
 # THE CLARIFICATIONS FILTER. The second filter drops files one or more directories below
 # `harness-runs/clarifications/`: the clarification channel's per-branch questions and answers,
@@ -71,7 +77,7 @@ err="$(mktemp "${TMPDIR:-/tmp}/check-machine-paths.XXXXXX")" || {
 }
 trap 'rm -f "$err"' EXIT
 
-grep -rn "$HOME" . --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git --exclude-dir=test_run_logs --exclude-dir=scratch --exclude-dir=__pycache__ 2>"$err" | grep -v '^\./\.git:[0-9][0-9]*:' | grep -v '^\./harness-runs/clarifications/[^/:][^/:]*/' | grep -v '^\./harness-runs/\.flow_walker_state:'
+grep -rn "$HOME" . --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git --exclude-dir=test_run_logs --exclude-dir=scratch --exclude-dir=__pycache__ --exclude-dir=.venv --exclude-dir=.mypy_cache --exclude-dir=.ruff_cache --exclude-dir=.pytest_cache 2>"$err" | grep -v '^\./\.git:[0-9][0-9]*:' | grep -v '^\./harness-runs/clarifications/[^/:][^/:]*/' | grep -v '^\./harness-runs/\.flow_walker_state:'
 
 prefix='grep: '
 suffix=': Permission denied'
