@@ -32,7 +32,7 @@ The three findings below are prose and message accuracy only. None of them is a 
 
 1. [x] **Finding 3** — Re-wrap gate 13's leg comment in `scripts/run-gates.sh` _(layer: general)_
 2. [x] **Finding 2** — Make the per-package `cd` failure in `scripts/python-service.sh` name the missing directory instead of asking about git _(layer: general)_
-3. [ ] **Finding 1** — Reword the five sites that say pytest writes an in-tree `.pytest_cache` so the exclusion reads as a backstop _(layer: general)_
+3. [x] **Finding 1** — Reword the five sites that say pytest writes an in-tree `.pytest_cache` so the exclusion reads as a backstop _(layer: general)_
 
 ---
 

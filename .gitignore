@@ -3,7 +3,8 @@ dist/
 .DS_Store
 *.env
 # scripts/python-service.sh keeps each package's environment (.venv) and tool caches (.mypy_cache,
-# .pytest_cache, .ruff_cache) inside the checkout; none of these is ever committed.
+# .ruff_cache, and .pytest_cache where a package's pytest writes one) inside the checkout; none of
+# these is ever committed.
 .venv/
 __pycache__/
 .mypy_cache/

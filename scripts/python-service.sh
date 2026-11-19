@@ -42,8 +42,10 @@
 #   3  not provisioned: `uv` is not on PATH, or no synced environment exists. Never from `provision`.
 #   4  container-test only: SKIPPED, because `docker` is not on PATH. A loud skip, not a pass.
 #
-# WHERE IT WRITES. `.venv`, `.ruff_cache`, `.mypy_cache` and `.pytest_cache` sit under the package
-# directory: per checkout by construction, ignored by the root `.gitignore`, and skipped by gate 6a.
+# WHERE IT WRITES. `.venv`, `.ruff_cache` and `.mypy_cache` sit under the package directory: per
+# checkout by construction, ignored by the root `.gitignore`, and skipped by gate 6a. pytest writes
+# no `.pytest_cache` for `docs-retrieval-service` (its `pyproject.toml` `addopts` carries
+# `-p no:cacheprovider`); a row whose package leaves it on gets one there, covered the same way.
 # The legs' `--no-cache` sends `uv`'s own writes to a temporary directory under $TMPDIR. Only `lock`,
 # `sync` and `provision` touch the shared `uv` cache. A run copy's two sandboxes allow writes to that
 # copy and to a temporary directory only (`scripts/launch-sandboxed-gates.sh` → THE BWRAP VECTOR).

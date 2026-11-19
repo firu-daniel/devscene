@@ -30,7 +30,9 @@
 # `.pytest_cache` hold the per-package environment and tool caches `scripts/python-service.sh` keeps
 # inside the checkout, which record the interpreter's and the stubs' absolute paths: gitignored by
 # the root `.gitignore`, never committed, and matched by `--exclude-dir` against the base name, so
-# the exclusion holds for every table package.
+# the exclusion holds for every table package. `.pytest_cache` is a backstop:
+# `docs-retrieval-service` turns pytest's cache off (`-p no:cacheprovider`), and a later package may
+# not.
 #
 # THE CLARIFICATIONS FILTER. The second filter drops files one or more directories below
 # `harness-runs/clarifications/`: the clarification channel's per-branch questions and answers,
