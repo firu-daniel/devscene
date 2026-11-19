@@ -16,7 +16,6 @@ from typing import Any, NoReturn
 import psycopg
 import pytest
 
-from fakes import FakeSession, InMemoryDocStore, doc_chunk
 from devscene_docs_retrieval import service, wire
 from devscene_docs_retrieval.errors import ServiceError
 from devscene_docs_retrieval.models import (
@@ -38,6 +37,7 @@ from devscene_docs_retrieval.service import (
 )
 from devscene_docs_retrieval.store import DATABASE_URL_ENV, DIMENSIONS_META_KEY, DocStore
 from devscene_docs_retrieval.stubs import RETRIEVAL_STUB_ENV
+from fakes import FakeSession, InMemoryDocStore, doc_chunk
 from model_cache import plant_model_files
 from ts_bridge import run_bridge
 

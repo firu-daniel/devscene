@@ -5,7 +5,9 @@
  * **The rule this suite enforces: one wrapper reaches the Python packages, every write it causes
  * lands inside the selected package directory or in `uv`'s own temporary cache — never under `HOME`
  * or `XDG_CACHE_HOME` — the package is a row of a closed table, and `provision` lets a host with no
- * `uv` bootstrap (`SKIPPED`, exit 0) while the legs still exit 3 (`BLOCKED`).** That is what makes
+ * `uv` bootstrap (`SKIPPED`, exit 0) while the legs still exit 3 (`BLOCKED`).** The table has two rows,
+ * and a row with no console script or no compose project refuses `run` / `container-test` with exit 2
+ * before calling `uv`; `provision` syncs every row, in table order. That is what makes
  * gate 13 runnable in a run copy, whose sandboxes allow writes to the copy and a temporary
  * directory only. The read-only legs carry `--no-cache`; provisioning does not.
  *
@@ -32,11 +34,12 @@ import { runBash, runGit, WORKSPACE_ROOT } from './helpers/fixture.mjs';
 
 const SCRIPT = join(WORKSPACE_ROOT, 'scripts', 'python-service.sh');
 const PACKAGE = 'docs-retrieval-service';
+const LIBRARY = 'graphscene';
 const CONSOLE_SCRIPT = 'devscene-docs-retrieval';
 const OTHER_PACKAGE = 'other-package';
 const LEG_PREFIX = ['run', '--frozen', '--no-sync', '--no-cache'];
 const UNKNOWN_PACKAGE_LINE = (dir) =>
-  `python-service: unknown package '${dir}'; the packages are: ${PACKAGE}`;
+  `python-service: unknown package '${dir}'; the packages are: ${PACKAGE}, ${LIBRARY}`;
 const USAGE_PREFIX = 'usage: bash scripts/python-service.sh [--package <dir>] ';
 
 /** The tools the wrapper and the stub reach on `PATH`; `bash` because `runBash` resolves it there. */
@@ -89,7 +92,7 @@ function resolveOnBase(tool, pathValue) {
 }
 
 /**
- * One case's fixture: a git repository holding the script, the table row's package and a Python
+ * One case's fixture: a git repository holding the script, both table rows' packages and a Python
  * package that is not a row, beside a `bin/uv` stub, an empty `HOME`, an empty `XDG_CACHE_HOME` and
  * the stub's call log — all under one `realpath`-resolved directory under `os.tmpdir()`.
  */
@@ -100,13 +103,14 @@ async function buildFixture(t) {
   const bin = join(root, 'bin');
   const home = join(root, 'home');
   const cache = join(root, 'xdg-cache');
-  for (const dir of [repo, bin, home, cache, join(repo, 'scripts'), join(repo, PACKAGE), join(repo, OTHER_PACKAGE)]) {
+  for (const dir of [repo, bin, home, cache, join(repo, 'scripts'), join(repo, PACKAGE), join(repo, LIBRARY), join(repo, OTHER_PACKAGE)]) {
     await mkdir(dir, { recursive: true });
   }
   await runGit(repo, ['init', '-q']);
   const script = join(repo, 'scripts', 'python-service.sh');
   await copyFile(SCRIPT, script);
   await writeFile(join(repo, PACKAGE, 'pyproject.toml'), `[project]\nname = "${PACKAGE}"\n`, 'utf8');
+  await writeFile(join(repo, LIBRARY, 'pyproject.toml'), `[project]\nname = "${LIBRARY}"\n`, 'utf8');
   await writeFile(join(repo, OTHER_PACKAGE, 'pyproject.toml'), `[project]\nname = "${OTHER_PACKAGE}"\n`, 'utf8');
   await writeFile(join(repo, OTHER_PACKAGE, 'uv.lock'), 'version = 1\n', 'utf8');
   await writeFile(join(bin, 'uv'), UV_STUB, 'utf8');
@@ -167,8 +171,8 @@ function expectedSite(repo, pkg = PACKAGE) {
   };
 }
 
-function assertCalls(calls, repo, argvs, context) {
-  const site = expectedSite(repo);
+function assertCalls(calls, repo, argvs, context, pkg = PACKAGE) {
+  const site = expectedSite(repo, pkg);
   assert.deepEqual(
     calls,
     argvs.map((argv) => ({ ...site, argv })),
@@ -214,6 +218,42 @@ test('the legs, provisioned: each records its argv, the package directory and th
     }
   }
   await assertNothingUnderHome(fixture, all);
+});
+
+test(`the legs under --package ${LIBRARY}: each records its argv, ${LIBRARY}/ and its four values`, async (t) => {
+  const fixture = await buildFixture(t);
+  await fixture.plantVenv(LIBRARY);
+  const all = [];
+  for (const leg of LEGS.filter((entry) => entry.args[0] !== 'run').concat([
+    { args: ['test', 'tests/a.py'], argvs: [[...LEG_PREFIX, 'pytest', 'tests/a.py']] },
+  ])) {
+    const args = ['--package', LIBRARY, ...leg.args];
+    const result = await fixture.runScript(args);
+    assert.equal(result.status, 0, `${args.join(' ')}: ${result.stderr}`);
+    const calls = await fixture.takeCalls();
+    assertCalls(calls, fixture.repo, leg.argvs, args.join(' '), LIBRARY);
+    all.push(...calls);
+  }
+  await assertNothingUnderHome(fixture, all);
+});
+
+test(`run, container-test and sync --with-models under --package ${LIBRARY} exit 2 with the row's refusal line and call no uv`, async (t) => {
+  const fixture = await buildFixture(t);
+  await fixture.plantVenv(LIBRARY);
+  const refusals = [
+    [['--package', LIBRARY, 'run', 'serve'], `python-service: package '${LIBRARY}' has no console script`],
+    [['--package', LIBRARY, 'container-test'], `python-service: package '${LIBRARY}' has no container tests`],
+    [['--package', LIBRARY, 'sync', '--with-models'], `python-service: package '${LIBRARY}' has no models extra`],
+  ];
+  for (const [args, line] of refusals) {
+    const result = await fixture.runScript(args);
+    assert.equal(result.status, 2, `${args.join(' ')}: ${result.stderr}`);
+    const lines = result.stderr.split('\n').filter(Boolean);
+    assert.equal(lines[0], line, result.stderr);
+    assert.ok(lines[1]?.startsWith(USAGE_PREFIX), `no usage line: ${result.stderr}`);
+    assert.equal(lines.length, 2, result.stderr);
+    assert.deepEqual(await fixture.takeCalls(), [], `${args.join(' ')} called uv`);
+  }
 });
 
 test('a failing tool maps to exit 1, and lint runs both of its calls before failing', async (t) => {
@@ -286,21 +326,24 @@ test('container-test with no docker on PATH exits 4', async (t) => {
   assert.deepEqual(await fixture.takeCalls(), []);
 });
 
-test('provision syncs the one row in its own directory, and reports a failure as exit 1', async (t) => {
+test('provision syncs the rows in table order, each in its own directory, and reports a failure as exit 1', async (t) => {
   const fixture = await buildFixture(t);
+  const sync = ['sync', '--frozen', '--group', 'dev'];
   const ok = await fixture.runScript(['provision']);
   assert.equal(ok.status, 0, ok.stderr);
-  assert.equal(ok.stdout, `python-service: provisioned ${PACKAGE}\n`);
+  assert.equal(ok.stdout, `python-service: provisioned ${PACKAGE}\npython-service: provisioned ${LIBRARY}\n`);
   const calls = await fixture.takeCalls();
-  assertCalls(calls, fixture.repo, [['sync', '--frozen', '--group', 'dev']], 'provision');
+  assert.equal(calls.length, 2, 'provision: one sync per row');
+  assertCalls(calls.slice(0, 1), fixture.repo, [sync], `provision, ${PACKAGE}`);
+  assertCalls(calls.slice(1), fixture.repo, [sync], `provision, ${LIBRARY}`, LIBRARY);
   await assertNothingUnderHome(fixture, calls);
 
   const failed = await fixture.runScript(['provision'], { env: { FAKE_UV_STATUS: '1' } });
   assert.equal(failed.status, 1, failed.stderr);
-  assert.ok(
-    failed.stderr.split('\n').includes(`python-service: provision: ${PACKAGE} failed (exit 1)`),
-    failed.stderr,
-  );
+  const stderrLines = failed.stderr.split('\n');
+  for (const row of [PACKAGE, LIBRARY]) {
+    assert.ok(stderrLines.includes(`python-service: provision: ${row} failed (exit 1)`), failed.stderr);
+  }
 });
 
 test('provision with no uv on PATH prints one SKIPPED line, exits 0 and writes nothing in the fixture', async (t) => {
@@ -323,7 +366,7 @@ test('provision with no uv on PATH prints one SKIPPED line, exits 0 and writes n
 
 test('provision takes no argument and no --package', async (t) => {
   const fixture = await buildFixture(t);
-  for (const args of [['provision', 'extra'], ['--package', PACKAGE, 'provision']]) {
+  for (const args of [['provision', 'extra'], ['--package', PACKAGE, 'provision'], ['--package', LIBRARY, 'provision']]) {
     const result = await fixture.runScript(args);
     assert.equal(result.status, 2, `${args.join(' ')}: ${result.stderr}`);
     assert.deepEqual(await fixture.takeCalls(), [], `${args.join(' ')} called uv`);

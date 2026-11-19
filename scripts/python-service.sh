@@ -6,8 +6,10 @@
 # Hand-written, like `scripts/run-gates.sh`: not in the set `init --force` rewrites.
 #
 # The package table (`PACKAGES`, `package_row`) is closed: a package directory, repo-relative at the
-# root, with the console script `run` invokes and the compose project prefix `container-test` uses.
-# Its one row is `docs-retrieval-service` (`devscene-docs-retrieval`, `devscene-docs-retrieval-test`).
+# root, with the console script `run` invokes, the compose project prefix `container-test` uses and
+# the extra `sync --with-models` installs. Its rows are `docs-retrieval-service`
+# (`devscene-docs-retrieval`, `devscene-docs-retrieval-test`, `models`) and `graphscene` (no console
+# script, no compose project, no `models` extra).
 #
 # Sub-commands (paths and arguments are relative to the selected package's directory):
 #   [--package <dir>]    selects a table row, before the sub-command; default
@@ -38,14 +40,17 @@
 #   0  pass
 #   1  the tool reported failure (any non-zero status from it, pytest's own 2-5 included),
 #      container-test could not start its Postgres, or a `provision` sync failed
-#   2  usage: missing or unknown sub-command, an unknown package, or a bad option
+#   2  usage: missing or unknown sub-command, an unknown package, or a bad option, or `run` /
+#      `container-test` on a row that has no console script / no compose project, or
+#      `sync --with-models` on a row that has no `models` extra
 #   3  not provisioned: `uv` is not on PATH, or no synced environment exists. Never from `provision`.
 #   4  container-test only: SKIPPED, because `docker` is not on PATH. A loud skip, not a pass.
 #
 # WHERE IT WRITES. `.venv`, `.ruff_cache` and `.mypy_cache` sit under the package directory: per
 # checkout by construction, ignored by the root `.gitignore`, and skipped by gate 6a. pytest writes
-# no `.pytest_cache` for `docs-retrieval-service` (its `pyproject.toml` `addopts` carries
-# `-p no:cacheprovider`); a row whose package leaves it on gets one there, covered the same way.
+# no `.pytest_cache` for `docs-retrieval-service` or `graphscene` (each one's `pyproject.toml`
+# `addopts` carries `-p no:cacheprovider`); a row whose package leaves it on gets one there, covered
+# the same way.
 # The legs' `--no-cache` sends `uv`'s own writes to a temporary directory under $TMPDIR. Only `lock`,
 # `sync` and `provision` touch the shared `uv` cache. A run copy's two sandboxes allow writes to that
 # copy and to a temporary directory only (`scripts/launch-sandboxed-gates.sh` → THE BWRAP VECTOR).
@@ -60,15 +65,22 @@
 # Deliberately no `-e`: each failure is mapped onto the exit contract above.
 set -uo pipefail
 
-PACKAGES="docs-retrieval-service"
+PACKAGES="docs-retrieval-service graphscene"
 DEFAULT_PACKAGE="docs-retrieval-service"
 
-# Sets the row's fields; returns 1 for a directory that is not a row.
+# Sets the row's fields; returns 1 for a directory that is not a row. An empty field means the row
+# does not serve that sub-command.
 package_row() {
   case "$1" in
     docs-retrieval-service)
       row_console_script="devscene-docs-retrieval"
       row_compose_prefix="devscene-docs-retrieval-test"
+      row_models_extra="models"
+      ;;
+    graphscene)
+      row_console_script=""
+      row_compose_prefix=""
+      row_models_extra=""
       ;;
     *)
       return 1
@@ -189,7 +201,12 @@ case "$command_name" in
   sync)
     extra=()
     if [ "$#" -eq 1 ] && [ "$1" = "--with-models" ]; then
-      extra=(--extra models)
+      if [ -z "$row_models_extra" ]; then
+        echo "python-service: package '${package}' has no models extra" >&2
+        usage
+        exit 2
+      fi
+      extra=(--extra "$row_models_extra")
     elif [ "$#" -ne 0 ]; then
       usage
       exit 2
@@ -215,11 +232,21 @@ case "$command_name" in
     graded uv run --frozen --no-sync --no-cache pytest "$@"
     ;;
   run)
+    if [ -z "$row_console_script" ]; then
+      echo "python-service: package '${package}' has no console script" >&2
+      usage
+      exit 2
+    fi
     require_env
     graded uv run --frozen --no-sync --no-cache "$row_console_script" "$@"
     ;;
   container-test)
     if [ "$#" -ne 0 ]; then usage; exit 2; fi
+    if [ -z "$row_compose_prefix" ]; then
+      echo "python-service: package '${package}' has no container tests" >&2
+      usage
+      exit 2
+    fi
     if ! command -v docker >/dev/null 2>&1; then
       echo "container-test: SKIPPED — docker is not on PATH; the container gate needs Docker" >&2
       exit 4
