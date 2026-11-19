@@ -16,3 +16,9 @@
 - **cost this run:** 3 node session(s)
 
 # Task run (Phase D)
+
+## A resumed run found an uncommitted ledger flip and no pause record
+- **category:** silent-failure
+- **evidence:** at this session's start `git status --short` showed ` M harness-runs/flow_progress/feat_graphscene_package_skeleton_progress.md`, whose only diff was `- [ ] C.` → `- [x] C.`; branch tip was `6db1ad27` (Code review finding 2), and `harness-runs/PAUSE_PROGRESS.md` did not exist although the launch prompt described the run as a resume from a pause. The flip was committed this session as `6aec0613` (`chore: Flow progress C …`) after the code-review index was confirmed all `[x]`.
+- **cost this run:** one ledger-flip commit landed late, at the next session's start; no work was redone.
+- **hypothesis:** (guess) the previous session ended between the ledger edit and its `ledger-flip` wrapper call.
