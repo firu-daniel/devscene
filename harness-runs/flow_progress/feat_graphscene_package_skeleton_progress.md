@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/feat_graphscene_package_skeleton_task_prompt.m
   - screened: harness-runs/task_prompts/feat_graphscene_package_skeleton_task_prompt.md sha256=8c06346ad45c15090462c3055325160497ca2455f61869b81149606ab661a879
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
