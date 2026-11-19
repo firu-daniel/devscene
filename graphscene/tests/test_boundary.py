@@ -11,6 +11,9 @@ outside it; (c) any top-level name from (a) or (b) starting with `devscene`, all
 Deliberately not covered:
 - `tests/` is not scanned, because this file has to carry the forbidden literal.
 - An import whose module name is computed at run time cannot be checked statically.
+- A constant-name dynamic import the scanner does not recognise as one: an importer bound to
+  another name (`from importlib import import_module as load`), a module name passed by keyword
+  (`import_module(name=...)`), or `__import__` reached through a module (`builtins.__import__`).
 """
 
 import ast
