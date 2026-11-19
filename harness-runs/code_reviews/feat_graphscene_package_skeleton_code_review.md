@@ -32,7 +32,7 @@
 1. [x] **Finding 4** — Name the unrecognised dynamic-import forms in the boundary test's "Deliberately not covered" list _(layer: general)_
 2. [x] **Finding 3** — Add a planted `pyproject.toml` case for the boundary test's dependency rule and PEP 508 name parsing _(layer: general)_
 3. [x] **Finding 1** — Refuse `sync --with-models` with exit 2 on a row that has no `models` extra, and pin it in the `cli` suite _(layer: cli, general)_
-4. [ ] **Finding 2** — Audit `graphscene/uv.lock` in the nightly `uv-audit` job and document it in §8 _(layer: general)_
+4. [x] **Finding 2** — Audit `graphscene/uv.lock` in the nightly `uv-audit` job and document it in §8 _(layer: general)_
 
 ---
 

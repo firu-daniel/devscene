@@ -1,8 +1,9 @@
 # Re-audit the supply chain every night, after changes have merged, and fail loudly on a finding.
 # Four jobs: npm-audit (every moderate-or-higher advisory in the full npm tree), uv-audit (known
-# vulnerabilities in docs-retrieval-service/uv.lock), zizmor-online (the rendered adopter workflows
-# and this repository's own .github, with zizmor's online audits) and model-revisions (the
-# retrieval model pins: drift is a notice, an unreadable or unresolvable pin fails).
+# vulnerabilities in docs-retrieval-service/uv.lock and graphscene/uv.lock), zizmor-online (the
+# rendered adopter workflows and this repository's own .github, with zizmor's online audits) and
+# model-revisions (the retrieval model pins: drift is a notice, an unreadable or unresolvable pin
+# fails).
 #
 # Policy:
 # - Never a required check: a new upstream advisory must not block unrelated merges.
@@ -72,6 +73,8 @@ jobs:
           version: '0.12.23'
           enable-cache: false
       - working-directory: docs-retrieval-service
+        run: uv audit --preview-features audit-command --frozen
+      - working-directory: graphscene
         run: uv audit --preview-features audit-command --frozen
 
   zizmor-online:

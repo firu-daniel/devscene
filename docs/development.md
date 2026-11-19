@@ -3079,7 +3079,7 @@ It cuts and squash-merges the bump pull request, waits for `publish-main.yml` to
 | Job | What it audits | What fails it |
 |---|---|---|
 | `npm-audit` | Every installed package in the workspace's full npm tree, from `package-lock.json` | Any advisory at moderate or higher |
-| `uv-audit` | Every package `docs-retrieval-service/uv.lock` pins, under uv 0.12.23 | Any known vulnerability not ignored on the step |
+| `uv-audit` | Every package `docs-retrieval-service/uv.lock` or `graphscene/uv.lock` pins, under uv 0.12.23 | Any known vulnerability not ignored on the step |
 | `zizmor-online` | The four workflows `init` renders for an adopter, and this repository's own `.github`, under zizmor 1.30.1 with its online audits | A finding outside the set kept for it, a `RESIDUAL` entry that no longer fires, or exit `4`: zizmor or the token unavailable |
 | `model-revisions` | The four pinned Hugging Face model revisions, against upstream `main` | A pin that cannot be read from the tree, or one upstream no longer resolves |
 
@@ -3090,7 +3090,7 @@ npm ci --ignore-scripts
 npm audit --audit-level=moderate
 ```
 
-`uv-audit`, from `docs-retrieval-service/`:
+`uv-audit`, once from `docs-retrieval-service/` and once from `graphscene/`:
 
 ```
 uv audit --preview-features audit-command --frozen
