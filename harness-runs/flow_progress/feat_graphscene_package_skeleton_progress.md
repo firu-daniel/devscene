@@ -9,6 +9,7 @@ Source: harness-runs/task_prompts/feat_graphscene_package_skeleton_task_prompt.m
 ## Planning
 - [x] P0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_graphscene_package_skeleton_task_prompt.md sha256=8c06346ad45c15090462c3055325160497ca2455f61869b81149606ab661a879
+  - screened: harness-runs/clarifications/feat_graphscene_package_skeleton/answer_1.md sha256=1024d976eb6af437e653d79dfacb90d8f2914e7c0c8c9656df8253416aeb1627
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
 - [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
