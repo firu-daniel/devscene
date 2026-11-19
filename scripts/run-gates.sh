@@ -8,8 +8,9 @@
 # be resolved: 6f where neither PATH nor `uvx` provides `typos` 1.51.1, 14c where `actionlint` is not
 # on PATH, and 14d where neither provides `zizmor` 1.30.1. Two of the nine are conditional. Gate 11 runs where the retrieval model cache is
 # provisioned and the workspace's retrieval packages are installed, and is reported BLOCKED with the
-# hand-run gates where they are not. Gate 13 (the Python docs-retrieval service) reports a leg
-# BLOCKED where `uv` or its synced environment is missing, and its container leg 13d SKIPPED unless
+# hand-run gates where they are not. Gate 13 (the Python packages: the docs-retrieval service's
+# legs 13a–13d and the GraphScene library's legs 13e, 13f and 13g) reports a leg BLOCKED where `uv` or that
+# package's synced environment is missing, and its container leg 13d SKIPPED unless
 # HARNESS_GATES_CONTAINERS=1 is set on a machine with Docker. Neither outcome is a pass or a failure.
 # Gate 16 parses every tracked or untracked-unignored shell script with `bash -n` under `/bin/bash`,
 # the bash 3.2 floor on macOS: an unattended run refuses a free-standing `bash -n`, and this script
@@ -396,13 +397,13 @@ run_unit() {
       fi
       ;;
     13a)
-      gate_header 13 "Python docs-retrieval service"
+      gate_header 13 "Python packages"
       python_gate "13a Python lint" noskip bash scripts/python-service.sh lint
       ;;
-    13b) gate_header 13 "Python docs-retrieval service"; python_gate "13b Python typecheck" noskip bash scripts/python-service.sh typecheck ;;
-    13c) gate_header 13 "Python docs-retrieval service"; python_gate "13c Python tests" noskip bash scripts/python-service.sh test ;;
+    13b) gate_header 13 "Python packages"; python_gate "13b Python typecheck" noskip bash scripts/python-service.sh typecheck ;;
+    13c) gate_header 13 "Python packages"; python_gate "13c Python tests" noskip bash scripts/python-service.sh test ;;
     13d)
-      gate_header 13 "Python docs-retrieval service"
+      gate_header 13 "Python packages"
       if [ "${HARNESS_GATES_CONTAINERS:-}" = "1" ]; then
         python_gate "13d Python container tests" skip4 bash scripts/python-service.sh container-test
       else
@@ -412,6 +413,9 @@ run_unit() {
         gr_gate_line SKIPPED "13d Python container tests" "$unit_secs" "opt in with HARNESS_GATES_CONTAINERS=1 on a machine with Docker"
       fi
       ;;
+    13e) gate_header 13 "Python packages"; python_gate "13e GraphScene lint" noskip bash scripts/python-service.sh --package graphscene lint ;;
+    13f) gate_header 13 "Python packages"; python_gate "13f GraphScene typecheck" noskip bash scripts/python-service.sh --package graphscene typecheck ;;
+    13g) gate_header 13 "Python packages"; python_gate "13g GraphScene tests" noskip bash scripts/python-service.sh --package graphscene test ;;
     14a)
       gate_header 14 "rendered workflows parse"
       # 14a, 14c and 14d render through `cli/dist`, so they depend on gate 2a. 14c and 14d are
@@ -483,7 +487,7 @@ run_unit() {
 }
 
 # A stopped round returns 1 having pushed its failure onto `failed`, so the closing block exits 1.
-gr_run_round run_unit 1 2a 2b 2c 2d 2e 3a 3b 3c 3d 3e 3f 4 6a 6b 6c 6d 6e 6f 11 13a 13b 13c 13d 14a 14c 14d 16
+gr_run_round run_unit 1 2a 2b 2c 2d 2e 3a 3b 3c 3d 3e 3f 4 6a 6b 6c 6d 6e 6f 11 13a 13b 13c 13d 13e 13f 13g 14a 14c 14d 16
 
 python_blocked_list=""
 if [ ${#python_blocked[@]} -gt 0 ]; then
@@ -511,7 +515,7 @@ if [ "$floor_blocked" -eq 1 ]; then
   echo "     and is listed here where they are not"
 fi
 if [ -n "$python_blocked_list" ]; then
-  echo "  13 the Python docs-retrieval service, reported BLOCKED above (${python_blocked_list}): it runs"
+  echo "  13 the Python packages, reported BLOCKED above (${python_blocked_list}): it runs"
   echo "     unattended once bash scripts/python-service.sh provision has provisioned its environment (a run"
   echo "     copy's bootstrap runs it wherever uv is on PATH), and is listed here until then"
 fi
