@@ -164,8 +164,24 @@ def test_the_real_library_stays_inside_its_boundary() -> None:
     assert violations == [], "\n".join(violations)
 
 
-def test_no_declared_dependency_is_devscene_prefixed() -> None:
-    prefixed = [
-        name for name in _declared_dependencies(_PYPROJECT) if name.startswith(_FORBIDDEN_PREFIX)
+def prefixed_dependencies(pyproject: Path) -> list[str]:
+    return [
+        name for name in _declared_dependencies(pyproject) if name.startswith(_FORBIDDEN_PREFIX)
     ]
+
+
+def test_dependency_names_are_parsed_and_a_devscene_one_is_flagged(tmp_path: Path) -> None:
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "planted"\n'
+        'dependencies = ["devscene-walker>=0.1", "PyYAML[extra]>=6"]\n',
+        encoding="utf-8",
+    )
+    assert _declared_dependencies(pyproject) == ["devscene_walker", "pyyaml"]
+    assert prefixed_dependencies(pyproject) == ["devscene_walker"]
+    assert {"devscene_walker", "pyyaml"} <= allowed_names(pyproject)
+
+
+def test_no_declared_dependency_is_devscene_prefixed() -> None:
+    prefixed = prefixed_dependencies(_PYPROJECT)
     assert prefixed == [], prefixed

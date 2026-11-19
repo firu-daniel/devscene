@@ -33,3 +33,5 @@ def test_no_declared_dependency_is_devscene_prefixed() -> None:
 ```
 
 Keep every line within the package's 100-column `ruff` limit. This file is the one the fix edits. Its own run is gate 13's leg 13g in the Run gates phase, because no unit runs the Python toolchain outside `scripts/python-service.sh`, and the fix runs no other test.
+
+**Deviations from plan:** The edited test file was not run by this unit: no conventions document states a single-file command for a Python test (`.claude/context/conventions.md` → `## The testing bar` states only the `cli/test/*.test.mjs` one), so its run is deferred to the Run gates phase, gate 13 leg 13g, as this finding states. The claim that every line stays within the 100-column limit rests on an `awk 'length > 100'` read over the file, which reported no line; `ruff` was not run.
