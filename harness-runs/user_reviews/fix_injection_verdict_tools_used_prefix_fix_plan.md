@@ -17,7 +17,7 @@ Each entry resolves to `harness-runs/user_reviews/fix_injection_verdict_tools_us
 1. [x] **Finding 3** — Keep the findings of an `UNSAFE` excerpt that quotes a neutralized control tag. _(layer: cli, general)_
 2. [x] **Finding 1** — Accept the exact harness notice ahead of the frame. _(layer: cli, general)_
 3. [x] **Finding 2** — Accept the exact harness notice as the first line of the framed reply. _(layer: cli, general)_
-4. [ ] **Finding 4** — Pin the fail-closed boundary in tests and update the two documents that describe the old behaviour. _(layer: cli, plugin, general)_
+4. [x] **Finding 4** — Pin the fail-closed boundary in tests and update the two documents that describe the old behaviour. _(layer: cli, plugin, general)_
 5. [ ] **Finding 5** — Let the routing check parse a return holding a neutralized control tag. _(layer: plugin, general)_
 
 ---

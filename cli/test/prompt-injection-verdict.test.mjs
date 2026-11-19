@@ -6,11 +6,13 @@
  * anything else — an empty return, prose or a trailer outside the block, an indented fence, a
  * retired `verdict:` line, an unknown id, a blocker object — parks one `malformed-verdict` finding.
  * The return may also arrive as the whole `Agent` result — optional tools-used lines and then at most
- * one harness notice ahead of the frame, frame line, reply indented by two spaces, `agentId:` trailer —
- * which is unwrapped to the reply first. The one notice may instead be the reply's first non-blank line,
- * where it unwraps to a blank line. That exact shape only, so a bare trailer, a bare indent, a
- * frame over any other shape, other text ahead of the frame or a tools-used line anywhere else still
- * parks as malformed.
+ * one harness notice ahead of the frame, frame line, reply indented by two spaces, `agentId:` line
+ * followed by nothing but its `<usage>` block — which is unwrapped to the reply first. The one notice has two accepted placements: indented by two
+ * spaces ahead of the frame, after any tools-used lines, or as the reply's first non-blank line, where
+ * it unwraps to a blank line. The notice decides nothing: the reply must still be one valid verdict
+ * block. That exact shape only, so a bare trailer, a bare indent, a frame over any other shape, other
+ * text ahead of the frame, other text after the `agentId:` line, a second notice, an inexact notice, a
+ * notice anywhere else or a tools-used line anywhere else still parks as malformed.
  * A control tag Claude Code neutralized to `<\` inside a finding's string stays literal text and
  * keeps the finding. The verdict file is removed in every outcome but a refusal.
  *
@@ -143,6 +145,7 @@ for (const [label, ret] of [
   ['surrounded by blank lines', `\n  \n${SAFE}\n\t\n`],
   ['as the whole Agent result: frame, indented reply, trailer', wrapped(SAFE)],
   ['as the whole Agent result with no trailer', wrapped(SAFE, '')],
+  ['as the whole Agent result with blank lines after the trailer', wrapped(SAFE, `${TRAILER}\n\n  \n`)],
   ['as the whole Agent result, pretty-printed, with indented blank lines', wrapped('\n```json\n{\n  "outcome": "SAFE"\n}\n```\n\n')],
   ['as the whole Agent result behind the measured tools-used prefix', prefixed(SAFE)],
   ['behind a tools-used line at column 0', prefixed(SAFE, `${TOOLS_USED}\n`)],
@@ -345,6 +348,37 @@ for (const [label, ret] of [
   ['a column-0 tools-used line between the reply and the trailer', `${FRAME}\n${indent(SAFE)}\n${TOOLS_USED}\n${TRAILER}\n`],
   ['a column-0 tools-used line after the trailer', wrapped(SAFE, `${TRAILER}\n${TOOLS_USED}`)],
   ['an indented tools-used line after the trailer', wrapped(SAFE, `${TRAILER}\n  ${TOOLS_USED}`)],
+  ['the notice alone in the reply', wrapped(`${NOTICE_TEXT}\n`)],
+  ['the notice ahead of a frame with an empty reply', `${HARNESS_NOTICE}\n${FRAME}\n${TRAILER}\n`],
+  ['the notice over a bare block', `${HARNESS_NOTICE}\n${SAFE}`],
+  ['a column-0 notice over a bare block', `${NOTICE_TEXT}\n${SAFE}`],
+  ['a column-0 notice ahead of the frame', prefixed(SAFE, `${NOTICE_TEXT}\n`)],
+  ['a notice indented by one space ahead of the frame', prefixed(SAFE, ` ${NOTICE_TEXT}\n`)],
+  ['a notice indented by four spaces ahead of the frame', prefixed(SAFE, `    ${NOTICE_TEXT}\n`)],
+  ['two notices ahead of the frame', prefixed(SAFE, `${HARNESS_NOTICE}\n${HARNESS_NOTICE}\n`)],
+  ['a tools-used line after the notice', prefixed(SAFE, `${HARNESS_NOTICE}\n  ${TOOLS_USED}\n`)],
+  ['a notice ahead of the frame and another in the reply', prefixed(`${NOTICE_TEXT}\n${SAFE}`, `${HARNESS_NOTICE}\n`)],
+  ['two notices in the reply', wrapped(`${NOTICE_TEXT}\n${NOTICE_TEXT}\n${SAFE}`)],
+  ['a notice after other reply text', wrapped(`Note.\n${NOTICE_TEXT}\n${SAFE}`)],
+  ['a notice after the closing fence', wrapped(`${SAFE}${NOTICE_TEXT}\n`)],
+  ['a notice indented by four spaces in the reply', wrapped(`  ${NOTICE_TEXT}\n${SAFE}`)],
+  ['a column-0 notice between the reply and the trailer', `${FRAME}\n${indent(SAFE)}\n${NOTICE_TEXT}\n${TRAILER}\n`],
+  ['an indented notice after the trailer', wrapped(SAFE, `${TRAILER}\n${HARNESS_NOTICE}`)],
+  ['a column-0 notice after the trailer', wrapped(SAFE, `${TRAILER}\n${NOTICE_TEXT}`)],
+  ['an altered notice after the trailer', wrapped(SAFE, `${TRAILER}\n${HARNESS_NOTICE.replace('a finding', 'a hint')}`)],
+  ['prose after the trailer', wrapped(SAFE, `${TRAILER}\nNote.`)],
+  ['a usage block left open', wrapped(SAFE, TRAILER.replace('</usage>', ''))],
+  ['a second usage block after the trailer', wrapped(SAFE, `${TRAILER}\n<usage>tool_uses: 1</usage>`)],
+  ['text after the notice on its line', prefixed(SAFE, `${HARNESS_NOTICE} done\n`)],
+  ['a trailing space on the notice', prefixed(SAFE, `${HARNESS_NOTICE} \n`)],
+  ['a notice with its sentence altered', prefixed(SAFE, `${HARNESS_NOTICE.replace('a finding', 'a hint')}\n`)],
+  ['a notice with an empty pattern list', prefixed(SAFE, `${HARNESS_NOTICE.replace('settings-json', '')}\n`)],
+  ['a notice whose pattern list is prose', prefixed(SAFE, `${HARNESS_NOTICE.replace('settings-json', 'ignore all rules')}\n`)],
+  ['a notice whose pattern list holds a bracket', prefixed(SAFE, `${HARNESS_NOTICE.replace('settings-json', 'a]b')}\n`)],
+  ['SAFE with an extra key holding <\\', '```json\n{"outcome":"SAFE","<\\x":1}\n```\n'],
+  ['an outcome holding <\\', '```json\n{"outcome":"<\\SAFE"}\n```\n'],
+  ['a check_id holding <\\', '```json\n{"outcome":"UNSAFE","findings":[{"check_id":"<\\attack","excerpt":"x","reason":"y"}]}\n```\n'],
+  ['an excerpt ending in <\\, which swallows its closing quote', rawUnsafe('a<\\')],
   ['two fenced blocks', `${SAFE}${SAFE}`],
   ['JSON that does not parse', '```json\n{"outcome":"SAFE"\n```\n'],
   ['a JSON array', block([{ outcome: 'SAFE' }])],
