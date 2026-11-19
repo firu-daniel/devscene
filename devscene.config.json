@@ -45,7 +45,7 @@
     "typecheck": "bash scripts/typecheck.sh",
     "test": "bash scripts/test.sh",
     "build": "npm run build",
-    "depInstall": "npm ci"
+    "depInstall": "npm ci && if grep -qx '# PROVIDES: provision' scripts/python-service.sh 2>/dev/null; then bash scripts/python-service.sh provision; else echo 'python-service: provision: SKIPPED - this checkout has no provision sub-command; gate 13 grades BLOCKED' >&2; fi"
   },
   "phases": {
     "qa": false,
