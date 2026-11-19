@@ -81,3 +81,8 @@
   - making `provision` exit `3` when `uv` is absent;
   - accepting `other-package`.
 - The suite builds nothing inside this checkout: `git status --short` after the run lists only the new test file.
+
+**Deviations from plan:**
+
+- The no-`uv` `provision` case compares `git status --porcelain --ignored --untracked-files=all`, not the bare form: in the fixture every package directory is untracked, so the bare listing collapses to `?? docs-retrieval-service/` and a `.venv` created inside it would not change it.
+- The base `PATH` is `/usr/bin` and `/bin`, plus the runner's directory for any of `bash`, `git`, `cksum`, `awk`, `dirname`, `mkdir` neither holds: `runBash` resolves `bash` on it, the wrapper calls `dirname`, and the stub calls `mkdir`.
