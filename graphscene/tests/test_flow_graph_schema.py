@@ -6,8 +6,8 @@ The schema is read through `importlib.resources`, as a consumer of the installed
 harness outcome, binding, phase or reason name, or contains the forbidden prefix.
 
 Deliberately not covered:
-- Schema validation itself: it runs through `ajv` from the repository root, because the package
-  declares no JSON Schema runtime dependency. This file only checks that each fixture parses.
+- Schema validation itself: it runs through `ajv` from the repository root. This file only
+  checks that each fixture parses.
 - Key-name positions — the members of every `required` and `dependencies` array, and every
   `properties` key — are not walked for harness names, because they name the format's own keys,
   and a counter's `cap` is one of them.
