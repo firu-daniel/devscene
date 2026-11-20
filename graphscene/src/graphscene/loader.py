@@ -61,9 +61,15 @@ def load_graph(graph: object) -> FlowGraph:
 
 
 def load_graph_file(path: str | os.PathLike[str]) -> FlowGraph:
-    """Read `path` as UTF-8 JSON and load it; an `OSError` propagates unchanged."""
-    with open(path, encoding="utf-8") as handle:
-        text = handle.read()
+    """Read `path` as UTF-8 JSON and load it; a file that is not UTF-8 or not JSON is a parse-stage
+    `GraphError`, and an `OSError` propagates unchanged."""
+    with open(path, "rb") as handle:
+        data = handle.read()
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as error:
+        reason = f"not valid UTF-8: {error.reason} (byte {error.start})"
+        raise GraphError("parse", [Violation("", reason)]) from error
     try:
         parsed: object = json.loads(text)
     except json.JSONDecodeError as error:

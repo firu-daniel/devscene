@@ -41,3 +41,5 @@ A caller that catches `GraphError` to report a bad graph file therefore crashes 
    ```
 
 `graphscene/tests/test_loader.py` is the test file this fix edits, so it is the only test file the fix runs: `bash scripts/python-service.sh --package graphscene test tests/test_loader.py`.
+
+- **Deviations from plan:** The step-1 docstring, written on one line, would exceed `graphscene/pyproject.toml` → `[tool.ruff]` `line-length = 100`; implemented with the same text wrapped after "parse-stage" onto a second line. Ruff and the layer's `mypy` `strict` check were not run by this unit (gate 13, Run gates phase).

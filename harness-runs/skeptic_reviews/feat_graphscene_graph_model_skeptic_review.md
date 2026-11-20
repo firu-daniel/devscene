@@ -36,7 +36,7 @@ All three are fixed on the branch. No parity review exists for this branch, beca
 
 **This section is the single source of truth for the per-item fix loop.** The orchestrator walks the `[ ]` entries below from top to bottom. The committing role flips each one to `[x]` as that fix's commit lands. Each entry resolves to `harness-runs/skeptic_reviews/feat_graphscene_graph_model_skeptic_review/finding_<K>.md` through its `**Finding K**` reference.
 
-1. [ ] **Finding 2** — Read `load_graph_file`'s file as bytes and turn a failed UTF-8 decode into a parse-stage `GraphError`, with a loader test _(layer: graphscene)_
+1. [x] **Finding 2** — Read `load_graph_file`'s file as bytes and turn a failed UTF-8 decode into a parse-stage `GraphError`, with a loader test _(layer: graphscene)_
 2. [ ] **Finding 1** — Match the schema's `pattern`s as ECMA-262 in the loader's validator, so a trailing newline or a `.` against a line terminator is rejected as `ajv` rejects it _(layer: graphscene)_
 
 ---

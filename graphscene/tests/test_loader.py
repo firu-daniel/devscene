@@ -154,6 +154,17 @@ def test_a_file_that_is_not_json_is_rejected_at_the_parse_stage(tmp_path: Path) 
     )
 
 
+def test_a_file_that_is_not_utf_8_is_rejected_at_the_parse_stage(tmp_path: Path) -> None:
+    path = tmp_path / "graph.json"
+    path.write_bytes(b'{"flow": "\xe9"}')
+    with pytest.raises(GraphError) as raised:
+        load_graph_file(path)
+    assert raised.value.stage == "parse"
+    assert raised.value.violations == (
+        Violation("", "not valid UTF-8: invalid continuation byte (byte 10)"),
+    )
+
+
 def test_a_missing_file_raises_file_not_found(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         load_graph_file(tmp_path / "absent.json")
