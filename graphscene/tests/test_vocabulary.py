@@ -1,7 +1,8 @@
 """The rule this file exists to enforce: every name a flow graph uses is one it declares, and each
 binding is used where its primitive allows (`graphscene.vocabulary.vocabulary_violations`).
 
-Each clause has a planted in-test graph asserting the exact list returned; `valid_generic.json`
+The check returns `Violation` values (`graphscene.errors.Violation`). Each clause has a planted
+in-test graph asserting the exact list returned; `valid_generic.json`
 returns nothing; and each `vocabulary_negative_*.json` fixture, a schema-valid copy of it with one
 change, returns exactly its one violation.
 
@@ -15,41 +16,58 @@ import json
 from pathlib import Path
 
 from graphscene import vocabulary_violations
+from graphscene.errors import Violation
 
 _FIXTURES = Path(__file__).parent / "fixtures" / "flow_graph"
 
-_NEGATIVES: list[tuple[str, str]] = [
+_NEGATIVES: list[tuple[str, Violation]] = [
     (
         "vocabulary_negative_unknown_outcome.json",
-        "nodes.draft.outcomes.finished: outcome 'finished' is not declared in vocabulary.outcomes",
+        Violation(
+            "nodes.draft.outcomes.finished",
+            "outcome 'finished' is not declared in vocabulary.outcomes",
+        ),
     ),
     (
         "vocabulary_negative_unknown_binding.json",
-        "nodes.draft.outcomes.crashed.binding: binding '<abort>' is not declared in "
-        "vocabulary.bindings",
+        Violation(
+            "nodes.draft.outcomes.crashed.binding",
+            "binding '<abort>' is not declared in vocabulary.bindings",
+        ),
     ),
     (
         "vocabulary_negative_interrupt_without_resume.json",
-        "nodes.draft.outcomes.crashed: binding '<pause>' is an interrupt and needs resume",
+        Violation(
+            "nodes.draft.outcomes.crashed", "binding '<pause>' is an interrupt and needs resume"
+        ),
     ),
     (
         "vocabulary_negative_undeclared_reason.json",
-        "nodes.draft.outcomes.crashed.reason: 'timeout' is not a reason binding '<halt>' declares",
+        Violation(
+            "nodes.draft.outcomes.crashed.reason",
+            "'timeout' is not a reason binding '<halt>' declares",
+        ),
     ),
     (
         "vocabulary_negative_round_without_fail_verdict.json",
-        "nodes.review_round.outcomes: a round routes on one outcome declaring verdict pass and one "
-        "declaring verdict fail",
+        Violation(
+            "nodes.review_round.outcomes",
+            "a round routes on one outcome declaring verdict pass and one declaring verdict fail",
+        ),
     ),
     (
         "vocabulary_negative_end_on_an_edge.json",
-        "nodes.draft.outcomes.crashed.binding: binding '<finish>' is an end; only a terminal node "
-        "takes one",
+        Violation(
+            "nodes.draft.outcomes.crashed.binding",
+            "binding '<finish>' is an end; only a terminal node takes one",
+        ),
     ),
     (
         "vocabulary_negative_unknown_predicate.json",
-        "nodes.edit_check.skip[0].when: predicate 'stage_off' is not declared in "
-        "vocabulary.predicates",
+        Violation(
+            "nodes.edit_check.skip[0].when",
+            "predicate 'stage_off' is not declared in vocabulary.predicates",
+        ),
     ),
 ]
 
@@ -92,22 +110,28 @@ def _load(name: str) -> dict[str, object]:
 def test_clause_1_an_undeclared_outcome_is_named() -> None:
     graph = _graph({"a": _dispatch({"stalled": {"to": "a"}})})
     assert vocabulary_violations(graph) == [
-        "nodes.a.outcomes.stalled: outcome 'stalled' is not declared in vocabulary.outcomes"
+        Violation(
+            "nodes.a.outcomes.stalled", "outcome 'stalled' is not declared in vocabulary.outcomes"
+        )
     ]
 
 
 def test_clause_2_a_round_without_a_pass_and_a_fail_verdict_is_named_once() -> None:
     graph = _graph({"r": _round({"approved": {"to": "r"}, "done": {"to": "r"}})})
     assert vocabulary_violations(graph) == [
-        "nodes.r.outcomes: a round routes on one outcome declaring verdict pass and one declaring "
-        "verdict fail"
+        Violation(
+            "nodes.r.outcomes",
+            "a round routes on one outcome declaring verdict pass and one declaring verdict fail",
+        )
     ]
 
 
 def test_clause_2_is_not_reported_when_a_round_outcome_is_undeclared() -> None:
     graph = _graph({"r": _round({"approved": {"to": "r"}, "stalled": {"to": "r"}})})
     assert vocabulary_violations(graph) == [
-        "nodes.r.outcomes.stalled: outcome 'stalled' is not declared in vocabulary.outcomes"
+        Violation(
+            "nodes.r.outcomes.stalled", "outcome 'stalled' is not declared in vocabulary.outcomes"
+        )
     ]
 
 
@@ -128,30 +152,39 @@ def test_clause_3_an_undeclared_binding_is_named_on_an_edge_an_on_cap_and_a_term
         }
     )
     assert vocabulary_violations(graph) == [
-        "nodes.a.outcomes.done.binding: binding '<abort>' is not declared in vocabulary.bindings",
-        "nodes.a.outcomes.rejected.onCap.binding: binding '<quit>' is not declared in "
-        "vocabulary.bindings",
-        "nodes.t.binding: binding '<gone>' is not declared in vocabulary.bindings",
+        Violation(
+            "nodes.a.outcomes.done.binding",
+            "binding '<abort>' is not declared in vocabulary.bindings",
+        ),
+        Violation(
+            "nodes.a.outcomes.rejected.onCap.binding",
+            "binding '<quit>' is not declared in vocabulary.bindings",
+        ),
+        Violation("nodes.t.binding", "binding '<gone>' is not declared in vocabulary.bindings"),
     ]
 
 
 def test_clause_4_an_end_on_an_edge_is_named() -> None:
     graph = _graph({"a": _dispatch({"done": {"binding": "<finish>"}})})
     assert vocabulary_violations(graph) == [
-        "nodes.a.outcomes.done.binding: binding '<finish>' is an end; only a terminal node "
-        "takes one"
+        Violation(
+            "nodes.a.outcomes.done.binding",
+            "binding '<finish>' is an end; only a terminal node takes one",
+        )
     ]
 
 
 def test_clause_4_a_terminal_binding_that_is_not_an_end_is_named() -> None:
     graph = _graph({"t": {"kind": "terminal", "binding": "<halt>"}})
-    assert vocabulary_violations(graph) == ["nodes.t.binding: binding '<halt>' is not an end"]
+    assert vocabulary_violations(graph) == [
+        Violation("nodes.t.binding", "binding '<halt>' is not an end")
+    ]
 
 
 def test_clause_5_an_interrupt_without_resume_is_named() -> None:
     graph = _graph({"a": _dispatch({"done": {"binding": "<pause>"}})})
     assert vocabulary_violations(graph) == [
-        "nodes.a.outcomes.done: binding '<pause>' is an interrupt and needs resume"
+        Violation("nodes.a.outcomes.done", "binding '<pause>' is an interrupt and needs resume")
     ]
 
 
@@ -159,14 +192,14 @@ def test_clause_5_a_resume_on_a_non_interrupt_edge_is_named() -> None:
     edge = {"binding": "<halt>", "reason": "crash", "resume": "a"}
     graph = _graph({"a": _dispatch({"done": edge})})
     assert vocabulary_violations(graph) == [
-        "nodes.a.outcomes.done.resume: binding '<halt>' is not an interrupt"
+        Violation("nodes.a.outcomes.done.resume", "binding '<halt>' is not an interrupt")
     ]
 
 
 def test_clause_6_a_stop_without_reason_is_named() -> None:
     graph = _graph({"a": _dispatch({"done": {"binding": "<halt>"}})})
     assert vocabulary_violations(graph) == [
-        "nodes.a.outcomes.done: binding '<halt>' is a stop and needs reason"
+        Violation("nodes.a.outcomes.done", "binding '<halt>' is a stop and needs reason")
     ]
 
 
@@ -186,8 +219,13 @@ def test_clause_6_an_undeclared_reason_is_named_on_an_edge_and_an_on_cap() -> No
         }
     )
     assert vocabulary_violations(graph) == [
-        "nodes.a.outcomes.done.reason: 'timeout' is not a reason binding '<halt>' declares",
-        "nodes.a.outcomes.rejected.onCap.reason: 'tired' is not a reason binding '<halt>' declares",
+        Violation(
+            "nodes.a.outcomes.done.reason", "'timeout' is not a reason binding '<halt>' declares"
+        ),
+        Violation(
+            "nodes.a.outcomes.rejected.onCap.reason",
+            "'tired' is not a reason binding '<halt>' declares",
+        ),
     ]
 
 
@@ -195,7 +233,7 @@ def test_clause_6_a_reason_on_an_interrupt_edge_is_named() -> None:
     edge = {"binding": "<pause>", "resume": "a", "reason": "x"}
     graph = _graph({"a": _dispatch({"done": edge})})
     assert vocabulary_violations(graph) == [
-        "nodes.a.outcomes.done.reason: binding '<pause>' is not a stop"
+        Violation("nodes.a.outcomes.done.reason", "binding '<pause>' is not a stop")
     ]
 
 
@@ -214,7 +252,7 @@ def test_clause_6_an_on_cap_whose_binding_is_not_a_stop_is_named() -> None:
         }
     )
     assert vocabulary_violations(graph) == [
-        "nodes.a.outcomes.rejected.onCap.binding: binding '<pause>' is not a stop"
+        Violation("nodes.a.outcomes.rejected.onCap.binding", "binding '<pause>' is not a stop")
     ]
 
 
@@ -228,7 +266,9 @@ def test_clause_7_an_undeclared_skip_predicate_is_named() -> None:
         }
     )
     assert vocabulary_violations(graph) == [
-        "nodes.a.skip[1].when: predicate 'never' is not declared in vocabulary.predicates"
+        Violation(
+            "nodes.a.skip[1].when", "predicate 'never' is not declared in vocabulary.predicates"
+        )
     ]
 
 
@@ -240,9 +280,11 @@ def test_violations_come_in_document_order() -> None:
         }
     )
     assert vocabulary_violations(graph) == [
-        "nodes.b.outcomes.zeta: outcome 'zeta' is not declared in vocabulary.outcomes",
-        "nodes.b.skip[0].when: predicate 'never' is not declared in vocabulary.predicates",
-        "nodes.a.outcomes.done: binding '<halt>' is a stop and needs reason",
+        Violation("nodes.b.outcomes.zeta", "outcome 'zeta' is not declared in vocabulary.outcomes"),
+        Violation(
+            "nodes.b.skip[0].when", "predicate 'never' is not declared in vocabulary.predicates"
+        ),
+        Violation("nodes.a.outcomes.done", "binding '<halt>' is a stop and needs reason"),
     ]
 
 
