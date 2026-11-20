@@ -8,7 +8,9 @@ within a node, a round's verdict violation, then its `outcomes` in key order (ea
 reported as undeclared alone, never also for how it is used.
 
 Deliberately not checked:
-- Schema validity: the caller validates the graph against `schemas/flow-graph.schema.json` first.
+- Schema validity: the caller validates the graph against the format-4 schema this package
+  ships as data, `schemas/flow-graph.schema.json` inside the `graphscene` package
+  (`graphscene/src/graphscene/schemas/` in this repository), first.
 - Node-id references, reachability and counter caps, which belong to a static checker.
 - Reading any file: the graph arrives already parsed.
 """
