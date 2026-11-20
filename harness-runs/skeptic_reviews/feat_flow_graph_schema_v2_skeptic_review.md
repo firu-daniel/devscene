@@ -35,7 +35,7 @@ No branch-level parity review exists (`phases.parity` is `false`), and no branch
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Make gate 3i's remedy say the format-3 copy is generated, name the format-4 source and warn that `--write` overwrites _(layer: general)_
+1. [x] **Finding 1** — Make gate 3i's remedy say the format-3 copy is generated, name the format-4 source and warn that `--write` overwrites _(layer: general)_
 
 ---
 

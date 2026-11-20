@@ -351,7 +351,10 @@ function main() {
       continue;
     }
     if (bytes !== result.text) {
-      finding(target, `differs from the graph generated from ${sourceLabel}; run node scripts/generate-flow-graph-v3.mjs --write`);
+      finding(
+        target,
+        `differs from the graph generated from ${sourceLabel}; this file is generated and never edited by hand — make the change in ${SOURCE}, then run node scripts/generate-flow-graph-v3.mjs --write, which overwrites both format-3 copies`,
+      );
     }
   }
   report();
