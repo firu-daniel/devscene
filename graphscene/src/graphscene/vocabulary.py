@@ -31,7 +31,7 @@ def _mapping(value: object) -> dict[str, object]:
     return {key: child for key, child in value.items() if isinstance(key, str)}
 
 
-def _strings(value: object) -> list[Violation]:
+def _strings(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, str)]
