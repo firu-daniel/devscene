@@ -42,6 +42,14 @@ Test:
 bash scripts/python-service.sh --package graphscene test
 ```
 
+`test` forwards paths to `pytest`, relative to `graphscene/`:
+
+```
+bash scripts/python-service.sh --package graphscene test tests/test_boundary.py
+```
+
+`typecheck` takes no argument (one is refused, exit 2): it runs `mypy` over the whole package, `src` and `tests`.
+
 Provision every package's environment, outside any sandbox:
 
 ```
