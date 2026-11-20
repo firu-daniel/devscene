@@ -91,9 +91,7 @@ def test_a_missing_required_field_names_the_node() -> None:
     with pytest.raises(GraphError) as raised:
         load_graph(graph)
     assert raised.value.stage == "schema"
-    assert raised.value.violations == (
-        Violation("nodes.draft", "'agent' is a required property"),
-    )
+    assert raised.value.violations == (Violation("nodes.draft", "'agent' is a required property"),)
 
 
 def test_schema_violations_come_back_sorted_by_path() -> None:
@@ -118,9 +116,7 @@ def test_a_schema_failure_never_reaches_the_vocabulary_stage() -> None:
     with pytest.raises(GraphError) as raised:
         load_graph(graph)
     assert raised.value.stage == "schema"
-    assert raised.value.violations == (
-        Violation("nodes.draft", "'agent' is a required property"),
-    )
+    assert raised.value.violations == (Violation("nodes.draft", "'agent' is a required property"),)
 
 
 def test_loading_a_file_equals_loading_its_parsed_data() -> None:

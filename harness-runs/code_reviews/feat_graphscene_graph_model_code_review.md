@@ -24,7 +24,7 @@
 **This section is the single source of truth for the per-item fix loop.** The orchestrator walks the `[ ]` entries below from top to bottom. The committing role flips each one to `[x]` as that fix's commit lands. Each entry resolves to `harness-runs/code_reviews/feat_graphscene_graph_model_code_review/finding_<K>.md` through its `**Finding K**` reference.
 
 1. [x] **Finding 1** — Restore `_strings`'s `list[str]` return annotation in `vocabulary.py` so strict `mypy` passes _(layer: graphscene)_
-2. [ ] **Finding 2** — Sort the `test_model.py` import block and collapse the two one-element assertion tuples in `test_loader.py` so `ruff` passes _(layer: graphscene)_
+2. [x] **Finding 2** — Sort the `test_model.py` import block and collapse the two one-element assertion tuples in `test_loader.py` so `ruff` passes _(layer: graphscene)_
 3. [ ] **Finding 3** — Accept an integral float where the schema takes an integer in the model's `_int`, with a loader test _(layer: graphscene)_
 
 ---
