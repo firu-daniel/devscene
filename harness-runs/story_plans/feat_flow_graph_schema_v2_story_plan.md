@@ -35,7 +35,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_graph_schema_v2/ta
 2. [x] **Task 2** — Add the generic format-4 flow-graph schema to `graphscene` with its generic and schema-negative fixtures _(layer: graphscene)_ _(points: 20)_
 3. [x] **Task 3** — Add `graphscene.vocabulary.vocabulary_violations`, the used-against-declared names check, with its fixtures and tests _(layer: graphscene)_ _(points: 20)_
 4. [x] **Task 4** — Generate both format-3 graph copies from the format-4 source with `scripts/generate-flow-graph-v3.mjs` _(layer: general)_ _(points: 20)_
-5. [ ] **Task 5** — Wire the format-4 schema, its negatives and the generated-v3 check into npm scripts and gate 3 legs _(layer: general)_ _(points: 10)_
+5. [x] **Task 5** — Wire the format-4 schema, its negatives and the generated-v3 check into npm scripts and gate 3 legs _(layer: general)_ _(points: 10)_
 6. [ ] **Task 6** — Document format 4, the generated v3 graph and the new gate 3 legs _(layer: general)_ _(points: 15)_
 
 ## Scope register

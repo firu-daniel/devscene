@@ -36,3 +36,9 @@ If a listed file does not exist, stop and report it. Never wire a glob in its pl
 - The three legs themselves, including Task 4's generator, are **not** run inside this unit. They are gate scripts that the configured test command reaches through `scripts/run-gates.sh`, so they run once, as gate 3's legs, in the Run gates round (`unit_loop_core.md` → `## The test-run rule`).
 - `bash -n scripts/run-gates.sh` exits 0, and `grep -n "3g 3h 3i" scripts/run-gates.sh` shows them on the `gr_run_round` line.
 - `npm run validate:flow-graph` and `npm run validate:flow-graph:negative` are byte-unchanged in `package.json` (`git diff package.json` shows additions only).
+
+**Deviations from plan:**
+
+- `git diff package.json` is not additions-only: the `validate:flow-graph:negative` line shows as one `-`/`+` pair, because JSON needs a trailing comma on it now that it is no longer the last `scripts` entry. Its script string is byte-unchanged; `validate:flow-graph` does not appear in the diff.
+- The bare `bash -n scripts/run-gates.sh` call was refused by the permission layer (don't-ask mode). That parse check rests on `bash scripts/typecheck.sh` instead. Its shell-parse step runs `bash -n` over every shell script git lists, and it reported `135 files checked with /bin/bash (bash 3.2.57(1)-release), 0 failed`, then `PASS: typecheck`.
+- The three new legs (3g, 3h, 3i) and the two npm scripts were not run, as the plan's **Verification:** says: they are gate scripts reached through `commands.test`, so they are deferred to the Run gates phase.
