@@ -4,13 +4,16 @@
 
 ## What it is
 
-GraphScene is a generic flow-graph navigation library. It has no engine code yet, but it carries the generic flow-graph schema (format 4) and the vocabulary check, and declares one runtime dependency, `jsonschema`, for validating a graph against that schema.
+GraphScene is a generic flow-graph navigation library. It has no engine code yet, and nothing runs a graph. It carries the generic flow-graph schema (format 4), the vocabulary check, and a loader that validates a parsed graph against both and returns it as typed objects. Its one runtime dependency, `jsonschema`, is what the loader validates with.
 
 | Path | Holds |
 |---|---|
 | `src/graphscene/` | The typed package, `graphscene`. |
 | `src/graphscene/schemas/flow-graph.schema.json` | The format-4 flow-graph schema, shipped as package data. |
-| `src/graphscene/vocabulary.py` | `vocabulary_violations`, the used-against-declared names check JSON Schema cannot express. |
+| `src/graphscene/errors.py` | `Violation`, `Stage` and `GraphError`, the one error shape every loading stage rejects a graph with. |
+| `src/graphscene/vocabulary.py` | `vocabulary_violations`, the used-against-declared names check JSON Schema cannot express, returning `Violation` values. |
+| `src/graphscene/model.py` | `FlowGraph` and the typed objects it holds: `NodeKind`, `Primitive`, `Verdict`, `BindingDeclaration`, `Edge`, `Node`, `OutcomeDeclaration`, `InterruptBinding`, `StopBinding`, `EndBinding`, `PredicateDeclaration`, `Vocabulary`, `CounterDeclaration`, `OnCapEdge`, `RouteEdge`, `BindingEdge`, `SkipEntry`, `DispatchNode`, `RoundNode` and `TerminalNode`. |
+| `src/graphscene/loader.py` | `load_graph` and `load_graph_file`, which validate a graph against the schema, then the vocabulary check, and return a `FlowGraph` or raise `GraphError`. |
 | `tests/` | The `pytest` suite. |
 
 ## The boundary
