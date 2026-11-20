@@ -43,9 +43,12 @@
 - [ ] `graphscene/tests/test_flow_graph_schema.py` — module docstring opening *"The rule this file exists to enforce"*: the schema ships as package data and names no harness vocabulary. Annotate every case `-> None`. Read the schema through `importlib.resources.files("graphscene") / "schemas" / "flow-graph.schema.json"`. Cases:
   - It parses, and its `properties.formatVersion` is `{"const": 4, …}`.
   - `kind`'s enum is exactly `["dispatch", "round", "terminal"]`.
-  - Walking every string anywhere in the schema, none equals any of `PASS`, `FAIL`, `returned`, `questions`, `no_ui`, `error`, `blocker`, `<ask>`, `<escalate>`, `<terminal_handoff>`, `parity`, `qa`, `docs`, `cap`, `skipped`, `passedByExclusion`, and none contains `devscene`. Pass the schema as a parsed value, so a planted case can feed it a dict carrying `"PASS"` and assert the exact offending string.
+  - Walking every string **value** in the schema, none equals any of `PASS`, `FAIL`, `returned`, `questions`, `no_ui`, `error`, `blocker`, `<ask>`, `<escalate>`, `<terminal_handoff>`, `parity`, `qa`, `docs`, `cap`, `skipped`, `passedByExclusion`, and none contains `devscene`. The walk **skips key-name positions**: the members of every `required` array and of every `dependencies` array, and (as dict keys, not string values) every `properties` key. Those name the format's own keys, and a carried-over v3 shape requires one called `cap`: `counters` keeps its v3 shape, whose `additionalProperties` carries `"required": ["cap"]` (`schemas/flow-graph.schema.json` → `properties.counters.additionalProperties.required[0]`; a counter's `cap`, used by the planning graph's `counters.iteration.cap`). It is not the `<escalate>` reason `cap` this check keeps out. Every other string value is walked, including `enum`/`const` members and `pattern`s. Pass the schema as a parsed value, so planted cases can feed it dicts and assert the exact result:
+    - a dict carrying `{"enum": ["PASS"]}` is rejected, naming `"PASS"`;
+    - a dict carrying `{"const": "cap"}` is rejected, naming `"cap"`;
+    - a dict carrying `{"required": ["cap"]}` is accepted.
   - `valid_generic.json` and every `schema_negative_*.json` named above parse as JSON. Name them in an explicit list, never a glob.
-  - A *"Deliberately not covered:"* list notes that schema validation itself runs through `ajv` from the repository root (Task 5's npm scripts) because the package declares no JSON Schema runtime dependency.
+  - A *"Deliberately not covered:"* list notes two things. First, schema validation itself runs through `ajv` from the repository root (Task 5's npm scripts), because the package declares no JSON Schema runtime dependency. Second, key-name positions (`required` / `dependencies` members, `properties` keys) are not walked for harness names, because they name the format's own keys and the counter key `cap` is one of them.
 
 **Verification:**
 

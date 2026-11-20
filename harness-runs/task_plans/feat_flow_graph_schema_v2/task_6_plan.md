@@ -35,7 +35,7 @@
 
 **Verification:**
 
-- Every command the new prose names exits 0 when run from the repository root as written: `npm run validate:graphscene-schema`, `npm run validate:graphscene-schema:negative` and `node scripts/generate-flow-graph-v3.mjs`.
+- Every command the new prose names is checked **by reading, never by running**. Each `npm run <name>` the prose names is a key that `jq -r '.scripts | keys[]' package.json` prints. `node scripts/generate-flow-graph-v3.mjs` is the command on `scripts/run-gates.sh`'s `3i)` arm (`grep -n "3i)" scripts/run-gates.sh`). Those commands are gate 3's legs `3g`–`3i`, and they run once, in the Run gates round, never inside this unit (`unit_loop_core.md` → `## The test-run rule`).
 - Every path the new prose names exists: `git ls-files` lists each of `graphscene/src/graphscene/schemas/flow-graph.schema.json`, `graphscene/src/graphscene/vocabulary.py`, `cli/templates/scripts/flows/task_plan_writing.v4.graph.json` and `scripts/generate-flow-graph-v3.mjs`.
 - Re-run the story index's `## Scope register` derivation entries 1 and 2. Every file they print is a register row, and every row whose disposition is `change` is one of this branch's edited files.
 - `grep -n "7075" docs/flow-graph-walker.md` still shows the measured line unchanged.

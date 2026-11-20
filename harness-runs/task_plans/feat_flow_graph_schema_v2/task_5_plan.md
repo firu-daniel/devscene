@@ -31,7 +31,8 @@ If a listed file does not exist, stop and report it. Never wire a glob in its pl
 
 **Verification:**
 
-- `npm run validate:graphscene-schema` exits 0, and `npm run validate:graphscene-schema:negative` exits 0, printing `<file> passed test` once per schema negative.
-- `node scripts/generate-flow-graph-v3.mjs` exits 0.
+- The two npm scripts are checked by reading, never by running: `jq -r '.scripts["validate:graphscene-schema"], .scripts["validate:graphscene-schema:negative"]' package.json` shows a separate `-d` before every file listed under **Depends on:**. In the first script, that is the v4 source, `valid_generic.json` and each of the seven `vocabulary_negative_*.json`. In the second, each of the seven `schema_negative_*.json` appears exactly once, with `--invalid`.
+- `grep -n -e "3g)" -e "3h)" -e "3i)" scripts/run-gates.sh` shows the three arms. The `3g` arm runs `npm run validate:graphscene-schema`, `3h` runs `npm run validate:graphscene-schema:negative` and `3i` runs `node scripts/generate-flow-graph-v3.mjs`.
+- The three legs themselves, including Task 4's generator, are **not** run inside this unit. They are gate scripts that the configured test command reaches through `scripts/run-gates.sh`, so they run once, as gate 3's legs, in the Run gates round (`unit_loop_core.md` → `## The test-run rule`).
 - `bash -n scripts/run-gates.sh` exits 0, and `grep -n "3g 3h 3i" scripts/run-gates.sh` shows them on the `gr_run_round` line.
 - `npm run validate:flow-graph` and `npm run validate:flow-graph:negative` are byte-unchanged in `package.json` (`git diff package.json` shows additions only).
