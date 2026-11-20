@@ -131,7 +131,7 @@ npx devscene@latest init --upgrade
 
 **Reason.** Step 4 is cited from `plugin/instructions/user_review_fix_plan_writing_instructions_autonomous.md`, and the task prompt freezes the halt messages (`harness-runs/task_plans/feat_orchestrator_flow_graph_planning_pilot/task_9_plan.md`, the bullet keeping step 4's sizing sentence as a retained **description**).
 
-**Cost, and how it is guarded.** That is a duplication, so it is checked rather than accepted: `scripts/check-flow-graph.sh` → `THE CONTRACT` item 7, `cap-matches-core`, fails when the graph's cap and any of the three phrases disagree, or when a phrase no longer yields a number. Changing the cap is still a three-place edit (the graph and both core sentences) plus a re-sizing of `MAX_TOTAL_DISPATCHES`, which no check derives.
+**Cost, and how it is guarded.** That is a duplication, so it is checked rather than accepted: `scripts/check-flow-graph.sh` → `THE CONTRACT` item 7, `cap-matches-core`, fails when the graph's cap and any of the three phrases disagree, or when a phrase no longer yields a number. Changing the cap is still a three-place edit: the `counters.iteration.cap` of the format-4 source `cli/templates/scripts/flows/task_plan_writing.v4.graph.json`, regenerated into both format-3 copies with `node scripts/generate-flow-graph-v3.mjs --write`, and both core sentences. It also needs a re-sizing of `MAX_TOTAL_DISPATCHES`, which no check derives.
 
 ### Format 4 — the graph declares its vocabulary, and format 3 is generated from it
 
