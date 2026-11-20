@@ -4,11 +4,13 @@
 
 ## What it is
 
-GraphScene is a generic flow-graph navigation library. It has no engine code yet and no runtime dependency.
+GraphScene is a generic flow-graph navigation library. It has no engine code yet and still declares no runtime dependency, but it carries the generic flow-graph schema (format 4) and the vocabulary check.
 
 | Path | Holds |
 |---|---|
 | `src/graphscene/` | The typed package, `graphscene`. |
+| `src/graphscene/schemas/flow-graph.schema.json` | The format-4 flow-graph schema, shipped as package data. |
+| `src/graphscene/vocabulary.py` | `vocabulary_violations`, the used-against-declared names check JSON Schema cannot express. |
 | `tests/` | The `pytest` suite. |
 
 ## The boundary
@@ -39,6 +41,14 @@ Test:
 ```
 bash scripts/python-service.sh --package graphscene test
 ```
+
+`test` forwards paths to `pytest`, relative to `graphscene/`:
+
+```
+bash scripts/python-service.sh --package graphscene test tests/test_boundary.py
+```
+
+`typecheck` takes no argument (one is refused, exit 2): it runs `mypy` over the whole package, `src` and `tests`.
 
 Provision every package's environment, outside any sandbox:
 

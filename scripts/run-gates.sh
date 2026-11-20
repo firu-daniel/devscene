@@ -292,6 +292,9 @@ run_unit() {
     3d) gate_header 3 "configuration and flow-graph schemas"; gate "3d flow-graph negative fixtures are refused" npm run validate:flow-graph:negative ;;
     3e) gate_header 3 "configuration and flow-graph schemas"; gate "3e flow graph static checks" bash scripts/check-flow-graph.sh ;;
     3f) gate_header 3 "configuration and flow-graph schemas"; gate "3f each flow-graph check refuses its fixture" bash scripts/check-flow-graph.sh --negatives ;;
+    3g) gate_header 3 "configuration and flow-graph schemas"; gate "3g format-4 graphs validate against the graphscene schema" npm run validate:graphscene-schema ;;
+    3h) gate_header 3 "configuration and flow-graph schemas"; gate "3h format-4 schema negatives are refused" npm run validate:graphscene-schema:negative ;;
+    3i) gate_header 3 "configuration and flow-graph schemas"; gate "3i v3 flow graphs equal the one generated from format 4" node scripts/generate-flow-graph-v3.mjs ;;
     4)
       gate_header 4 "init against a throwaway fixture"
       gate4_destination="$(gr_tests_destination)"
@@ -487,7 +490,7 @@ run_unit() {
 }
 
 # A stopped round returns 1 having pushed its failure onto `failed`, so the closing block exits 1.
-gr_run_round run_unit 1 2a 2b 2c 2d 2e 3a 3b 3c 3d 3e 3f 4 6a 6b 6c 6d 6e 6f 11 13a 13b 13c 13d 13e 13f 13g 14a 14c 14d 16
+gr_run_round run_unit 1 2a 2b 2c 2d 2e 3a 3b 3c 3d 3e 3f 3g 3h 3i 4 6a 6b 6c 6d 6e 6f 11 13a 13b 13c 13d 13e 13f 13g 14a 14c 14d 16
 
 python_blocked_list=""
 if [ ${#python_blocked[@]} -gt 0 ]; then

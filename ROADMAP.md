@@ -159,7 +159,7 @@ Parts of the harness extracted as products of their own.
 | Feature | What it is | Status |
 |---|---|---|
 | RagScene | The docs retrieval extracted from the harness as its own product ([`docs/rag-extraction-research/`](docs/rag-extraction-research/README.md)). | Open |
-| GraphScene | The flow-graph navigation extracted from the harness ([`docs/flow-graph-walker.md`](docs/flow-graph-walker.md)). Shipped: the library skeleton at `graphscene/`, with no engine code, its import boundary enforced by its own test, and gated by gate 13's legs 13e–13g ([`docs/development.md`](docs/development.md) §5). Left: the engine, the walker's port onto it, and the harness-side package. | In progress |
+| GraphScene | The flow-graph navigation extracted from the harness ([`docs/flow-graph-walker.md`](docs/flow-graph-walker.md)). Shipped: the library skeleton at `graphscene/`, with no engine code, its import boundary enforced by its own test, and gated by gate 13's legs 13e–13g ([`docs/development.md`](docs/development.md) §5); and the generic flow-graph schema, format 4, in which a graph declares its own vocabulary, with its used-against-declared names check, the harness's planning graph authored in it and its format-3 copy generated from it ([`docs/flow-graph-walker.md`](docs/flow-graph-walker.md) → *Format 4*). Left: the engine, the walker's port onto it, and the harness-side package; and the format-4 cutover — the walker and the format-3 readers moving to format 4, and the generated copy and its generator retired. | In progress |
 | DevScene studio | DevScene studio. | Open |
 
 ## Documentation
