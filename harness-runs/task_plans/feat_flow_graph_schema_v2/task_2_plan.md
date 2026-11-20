@@ -49,7 +49,7 @@
 
 **Verification:**
 
-- `node schemas/validate.mjs validate -s graphscene/src/graphscene/schemas/flow-graph.schema.json -d graphscene/tests/fixtures/flow_graph/valid_generic.json cli/templates/scripts/flows/task_plan_writing.v4.graph.json` exits 0. The schema compiles under strict mode and accepts both the generic graph and the harness's.
+- `node schemas/validate.mjs validate -s graphscene/src/graphscene/schemas/flow-graph.schema.json -d graphscene/tests/fixtures/flow_graph/valid_generic.json -d cli/templates/scripts/flows/task_plan_writing.v4.graph.json` exits 0. `schemas/validate.mjs` → `parseArgs` takes one data file per `-d` flag, so each file carries its own `-d`. The schema compiles under strict mode and accepts both the generic graph and the harness's.
 - `node schemas/validate.mjs test -s graphscene/src/graphscene/schemas/flow-graph.schema.json -d <each schema_negative_*.json> --invalid` passes for every negative above, and each prints a keyword path that names the constraint that negative exists to prove.
 - `graphscene/tests/test_flow_graph_schema.py`, this task's own test file, passes through `scripts/python-service.sh`. `.claude/context/graphscene.md` → `## Not determined` records that no single-file command is yet stated for this layer, so where none can be run the unit records the skip as the test-run rule provides.
-- `git grep -n -i -e devscene -e "<ask>" -e '"PASS"' -- graphscene/src` prints nothing.
+- `git grep -n -i -e devscene -- graphscene/src` prints nothing, and `git grep -n -F -e '<ask>' -e '"PASS"' -e '"FAIL"' -- graphscene/src` prints nothing. The second is case-sensitive and fixed-string on purpose: the schema's own `verdict` enum `["pass", "fail"]` is generic and must not match.
