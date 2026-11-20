@@ -1,8 +1,9 @@
 """The rule this file exists to enforce: the loader (`graphscene.loader`) rejects every fixture
 `ajv` rejects, at the schema stage, and every vocabulary negative, at the vocabulary stage; each
 rejection names the node and the field where the fixture's one change sits;
-`valid_generic.json` loads; and a number the schema accepts as an integer, written `3.0`, loads as
-an `int`.
+`valid_generic.json` loads; a number the schema accepts as an integer, written `3.0`, loads as
+an `int`; and a schema `pattern` is matched as ECMA-262 matches it, so a trailing newline or a `.`
+against a line terminator is rejected.
 
 Each expected path is hand-read from the fixture's one change against `valid_generic.json`, never
 taken from the loader's output.
@@ -108,6 +109,26 @@ def test_a_missing_required_field_names_the_node() -> None:
         load_graph(graph)
     assert raised.value.stage == "schema"
     assert raised.value.violations == (Violation("nodes.draft", "'agent' is a required property"),)
+
+
+def test_a_trailing_newline_does_not_satisfy_an_anchored_pattern() -> None:
+    graph = copy.deepcopy(_parsed("valid_generic.json"))
+    graph["flow"] = "article_review\n"
+    with pytest.raises(GraphError) as raised:
+        load_graph(graph)
+    assert raised.value.stage == "schema"
+    assert [violation.path for violation in raised.value.violations] == ["flow"]
+
+
+def test_a_pattern_dot_does_not_match_a_line_terminator() -> None:
+    graph = copy.deepcopy(_parsed("valid_generic.json"))
+    _node(graph, "draft")["findingsFolder"] = "{state_dir}/a\rb/"
+    with pytest.raises(GraphError) as raised:
+        load_graph(graph)
+    assert raised.value.stage == "schema"
+    assert [violation.path for violation in raised.value.violations] == [
+        "nodes.draft.findingsFolder"
+    ]
 
 
 def test_schema_violations_come_back_sorted_by_path() -> None:
