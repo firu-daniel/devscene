@@ -305,7 +305,7 @@ The last three lines, legs `3g`, `3h` and `3i` as `scripts/run-gates.sh` prints 
 node scripts/generate-flow-graph-v3.mjs --write
 ```
 
-The check that every name a format-4 graph uses is one it declares is not a gate 3 leg: it is `graphscene/tests/test_vocabulary.py`'s, run by gate 13's leg `13g`.
+The check that every name a format-4 graph uses is one it declares has two homes. For a generic graph it is `graphscene.vocabulary.vocabulary_violations`, tested by `graphscene/tests/test_vocabulary.py` on the generic fixtures and run by gate 13's leg `13g`. For the harness's own source, `scripts/generate-flow-graph-v3.mjs` (`3i`) refuses an outcome, binding, predicate or stop reason the vocabulary does not declare, before it generates anything.
 
 **Gate 4 — `init` against a throwaway fixture.** From the repository root:
 
