@@ -28,7 +28,6 @@ from graphscene.errors import GraphError, Violation
 from graphscene.model import FlowGraph, build_flow_graph
 from graphscene.vocabulary import vocabulary_violations
 
-
 _ECMA_DOT = "[^\\n\\r\\u2028\\u2029]"
 
 

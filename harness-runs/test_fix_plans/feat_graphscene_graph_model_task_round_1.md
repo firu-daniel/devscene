@@ -12,7 +12,7 @@
 
 **This section is the single source of truth for the fix loop.** The loop walks the `[ ]` entries below top-to-bottom, and the commit step flips each one to `[x]` as that fix's commit lands. `[ ]` markers anywhere else — sub-step bullets inside a per-finding file included — are informational only and never an iteration target.
 
-1. [ ] **Finding 1** — Drop the extra blank line after `loader.py`'s import block so `ruff` `I001` passes. _(layer: graphscene)_
+1. [x] **Finding 1** — Drop the extra blank line after `loader.py`'s import block so `ruff` `I001` passes. _(layer: graphscene)_
 
 ---
 

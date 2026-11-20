@@ -45,3 +45,5 @@
 
 - [ ] In `graphscene/src/graphscene/loader.py`, delete one of the two blank lines between `from graphscene.vocabulary import vocabulary_violations` and `_ECMA_DOT = "[^\\n\\r\\u2028\\u2029]"`, leaving exactly one blank line there.
 - [ ] Leave the two blank lines between `_ECMA_DOT = …` and `def _ecma_pattern(` as they are, and change nothing else in the file — no import is reordered, renamed or removed.
+
+**Deviations from plan:** The finding names no test file (`none — 13e GraphScene lint`), and a gate script is never run by the unit, so `ruff` was not run here: the fix-site fallback applied. Before the edit, `graphscene/src/graphscene/loader.py` held two blank lines between `from graphscene.vocabulary import vocabulary_violations` and `_ECMA_DOT = …`; one was deleted, and the two blank lines before `def _ecma_pattern(` were left as they were. That the `I001` failure is gone rests on reading the fix site. The Run gates phase's gate 13 leg `13e` verifies it. The whole-tree `bash scripts/typecheck.sh` was run and printed `PASS: typecheck`.
