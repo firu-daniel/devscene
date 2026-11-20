@@ -1,0 +1,91 @@
+{
+  "formatVersion": 4,
+  "flow": "article_review",
+  "description": "A small editorial flow: a writer drafts an article, an editor reviews it in a one-gate round, and the article is published once the editor approves it.",
+  "vocabulary": {
+    "outcomes": {
+      "done": {},
+      "approved": { "verdict": "pass" },
+      "rejected": { "verdict": "fail" },
+      "crashed": { "held": true }
+    },
+    "bindings": {
+      "<pause>": { "primitive": "interrupt", "resumeOutcome": "resumed" },
+      "<halt>": { "primitive": "stop", "reasons": ["limit", "crash"] },
+      "<finish>": { "primitive": "end" }
+    },
+    "predicates": {
+      "stage_disabled": { "records": "bypassed", "inRoundCounts": false }
+    }
+  },
+  "start": "draft",
+  "entries": ["draft", "review_round"],
+  "counters": {
+    "attempt": { "cap": 3 }
+  },
+  "paths": {
+    "article": "{state_dir}/articles/{branch}.md"
+  },
+  "reports": ["edit_check"],
+  "nodes": {
+    "draft": {
+      "kind": "dispatch",
+      "agent": "article-writer",
+      "heartbeat": "[draft · attempt {iteration}] → article-writer",
+      "prompts": ["first", "rework"],
+      "outcomes": {
+        "finished": { "to": "review_round" },
+        "crashed": { "binding": "<halt>", "reason": "crash" }
+      }
+    },
+    "edit_check": {
+      "kind": "dispatch",
+      "agent": "article-editor",
+      "heartbeat": "[draft · edit · attempt {iteration}] → article-editor",
+      "findingsFolder": "{state_dir}/edit_checks/{branch}/",
+      "skip": [
+        {
+          "when": "stage_disabled",
+          "to": "review_round",
+          "report": { "edit_check": "bypassed" }
+        }
+      ],
+      "outcomes": {
+        "approved": {
+          "to": "review_round",
+          "report": { "edit_check": "approved" }
+        },
+        "rejected": { "to": "review_round" },
+        "crashed": { "binding": "<halt>", "reason": "crash" }
+      }
+    },
+    "review_round": {
+      "kind": "round",
+      "parallel": true,
+      "gates": ["edit_check"],
+      "writer": "draft",
+      "counter": "attempt",
+      "convergingFrom": 1,
+      "plan": ["article"],
+      "outcomes": {
+        "approved": { "to": "published", "reset": "attempt" },
+        "rejected": {
+          "to": "draft",
+          "increment": "attempt",
+          "prompt": "rework",
+          "onCap": {
+            "binding": "<halt>",
+            "reason": "limit",
+            "summary": "the article did not converge in {cap} attempts; the gates open when it fired: {open_gates}",
+            "roundCounts": ["edit_check"],
+            "evidence": "article"
+          }
+        }
+      }
+    },
+    "published": {
+      "kind": "terminal",
+      "binding": "<finish>"
+    }
+  }
+}

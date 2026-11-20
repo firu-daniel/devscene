@@ -5,4 +5,6 @@ dependencies, and it never reads the harness's configuration file. Harness integ
 separate distribution that depends on this one, never the reverse (`tests/test_boundary.py`).
 """
 
-__all__: list[str] = []
+from graphscene.vocabulary import vocabulary_violations
+
+__all__: list[str] = ["vocabulary_violations"]
