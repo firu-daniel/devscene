@@ -34,7 +34,7 @@ The findings below are what is left. The two Must Fix items: the generator does 
 ## Phase 2 Readiness — Ordered Fix List
 
 1. [x] **Finding 4** — Name the format-4 package-data schema, not the root format-3 path, in `vocabulary.py`'s docstring _(layer: graphscene)_
-2. [ ] **Finding 1** — Make the v3 generator refuse an `<escalate>` edge or `onCap` reason that the vocabulary does not declare _(layer: general)_
+2. [x] **Finding 1** — Make the v3 generator refuse an `<escalate>` edge or `onCap` reason that the vocabulary does not declare _(layer: general)_
 3. [ ] **Finding 2** — Say which check covers the harness's format-4 graph in `docs/development.md` and `docs/flow-graph-walker.md` _(layer: general)_
 4. [ ] **Finding 3** — Point the cap-change sentence in `docs/flow-graph-walker.md` at the format-4 source and the regenerate step _(layer: general)_
 

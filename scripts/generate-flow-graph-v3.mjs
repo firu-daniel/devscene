@@ -115,7 +115,7 @@ function predicateRule(name) {
 
 /** Checks the declared vocabulary against the tables; returns the declared name sets. */
 function checkVocabulary(vocabulary, fail) {
-  const declared = { outcomes: new Set(), bindings: new Set(), predicates: new Set() };
+  const declared = { outcomes: new Set(), bindings: new Set(), predicates: new Set(), reasons: new Map() };
   if (!isObject(vocabulary)) {
     fail('vocabulary', 'missing or not an object');
     return declared;
@@ -133,6 +133,9 @@ function checkVocabulary(vocabulary, fail) {
   }
   for (const [name, entry] of Object.entries(isObject(vocabulary.bindings) ? vocabulary.bindings : {})) {
     declared.bindings.add(name);
+    if (isObject(entry) && entry.primitive === 'stop' && Array.isArray(entry.reasons)) {
+      declared.reasons.set(name, entry.reasons);
+    }
     const path = `vocabulary.bindings.${name}`;
     if (!own(V3_BINDINGS, name)) fail(path, 'declares a binding format 3 has no name for');
     else if (name === '<escalate>') {
@@ -168,15 +171,17 @@ function checkVocabulary(vocabulary, fail) {
   return declared;
 }
 
-/** Records every binding the node uses, each with its JSON path. */
+/** Records every binding the node uses, each with its JSON path and the object carrying it. */
 function usedBindings(node, nodePath) {
   const used = [];
-  if (own(node, 'binding')) used.push([`${nodePath}.binding`, node.binding]);
+  if (own(node, 'binding')) used.push([`${nodePath}.binding`, node.binding, node]);
   for (const [outcome, edge] of Object.entries(isObject(node.outcomes) ? node.outcomes : {})) {
     if (!isObject(edge)) continue;
     const edgePath = `${nodePath}.outcomes.${outcome}`;
-    if (own(edge, 'binding')) used.push([`${edgePath}.binding`, edge.binding]);
-    if (isObject(edge.onCap) && own(edge.onCap, 'binding')) used.push([`${edgePath}.onCap.binding`, edge.onCap.binding]);
+    if (own(edge, 'binding')) used.push([`${edgePath}.binding`, edge.binding, edge]);
+    if (isObject(edge.onCap) && own(edge.onCap, 'binding')) {
+      used.push([`${edgePath}.onCap.binding`, edge.onCap.binding, edge.onCap]);
+    }
   }
   return used;
 }
@@ -223,9 +228,17 @@ function generate(v4) {
         fail(`${nodePath}.outcomes.${outcome}`, `uses outcome '${outcome}', which the vocabulary does not declare`);
       }
     }
-    for (const [path, binding] of usedBindings(node, nodePath)) {
+    for (const [path, binding, carrier] of usedBindings(node, nodePath)) {
       if (!declared.bindings.has(binding)) {
         fail(path, `uses binding ${JSON.stringify(binding)}, which the vocabulary does not declare`);
+        continue;
+      }
+      const reasons = declared.reasons.get(binding);
+      if (reasons !== undefined && own(carrier, 'reason') && !reasons.includes(carrier.reason)) {
+        fail(
+          path.replace(/\.binding$/, '.reason'),
+          `uses reason ${JSON.stringify(carrier.reason)}, which binding ${JSON.stringify(binding)} does not declare`,
+        );
       }
     }
     const v3Node = {};
