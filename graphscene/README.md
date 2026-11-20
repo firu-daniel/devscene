@@ -4,7 +4,7 @@
 
 ## What it is
 
-GraphScene is a generic flow-graph navigation library. It has no engine code yet and still declares no runtime dependency, but it carries the generic flow-graph schema (format 4) and the vocabulary check.
+GraphScene is a generic flow-graph navigation library. It has no engine code yet, but it carries the generic flow-graph schema (format 4) and the vocabulary check, and declares one runtime dependency, `jsonschema`, for validating a graph against that schema.
 
 | Path | Holds |
 |---|---|
