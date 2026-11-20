@@ -10,7 +10,7 @@
 
 This list is the **single source of truth** for the fix loop: it is walked top to bottom, and only its markers record progress. Any `[ ]` marker elsewhere in this plan or in a per-finding file is informational only.
 
-1. [ ] **Finding 1** — Rewrite the two absolute plugin paths in the round-1 task plan review. _(layer: general)_
+1. [x] **Finding 1** — Rewrite the two absolute plugin paths in the round-1 task plan review. _(layer: general)_
 2. [ ] **Finding 2** — Stop re-binding the loop variable `name` to `object` in `_node_violations`. _(layer: graphscene)_
 
 ## Must Fix
