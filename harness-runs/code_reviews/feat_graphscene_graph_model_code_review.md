@@ -25,7 +25,7 @@
 
 1. [x] **Finding 1** — Restore `_strings`'s `list[str]` return annotation in `vocabulary.py` so strict `mypy` passes _(layer: graphscene)_
 2. [x] **Finding 2** — Sort the `test_model.py` import block and collapse the two one-element assertion tuples in `test_loader.py` so `ruff` passes _(layer: graphscene)_
-3. [ ] **Finding 3** — Accept an integral float where the schema takes an integer in the model's `_int`, with a loader test _(layer: graphscene)_
+3. [x] **Finding 3** — Accept an integral float where the schema takes an integer in the model's `_int`, with a loader test _(layer: graphscene)_
 
 ---
 

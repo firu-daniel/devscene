@@ -1,7 +1,8 @@
 """The rule this file exists to enforce: the loader (`graphscene.loader`) rejects every fixture
 `ajv` rejects, at the schema stage, and every vocabulary negative, at the vocabulary stage; each
-rejection names the node and the field where the fixture's one change sits; and
-`valid_generic.json` loads.
+rejection names the node and the field where the fixture's one change sits;
+`valid_generic.json` loads; and a number the schema accepts as an integer, written `3.0`, loads as
+an `int`.
 
 Each expected path is hand-read from the fixture's one change against `valid_generic.json`, never
 taken from the loader's output.
@@ -17,7 +18,7 @@ from jsonschema import Draft7Validator
 
 from graphscene.errors import GraphError, Violation
 from graphscene.loader import load_graph, load_graph_file
-from graphscene.model import FlowGraph
+from graphscene.model import FlowGraph, RoundNode
 
 _FIXTURES = Path(__file__).parent / "fixtures" / "flow_graph"
 
@@ -76,6 +77,21 @@ def test_the_valid_generic_graph_loads() -> None:
     loaded = load_graph(_parsed("valid_generic.json"))
     assert isinstance(loaded, FlowGraph)
     assert loaded.flow == "article_review"
+
+
+def test_an_integral_float_where_the_schema_takes_an_integer_loads_as_an_int() -> None:
+    graph = copy.deepcopy(_parsed("valid_generic.json"))
+    counters = graph["counters"]
+    assert isinstance(counters, dict)
+    counters["attempt"]["cap"] = 3.0
+    _node(graph, "review_round")["convergingFrom"] = 1.0
+    loaded = load_graph(graph)
+    assert type(loaded.counters["attempt"].cap) is int
+    assert loaded.counters["attempt"].cap == 3
+    review_round = loaded.nodes["review_round"]
+    assert isinstance(review_round, RoundNode)
+    assert type(review_round.converging_from) is int
+    assert review_round.converging_from == 1
 
 
 def test_a_non_object_graph_is_rejected_at_the_root() -> None:

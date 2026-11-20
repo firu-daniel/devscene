@@ -12,6 +12,7 @@ The mapping rules, from the schema's declaration to the model:
   aliasing the caller's input.
 - Absent keys: an absent optional key is `None`. The one exception is `held`, which the schema
   allows only as `true`: it is a `bool`, `False` when absent.
+- Integers: a number the schema accepts as an integer, `3` or `3.0`, becomes an `int`.
 - Which classes: an edge carrying `binding` is a `BindingEdge` and any other edge a `RouteEdge`,
   as the schema's `edge` `if`/`then` decides; a node's class follows `kind`; a binding's class
   follows `primitive`.
@@ -191,6 +192,8 @@ def _str(value: object, path: str) -> str:
 
 
 def _int(value: object, path: str) -> int:
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
     if isinstance(value, bool) or not isinstance(value, int):
         raise TypeError(f"{path}: expected int")
     return value
