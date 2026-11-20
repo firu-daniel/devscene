@@ -31,7 +31,7 @@
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_graph_schema_v2/task_<K>_plan.md`. The entries run in ship order, following the configured layer order with the catch-all layer last.
 
-1. [ ] **Task 1** — Author the planning graph in format 4 at `cli/templates/scripts/flows/task_plan_writing.v4.graph.json` _(layer: cli)_ _(points: 15)_
+1. [x] **Task 1** — Author the planning graph in format 4 at `cli/templates/scripts/flows/task_plan_writing.v4.graph.json` _(layer: cli)_ _(points: 15)_
 2. [ ] **Task 2** — Add the generic format-4 flow-graph schema to `graphscene` with its generic and schema-negative fixtures _(layer: graphscene)_ _(points: 20)_
 3. [ ] **Task 3** — Add `graphscene.vocabulary.vocabulary_violations`, the used-against-declared names check, with its fixtures and tests _(layer: graphscene)_ _(points: 20)_
 4. [ ] **Task 4** — Generate both format-3 graph copies from the format-4 source with `scripts/generate-flow-graph-v3.mjs` _(layer: general)_ _(points: 20)_
