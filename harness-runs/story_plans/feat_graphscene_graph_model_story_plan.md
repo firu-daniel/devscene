@@ -39,7 +39,7 @@ This branch gives GraphScene a graph model. A parsed format-4 flow graph goes in
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_graph_model/task_<K>_plan.md`. They are ordered bottom-up by ship sequence, with the catch-all layer last.
 
 1. [x] **Task 1** — Introduce `Violation` and `GraphError`, and return `Violation` values from `vocabulary_violations` _(layer: graphscene)_ _(points: 15)_
-2. [ ] **Task 2** — Add the typed flow-graph model in `graphscene.model` with its builder `build_flow_graph` _(layer: graphscene)_ _(points: 20)_
+2. [x] **Task 2** — Add the typed flow-graph model in `graphscene.model` with its builder `build_flow_graph` _(layer: graphscene)_ _(points: 20)_
 3. [ ] **Task 3** — Add the loader `load_graph` / `load_graph_file`: schema, then vocabulary, then typed objects _(layer: graphscene)_ _(points: 20)_
 4. [ ] **Task 4** — Publish the graph-model surface in `graphscene.__all__` and describe it in `graphscene/README.md` _(layer: graphscene)_ _(points: 10)_
 5. [ ] **Task 5** — Record the Python loader in `docs/development.md` and the `ROADMAP.md` GraphScene row _(layer: general)_ _(points: 8)_
