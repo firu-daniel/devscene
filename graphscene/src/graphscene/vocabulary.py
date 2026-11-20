@@ -147,13 +147,13 @@ def _node_violations(
             )
 
     if node.get("kind") == "terminal":
-        name = node.get("binding")
-        if isinstance(name, str):
-            binding = bindings.get(name)
+        binding_name = node.get("binding")
+        if isinstance(binding_name, str):
+            binding = bindings.get(binding_name)
             if binding is None:
-                found.append(_undeclared_binding(node_path, name))
+                found.append(_undeclared_binding(node_path, binding_name))
             elif binding.primitive != "end":
-                found.append(f"{node_path}.binding: binding '{name}' is not an end")
+                found.append(f"{node_path}.binding: binding '{binding_name}' is not an end")
     return found
 
 

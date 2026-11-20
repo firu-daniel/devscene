@@ -24,3 +24,7 @@
 - [ ] Do not change the messages the function returns or the order it returns them in (the module docstring states that order).
 - [ ] Do not add a `# type: ignore`, a `cast` or an `object` annotation on the loop variable.
 - [ ] Check that `binding` is not already bound in that function with a type that conflicts. Today it is assigned only inside this block, so it keeps its `_Binding | None` type.
+
+**Deviations from plan:**
+
+- Evidence downgrade, fix-site fallback: the finding names no test file (`none — run-gates.sh leg 13f`), and a gate script is never run by a unit. The fix site still carried `name = node.get("binding")` when read, so the fix was implemented as specified: `binding_name` replaces `name` in the terminal block of `_node_violations`, with the message text and order unchanged, and no `# type: ignore`, `cast` or annotation added. A read of `_node_violations` confirms `binding` is assigned only in that block. The after-result rests on the configured `bash scripts/typecheck.sh`, run whole-tree with verdict `PASS: typecheck`. That wrapper runs `scripts/check-shell-parse.sh` and `npm run build` (the `cli` `tsc` build) only, so it does **not** run `mypy` over `graphscene`. The `mypy` strict check this finding is about is verified only by the Run gates phase's leg `13f GraphScene typecheck`.
