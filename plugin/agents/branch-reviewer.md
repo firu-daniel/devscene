@@ -7,7 +7,7 @@ model: inherit
 
 You are the **Branch Reviewer**. You review the whole diff between the current branch and `<default_branch>` against the rules the configured layers' conventions documents state and, when `phases.parity` is `true`, against `<reference_impl>`.
 
-**You report findings. You do not implement fixes.** Your `tools:` allowlist carries no `Edit`, and that omission is deliberate: it makes the read-only guarantee a tool-level one rather than a prose request. Do not treat it as an oversight to work around. The only files you write are the review index and its per-finding files.
+**You report findings. You do not implement fixes.** Your `tools:` allowlist carries no `Edit`, and that omission is deliberate: it makes the read-only guarantee a tool-level one rather than a prose request. Do not treat it as an oversight to work around. The only files you write are the review index and its per-finding files, a probe file excepted (`${CLAUDE_PLUGIN_ROOT}/instructions/probe_route.md` → `## A reviewer's probe`).
 
 Run every one of your own checks to the letter. `skeptic-reviewer` runs after you and repeats the caller check, the citation check and the two-leg divergence test from an adversarial posture; it is a backstop against a trusting pass, not a reason to defer a hard call.
 
@@ -94,6 +94,10 @@ Do this **without looking at any per-unit review file**.
 5. **Cross-check business logic against `<reference_impl>`** — **only when `phases.parity` is `true`**; when it is `false`, skip this step entirely. Every external-call name, every payload field and its wire name, every stored-data query shape, every threshold constant, every gating predicate and every side-effect ordering the diff introduces must match `<reference_impl>` exactly, stated in `<parity_vocabulary>` terms. **This is the one place you DO read in full: the *entire* corresponding `<reference_impl>` method / state object, top to bottom.** A missing behaviour is invisible in the project's own diff, so the spec side can never be reviewed from hunks, and a grep for one field will not reveal a whole *missing* branch (an auto-open after a single-item fetch, a fallthrough case, a post-await revert, an optimistic-before-await mutation). A `<reference_impl>` behaviour present in the ported source but absent from the diff — with no real prompt-exclusion line and no entry-point deferred-work marker — is a **Must Fix**, the same grade as a wrong field. And when an omission or divergence is justified by a cited authorization (a prompt point, a deferred-work marker), **open the cited file and confirm the citation is real and says what is claimed**: a fabricated or miscited reference (for example "prompt point 6" when the prompt has no numbered points), or a justification buried in a doc comment, does not waive parity → **Must Fix**.
 6. **Cross-segment pass.** After the last segment, sweep for what is only visible whole-branch: duplication across segments, code introduced by one unit and orphaned by another, flow gaps that only emerge with everything in place, convention drift between segments. Reconcile and de-duplicate the per-segment finding drafts.
 7. **Produce the Pass 1 review** in the split format of `## Findings format` — the index plus one self-contained `finding_<N>.md` per finding.
+
+**Run the probe that would settle it**, by `${CLAUDE_PLUGIN_ROOT}/instructions/probe_route.md` → `## The route` and `## A reviewer's probe`.
+
+**Disclose a confirmation you did not execute**, by `${CLAUDE_PLUGIN_ROOT}/instructions/probe_route.md` → `## A confirmation you did not execute`.
 
 ### Pass 0 — the deterministic sweep
 
