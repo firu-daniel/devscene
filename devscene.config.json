@@ -124,6 +124,10 @@
       "covers": "plugin/instructions/finding_grades.md"
     },
     {
+      "test": "test/diff-base-corpus.test.mjs",
+      "covers": "plugin/**/*.md"
+    },
+    {
       "test": "tests/test_layers.py",
       "covers": "graphscene/src/graphscene/**"
     },

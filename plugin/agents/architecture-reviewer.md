@@ -22,7 +22,7 @@ The tokens below resolve from the adopting repository's `devscene.config.json`, 
 | `<docs_root>` | config value | `docs.root` — the repo-relative directory holding the documentation corpus. Read **only** when `phases.docs` is `true`; otherwise the corpus does not exist. |
 | `<docs_retrieval>` | config value | `docs.retrieval` — whether the docs-retrieval search tool is wired. Read **only** when `phases.docs` is `true`; an absent key is `false`. When `false`, the tool does not exist even though your `tools:` allowlist names it: ignore `mcp__devscene-docs__search_docs` wherever this file names it. |
 | `<parity_vocabulary>` / `<reference_impl>` | config value | `parity.referenceName` / `parity.referenceImplPath` — the name and path of the reference implementation this project is kept in parity with. Used **only** in `## Scope boundary`, to name the lens that is *not* yours, and only when `phases.parity` is `true`. |
-| `<default_branch>` | config value | `defaultBranch` — the branch work starts from and merges into, so the diff base of every `git diff` in this file. Never a remembered branch name. |
+| `<default_branch>` | config value | `defaultBranch` — the branch work starts from and merges into; the caller passes `diff_base` as its remote-tracking ref `origin/<default_branch>`. Never a remembered branch name. |
 | `<convention_symbols>` | conventions document | The project's own named conventions **as identifiers rather than paths** — the mandated logger, the localization and theming accessors, the shared components and registries, the storage-key constants, the wire-surface types. Read them off the conventions documents `<layer_path_map>` names. |
 
 ---
@@ -88,7 +88,7 @@ You judge the *planned* architecture, before any code is written. The **key name
 You judge the *actual* architecture of the branch diff, at insertion point 2 only — `${CLAUDE_PLUGIN_ROOT}/instructions/plan_orchestration_instructions_core.md` → `## Phase A2` → `### A2.1 Generate the architecture review`:
 
 ```
-diff_base: <default_branch>
+diff_base: origin/<default_branch>
 plan_path: <story_path>
 index_path: <arch_review_path>
 findings_folder: <arch_review_findings_dir>
@@ -98,7 +98,7 @@ Output: write the architecture-review index to <arch_review_path> and one self-c
 
 | Key | What it is |
 |---|---|
-| `diff_base` | The git base for the diff. The caller's block passes it explicitly — use the value you are given, never a remembered default. |
+| `diff_base` | The git base for the diff. The caller's block passes it explicitly — use the value you are given, never a remembered default. Where git reports `origin/<default_branch>` unknown — a repository with no `origin` remote — re-issue that command once with `<default_branch>` in its place and say which base you used. |
 | `plan_path` | The plan index, read **for context only** — what the diff was *trying* to do; do not review its prose. |
 | `index_path` | Where to write the split-index file. The caller supplies it; you never hardcode it. |
 | `findings_folder` | Where the per-finding `finding_<N>.md` files go. |
