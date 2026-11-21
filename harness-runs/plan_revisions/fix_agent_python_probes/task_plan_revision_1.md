@@ -1,0 +1,4 @@
+# Revision note — round 1
+- task-plan-reviewer 1 (harness-runs/task_plan_reviews/fix_agent_python_probes/review_0.md) — files: harness-runs/task_plans/fix_agent_python_probes/task_5_plan.md, harness-runs/story_plans/fix_agent_python_probes_story_plan.md — resolved
+- task-plan-reviewer 2 (harness-runs/task_plan_reviews/fix_agent_python_probes/review_0.md) — files: harness-runs/task_plans/fix_agent_python_probes/task_5_plan.md, harness-runs/task_plans/fix_agent_python_probes/task_6_plan.md, harness-runs/story_plans/fix_agent_python_probes_story_plan.md — resolved
+Unrequested changes: harness-runs/story_plans/fix_agent_python_probes_story_plan.md → `## Scope register` gains derivation entry C3 and row 40 (`plugin/instructions/unit_loop_core.md`), because resolving task-plan-reviewer 2 by route (a) adds a target to Task 5 and the register's derivation entries were re-executed under the target-set exception
