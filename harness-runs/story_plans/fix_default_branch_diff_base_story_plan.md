@@ -29,7 +29,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/fix_default_branch_diff_base
 1. [x] **Task 1** — Pass `diff_base: origin/<default_branch>` to the parity and architecture reviewers _(layer: plugin)_ _(points: 15)_
 2. [x] **Task 2** — Base the branch, skeptic and review-plan reviewers' diffs on `origin/<default_branch>` _(layer: plugin)_ _(points: 15)_
 3. [x] **Task 3** — Base the commit ranges, the docs-phase diff and their mentions on `origin/<default_branch>` _(layer: plugin)_ _(points: 15)_
-4. [ ] **Task 4** — Add the diff-base corpus test over `plugin/**/*.md` _(layer: cli)_ _(points: 15)_
+4. [x] **Task 4** — Add the diff-base corpus test over `plugin/**/*.md` _(layer: cli)_ _(points: 15)_
 5. [ ] **Task 5** — Register the diff-base corpus test as a tree guard _(layer: general)_ _(points: 5)_
 
 ## Scope register
