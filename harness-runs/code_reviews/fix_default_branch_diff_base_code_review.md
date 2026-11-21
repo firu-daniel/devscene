@@ -32,7 +32,7 @@ Two findings remain. Neither is a Must Fix. Finding 1 also raises a question the
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Correct the freshness sentences so a stale `origin/<default_branch>` also widens for a branch cut from an unpushed local `<default_branch>` _(layer: plugin)_
+1. [x] **Finding 1** — Correct the freshness sentences so a stale `origin/<default_branch>` also widens for a branch cut from an unpushed local `<default_branch>` _(layer: plugin)_
 2. [ ] **Finding 2** — Scope `ALLOWED_LITERAL` to the two orchestration cores _(layer: cli)_
 
 ---
