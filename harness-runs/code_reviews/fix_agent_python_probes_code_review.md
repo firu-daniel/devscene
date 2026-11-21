@@ -31,7 +31,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 2** — Move the not-run `<typecheck_cmd>` note requirement out of `layer-implementer`'s evidence-downgrade list into its own sentence _(layer: plugin)_
+1. [x] **Finding 2** — Move the not-run `<typecheck_cmd>` note requirement out of `layer-implementer`'s evidence-downgrade list into its own sentence _(layer: plugin)_
 2. [ ] **Finding 1** — Give `typecheck.sh`'s `BLOCKED` line the install-`uv` remedy as well as `provision`, and update the test and Gate 13 quote that pin it _(layer: cli, general)_
 
 ---
