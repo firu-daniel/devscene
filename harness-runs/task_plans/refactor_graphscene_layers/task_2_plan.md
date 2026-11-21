@@ -49,3 +49,5 @@
 - Check that each planted case breaks for the reason it names, not for a configuration error. Its expected line is an `<importer> -> <imported>` report line, and no case's output contains `does not exist` or `include_external_packages`.
 - After the test file runs, `git status --porcelain --ignored -- graphscene` lists no `.import_linter_cache`.
 - `git diff -- graphscene/pyproject.toml` shows only the added `[tool.importlinter]` section and its contract tables.
+
+**Deviations from plan:** Each planted case's expected text in `_VIOLATIONS` is the contract's `<downstream> is not allowed to import <upstream>:` header together with its `<importer> -> <imported> (l.<n>)` chain line, not the chain line alone, so the case also proves which contract clause broke. The `engine` → package-root case carries both chain lines (`graphscene.engine.rules -> graphscene (l.2)`, `graphscene -> graphscene.facade (l.1)`), which together prove the indirect reach to `facade`. All were hand-read from a first run under import-linter 2.17.
