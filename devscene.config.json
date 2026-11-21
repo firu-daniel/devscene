@@ -122,6 +122,14 @@
     {
       "test": "test/must-fix-triggers-corpus.test.mjs",
       "covers": "plugin/instructions/finding_grades.md"
+    },
+    {
+      "test": "tests/test_layers.py",
+      "covers": "graphscene/src/graphscene/**"
+    },
+    {
+      "test": "tests/test_layers.py",
+      "covers": "graphscene/pyproject.toml"
     }
   ],
   "execution": {
