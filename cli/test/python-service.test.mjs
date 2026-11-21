@@ -5,7 +5,9 @@
  * **The rule this suite enforces: one wrapper reaches the Python packages, every write it causes
  * lands inside the selected package directory or in `uv`'s own temporary cache — never under `HOME`
  * or `XDG_CACHE_HOME` — the package is a row of a closed table, and `provision` lets a host with no
- * `uv` bootstrap (`SKIPPED`, exit 0) while the legs still exit 3 (`BLOCKED`).** The table has two rows,
+ * `uv` bootstrap (`SKIPPED`, exit 0) while the legs still exit 3 (`BLOCKED`); `probe` runs only a `.py`
+ * file inside the state directory's `scratch/` and passes that file's status through, and `check`
+ * grades an unprovisioned leg as exit 3, never as a failure.** The table has two rows,
  * and a row with no console script or no compose project refuses `run` / `container-test` with exit 2
  * before calling `uv`; `provision` syncs every row, in table order. That is what makes
  * gate 13 runnable in a run copy, whose sandboxes allow writes to the copy and a temporary
@@ -21,6 +23,11 @@
  *   bootstrapped with `provision`.
  * - **`container-test` against a real Docker daemon.** No case here starts a service
  *   (`.claude/context/cli.md` → `## What "done" means here`); only its no-`docker` exit is pinned.
+ * - **The real `uv` running a real probe.** That evidence is a `probe` call against the real
+ *   toolchain, made by the change that added the verb and by a reviewer using it.
+ * - **The F15 placeholder itself.** Only a bubblewrap host mounts `<scriptsDir>/.git`; here the
+ *   probe fixture places the root through `hr_script_root` and the script-only one through the bare
+ *   `git rev-parse` fallback, and neither meets the placeholder.
  */
 
 import assert from 'node:assert/strict';
@@ -42,8 +49,16 @@ const UNKNOWN_PACKAGE_LINE = (dir) =>
   `python-service: unknown package '${dir}'; the packages are: ${PACKAGE}, ${LIBRARY}`;
 const USAGE_PREFIX = 'usage: bash scripts/python-service.sh [--package <dir>] ';
 
-/** The tools the wrapper and the stub reach on `PATH`; `bash` because `runBash` resolves it there. */
-const BASE_TOOLS = ['bash', 'git', 'cksum', 'awk', 'dirname', 'mkdir'];
+/**
+ * The tools the wrapper, the stub and the library's scratch-path test reach on `PATH`; `bash`
+ * because `runBash` resolves it there.
+ */
+const BASE_TOOLS = ['bash', 'git', 'cksum', 'awk', 'dirname', 'mkdir', 'jq', 'basename'];
+
+const LIBRARY_SOURCE = join(WORKSPACE_ROOT, 'scripts', 'lib', 'harness-run-lib.sh');
+const STATE_DIR = 'state';
+const SCRATCH = `${STATE_DIR}/scratch`;
+const PROBE = `${SCRATCH}/probe.py`;
 
 /**
  * The four values the stub records per call. `pwd -P` because the wrapper `cd`s to the physical
@@ -95,8 +110,12 @@ function resolveOnBase(tool, pathValue) {
  * One case's fixture: a git repository holding the script, both table rows' packages and a Python
  * package that is not a row, beside a `bin/uv` stub, an empty `HOME`, an empty `XDG_CACHE_HOME` and
  * the stub's call log — all under one `realpath`-resolved directory under `os.tmpdir()`.
+ *
+ * `withLibrary` adds what `probe` needs: the library beside the script, a `devscene.config.json`
+ * it resolves, and `<stateDir>/scratch/` holding {@link PROBE} and a `.mjs` sibling. Without it the
+ * script finds no library, so the root is placed by the bare `git rev-parse` fallback.
  */
-async function buildFixture(t) {
+async function buildFixture(t, { withLibrary = false } = {}) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'python-service-')));
   t.after(() => rm(root, { recursive: true, force: true }));
   const repo = join(root, 'repo');
@@ -113,6 +132,16 @@ async function buildFixture(t) {
   await writeFile(join(repo, LIBRARY, 'pyproject.toml'), `[project]\nname = "${LIBRARY}"\n`, 'utf8');
   await writeFile(join(repo, OTHER_PACKAGE, 'pyproject.toml'), `[project]\nname = "${OTHER_PACKAGE}"\n`, 'utf8');
   await writeFile(join(repo, OTHER_PACKAGE, 'uv.lock'), 'version = 1\n', 'utf8');
+  if (withLibrary) {
+    await mkdir(join(repo, 'scripts', 'lib'), { recursive: true });
+    await copyFile(LIBRARY_SOURCE, join(repo, 'scripts', 'lib', 'harness-run-lib.sh'));
+    const config = { version: 1, defaultBranch: 'main', stateDir: STATE_DIR };
+    await writeFile(join(repo, 'devscene.config.json'), `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+    await mkdir(join(repo, SCRATCH), { recursive: true });
+    await writeFile(join(repo, PROBE), 'print("probe")\n', 'utf8');
+    await writeFile(join(repo, SCRATCH, 'probe.mjs'), 'console.log("probe");\n', 'utf8');
+    await writeFile(join(repo, 'outside.py'), 'print("outside")\n', 'utf8');
+  }
   await writeFile(join(bin, 'uv'), UV_STUB, 'utf8');
   await chmod(join(bin, 'uv'), 0o755);
   const base = basePath();
@@ -387,6 +416,138 @@ test('sync carries no --no-cache, and --with-models appends --extra models', asy
     [['sync', '--frozen', '--group', 'dev', '--extra', 'models']],
     'sync --with-models',
   );
+});
+
+test(`probe, provisioned: one python call on the physical target, from the row's directory, by default and under --package ${LIBRARY}`, async (t) => {
+  const fixture = await buildFixture(t, { withLibrary: true });
+  await fixture.plantVenv();
+  await fixture.plantVenv(LIBRARY);
+  const target = join(fixture.repo, PROBE);
+  const all = [];
+  for (const [args, pkg] of [
+    [['probe', PROBE, 'a', 'b'], PACKAGE],
+    [['--package', LIBRARY, 'probe', target, 'a', 'b'], LIBRARY],
+  ]) {
+    const result = await fixture.runScript(args);
+    assert.equal(result.status, 0, `${args.join(' ')}: ${result.stderr}`);
+    const calls = await fixture.takeCalls();
+    assertCalls(calls, fixture.repo, [[...LEG_PREFIX, 'python', target, 'a', 'b']], args.join(' '), pkg);
+    all.push(...calls);
+  }
+  await assertNothingUnderHome(fixture, all);
+});
+
+test("probe passes the file's own exit status through", async (t) => {
+  const fixture = await buildFixture(t, { withLibrary: true });
+  await fixture.plantVenv();
+  const result = await fixture.runScript(['probe', PROBE], { env: { FAKE_UV_STATUS: '7' } });
+  assert.equal(result.status, 7, result.stderr);
+  assert.equal((await fixture.takeCalls()).length, 1, 'probe: one uv call');
+});
+
+test('probe refuses a path outside scratch, a `..` path, an option, a non-.py file, an absent file and no argument with exit 2 and no uv call', async (t) => {
+  const fixture = await buildFixture(t, { withLibrary: true });
+  await fixture.plantVenv();
+  const { repo } = fixture;
+  const scratch = join(repo, SCRATCH);
+  const dotdot = `${SCRATCH}/../scratch/probe.py`;
+  const refusals = [
+    [['probe', 'outside.py'], `python-service: probe: 'outside.py' resolves to '${repo}', outside '${scratch}' — refusing`],
+    [['probe', dotdot], `python-service: probe: '${dotdot}' carries '..' — refusing, a scratch path names no parent`],
+    [['probe', '-c'], "python-service: probe: '-c' is an option, not a file — refusing, a probe takes no inline program"],
+    [['probe', `${SCRATCH}/probe.mjs`], "python-service: probe: 'probe.mjs' is not a .py file — refusing"],
+    [['probe', `${SCRATCH}/absent.py`], `python-service: probe: '${join(scratch, 'absent.py')}' is not a readable regular file`],
+    [['probe'], 'python-service: probe: no file argument'],
+  ];
+  for (const [args, line] of refusals) {
+    const result = await fixture.runScript(args);
+    assert.equal(result.status, 2, `${args.join(' ')}: ${result.stderr}`);
+    assert.equal(result.stderr.split('\n')[0], line, result.stderr);
+    assert.deepEqual(await fixture.takeCalls(), [], `${args.join(' ')} called uv`);
+  }
+});
+
+test('probe with no pyvenv.cfg exits 3 and calls no uv', async (t) => {
+  const fixture = await buildFixture(t, { withLibrary: true });
+  const result = await fixture.runScript(['probe', PROBE]);
+  assert.equal(result.status, 3, result.stderr);
+  assert.match(result.stderr, /provision/, result.stderr);
+  assert.deepEqual(await fixture.takeCalls(), []);
+});
+
+test('probe with no library beside the script exits 1 naming it, and calls no uv', async (t) => {
+  const fixture = await buildFixture(t);
+  await fixture.plantVenv();
+  const result = await fixture.runScript(['probe', PROBE]);
+  assert.equal(result.status, 1, result.stderr);
+  const lib = join(fixture.repo, 'scripts', 'lib', 'harness-run-lib.sh');
+  assert.equal(result.stderr, `python-service: probe: cannot read ${lib} — refusing to run anything\n`);
+  assert.deepEqual(await fixture.takeCalls(), []);
+});
+
+/** The `check` stdout for `verdicts`, four in table order: each row's `lint`, then its `typecheck`. */
+function checkLines(verdicts) {
+  const legs = [PACKAGE, LIBRARY].flatMap((row) => ['lint', 'typecheck'].map((leg) => `${row} ${leg}`));
+  return legs.map((leg, i) => `python-service: check: ${leg} ${verdicts[i]}\n`).join('');
+}
+
+const CHECK_ARGVS = [LEGS[0].argvs[0], LEGS[0].argvs[1], LEGS[1].argvs[0]];
+
+test('check, both rows provisioned: six calls in table order, each at its row, four PASS lines, exit 0', async (t) => {
+  const fixture = await buildFixture(t);
+  await fixture.plantVenv();
+  await fixture.plantVenv(LIBRARY);
+  const result = await fixture.runScript(['check']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, checkLines(['PASS', 'PASS', 'PASS', 'PASS']));
+  const calls = await fixture.takeCalls();
+  assert.equal(calls.length, 6, 'check: six uv calls');
+  assertCalls(calls.slice(0, 3), fixture.repo, CHECK_ARGVS, `check, ${PACKAGE}`);
+  assertCalls(calls.slice(3), fixture.repo, CHECK_ARGVS, `check, ${LIBRARY}`, LIBRARY);
+  await assertNothingUnderHome(fixture, calls);
+});
+
+test(`check with only ${PACKAGE} provisioned grades ${LIBRARY} BLOCKED and exits 3`, async (t) => {
+  const fixture = await buildFixture(t);
+  await fixture.plantVenv();
+  const result = await fixture.runScript(['check']);
+  assert.equal(result.status, 3, result.stderr);
+  assert.equal(result.stdout, checkLines(['PASS', 'PASS', 'BLOCKED', 'BLOCKED']));
+  assertCalls(await fixture.takeCalls(), fixture.repo, CHECK_ARGVS, `check, ${PACKAGE}`);
+});
+
+test('check with a failing tool grades FAIL over BLOCKED, exits 1 and still runs every leg', async (t) => {
+  const fixture = await buildFixture(t);
+  await fixture.plantVenv();
+  const result = await fixture.runScript(['check'], { env: { FAKE_UV_STATUS: '1' } });
+  assert.equal(result.status, 1, result.stderr);
+  assert.equal(result.stdout, checkLines(['FAIL', 'FAIL', 'BLOCKED', 'BLOCKED']));
+  assertCalls(await fixture.takeCalls(), fixture.repo, CHECK_ARGVS, `check failing, ${PACKAGE}`);
+});
+
+test('check with no uv on PATH prints four BLOCKED lines and exits 3', async (t) => {
+  const fixture = await buildFixture(t);
+  const realUv = resolveOnBase('uv', fixture.base);
+  if (realUv !== undefined) {
+    t.skip(`the base PATH resolves a real uv at ${realUv}`);
+    return;
+  }
+  await fixture.plantVenv();
+  await fixture.plantVenv(LIBRARY);
+  const result = await fixture.runScript(['check'], { noUv: true });
+  assert.equal(result.status, 3, result.stderr);
+  assert.equal(result.stdout, checkLines(['BLOCKED', 'BLOCKED', 'BLOCKED', 'BLOCKED']));
+});
+
+test('check takes no argument and no --package', async (t) => {
+  const fixture = await buildFixture(t);
+  await fixture.plantVenv();
+  await fixture.plantVenv(LIBRARY);
+  for (const args of [['check', 'x'], ['--package', LIBRARY, 'check']]) {
+    const result = await fixture.runScript(args);
+    assert.equal(result.status, 2, `${args.join(' ')}: ${result.stderr}`);
+    assert.deepEqual(await fixture.takeCalls(), [], `${args.join(' ')} called uv`);
+  }
 });
 
 test('the script carries exactly one `# PROVIDES: provision` line', () => {
