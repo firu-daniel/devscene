@@ -36,3 +36,24 @@
 - **cost this run:** 9 node session(s)
 
 # Task run (Phase D)
+
+## The plan needed 3 review rounds to converge
+- **category:** optimization
+- **evidence:** convergence churn on the plan unit: 3 distinct round indices (0, 1, 2) across `harness-runs/task_plan_reviews/fix_agent_python_probes/` and `harness-runs/architecture_reviews/fix_agent_python_probes/` (no business-parity folder, `phases.parity` false). `task_plan_reviews/…/review_0.md` and `review_1.md` carry `verdict: FAIL`, `review_2.md` `verdict: PASS`; every architecture round `verdict: PASS`. Per round, by finding title: round 1 — 1 net-new (the `layer-implementer.md` restatement Must Fix), 2 re-raised from round 0 (the readiness-order Should Fix and the orphaned `<scripts_dir>` Should Fix); round 2 — 2 net-new, 0 re-raised.
+- **cost this run:** 2 extra plan rounds (writer + architecture-reviewer + task-plan-reviewer each)
+
+## End-of-branch reviewers could not resolve the `dev` diff base in the run copy
+- **category:** agent-contract
+- **evidence:** Phase A2 dispatched `architecture-reviewer` with `diff_base: dev`; its return reports `git diff dev...HEAD` failed with "bad revision" because the run copy has no local `dev` branch, and it reviewed against `origin/dev`. `branch-reviewer` (Phase B), `review-plan-reviewer` (B.2), `skeptic-reviewer` (C2) and `statistics-plan-writer` (D.1, `git log dev..HEAD`) each reported the same missing ref and the same fallback to `origin/dev`.
+- **cost this run:** 5 dispatches each spent a failed command and an improvised base; none blocked
+- **hypothesis:** the agents' `<default_branch>` diff commands assume a local ref a fresh run copy does not carry.
+
+## Implementer commands refused by the permission layer
+- **category:** tooling-gap
+- **evidence:** Task 1's `layer-implementer` return: the throwaway-fixture command it meant to use to exercise the no-library fallback of `scripts/python-service.sh` and `check` with no `uv` on `PATH` was refused, so both paths shipped verified by reading only. Task 7's `layer-implementer` return: its scripted comparison of the C2 derivation against the scope register was refused, and it compared by reading instead.
+- **cost this run:** 2 verifications downgraded to code reading
+
+## branch-reviewer ran the main checkout's copy of its definition, not the branch's
+- **category:** agent-contract
+- **evidence:** Phase B `branch-reviewer` return: it ran the main checkout's `plugin/agents/branch-reviewer.md`, which predates this branch's Task 6 probe-file exception, so its probe file `harness-runs/scratch/branch_review_fix_agent_python_probes.py` was written outside the write bound its loaded definition states.
+- **cost this run:** one review-file write outside the agent's stated bound (gitignored, not committed)
