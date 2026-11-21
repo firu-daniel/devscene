@@ -14,7 +14,7 @@
 
 Each entry resolves to a self-contained `harness-runs/user_reviews/feat_graphscene_graph_model_fix_plan/finding_<K>.md` file through its `**Finding K**` reference. Entries are sorted from lowest blast radius first to wider refactors last.
 
-1. [ ] **Finding 1** — Make `_ecma_pattern` refuse, by schema path, any `pattern` construct it does not translate to ECMA-262. List the supported set in its docstring, and add planted-construct tests plus a test over the shipped schema in `graphscene/tests/test_loader.py`. _(layer: graphscene)_
+1. [x] **Finding 1** — Make `_ecma_pattern` refuse, by schema path, any `pattern` construct it does not translate to ECMA-262. List the supported set in its docstring, and add planted-construct tests plus a test over the shipped schema in `graphscene/tests/test_loader.py`. _(layer: graphscene)_
 
 ---
 
