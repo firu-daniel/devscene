@@ -13,6 +13,7 @@ dev = [
     "mypy",
     "pytest",
     "types-jsonschema",
+    "import-linter",
 ]
 
 [build-system]
