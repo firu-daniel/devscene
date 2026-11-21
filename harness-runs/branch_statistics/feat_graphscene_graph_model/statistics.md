@@ -2,11 +2,11 @@
 
 ## Summary
 
-- `success_rate`: **`100%`** — headline metric.
+- `success_rate`: **`93.2%`** — headline metric.
 - `story_points_total`: `73` — denominator (sum of every task's `_(points: <N>)_` story-point estimate in the story index's `## Phase 2 Readiness — Ordered Fix List`).
-- `issue_cost_total`: `0` — subtraction (sum of each user-review observation's severity weight, in story-point units).
+- `issue_cost_total`: `5` — subtraction (sum of each user-review observation's severity weight, in story-point units).
 - `story_plan_tasks`: `5` — retained raw count of `## Phase 2 Readiness — Ordered Fix List` task entries.
-- `user_review_issues`: `0` — retained raw count of observations across all `feat_graphscene_graph_model_review*.md` user-review files.
+- `user_review_issues`: `1` — retained raw count of observations across all `feat_graphscene_graph_model_review*.md` user-review files.
 
 Formula:
 
@@ -14,7 +14,7 @@ Formula:
 success_rate = round(clamp((story_points_total - issue_cost_total) / story_points_total, 0, 1) * 100, 1) percent
 ```
 
-Worked example: `round(clamp((73 - 0) / 73, 0, 1) * 100, 1)` = `round(100.0, 1)` = `100%`.
+Worked example: `round(clamp((73 - 5) / 73, 0, 1) * 100, 1)` = `round(93.1506…, 1)` = `93.2%`.
 
 Edge cases (the rate is always computed via the formula, then adjusted by these rules):
 
@@ -29,7 +29,7 @@ Per-source raw numbers and per-issue costs are retained so the metric can be ref
 
 - **Story-index source** — `story_points_total`: `73`, `story_plan_tasks`: `5`
   - counted from `harness-runs/story_plans/feat_graphscene_graph_model_story_plan.md` (the `N. [x] **Task K** — … _(layer: …)_ _(points: <N>)_` entries under its `## Phase 2 Readiness — Ordered Fix List`, counting `[ ]` and `[x]` alike; all five are `[x]`).
-  - raw count: `awk '/## Phase 2 Readiness — Ordered Fix List/{f=1;next} /^## /{f=0} f' <story_index> | grep -cE '^[0-9]+\.\s*\[[ x]\]\s*\*\*Task'` → `5`.
+  - raw count: `awk '/## Phase 2 Readiness — Ordered Fix List/{f=1;next} /^## /{f=0} f' <story_index> | grep -cE '^[0-9]+\.\s*\[[ x]\]\s*\*\*Task'` → `5` (entries 1–5 of the section, lines 41–45 of the story index).
   - per-task points (`_(points: <N>)_` tag on each entry), summed:
     - Task 1: `15`
     - Task 2: `20`
@@ -37,18 +37,22 @@ Per-source raw numbers and per-issue costs are retained so the metric can be ref
     - Task 4: `10`
     - Task 5: `8`
     - **sum (`story_points_total`)**: `73`
-  - `dispositioned_points`: `0` — no commit in `dev..HEAD` carries the `record disposition of ` record, so no task here was closed without a fix. (No local `dev` ref exists in this checkout; the range was read as `origin/dev..HEAD`, 30 commits, none matching.)
+  - `dispositioned_points`: `0` — no commit in `dev..HEAD` carries the `record disposition of ` record, so no task here was closed without a fix. (No local `dev` ref exists in this checkout; the range was read as `origin/dev..HEAD`, 45 commits, none matching.)
   - (Back-compat fallback did not fire: every entry carries a `_(points: …)_` tag.)
-- **User-review source** — `user_review_issues`: `0`, `issue_cost_total`: `0` (per user-review file, then summed)
-  - glob `harness-runs/user_reviews/feat_graphscene_graph_model_review*.md` matched no file (pre-user-review), so no file was counted and no enumeration arm ran.
-  - **total**: `0` observations → `issue_cost_total` `0`
-  - Each file's observation count is the count of whatever top-level enumeration that file uses, taken from the first of four arms to return non-zero and never summed across arms: (1) numbered `##`–`####` headings with required trailing punctuation, `grep -cE '^#{2,4} +[0-9]+[.):]'`; (2) top-level numbered/bulleted list items, `grep -cE '^[0-9]+\.|^[-*][[:space:]]'`; (3) an explicit per-observation marker the file itself uses, with the matching grep recorded beside the count; (4) `1`, reserved for a file with no enumeration of any kind.
+- **User-review source** — `user_review_issues`: `1`, `issue_cost_total`: `5` (per user-review file, then summed)
+  - glob `harness-runs/user_reviews/feat_graphscene_graph_model_review*.md` matched one file after dropping `_fix_plan` matches.
+  - `harness-runs/user_reviews/feat_graphscene_graph_model_review.md`: `1` observation → cost `5`. Counted by **arm 2, top-level list items** — `grep -cE '^[0-9]+\.|^[-*][[:space:]]' <file>` → `1`, arm 1 (`grep -cE '^#{2,4} +[0-9]+[.):]' <file>`) having returned `0`. The observation's assigned weight beside it:
+    1. the `_ecma_pattern` / `_ecma_patterns` regex translator in `graphscene/src/graphscene/loader.py` handles only `$` and `.`; add a test or a validator-build refusal that walks every schema `pattern` and fails on an unhandled construct, and document the supported constructs in the docstring → **Minor** `5`
+  - **total**: `1` observation → `issue_cost_total` `5`
+  - Each file's observation count is the count of whatever top-level enumeration that file uses, taken from the first of four arms to return non-zero and never summed across arms: (1) numbered `##`–`####` headings with required trailing punctuation, `grep -cE '^#{2,4} +[0-9]+[.):]'` — here `0`; (2) top-level numbered/bulleted list items, `grep -cE '^[0-9]+\.|^[-*][[:space:]]'` — here `1`, so arm 2 is this file's count; (3) an explicit per-observation marker the file itself uses, with the matching grep recorded beside the count; (4) `1`, reserved for a file with no enumeration of any kind. Every observation the user wrote is counted and weighted, including any a later fix plan verifies as OK — the count measures what the user found, not what survived triage.
   - Each observation is weighted in story-point units: **Major** `15` (explicit `[major]` marker, or the observation describes a broken/incorrect user-facing flow, a missing/client-only authorization gate, data loss/corruption/unprotected data, or an absent whole ported behaviour — the deciding phrase is quoted beside the observation), **Trivial** `2` (explicit `[trivial]` marker), **Minor** `5` (the default for every observation without a Major/Trivial classification).
+
+**Why the one observation took the Minor default.** It carries no explicit `[major]` or `[trivial]` marker. Read from the review text alone, it describes no Major condition. The review states that the translator "covers the patterns the format-4 schema carries today", so no flow is broken now. It asks for a guard against a possible future divergence, which is a hardening request, not a defect in delivered behaviour.
 
 ## Status
 
-- status: `pre-user-review` — `pre-user-review` means this file was written right after the branch (code) review with no user review yet (`issue_cost_total` `0` → `100%`); `post-user-review` means it was re-written after user-review fixes, with the issues from the `feat_graphscene_graph_model_review*.md` files counted and weighted.
-- last_updated: `2026-11-20`
+- status: `post-user-review` — `pre-user-review` means this file was written right after the branch (code) review with no user review yet (`issue_cost_total` `0` → `100%`); `post-user-review` means it was re-written after user-review fixes, with the issues from the `feat_graphscene_graph_model_review*.md` files counted and weighted.
+- last_updated: `2026-11-21`
 
 ## Notes
 
