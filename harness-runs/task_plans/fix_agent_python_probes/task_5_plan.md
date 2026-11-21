@@ -34,3 +34,5 @@
 - The module's `## Who may cite this` closing paragraph bans only plugin assets beyond the roster and states that a document outside the plugin cites it by repo-relative path, so Task 7's `docs/development.md` citation breaks no rule of the module.
 - Read the module once as an agent with no other context would: the package-environment form names no adopter's wrapper, verb or directory, only `<scripts_dir>`, `<state_dir>` and *the owning layer's conventions document* (`.claude/context/plugin.md` → `## What this layer is`, *"No adopter's value is ever a literal here"*).
 - Each agent's word count read on every dispatch does not grow. The module is read when a probe is needed, so the two agents shrink.
+
+**Deviations from plan:** The plan did not list it, but this task also removed the `<scripts_dir>` row from `layer-reviewer.md` → `## Resolved values`. The probe paragraph was the only use of that token, so once the paragraph became a citation the row declared a token the body never uses (`grep -n 'scripts_dir' plugin/agents/layer-reviewer.md` returned the table row alone). The module declares the token itself.
