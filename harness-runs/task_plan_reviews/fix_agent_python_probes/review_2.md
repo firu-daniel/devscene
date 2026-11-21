@@ -1,0 +1,15 @@
+# Task plan review — round 2
+
+verdict: PASS
+review_mode: converging
+
+Round 1's Must Fix 1 is resolved. Under route (a), `task_5_plan.md`'s `layer-implementer.md` Work bullet now deletes *"Nothing there is committed."*. It also replaces the standing-prohibition sentence with a pointer. The bullet quotes that sentence exactly as `plugin/agents/layer-implementer.md` → **The probe route, in every mode.** carries it today. A new Verification bullet greps `from inside a probe\|is committed` over both files. Neither string appears anywhere else in `layer-implementer.md` today, so once the edit lands the grep can hit only the module.
+
+The story index did not change, and neither did any other per-task file (`git diff acde8b5b -- <story_path> <task_files_dir>`). The revision note lists no unrequested changes. The index has no `## Rejected findings` section. Derivation entries C1, C2 and P1 were re-run verbatim, and C3 was re-walked against the module bullet, which did not change. Every site they reach is already a row. The changed text adds no cross-file citation.
+
+## Should Fix
+- **`task_5_plan.md` — the new standing-prohibition pointer has lost its scope.** The Work bullet replaces *"a write the tool layer refuses stays refused from inside a probe, and `**Standing-prohibition disposition.**` below owns that case"* with *"A refusal a probe meets takes `**Standing-prohibition disposition.**` below."* The old text sent only **tool-layer write** refusals to that paragraph. The new one sends every refusal a probe meets. That includes sandbox refusals, which `layer-implementer.md` → **A sandbox refusal is the boundary working, in every mode.** says are *"not the standing-prohibition route below"*. The disposition paragraph's own three-part qualifying test still sorts a refusal correctly once an implementer reads it, so I cannot complete a failure sentence. Still, the pointer should keep its scope, for example: *"A write the tool layer refuses a probe is weighed under `**Standing-prohibition disposition.**` below."*
+- **`task_5_plan.md` — `layer-implementer.md`'s sandbox paragraph overlaps with the module's closing clause.** The module's `## The route` ends with *"a refusal the tool layer or the sandbox gives a command stays a refusal from inside a probe"*. `layer-implementer.md` → **A sandbox refusal is the boundary working** already says *"never route the command around the refusal — through a probe, …"*. The new Verification bullet claims *"No roster member … restates text the module carries"*, but its grep does not cover this sentence. The two sentences agree, so nothing breaks. Either drop *"or the sandbox"* from the module, or narrow the Verification claim to the two rules it actually checks.
+
+## Nice to Have
+- `task_5_plan.md`: the module says scratch files are not committed twice: in `## The route` (*"because nothing under `<state_dir>/scratch/` is committed"*) and in `## A reviewer's probe` (*"Nothing under that directory is committed"*). A reviewer cites both headings, so it reads the rule twice. `## A reviewer's probe` could cite the rule in `## The route` instead.
