@@ -10,7 +10,7 @@ Source: harness-runs/task_prompts/feat_graphscene_graph_model_task_prompt.md →
 - [x] R0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_graphscene_graph_model_task_prompt.md sha256=174b0268fd53e04fe12e65ace56a62ac34cdc1db63351e5e162c06786928ca38
   - screened: harness-runs/user_reviews/feat_graphscene_graph_model_review.md sha256=41003ad0a44b30b987183b7184cc18634fba76123cb76c0f588b83d5fa5105e2
-- [ ] R1. Fix plan written & converged (parity + architecture gates PASS)
+- [x] R1. Fix plan written & converged (parity + architecture gates PASS)
 - [ ] R2. Fix plan + source review committed
 ## Fixing
 - [ ] R3. All fix-plan findings implemented (fix-plan index all [x])
