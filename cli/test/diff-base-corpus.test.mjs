@@ -14,7 +14,7 @@
  * RED ONCE (no-bare-base) — 2026-11-21, `origin/` dropped from one `git diff
  * origin/<default_branch>...HEAD` line of `plugin/agents/skeptic-reviewer.md` in the working tree
  * only, then restored: `no-bare-base` failed its `deepEqual`, listing
- * `plugin/agents/skeptic-reviewer.md:90`.
+ * `plugin/agents/skeptic-reviewer.md` at the `--stat` line of `## Process` step 1.
  *
  * RED ONCE (fallback-sentence) — 2026-11-21, the fallback sentence deleted from
  * `plugin/instructions/docs_phase_instructions.md` in the working tree only, then restored:

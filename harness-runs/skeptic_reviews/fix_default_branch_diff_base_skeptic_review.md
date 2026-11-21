@@ -21,7 +21,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Replace the line coordinate in the suite's RED ONCE record with a heading anchor _(layer: cli)_
+1. [x] **Finding 1** — Replace the line coordinate in the suite's RED ONCE record with a heading anchor _(layer: cli)_
 
 ---
 
