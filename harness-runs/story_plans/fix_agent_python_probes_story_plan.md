@@ -1,0 +1,99 @@
+# Story: Python probes for reviewers, and per-unit Python lint and type checks for implementers
+
+## Context
+
+This branch gives a run's agents Python where they lack it today, and adds no permission entry to do it. Two gaps are closed. First, the end-of-branch reviewers (`branch-reviewer`, `skeptic-reviewer`, `review-plan-reviewer`) get a probe route that they are told about and that runs inside a package's own synced environment. Second, every unit's whole-tree type check now also reaches the Python packages' `ruff` and `mypy`, so a Python defect fails the unit that wrote it rather than waiting for the end-of-branch review or Run gates. The run that found both gaps is `feat_graphscene_graph_model` (#414). The branch must land before #434, the refactor across every `graphscene/` module.
+
+**The decisions this plan takes.** The prompt's leads are starting points. These are the choices made:
+
+1. **No new allow rule, and reachability is checked rather than assumed.** Every route stays a fixed script under `scripts/` that decides which file runs. `scripts/python-service.sh` is not in `DENY_SCRIPT_BASENAMES` (`plugin/hooks/autonomous-script-allowlist-guard.sh`). A call shaped `bash scripts/python-service.sh --package <dir> probe <state_dir>/scratch/<name>.py` carries none of the constructs the guard's scan refuses: `$(`, a backtick, `|`, `<`, a non-bare brace, a `>` other than a descriptor duplication or `/dev/null`, or a `$` in the `.sh` path. So the guard auto-allows it, as it already allows the gate legs' `lint` and `typecheck` calls. Task 1 records this against the guard's own text.
+2. **A probe runs inside a package's environment through a new `probe` verb on `scripts/python-service.sh`** (the lead's first candidate). `.claude/context/conventions.md` → `## The stack, in the words the rules below use` already routes every Python command through that wrapper, and its package table already knows each environment. The verb uses `scripts/lib/harness-run-lib.sh` → `hr_scratch_path_var` for the path test and the gate legs' `uv run --frozen --no-sync --no-cache` for the run. So it reaches no network, changes no environment, and exits `3` on an unprovisioned package. `scripts/scratch-run.sh` and `cli/templates/scripts/scratch-run.sh` are **not changed**: their single-token interpreter table stays as its header's *WHAT THAT COSTS* paragraph argues, and the two copies stay byte-identical. Task 1.
+3. **The plugin stays generic, and the rule is written once.** A new shared module, `plugin/instructions/probe_route.md`, holds the probe route and the disclosure rule. It is cited by `layer-implementer`, `layer-reviewer` and the three end-of-branch reviewers. A sixth copy of the paragraph would break the ledger's *"State a new behaviour once … and cite it from everywhere else"* rule. For a package's environment, the module tells an agent to use *the wrapper the owning layer's conventions document routes that language's commands through, in the probe form its usage states*. No plugin file names `python-service.sh` (`.claude/context/plugin.md` → `## What this layer is`). In this repository the route resolves as follows: `conventions.md` names the wrapper, and the wrapper's usage names `probe`. Tasks 5 and 6.
+4. **The per-unit Python check is this repository's `scripts/typecheck.sh` calling a new `check` verb** (the lead's first candidate). `check` runs every package-table row's `lint` and `typecheck` legs, so the package list keeps one owner. `typecheck.sh` is already hand-edited here (gate 16's parse step). This route changes no configuration, no template and no instruction across adopters. A TypeScript-only unit pays for `ruff` and `mypy`; that cost is accepted. **An unprovisioned environment is `BLOCKED`, never a type error.** `check` exits `3`, `typecheck.sh` prints a `BLOCKED` line and does not fail, and its verdict line keeps its two existing forms. Task 5 tells the implementer to record a step reported as `BLOCKED` or `SKIPPED` as an evidence downgrade. Tasks 1, 2 and 5.
+5. **The wrapper places its repository with `hr_script_root`** when its library is readable. Inside a bubblewrap sandbox, `git -C scripts …` dies on the `<scriptsDir>/.git` placeholder (F15, `scripts/lib/harness-run-lib.sh` → `hr_script_root`). The current root resolution would then make every unit's type check fail on a Linux run for a reason that is not the code. Task 1.
+6. **`lock`, `sync` and `provision` stay agent-reachable, and the header says why.** Inside a run's sandbox they fail closed: no network, and the shared `uv` cache cannot be written. `provision` is legitimately run inside a run copy by the bootstrap. No record the session cannot write tells the two callers apart, and an environment variable is not one (ledger, `## Trust checks`). Task 1 writes this down; it adds no refusal.
+7. **`.claude/context/graphscene.md` → `## Tests` becomes false** (*"The layer's `mypy` `strict` check is not part of a unit's run"*). Under the conventions-document prohibition this is a `stale-rule` entry for a supervised `/devscene:analyze graphscene` re-run or a hand edit. No task plans it.
+
+**The wire this plan threads.** Task 1 defines `python-service.sh`'s two verbs, their exit codes and their lines. Task 2 consumes `check`. Task 3 pins both verbs in `cli/test/python-service.test.mjs`. Task 4 pins Task 2's grading in `cli/test/check-shell-parse.test.mjs`, the suite that already runs this repository's `typecheck.sh`. Task 5 writes the module and points the two per-unit agents at it. Task 6 points the three end-of-branch reviewers at it. Task 7 documents the two verbs and the per-unit check in `docs/development.md` → `## 5. Verifying a change`.
+
+**Ship order.** The two `general` script tasks come first because they create what the rest pin or describe. The `cli` suites that pin them follow. That puts `cli` after `general` for those two tasks, against the configured layer order: a suite cannot pin a verb that does not exist yet, and `harness-runs/story_plans/feat_graphscene_package_skeleton_story_plan.md` and `fix_python_gate_run_copies_story_plan.md` order their wrapper and its suite the same way. The `plugin` tasks follow in configured order. The catch-all documentation task is last. From Task 3 on, every unit's own `<typecheck_cmd>` in this run copy exercises the per-unit Python check for real, which makes this branch the first evidence of it.
+
+**What no unit runs.** `## The test-run rule` forbids a unit running a gate script or a test file it did not write. So no task runs `scripts/run-gates.sh`, a gate-13 leg, or another suite. Tasks 1 and 2 are verified by probe calls and their own `<typecheck_cmd>` run, and Tasks 3 and 4 by their own test files.
+
+**Top risks:**
+
+- **The per-unit check fails every later unit for an environmental reason.** `uv` might refuse inside the session's sandbox, or the root might not resolve on a bubblewrap host. Task 1's root resolution guards the second. Its Verification runs a real `probe` from the session, which is the same `uv run --frozen --no-sync --no-cache` path. Task 2's own `<typecheck_cmd>` is the first real per-unit run, and the `BLOCKED` grading keeps an unprovisioned copy from reading as a failure.
+- **`BLOCKED` reads as a pass.** If the verdict line says `PASS: typecheck` while the Python legs never ran, a unit's evidence is overstated. Task 2 prints the `BLOCKED` line, Task 4 pins it, and Task 5 makes the implementer record it as an evidence downgrade.
+- **The reviewers still do not find the route.** Task 6 puts the pointer in each reviewer's `## Process` and amends every *PASS writes no file* sentence, so that writing a probe file breaks no contract. The scratch directory is gitignored by its contents, so the tree stays clean on a `PASS`. Task 5's module names the package-environment form in words a reviewer can resolve from the conventions documents it already reads.
+
+**Manual setup required:**
+
+- **After this branch merges**, update the main checkout's default branch from an ordinary terminal. Runs use the main checkout's `scripts/` and `plugin/` in place, so the next run sees the new verbs, the per-unit check and the reviewers' probe route only once that checkout has the merge. Depends on Tasks 1, 2, 5 and 6.
+
+## Phase 2 Readiness — Ordered Fix List
+
+**This section is the single source of truth for the implementation loop.** The orchestrator walks the `[ ]` entries below from top to bottom. **Only the committing role flips a marker to `[x]`.** In every flow that runs the unit loop, that is the commit step, `commit-on-branch.sh --unit`; in the supervised flow, which runs none, it is the orchestrator itself. So no implementer changes a marker here, or edits any other line of this section, in an index a run is iterating. `[ ]` markers anywhere else, such as sub-step bullets in the per-task files, are informational only, and the commit step never touches them.
+
+Each entry resolves 1:1 to `harness-runs/task_plans/fix_agent_python_probes/task_<K>_plan.md`.
+
+1. [ ] **Task 1** — Add `probe` and `check` to `scripts/python-service.sh`, placing its root with `hr_script_root` _(layer: general)_ _(points: 20)_
+2. [ ] **Task 2** — Run every Python package's lint and type check from `scripts/typecheck.sh`, grading exit 3 as `BLOCKED` _(layer: general)_ _(points: 10)_
+3. [ ] **Task 3** — Pin `probe` and `check` in `cli/test/python-service.test.mjs` _(layer: cli)_ _(points: 20)_
+4. [ ] **Task 4** — Pin `typecheck.sh`'s Python step and its `BLOCKED` grading in `cli/test/check-shell-parse.test.mjs` _(layer: cli)_ _(points: 10)_
+5. [ ] **Task 5** — Add the shared `probe_route.md` module and point `layer-implementer` and `layer-reviewer` at it _(layer: plugin)_ _(points: 20)_
+6. [ ] **Task 6** — Give `branch-reviewer`, `skeptic-reviewer` and `review-plan-reviewer` the probe route _(layer: plugin)_ _(points: 20)_
+7. [ ] **Task 7** — Document `probe`, `check` and the per-unit Python check in `docs/development.md` _(layer: general)_ _(points: 10)_
+
+## Scope register
+
+**Scope predicate**, quoted verbatim from the task prompt (`harness-runs/task_prompts/fix_agent_python_probes_task_prompt.md`, first line): *"makes Python reachable for a run's agents where it is missing today, without widening the unattended permission profile: the end-of-branch reviewers get a working route to run a Python probe inside the package's own environment, and implementers check a Python layer's lint and types per unit, not only at Run gates."*
+
+**Derivation entry C1 — agents that could carry the route (command).** Re-run verbatim from the checkout root: `git grep -n -E '^tools:.*Bash' -- 'plugin/agents/*-reviewer.md' 'plugin/agents/*-implementer.md'`. Every grading or implementing agent that can run a command is a candidate.
+
+**Derivation entry C2 — corpus files stating the probe route, the type-check wrapper or the Python wrapper (command).** Re-run verbatim from the checkout root: `git grep -l -E 'scripts/typecheck\.sh|python-service|scratch-run' -- '*.md' ':!harness-runs' ':!examples'`.
+
+**Derivation entry P1 — standing-artifact rows (procedure).** **First step, runnable:** `grep -n -i -E 'probe|scratch-run|typecheck|mypy|ruff|python' harness-runs/lessons.md harness-runs/improvement_suggestions.md`. **Artifact:** the two standing ledgers under `harness-runs/`. **Traversal:** each file's one-line rules and suggestion entries in file order, `lessons.md` first. **Decision rule:** a matching line is a candidate. It is `change` when the rule it states governs how an agent runs a probe or which checks a unit's type check reaches; otherwise it is `no-change`, with the sense in which it matched as the reason.
+
+**Closure invariant:** every site each derivation entry reaches appears as a row below. A site reached by more than one entry has one row, which names every entry that reached it.
+
+| # | Site | Copy | Evidence | Disposition | Owning task or reason |
+|---|---|---|---|---|---|
+| 1 | `plugin/agents/layer-implementer.md` → **The probe route, in every mode.** | — | C1 (`tools:` carries `Bash`); C2 (`scratch-run`) | `change` | Task 5 |
+| 2 | `plugin/agents/layer-reviewer.md` → **Run the probe that would settle it.** | — | C1; C2 (`scratch-run`) | `change` | Task 5 |
+| 3 | `plugin/agents/branch-reviewer.md` | — | C1 | `change` | Task 6 |
+| 4 | `plugin/agents/skeptic-reviewer.md` | — | C1 | `change` | Task 6 |
+| 5 | `plugin/agents/review-plan-reviewer.md` | — | C1 | `change` | Task 6 |
+| 6 | `plugin/agents/architecture-reviewer.md` | — | C1 | `no-change` | It grades placement and layering against the conventions documents and the plan, a reading check that no probe settles. The observations the task prompt cites record no refused call from it. If a later branch adds it, that means one roster line in Task 5's module. |
+| 7 | `plugin/agents/business-parity-reviewer.md` | — | C1 | `no-change` | It runs only when `phases.parity` is `true`, which this repository's configuration has `false`, so no run here can exercise or verify a route for it. The observations record no refusal from it. Adding it means one roster line in Task 5's module. |
+| 8 | `plugin/agents/conventions-reviewer.md` | — | C1 | `no-change` | It grades conventions documents for `/devscene:analyze`, not a run's diff, and it writes nothing. It is outside the predicate's *end-of-branch reviewers* and *implementers*. |
+| 9 | `plugin/agents/docs-reviewer.md` | — | C1 | `no-change` | It grades documentation prose in the docs phase, not code under review, so it is outside the predicate. |
+| 10 | `plugin/agents/task-plan-reviewer.md` | — | C1 | `no-change` | It grades a plan before any code exists, so there is nothing for a probe to import. It is outside the predicate. |
+| 11 | `plugin/agents/ui-tests-plan-reviewer.md` | — | C1 | `no-change` | It grades a UI-test plan, and `phases.qa` is `false` here. It is outside the predicate. |
+| 12 | `.claude/context/conventions.md` → `## The stack, in the words the rules below use` (*"Every Python command goes through `scripts/python-service.sh`"*) | — | C2 (`python-service`) | `no-change` | This is a conventions document, which no task plans. What it states still holds and is the link Task 5's module relies on. |
+| 13 | `.claude/context/docs-retrieval.md` → `## Testing — what "done" means here` | — | C2 (`python-service`) | `no-change` | This is a conventions document. Its gate-leg sentence still holds: gate 13 still grades the legs, and the per-unit check adds to that grading rather than replacing it. |
+| 14 | `.claude/context/graphscene.md` → `## Tests` (*"The layer's `mypy` `strict` check is not part of a unit's run"*) | — | C2 (`scripts/typecheck.sh`) | `no-change` | This is a conventions document, which no task plans. Task 2 makes the quoted sentence false, so it is recorded as a `stale-rule` entry in `corpus_staleness` for a supervised `/devscene:analyze graphscene` re-run or a hand edit. |
+| 15 | `cli/templates/scripts/README.md` (*"`scratch-run.sh` runs an agent's language probe"*) | — | C2 (`scratch-run`) | `no-change` | It describes the shipped `scratch-run.sh`, which this branch leaves unchanged. |
+| 16 | `docs-retrieval-service/README.md` → `## Testing` | — | C2 (`python-service`) | `no-change` | Its statement that gate 13 grades `lint`, `typecheck` and `test` still holds. The per-unit run is gate 13's paragraph to state, which is Task 7's. |
+| 17 | `docs/cli.md` (`scratch-run.sh` agent-invocable sentence) | — | C2 (`scratch-run`) | `no-change` | The shipped script set and its `agentInvocable` rows are unchanged. |
+| 18 | `docs/development.md` → `## 5. Verifying a change`, **Gate 13**, and the self-adopt bullet naming `scripts/typecheck.sh` | — | C2 (`scripts/typecheck.sh`, `python-service`, `scratch-run`) | `change` | Task 7 |
+| 19 | `docs/guard-verification.md` | — | C2 (`scripts/typecheck.sh`, `scratch-run`) | `no-change` | It holds measured guard matrices. No guard or library changes on this branch. |
+| 20 | `docs/outer-loop-verification.md` §4 (*"Widening the set to a two-word toolchain"* residual) | — | C2 (`scratch-run`) | `no-change` | `scratch-run.sh` is unchanged, so its residual still stands. The package-environment route is a repository wrapper's verb, not a widening of the shipped table. |
+| 21 | `docs/rag-extraction-research/01-current-mechanism.md` | — | C2 (`python-service`) | `no-change` | A research record of a past state. It names the wrapper, which still exists. |
+| 22 | `docs/rag-extraction-research/07-extraction-plan.md` | — | C2 | `no-change` | A research record. Its commands still exist. |
+| 23 | `docs/rag-extraction-research/reviews/04-engine-architecture.md` | — | C2 (`python-service`) | `no-change` | A review record of a past state. |
+| 24 | `docs/rag-extraction-research/reviews/07-extraction-plan.md` | — | C2 (`python-service`) | `no-change` | A review record of a past state. |
+| 25 | `docs/retrieval-eval-results.md` | — | C2 | `no-change` | A measurement record: what was run, when, and the commands it used. |
+| 26 | `docs/retrieval-eval.md` | — | C2 | `no-change` | Eval procedures through `scratch-run.sh` and `python-service.sh run`, both unchanged. |
+| 27 | `docs/sandbox-verification.md` | — | C2 | `no-change` | A measurement record. |
+| 28 | `docs/watcher.md` (the outer-loop script table's `scratch-run.sh` row) | — | C2 (`scratch-run`) | `no-change` | `python-service.sh` is a hand-written repository script, not an outer-loop script, and the table's rows are unchanged. |
+| 29 | `docs/work-report-research/layer-implementer.md` | — | C2 | `no-change` | A dated research record of the agent as it then stood. Editing it would falsify the record. |
+| 30 | `docs/work-report-research/layer-reviewer.md` | — | C2 (`scratch-run`) | `no-change` | A dated research record, as row 29. |
+| 31 | `docs/work-report-research/reviews/layer-reviewer.md` | — | C2 (`scratch-run`) | `no-change` | A dated review record, as row 29. |
+| 32 | `evals/docs-retrieval/README.md` | — | C2 (`python-service`) | `no-change` | `run` through the wrapper is unchanged. |
+| 33 | `graphscene/README.md` → `## Running the toolchain`, `## Gating` | — | C2 (`python-service`) | `no-change` | Its commands and its gate-13 grading still hold. The per-unit run is gate 13's paragraph to state (Task 7), and this README sits in the `graphscene` layer, where an edit would only restate it. |
+| 34 | `plugin/hooks/README.md` → `## The deny list` | — | C2 (`scratch-run`) | `no-change` | `python-service.sh` stays off the deny list, which is the reachability decision 1 rests on. The list itself is unchanged. |
+| 35 | `harness-runs/lessons.md` → *"Grade a write probe on what reached the disk"* | — | P1 (`probe`) | `no-change` | It means a sandbox write probe in a measurement, not an agent's language probe, and it does not govern the route. |
+| 36 | `harness-runs/lessons.md` → *"When a check moves to reading a field one producer writes"* | — | P1 (`probe`) | `no-change` | It means a probe's fixture setup, and it does not govern the route or the type check. |
+| 37 | `harness-runs/lessons.md` → *"A client-visible divergence from the implementation being ported"* | — | P1 (`python`, in the taught-by branch name) | `no-change` | It matched only on the branch name and is a parity rule. |
+| 38 | `harness-runs/lessons.md` → *"When code deliberately produces an edge value"* | — | P1 (`python`, in the taught-by branch name) | `no-change` | It matched only on the branch name and is a serializer rule. |
+| 39 | `plugin/instructions/probe_route.md` (new) | — | C2 (`scratch-run`), reached once Task 5 creates it | `change` | Task 5 |
