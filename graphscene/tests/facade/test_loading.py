@@ -1,28 +1,25 @@
-"""The rule this file exists to enforce: the loader (`graphscene.loader`) rejects every fixture
-`ajv` rejects, at the schema stage, and every vocabulary negative, at the vocabulary stage; each
-rejection names the node and the field where the fixture's one change sits;
+"""The rule this file exists to enforce: loading (`graphscene.facade.loading`) rejects every
+fixture `ajv` rejects, at the schema stage, and every vocabulary negative, at the vocabulary
+stage; each rejection names the node and the field where the fixture's one change sits;
 `valid_generic.json` loads; a number the schema accepts as an integer, written `3.0`, loads as
-an `int`; and a schema `pattern` is matched as ECMA-262 matches it, so a trailing newline or a `.`
-against a line terminator is rejected, and a `pattern` using a construct the translator does not
-handle is refused, naming its schema path.
+an `int`; a schema `pattern` is matched as ECMA-262 matches it, so a trailing newline or a `.`
+against a line terminator is rejected; and a file that is not UTF-8 or not JSON is rejected at the
+parse stage.
 
 Each expected path is hand-read from the fixture's one change against `valid_generic.json`, never
-taken from the loader's output.
+taken from the loader's output. The public names are imported from `graphscene`, as a caller
+imports them.
 """
 
 import copy
 import json
-from importlib.resources import files
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft7Validator
 
-from graphscene.errors import GraphError, Violation
-from graphscene.loader import _ecma_patterns, load_graph, load_graph_file
-from graphscene.model import FlowGraph, RoundNode
+from graphscene import FlowGraph, GraphError, RoundNode, Violation, load_graph, load_graph_file
 
-_FIXTURES = Path(__file__).parent / "fixtures" / "flow_graph"
+_FIXTURES = Path(__file__).parents[1] / "fixtures" / "flow_graph"
 
 _SCHEMA_NEGATIVES: list[tuple[str, str]] = [
     ("schema_negative_format_version_3.json", "formatVersion"),
@@ -190,74 +187,3 @@ def test_a_file_that_is_not_utf_8_is_rejected_at_the_parse_stage(tmp_path: Path)
 def test_a_missing_file_raises_file_not_found(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         load_graph_file(tmp_path / "absent.json")
-
-
-def test_the_shipped_schema_is_a_valid_draft_7_schema() -> None:
-    resource = files("graphscene") / "schemas" / "flow-graph.schema.json"
-    Draft7Validator.check_schema(json.loads(resource.read_text(encoding="utf-8")))
-
-
-def _refusal(path: str, pattern: str, construct: str) -> str:
-    return (
-        f"{path}: schema pattern {pattern!r} uses {construct!r}, "
-        "which _ecma_pattern does not translate to ECMA-262"
-    )
-
-
-def test_every_shipped_schema_pattern_is_translatable() -> None:
-    resource = files("graphscene") / "schemas" / "flow-graph.schema.json"
-    _ecma_patterns(json.loads(resource.read_text(encoding="utf-8")))
-
-
-@pytest.mark.parametrize(
-    ("pattern", "construct"),
-    [
-        ("^\\d+$", "\\d"),
-        ("^\\w+$", "\\w"),
-        ("^\\s$", "\\s"),
-        ("\\bx", "\\b"),
-        ("^\\p{L}$", "\\p"),
-        ("(?<=a)b", "(?<"),
-        ("(?i)abc", "(?i"),
-        ("^[[:alpha:]]$", "["),
-        ("^a{x$", "{"),
-        ("^a{,3}$", "{"),
-        ("^a}$", "}"),
-        ("^a]$", "]"),
-        ("^[]a]$", "[]"),
-        ("^[^]a]$", "[^]"),
-        ("a\\", "\\"),
-    ],
-)
-def test_an_untranslatable_pattern_construct_is_refused(pattern: str, construct: str) -> None:
-    with pytest.raises(ValueError) as raised:
-        _ecma_patterns({"definitions": {"x": {"pattern": pattern}}})
-    assert str(raised.value) == _refusal("definitions.x.pattern", pattern, construct)
-
-
-def test_a_refusal_names_a_nested_schema_path() -> None:
-    with pytest.raises(ValueError) as raised:
-        _ecma_patterns({"anyOf": [{"properties": {"name": {"pattern": "\\d"}}}]})
-    assert str(raised.value) == _refusal("anyOf[0].properties.name.pattern", "\\d", "\\d")
-
-
-def test_a_property_named_pattern_is_recursed_as_a_subschema() -> None:
-    with pytest.raises(ValueError) as raised:
-        _ecma_patterns({"properties": {"pattern": {"pattern": "\\d"}}})
-    assert str(raised.value) == _refusal("properties.pattern.pattern", "\\d", "\\d")
-
-
-def test_supported_constructs_translate_unchanged_but_for_dollar_and_dot() -> None:
-    dot = "[^\\n\\r\\u2028\\u2029]"
-    cases = {
-        "^\\{state_dir\\}/.+/$": f"^\\{{state_dir\\}}/{dot}+/\\Z",
-        "^[A-Za-z0-9][A-Za-z0-9.]*$": "^[A-Za-z0-9][A-Za-z0-9.]*\\Z",
-        "^(?:ab|c){2,3}$": "^(?:ab|c){2,3}\\Z",
-        "^[^\\]a-z]?$": "^[^\\]a-z]?\\Z",
-    }
-    schema = {"definitions": {str(index): {"pattern": p} for index, p in enumerate(cases)}}
-    assert _ecma_patterns(schema) == {
-        "definitions": {
-            str(index): {"pattern": translated} for index, translated in enumerate(cases.values())
-        }
-    }

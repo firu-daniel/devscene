@@ -29,7 +29,7 @@ Top risks: first, an import cycle or a broken import path after the move. A lowe
 
 Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/refactor_graphscene_layers/task_<K>_plan.md`. Entries are ordered bottom-up by ship sequence, with the catch-all layer last.
 
-1. [ ] **Task 1** — Move GraphScene's modules and tests into the `model`, `engine`, `adapters` and `facade` layers _(layer: graphscene)_ _(points: 20)_
+1. [x] **Task 1** — Move GraphScene's modules and tests into the `model`, `engine`, `adapters` and `facade` layers _(layer: graphscene)_ _(points: 20)_
 2. [ ] **Task 2** — Hold the layer direction with `import-linter` contracts in `pyproject.toml`, run from `tests/test_layers.py` _(layer: graphscene)_ _(points: 15)_
 3. [ ] **Task 3** — Document the layer layout, the import rules and the `Protocol` placement in `graphscene/README.md` _(layer: graphscene)_ _(points: 10)_
 4. [ ] **Task 4** — Repoint the root documents at the layered modules and register `tests/test_layers.py` as a tree guard _(layer: general)_ _(points: 10)_

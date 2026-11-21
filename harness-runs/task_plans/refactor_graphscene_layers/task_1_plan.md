@@ -59,3 +59,8 @@ Tests, under `graphscene/tests/`:
 - No old module path survives in the package. `git grep --untracked -nE 'graphscene\.(loader|vocabulary|errors)\b|from graphscene\.model import|import graphscene\.model$' -- graphscene/src graphscene/tests` prints nothing.
 - No module inside the package imports the package root. `git grep --untracked -nE '^(from graphscene import|import graphscene$)' -- graphscene/src` prints nothing.
 - `git status --porcelain -- graphscene/src/graphscene` lists the four flat modules as deleted and no flat `.py` module beside `__init__.py`. `graphscene/src/graphscene/schemas/flow-graph.schema.json` and `py.typed` are untouched.
+
+**Deviations from plan:**
+
+- `adapters/builder.py`'s docstring takes a third edit beyond the two the plan names: its opening line, *"The typed, immutable form of a declared format-4 flow graph, and `build_flow_graph`, which builds it from an already-validated parsed graph."*, now reads *"`build_flow_graph`, which builds the typed, immutable form of a declared format-4 flow graph (`graphscene.model.flow_graph`) from an already-validated parsed graph."* The types no longer live in that module, and `.claude/context/graphscene.md` → `## Naming and layout` requires a module docstring to state what the module owns.
+- `tests/adapters/test_schema.py` declares no `_FIXTURES`: none of its moved cases reads a fixture file. They read the shipped schema through `files("graphscene")`, as they did before the move.

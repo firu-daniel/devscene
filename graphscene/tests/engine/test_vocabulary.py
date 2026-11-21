@@ -1,10 +1,11 @@
 """The rule this file exists to enforce: every name a flow graph uses is one it declares, and each
-binding is used where its primitive allows (`graphscene.vocabulary.vocabulary_violations`).
+binding is used where its primitive allows (`graphscene.engine.vocabulary.vocabulary_violations`).
 
-The check returns `Violation` values (`graphscene.errors.Violation`). Each clause has a planted
-in-test graph asserting the exact list returned; `valid_generic.json`
+The check returns `Violation` values (`graphscene.model.errors.Violation`). Each clause has a
+planted in-test graph asserting the exact list returned; `valid_generic.json`
 returns nothing; and each `vocabulary_negative_*.json` fixture, a schema-valid copy of it with one
-change, returns exactly its one violation.
+change, returns exactly its one violation. One case renders the check's `Violation` values back to
+the strings it returned before it used them.
 
 Deliberately not covered:
 - Schema validity: the fixtures are validated against the schema from the repository root, and the
@@ -15,10 +16,10 @@ Deliberately not covered:
 import json
 from pathlib import Path
 
-from graphscene import vocabulary_violations
-from graphscene.errors import Violation
+from graphscene.engine.vocabulary import vocabulary_violations
+from graphscene.model.errors import Violation
 
-_FIXTURES = Path(__file__).parent / "fixtures" / "flow_graph"
+_FIXTURES = Path(__file__).parents[1] / "fixtures" / "flow_graph"
 
 _NEGATIVES: list[tuple[str, Violation]] = [
     (
@@ -295,3 +296,20 @@ def test_the_valid_generic_fixture_has_no_violation() -> None:
 def test_each_vocabulary_negative_fixture_returns_its_one_violation() -> None:
     for name, expected in _NEGATIVES:
         assert vocabulary_violations(_load(name)) == [expected], name
+
+
+def test_vocabulary_violations_render_to_the_strings_the_check_returned_before() -> None:
+    graph: dict[str, object] = {
+        "vocabulary": {"outcomes": {"done": {}}, "bindings": {}, "predicates": {}},
+        "nodes": {
+            "a": {
+                "kind": "dispatch",
+                "outcomes": {"stalled": {"to": "a"}},
+                "skip": [{"when": "never", "to": "a"}],
+            }
+        },
+    }
+    assert [str(v) for v in vocabulary_violations(graph)] == [
+        "nodes.a.outcomes.stalled: outcome 'stalled' is not declared in vocabulary.outcomes",
+        "nodes.a.skip[0].when: predicate 'never' is not declared in vocabulary.predicates",
+    ]
