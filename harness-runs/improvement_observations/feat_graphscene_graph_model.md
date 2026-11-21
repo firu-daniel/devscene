@@ -37,3 +37,20 @@
 - **category:** flow-efficiency
 - **evidence:** code-review findings 1 (strict `mypy`, `graphscene/src/graphscene/vocabulary.py`, from Task 1 commit d753acd3) and 2 (`ruff`, `graphscene/tests/test_model.py` / `graphscene/tests/test_loader.py`); Run gates round 1 `fail harness-runs/test_run_logs/feat_graphscene_graph_model/task_round_1.log` on leg `13e GraphScene lint` (`I001`, `graphscene/src/graphscene/loader.py`) introduced by skeptic-fix commit c3cc8d01; every implementer return stated it did not run the package's `mypy`/`ruff` (gate 13 legs `13f`/`13e`) because `bash scripts/typecheck.sh` does not reach them
 - **cost this run:** 3 fix units (2 code-review items, 1 test-fix item) and 1 extra Run gates round (round 2)
+
+# User-review fix round 1 — `_ecma_pattern` refuses untranslatable pattern constructs
+
+## The Phase-D disposition derivation's `<default_branch>..HEAD` form failed again in the run copy, which has no local `dev` ref
+- **category:** agent-contract
+- **evidence:** the orchestrator's Phase-D `git log --format='%h %s%n%b' --name-only dev..HEAD` exited 128 (`fatal: ambiguous argument 'dev..HEAD': unknown revision or path not in the working tree.`) and was re-issued as `git log --format='%h %s%n%b' origin/dev..HEAD`; the D.1 `statistics-plan-writer` return likewise reported "there is no local `dev` branch, so I read the commits over `origin/dev..HEAD` instead"
+- **cost this run:** 2 commands re-issued against `origin/dev`, the substitute base chosen by each participant itself
+
+## The per-unit layer-reviewer could not run the Python half of its probe
+- **category:** tooling-gap
+- **evidence:** Phase A `layer-reviewer` return (Item 1, graphscene, review_0): "I could not run the Python half: the interpreter on PATH is 3.9, which cannot import `graphscene`"; its Should Fix in `harness-runs/user_review_fix_plan_point_reviews/feat_graphscene_graph_model_fix_plan/item_1/review_0.md` rests on reading the code and the Python 3.11 `re` documentation
+- **cost this run:** 1 reviewer finding graded without a Python reproduction (the ECMA half was run)
+
+## The statistics writer's counting command was refused by the permission mode
+- **category:** tooling-gap
+- **evidence:** Phase D.1 `statistics-plan-writer` return: "The command that counts and sums these together was denied by the permission mode. So I took both numbers by reading the `## Phase 2 Readiness — Ordered Fix List` section directly"
+- **cost this run:** 1 refused tool call; the story-point total was read by hand rather than computed
