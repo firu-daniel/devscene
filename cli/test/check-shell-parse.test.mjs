@@ -274,7 +274,7 @@ test("this repository's typecheck.sh runs python-service.sh check, grading its e
       FIXTURE_BUILD_STATUS: String(build),
     });
   const BLOCKED =
-    /^typecheck: python checks BLOCKED - a package environment is not provisioned; run bash scripts\/python-service\.sh provision outside the sandbox$/m;
+    /^typecheck: python checks BLOCKED - uv is not on PATH or a package environment is not provisioned; install uv if it is missing, then run bash scripts\/python-service\.sh provision outside the sandbox$/m;
 
   const clean = await typecheck();
   assert.equal(clean.status, 0, `${clean.stdout}\n${clean.stderr}`);

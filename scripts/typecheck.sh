@@ -78,7 +78,7 @@ if [ -f scripts/python-service.sh ]; then
   bash scripts/python-service.sh check
   python_status=$?
   if [ "$python_status" -eq 3 ]; then
-    echo "typecheck: python checks BLOCKED - a package environment is not provisioned; run bash scripts/python-service.sh provision outside the sandbox"
+    echo "typecheck: python checks BLOCKED - uv is not on PATH or a package environment is not provisioned; install uv if it is missing, then run bash scripts/python-service.sh provision outside the sandbox"
     python_status=0
   fi
 else
