@@ -102,6 +102,8 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 
 - **When code deliberately produces an edge value (a lone surrogate, NaN, an oversize integer), add a case that carries it through every transport's serializer to the client, not only through the producing function.** _(taught by: feat_docs_retrieval_python_backend)_
 
+- **A shim that makes one engine read a shared contract as another engine does lists the constructs it supports and refuses every other one, naming where it occurs. It never passes an unhandled construct through untranslated.** _(taught by: feat_graphscene_graph_model)_
+
 ## Agent prose
 
 - **State a new behaviour once, in the section that decides it, and cite it from everywhere else; never re-walk in prose the cases that other arms or sections already route.** _(taught by: fix_run_gates_answered_park_resume, feat_structured_outputs_unit_loop)_ — codified in `.claude/context/plugin.md` §Writing agent prose
