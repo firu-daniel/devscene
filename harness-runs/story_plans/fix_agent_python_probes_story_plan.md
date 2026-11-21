@@ -39,7 +39,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/fix_agent_python_probes/task
 1. [x] **Task 1** — Add `probe` and `check` to `scripts/python-service.sh`, placing its root with `hr_script_root` _(layer: general)_ _(points: 20)_
 2. [x] **Task 2** — Run every Python package's lint and type check from `scripts/typecheck.sh`, grading exit 3 as `BLOCKED` _(layer: general)_ _(points: 10)_
 3. [x] **Task 3** — Pin `probe` and `check` in `cli/test/python-service.test.mjs` _(layer: cli)_ _(points: 20)_
-4. [ ] **Task 4** — Pin `typecheck.sh`'s Python step and its `BLOCKED` grading in `cli/test/check-shell-parse.test.mjs` _(layer: cli)_ _(points: 10)_
+4. [x] **Task 4** — Pin `typecheck.sh`'s Python step and its `BLOCKED` grading in `cli/test/check-shell-parse.test.mjs` _(layer: cli)_ _(points: 10)_
 5. [ ] **Task 5** — Add the shared `probe_route.md` module and point `layer-implementer` and `layer-reviewer` at it _(layer: plugin)_ _(points: 20)_
 6. [ ] **Task 6** — Give `branch-reviewer`, `skeptic-reviewer` and `review-plan-reviewer` the probe route _(layer: plugin)_ _(points: 20)_
 7. [ ] **Task 7** — Document `probe`, `check` and the per-unit Python check in `docs/development.md` _(layer: general)_ _(points: 10)_

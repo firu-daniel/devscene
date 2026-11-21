@@ -18,6 +18,12 @@
  * hand-edited; the template `init` renders, `cli/templates/scripts/typecheck.sh`, carries no parse
  * step, and the suites that render it are untouched by this one.
  *
+ * The wrapper also runs `bash scripts/python-service.sh check` when that file exists, grading its
+ * exit 3 `BLOCKED` rather than failed. The first typecheck case plants no such file and sees the
+ * `SKIPPED` line; the second plants a stub of it whose exit status the case chooses, so the grading
+ * and the exit precedence are pinned without `uv`. The real `check` is
+ * `cli/test/python-service.test.mjs`'s to pin.
+ *
  * Deliberately not covered:
  * - `run-gates.sh` itself. A run of it is every automatable gate, `npm test` included, so a case
  *   driving it would run this suite inside itself. Its gate-16 block is a `gate` call on this
@@ -223,6 +229,10 @@ test("this repository's typecheck.sh runs the check, and its verdict fails when 
   assert.equal(clean.status, 0, `${clean.stdout}\n${clean.stderr}`);
   assert.match(clean.stdout, /^check-shell-parse: \d+ files checked with .*, 0 failed$/m);
   assert.match(clean.stdout, /^PASS: typecheck$/m);
+  assert.match(
+    clean.stdout,
+    /^typecheck: python checks SKIPPED - scripts\/python-service\.sh is not in this checkout$/m,
+  );
 
   // A caller's argument reaches the build line alone: the parse check, which refuses any argument,
   // never sees it.
@@ -242,4 +252,57 @@ test("this repository's typecheck.sh runs the check, and its verdict fails when 
   const both = await typecheck(3);
   assert.equal(both.status, 3, both.stdout);
   assert.match(both.stdout, /^FAIL: typecheck \(exit 3\)$/m);
+});
+
+test("this repository's typecheck.sh runs python-service.sh check, grading its exit 3 BLOCKED and not failed", async (t) => {
+  const TYPECHECK = join('scripts', 'typecheck.sh');
+  const BUILD =
+    'node -e "console.log(\'build-args:\' + process.argv.slice(1).join(\',\')); process.exit(Number(process.env.FIXTURE_BUILD_STATUS || 0))"';
+  // Tracked, so the parse step lists it: the stub has to parse.
+  const PYTHON_STUB =
+    '#!/usr/bin/env bash\nIFS=,\necho "python-service-args:$*"\nexit "${FIXTURE_PYTHON_STATUS:-0}"\n';
+  const dir = await repoWith(t, {
+    tracked: {
+      'package.json': `${JSON.stringify({ name: 'fixture', private: true, scripts: { build: BUILD } })}\n`,
+      'scripts/python-service.sh': PYTHON_STUB,
+    },
+  });
+  await cp(join(WORKSPACE_ROOT, TYPECHECK), join(dir, TYPECHECK));
+  const typecheck = ({ python = 0, build = 0, args = [] } = {}) =>
+    runBash(dir, [TYPECHECK, ...args], {
+      FIXTURE_PYTHON_STATUS: String(python),
+      FIXTURE_BUILD_STATUS: String(build),
+    });
+  const BLOCKED =
+    /^typecheck: python checks BLOCKED - a package environment is not provisioned; run bash scripts\/python-service\.sh provision outside the sandbox$/m;
+
+  const clean = await typecheck();
+  assert.equal(clean.status, 0, `${clean.stdout}\n${clean.stderr}`);
+  assert.match(clean.stdout, /^check-shell-parse: \d+ files checked with .*, 0 failed$/m);
+  assert.match(clean.stdout, /^python-service-args:check$/m);
+  assert.ok(!clean.stdout.includes('SKIPPED'), clean.stdout);
+  assert.doesNotMatch(clean.stdout, BLOCKED);
+  assert.match(clean.stdout, /^PASS: typecheck$/m);
+
+  // A caller's argument reaches the build alone; the Python step is still called with `check` only.
+  const forwarded = await typecheck({ args: ['x'] });
+  assert.equal(forwarded.status, 0, `${forwarded.stdout}\n${forwarded.stderr}`);
+  assert.match(forwarded.stdout, /^build-args:x$/m);
+  assert.match(forwarded.stdout, /^python-service-args:check$/m);
+  assert.match(forwarded.stdout, /^PASS: typecheck$/m);
+
+  const blocked = await typecheck({ python: 3 });
+  assert.equal(blocked.status, 0, `${blocked.stdout}\n${blocked.stderr}`);
+  assert.match(blocked.stdout, BLOCKED);
+  assert.match(blocked.stdout, /^PASS: typecheck$/m);
+
+  const failed = await typecheck({ python: 1 });
+  assert.equal(failed.status, 1, failed.stdout);
+  assert.doesNotMatch(failed.stdout, BLOCKED);
+  assert.match(failed.stdout, /^FAIL: typecheck \(exit 1\)$/m);
+
+  // Both failed: the build's status wins.
+  const both = await typecheck({ python: 1, build: 4 });
+  assert.equal(both.status, 4, both.stdout);
+  assert.match(both.stdout, /^FAIL: typecheck \(exit 4\)$/m);
 });
