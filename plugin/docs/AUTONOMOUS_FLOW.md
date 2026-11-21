@@ -17,7 +17,7 @@ The tokens below are neither Mode-contract **bindings** (this document declares 
 | Token | Class | How to resolve it |
 |---|---|---|
 | `<state_dir>` | config value | `stateDir` — the run-artifact tree every artifact path in this document is relative to. Default `devscene/`. It is never dot-named: no path segment of it may begin with a dot. |
-| `<default_branch>` | config value | `defaultBranch` — the branch work starts from and merges back into, and therefore the diff base the branch gates compute against. Never a remembered branch name. |
+| `<default_branch>` | config value | `defaultBranch` — the branch work starts from and merges back into, and therefore the branch whose remote-tracking ref `origin/<default_branch>` is the diff base the branch gates compute against. Never a remembered branch name. |
 | `<protected_branches>` | config value | `protectedBranches` — the branches an automated run may never commit or push to. The effective set is these together with `<default_branch>`. |
 | `<scripts_dir>` | config value | `scriptsDir` — the repo-relative directory `init` writes the outer-loop scripts into. This document names those scripts by that destination rather than by a path inside the plugin, because they do not ship inside it. |
 | `<githooks_dir>` | config value | `githooksDir` — the repo-relative directory holding the committed git hooks, including the pre-push backstop. |

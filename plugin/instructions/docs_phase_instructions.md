@@ -11,7 +11,7 @@ The tokens below are neither Mode-contract **bindings** (this file declares none
 | `<docs_root>` | config value | `docs.root` — the repo-relative directory holding the documentation corpus this phase writes into. Read **only** when `phases.docs` is `true`, which is the same gate that decides whether this phase runs at all. |
 | `<state_dir>` | config value | `stateDir` — the run-artifact tree every artifact path in this file is relative to. Default `devscene/`. Inside a git pathspec, substitute it with any trailing slash stripped: `devscene//*` matches no path, so the doubled separator makes an exclusion pathspec silently inert. It is never dot-named: no path segment of it may begin with a dot. |
 | `<scripts_dir>` | config value | `scriptsDir` — the repo-relative directory the generated wrapper scripts live in. This file uses the token **only** in the auto-skip rule's non-product-path list; it never invokes a commit or push wrapper by path — the runnable form lives in `${CLAUDE_PLUGIN_ROOT}/instructions/docs_orchestration_instructions_autonomous.md` → `## Commit mechanics (single source of truth)` and is not restated here. |
-| `<default_branch>` | config value | `defaultBranch` — the branch work starts from and merges back into, and therefore the diff base the auto-skip rule computes the branch's changed files against. |
+| `<default_branch>` | config value | `defaultBranch` — the branch work starts from and merges back into, and therefore the branch whose remote-tracking ref `origin/<default_branch>` is the diff base the auto-skip rule computes the branch's changed files against. Where git reports `origin/<default_branch>` unknown — a repository with no `origin` remote — re-issue that command once with `<default_branch>` in its place and say which base you used. |
 
 ---
 
@@ -27,9 +27,9 @@ This file is the canonical loop. A flow **activates** it by adding one dispatch 
 
 ## Auto-skip
 
-Compute the changed files (`git diff --name-only <default_branch>...HEAD -- ':(top,exclude)<state_dir>/*<branch>*' ':(top,exclude)<state_dir>/docs_catalog/reviews/*'`, or the run's known diff). **Skip the whole phase** (log `docs phase: no product-code changes — skipped`) when the diff touches **only** non-product paths — `<state_dir>/`, `.claude/`, `<scripts_dir>/`, `*.test.*`, CI/config, lockfiles. Docs describe product behaviour; infra/workflow changes don't warrant them.
+Compute the changed files (`git diff --name-only origin/<default_branch>...HEAD -- ':(top,exclude)<state_dir>/*<branch>*' ':(top,exclude)<state_dir>/docs_catalog/reviews/*'`, or the run's known diff). **Skip the whole phase** (log `docs phase: no product-code changes — skipped`) when the diff touches **only** non-product paths — `<state_dir>/`, `.claude/`, `<scripts_dir>/`, `*.test.*`, CI/config, lockfiles. Docs describe product behaviour; infra/workflow changes don't warrant them.
 
-**The content diff, computed here too.** `## Loop` hands `docs-writer` a *content* diff as well as the name list — compute it with the same exclusions: `git diff <default_branch>...HEAD -- ':(top,exclude)<state_dir>/*<branch>*' ':(top,exclude)<state_dir>/docs_catalog/reviews/*'`. The two commands in this section are together **the scoped branch diff** every step in `## Loop` refers to, and that scoped diff is what `diff_ref` names in step 2's `docs-reviewer` dispatch. Never recompute either without the exclusion.
+**The content diff, computed here too.** `## Loop` hands `docs-writer` a *content* diff as well as the name list — compute it with the same exclusions: `git diff origin/<default_branch>...HEAD -- ':(top,exclude)<state_dir>/*<branch>*' ':(top,exclude)<state_dir>/docs_catalog/reviews/*'`. The two commands in this section are together **the scoped branch diff** every step in `## Loop` refers to, and that scoped diff is what `diff_ref` names in step 2's `docs-reviewer` dispatch. Never recompute either without the exclusion.
 
 ## Loop
 
