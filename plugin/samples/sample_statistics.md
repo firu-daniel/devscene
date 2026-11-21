@@ -42,7 +42,7 @@ Per-source raw numbers and per-issue costs are retained so the metric can be ref
     - Task 2: `15`
     - Task 3: `20`
     - **sum (`story_points_total`)**: `55`
-  - `dispositioned_points`: `0` — no commit in `<default_branch>..HEAD` carries the `record disposition of ` record, so no task here was closed without a fix. When it is non-zero, each dispositioned unit's token and short SHA is listed on this line (an unpointed matched token — a `**Finding K**` unit, or a stale-base match — is listed here too and summed nowhere), and `## Notes` states the figure.
+  - `dispositioned_points`: `0` — no commit in `origin/<default_branch>..HEAD` carries the `record disposition of ` record, so no task here was closed without a fix. When it is non-zero, each dispositioned unit's token and short SHA is listed on this line (an unpointed matched token — a `**Finding K**` unit, or a stale-base match — is listed here too and summed nowhere), and `## Notes` states the figure.
   - (Back-compat: if no entry carried a `_(points: …)_` tag, `story_points_total` would fall back to `story_plan_tasks` = `3`, noted in `## Notes`.)
 - **User-review source** — `user_review_issues`: `5`, `issue_cost_total`: `25` (per user-review file, then summed)
   - `<branch>_review.md` — here `${CLAUDE_PLUGIN_ROOT}/samples/sample_user_review.md`: `5` observations → cost `25`. Counted by **arm 2, top-level list items** — `grep -cE '^[0-9]+\.|^[-*][[:space:]]' <file>` → `5`, arm 1 having returned `0`. Each observation's assigned weight beside it:

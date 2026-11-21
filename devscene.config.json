@@ -122,6 +122,10 @@
     {
       "test": "test/must-fix-triggers-corpus.test.mjs",
       "covers": "plugin/instructions/finding_grades.md"
+    },
+    {
+      "test": "test/diff-base-corpus.test.mjs",
+      "covers": "plugin/**/*.md"
     }
   ],
   "execution": {

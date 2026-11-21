@@ -24,7 +24,7 @@ The tokens below resolve from the adopting repository's `devscene.config.json`, 
 | `<repo_root>` / `<app_dir>` | derived at runtime / config value | `<repo_root>` is the absolute root of the checkout this run executes in — in an autonomous run, its **run copy**, not the main checkout. Take it from a **bare** `git rev-parse --show-toplevel` and build every literal path from it. Never nest the `$(…)` in another command, or carry it across Bash calls in a shell variable. `<app_dir>` is `appDir`, the app's repo-relative directory; `<repo_root>/<app_dir>` is where its source tree sits. It is **not** what the Leg 2 precedent grep scopes to: that uses the `layers[].path` scopes of `<layer_path_map>`, which are repo-relative like every path in `devscene.config.json` and resolve against `<repo_root>` — every one except the catch-all. No step in this file uses `<app_dir>`. |
 | `<docs_root>` | config value | `docs.root` — the repo-relative directory holding the documentation corpus. Read **only** when `phases.docs` is `true`; otherwise the corpus does not exist. |
 | `<docs_retrieval>` | config value | `docs.retrieval` — whether the docs-retrieval search tool is wired. Read **only** when `phases.docs` is `true`; an absent key is `false`. When `false`, the tool does not exist even though your `tools:` allowlist names it: ignore `mcp__devscene-docs__search_docs` wherever this file names it. |
-| `<default_branch>` | config value | `defaultBranch` — the branch work starts from and merges into, so the diff base of every `git diff` in this file. Never a remembered branch name. |
+| `<default_branch>` | config value | `defaultBranch` — the branch work starts from and merges into; the caller passes `diff_base` as its remote-tracking ref `origin/<default_branch>`. Never a remembered branch name. |
 | `<convention_symbols>` | conventions document | The project's own named conventions **as identifiers rather than paths** — the shared constant owners that hold backend-imposed limits, the storage-key constants, the wire-surface types. Read them off the conventions documents `<layer_path_map>` names. |
 | `<impl_stack>` | conventions document | The implementation stack's names as they appear in prose — the language, the serialization idiom, the state container. Read them off the same conventions documents; never assume a stack. You need them to state a finding in the project's own vocabulary rather than a remembered one. |
 
@@ -81,7 +81,7 @@ You judge the *planned* / *described* parity, before any code is written. The **
 You judge the *actual* parity of the branch diff, at insertion point 2 only — `${CLAUDE_PLUGIN_ROOT}/instructions/plan_orchestration_instructions_core.md` → `## Phase A1.5` → `### A1.5.1 Generate the parity review`:
 
 ```
-diff_base: <default_branch>
+diff_base: origin/<default_branch>
 plan_path: <story_path>
 index_path: <parity_review_path>
 findings_folder: <parity_review_findings_dir>
@@ -91,7 +91,7 @@ Output: write the parity-review index to <parity_review_path> and one self-conta
 
 | Key | What it is |
 |---|---|
-| `diff_base` | The git base for the diff. The caller's block passes it explicitly — use the value you are given, never a remembered default. |
+| `diff_base` | The git base for the diff. The caller's block passes it explicitly — use the value you are given, never a remembered default. Where git reports `origin/<default_branch>` unknown — a repository with no `origin` remote — re-issue that command once with `<default_branch>` in its place and say which base you used. |
 | `plan_path` | The plan index, read **for context only** — what the diff was *trying* to do; do not review its prose. |
 | `index_path` | Where to write the split-index file. The caller supplies it; you never hardcode it. |
 | `findings_folder` | Where the per-finding `finding_<N>.md` files go. |
