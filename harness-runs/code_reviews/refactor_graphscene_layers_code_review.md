@@ -35,7 +35,7 @@ One finding remains, a Nice to Have.
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Parametrize the planted-violation cases in `tests/test_layers.py` so each contract clause is its own collected case _(layer: graphscene)_
+1. [x] **Finding 1** — Parametrize the planted-violation cases in `tests/test_layers.py` so each contract clause is its own collected case _(layer: graphscene)_
 
 ---
 

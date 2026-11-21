@@ -19,6 +19,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 _PYPROJECT = Path(__file__).resolve().parents[1] / "pyproject.toml"
 
 _PROGRAM = (
@@ -140,15 +142,17 @@ _VIOLATIONS: list[tuple[str, str, str]] = [
 ]
 
 
-def test_a_planted_violation_breaks_its_contract(tmp_path: Path) -> None:
-    for index, (module, line, expected) in enumerate(_VIOLATIONS):
-        root = _plant(tmp_path / str(index), {module: line})
-        result = _lint(root, root)
-        output = result.stdout + result.stderr
-        assert result.returncode != 0, (module, line, output)
-        assert expected in output, (module, line, output)
-        assert "does not exist" not in output, (module, line, output)
-        assert "include_external_packages" not in output, (module, line, output)
+@pytest.mark.parametrize(("module", "line", "expected"), _VIOLATIONS)
+def test_a_planted_violation_breaks_its_contract(
+    tmp_path: Path, module: str, line: str, expected: str
+) -> None:
+    root = _plant(tmp_path, {module: line})
+    result = _lint(root, root)
+    output = result.stdout + result.stderr
+    assert result.returncode != 0, (module, line, output)
+    assert expected in output, (module, line, output)
+    assert "does not exist" not in output, (module, line, output)
+    assert "include_external_packages" not in output, (module, line, output)
 
 
 def test_jsonschema_in_adapters_is_allowed(tmp_path: Path) -> None:
