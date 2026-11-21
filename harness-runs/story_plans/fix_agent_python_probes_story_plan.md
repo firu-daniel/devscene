@@ -42,7 +42,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/fix_agent_python_probes/task
 4. [x] **Task 4** — Pin `typecheck.sh`'s Python step and its `BLOCKED` grading in `cli/test/check-shell-parse.test.mjs` _(layer: cli)_ _(points: 10)_
 5. [x] **Task 5** — Add the shared `probe_route.md` module and point `layer-implementer` and `layer-reviewer` at it _(layer: plugin)_ _(points: 20)_
 6. [x] **Task 6** — Give `branch-reviewer`, `skeptic-reviewer` and `review-plan-reviewer` the probe route _(layer: plugin)_ _(points: 20)_
-7. [ ] **Task 7** — Document `probe`, `check` and the per-unit Python check in `docs/development.md` _(layer: general)_ _(points: 10)_
+7. [x] **Task 7** — Document `probe`, `check` and the per-unit Python check in `docs/development.md` _(layer: general)_ _(points: 10)_
 
 ## Scope register
 

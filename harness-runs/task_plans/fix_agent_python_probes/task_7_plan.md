@@ -18,3 +18,4 @@
 
 - `grep -n 'python-service.sh check\|python-service.sh --package graphscene probe\|probe_route.md' docs/development.md` finds the new text in gate 13. Each command it spells matches `scripts/python-service.sh`'s `usage()` line and each line it quotes matches `scripts/typecheck.sh`, both read after Tasks 1 and 2 landed.
 - Re-run the story index's `## Scope register` derivation entry C2 verbatim. Its output must be a subset of the register's rows, and no row marked `change` for this task may remain undone.
+  - **Deviations from plan:** The per-unit sentences sit right after the named sentence, as planned. The `probe` sentence and its fenced example went later in gate 13, after the `sync --with-models` block and before **13d is opt-in.**, and not right after the named sentence. A fence there would have cut the gate 13 paragraph in two, and the BLOCKED rule that the named sentence says *"this paragraph states below"* would then have been in a different paragraph.
