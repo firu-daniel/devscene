@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/refactor_graphscene_layers_task_prompt.md → 
   - screened: harness-runs/task_prompts/refactor_graphscene_layers_task_prompt.md sha256=d33121aea8e91fd1af1f509332834b2adf9ff8c83fc56f54e09e4f8051f5ab83
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
