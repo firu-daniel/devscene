@@ -32,8 +32,12 @@ import { WORKSPACE_ROOT } from './helpers/fixture.mjs';
 export const FALLBACK_SENTENCE =
   'Where git reports `origin/<default_branch>` unknown — a repository with no `origin` remote — re-issue that command once with `<default_branch>` in its place and say which base you used.';
 
-/** D.2's own no-remote fallback in the two orchestration cores — the one bare range allowed. */
+/** D.2's own no-remote fallback — the one bare range allowed, and only in the two orchestration cores. */
 const ALLOWED_LITERAL = 'git rev-list --count <default_branch>..HEAD';
+const ALLOWED_IN = new Set([
+  'plugin/instructions/plan_orchestration_instructions_core.md',
+  'plugin/instructions/user_review_fixes_instructions_core.md',
+]);
 
 const BARE_PATTERNS = [/(?<!origin\/)<default_branch>\.\.\.?HEAD/g, /diff_base: <default_branch>/g];
 
@@ -56,7 +60,8 @@ const FILES = walkMarkdown(join(WORKSPACE_ROOT, 'plugin'))
 test('no-bare-base', () => {
   const offenders = [];
   for (const { rel, text } of FILES) {
-    const lines = text.split(ALLOWED_LITERAL).join('').split('\n');
+    const body = ALLOWED_IN.has(rel) ? text.split(ALLOWED_LITERAL).join('') : text;
+    const lines = body.split('\n');
     lines.forEach((line, i) => {
       for (const pattern of BARE_PATTERNS) {
         for (const _ of line.matchAll(pattern)) offenders.push(`${rel}:${i + 1}`);
