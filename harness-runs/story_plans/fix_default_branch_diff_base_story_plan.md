@@ -26,7 +26,7 @@ Tasks 1–3 refer to it as **the fallback sentence**. Task 4's test holds every 
 
 Each entry resolves 1:1 to `harness-runs/task_plans/fix_default_branch_diff_base/task_<K>_plan.md`.
 
-1. [ ] **Task 1** — Pass `diff_base: origin/<default_branch>` to the parity and architecture reviewers _(layer: plugin)_ _(points: 15)_
+1. [x] **Task 1** — Pass `diff_base: origin/<default_branch>` to the parity and architecture reviewers _(layer: plugin)_ _(points: 15)_
 2. [ ] **Task 2** — Base the branch, skeptic and review-plan reviewers' diffs on `origin/<default_branch>` _(layer: plugin)_ _(points: 15)_
 3. [ ] **Task 3** — Base the commit ranges, the docs-phase diff and their mentions on `origin/<default_branch>` _(layer: plugin)_ _(points: 15)_
 4. [ ] **Task 4** — Add the diff-base corpus test over `plugin/**/*.md` _(layer: cli)_ _(points: 15)_

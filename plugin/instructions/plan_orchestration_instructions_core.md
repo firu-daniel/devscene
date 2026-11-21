@@ -28,7 +28,7 @@ If any agent returns a long output, summarize it down to its contract in your ow
 | `<qa_port_seed>` | config value | `qa.portSeed` — the base the QA port probe counts up from. Default `3001`. |
 | `<worktree_glob>` | derived at runtime | The **parent directory of `<repo_root>`** joined to the configured `projectName` stem and a `-*` suffix — the sibling run-copy pattern the generated permission profile is materialized with. |
 | `<parity_vocabulary>` / `<reference_impl>` | config value | `parity.referenceName` / `parity.referenceImplPath` — the name of the reference implementation this project is kept in parity with, and the path to it. Read **only** when `phases.parity` is `true`. |
-| `<default_branch>` | config value | `defaultBranch` — the branch work starts from and merges back into, and therefore both the diff base the implemented-solution reviewers compute against and the branch whose **remote-tracking** ref `origin/<default_branch>` is the base of the commit range `### D.2 Done summary`'s delivery bullet counts. Never a remembered branch name. |
+| `<default_branch>` | config value | `defaultBranch` — the branch work starts from and merges back into. Its **remote-tracking** ref `origin/<default_branch>` is both the diff base the implemented-solution reviewers compute against and the base of the commit range `### D.2 Done summary`'s delivery bullet counts. No step of this flow fetches for that ref. A three-dot diff against a stale `origin/<default_branch>` still starts at the branch's fork point; it widens only when the branch merged a `<default_branch>` commit the ref does not carry, which `refresh-branch.sh`'s default mode cannot cause because it fetches `origin/<base>` before merging. Never a remembered branch name. |
 
 ---
 
@@ -180,7 +180,7 @@ Apply the **safety contract** (STOP check → increment counter → heartbeat �
 Dispatch block:
 
 ```
-diff_base: <default_branch>
+diff_base: origin/<default_branch>
 plan_path: <story_path>
 index_path: <parity_review_path>
 findings_folder: <parity_review_findings_dir>
@@ -229,7 +229,7 @@ Apply the **safety contract** (STOP check → increment counter → heartbeat �
 Dispatch block:
 
 ```
-diff_base: <default_branch>
+diff_base: origin/<default_branch>
 plan_path: <story_path>
 index_path: <arch_review_path>
 findings_folder: <arch_review_findings_dir>
