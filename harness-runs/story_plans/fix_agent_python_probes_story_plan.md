@@ -36,7 +36,7 @@ This branch gives a run's agents Python where they lack it today, and adds no pe
 
 Each entry resolves 1:1 to `harness-runs/task_plans/fix_agent_python_probes/task_<K>_plan.md`.
 
-1. [ ] **Task 1** — Add `probe` and `check` to `scripts/python-service.sh`, placing its root with `hr_script_root` _(layer: general)_ _(points: 20)_
+1. [x] **Task 1** — Add `probe` and `check` to `scripts/python-service.sh`, placing its root with `hr_script_root` _(layer: general)_ _(points: 20)_
 2. [ ] **Task 2** — Run every Python package's lint and type check from `scripts/typecheck.sh`, grading exit 3 as `BLOCKED` _(layer: general)_ _(points: 10)_
 3. [ ] **Task 3** — Pin `probe` and `check` in `cli/test/python-service.test.mjs` _(layer: cli)_ _(points: 20)_
 4. [ ] **Task 4** — Pin `typecheck.sh`'s Python step and its `BLOCKED` grading in `cli/test/check-shell-parse.test.mjs` _(layer: cli)_ _(points: 10)_
