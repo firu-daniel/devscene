@@ -18,7 +18,7 @@ Deliberately not checked:
 
 from collections.abc import Mapping
 
-from graphscene.errors import Violation
+from graphscene.model.errors import Violation
 
 _VERDICT_RULE = (
     "a round routes on one outcome declaring verdict pass and one declaring verdict fail"

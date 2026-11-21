@@ -1,5 +1,6 @@
-"""The rule this file exists to enforce: the typed model (`graphscene.model.build_flow_graph`)
-mirrors the declaration one to one, and keeps references as ids.
+"""The rule this file exists to enforce: the typed model
+(`graphscene.adapters.builder.build_flow_graph`) mirrors the declaration one to one, and keeps
+references as ids.
 
 Every expected value is hand-written from reading `valid_generic.json`; a planted in-test graph
 covers the optional keys that fixture leaves out.
@@ -16,7 +17,8 @@ from typing import cast
 
 import pytest
 
-from graphscene.model import (
+from graphscene.adapters.builder import build_flow_graph
+from graphscene.model.flow_graph import (
     BindingEdge,
     DispatchNode,
     FlowGraph,
@@ -29,10 +31,9 @@ from graphscene.model import (
     SkipEntry,
     StopBinding,
     TerminalNode,
-    build_flow_graph,
 )
 
-_FIXTURES = Path(__file__).parent / "fixtures" / "flow_graph"
+_FIXTURES = Path(__file__).parents[1] / "fixtures" / "flow_graph"
 
 
 def _declared() -> dict[str, object]:

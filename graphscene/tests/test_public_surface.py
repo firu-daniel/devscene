@@ -7,10 +7,11 @@ and each name it exposes is the object its own module defines.
 import pytest
 
 import graphscene
-import graphscene.errors
-import graphscene.loader
-import graphscene.model
-import graphscene.vocabulary
+import graphscene.engine.vocabulary
+import graphscene.facade
+import graphscene.facade.loading
+import graphscene.model.errors
+import graphscene.model.flow_graph
 
 _EXPECTED: list[str] = [
     "load_graph",
@@ -43,13 +44,13 @@ _EXPECTED: list[str] = [
 ]
 
 _DEFINED_IN: dict[str, object] = {
-    "load_graph": graphscene.loader,
-    "load_graph_file": graphscene.loader,
-    "GraphError": graphscene.errors,
-    "Stage": graphscene.errors,
-    "Violation": graphscene.errors,
-    "vocabulary_violations": graphscene.vocabulary,
-    **{name: graphscene.model for name in _EXPECTED[6:]},
+    "load_graph": graphscene.facade.loading,
+    "load_graph_file": graphscene.facade.loading,
+    "GraphError": graphscene.model.errors,
+    "Stage": graphscene.model.errors,
+    "Violation": graphscene.model.errors,
+    "vocabulary_violations": graphscene.engine.vocabulary,
+    **{name: graphscene.model.flow_graph for name in _EXPECTED[6:]},
 }
 
 
@@ -67,5 +68,9 @@ def test_the_unvalidated_builder_is_not_exported() -> None:
 
 
 def test_the_named_examples_resolve_to_their_modules() -> None:
-    assert graphscene.load_graph is graphscene.loader.load_graph
-    assert graphscene.Violation is graphscene.errors.Violation
+    assert graphscene.load_graph is graphscene.facade.loading.load_graph
+    assert graphscene.Violation is graphscene.model.errors.Violation
+
+
+def test_the_facade_exposes_exactly_the_root_surface() -> None:
+    assert graphscene.facade.__all__ == graphscene.__all__

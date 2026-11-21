@@ -1,5 +1,5 @@
-"""The typed, immutable form of a declared format-4 flow graph, and `build_flow_graph`, which builds
-it from an already-validated parsed graph.
+"""`build_flow_graph`, which builds the typed, immutable form of a declared format-4 flow graph
+(`graphscene.model.flow_graph`) from an already-validated parsed graph.
 
 The mapping rules, from the schema's declaration to the model:
 - Attribute names: each attribute is its schema key in snake_case — `formatVersion` →
@@ -21,10 +21,10 @@ The mapping rules, from the schema's declaration to the model:
 
 The builder does not validate. A shape the schema would have refused is a programming error here:
 it raises `TypeError` naming the dotted path — object keys joined with ".", array indices as
-"[i]", as `graphscene.errors.Violation.path` writes them — never a `GraphError`.
+"[i]", as `graphscene.model.errors.Violation.path` writes them — never a `GraphError`.
 
 Deliberately not covered:
-- Validation, which is the loader's: the schema check and the vocabulary check run first.
+- Validation, which is the facade's: the schema check and the vocabulary check run first.
 - Resolving node-id and other name references (`to`, `resume`, `gates`, `writer`, `start`,
   `entries`, `round_counts`, counter, path, report-slot, prompt and binding names): they stay
   `str` ids, and checking that they exist belongs to a later static checker.
@@ -32,147 +32,29 @@ Deliberately not covered:
 """
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 from types import MappingProxyType
-from typing import ClassVar, Literal, TypeAlias
 
-NodeKind: TypeAlias = Literal["dispatch", "round", "terminal"]
-Primitive: TypeAlias = Literal["interrupt", "stop", "end"]
-Verdict: TypeAlias = Literal["pass", "fail"]
-
-
-@dataclass(frozen=True)
-class OutcomeDeclaration:
-    verdict: Verdict | None
-    held: bool
-
-
-@dataclass(frozen=True)
-class InterruptBinding:
-    primitive: ClassVar[Literal["interrupt"]] = "interrupt"
-    resume_outcome: str
-
-
-@dataclass(frozen=True)
-class StopBinding:
-    primitive: ClassVar[Literal["stop"]] = "stop"
-    reasons: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class EndBinding:
-    primitive: ClassVar[Literal["end"]] = "end"
-
-
-BindingDeclaration: TypeAlias = InterruptBinding | StopBinding | EndBinding
-
-
-@dataclass(frozen=True)
-class PredicateDeclaration:
-    records: str
-    in_round_counts: bool
-
-
-@dataclass(frozen=True)
-class Vocabulary:
-    outcomes: Mapping[str, OutcomeDeclaration]
-    bindings: Mapping[str, BindingDeclaration]
-    predicates: Mapping[str, PredicateDeclaration]
-
-
-@dataclass(frozen=True)
-class CounterDeclaration:
-    cap: int
-
-
-@dataclass(frozen=True)
-class OnCapEdge:
-    binding: str
-    reason: str
-    summary: str | None
-    round_counts: tuple[str, ...] | None
-    evidence: str | None
-
-
-@dataclass(frozen=True)
-class RouteEdge:
-    to: str
-    increment: str | None
-    reset: str | None
-    prompt: str | None
-    ledger: str | None
-    report: Mapping[str, str] | None
-    on_cap: OnCapEdge | None
-
-
-@dataclass(frozen=True)
-class BindingEdge:
-    binding: str
-    resume: str | None
-    reason: str | None
-    summary: str | None
-    round_counts: tuple[str, ...] | None
-    evidence: str | None
-
-
-Edge: TypeAlias = RouteEdge | BindingEdge
-
-
-@dataclass(frozen=True)
-class SkipEntry:
-    when: str
-    to: str
-    report: Mapping[str, str] | None
-
-
-@dataclass(frozen=True)
-class DispatchNode:
-    kind: ClassVar[Literal["dispatch"]] = "dispatch"
-    id: str
-    agent: str
-    heartbeat: str
-    outcomes: Mapping[str, Edge]
-    prompts: tuple[str, ...] | None
-    findings_folder: str | None
-    skip: tuple[SkipEntry, ...] | None
-
-
-@dataclass(frozen=True)
-class RoundNode:
-    kind: ClassVar[Literal["round"]] = "round"
-    id: str
-    parallel: bool
-    gates: tuple[str, ...]
-    writer: str
-    counter: str
-    converging_from: int
-    plan: tuple[str, ...] | None
-    revision_note: str | None
-    outcomes: Mapping[str, Edge]
-
-
-@dataclass(frozen=True)
-class TerminalNode:
-    kind: ClassVar[Literal["terminal"]] = "terminal"
-    id: str
-    binding: str
-
-
-Node: TypeAlias = DispatchNode | RoundNode | TerminalNode
-
-
-@dataclass(frozen=True)
-class FlowGraph:
-    format_version: Literal[4]
-    flow: str
-    description: str
-    vocabulary: Vocabulary
-    start: str
-    entries: tuple[str, ...]
-    counters: Mapping[str, CounterDeclaration]
-    paths: Mapping[str, str]
-    reports: tuple[str, ...]
-    nodes: Mapping[str, Node]
+from graphscene.model.flow_graph import (
+    BindingDeclaration,
+    BindingEdge,
+    CounterDeclaration,
+    DispatchNode,
+    Edge,
+    EndBinding,
+    FlowGraph,
+    InterruptBinding,
+    Node,
+    OnCapEdge,
+    OutcomeDeclaration,
+    PredicateDeclaration,
+    RoundNode,
+    RouteEdge,
+    SkipEntry,
+    StopBinding,
+    TerminalNode,
+    Verdict,
+    Vocabulary,
+)
 
 
 def _join(path: str, key: str) -> str:

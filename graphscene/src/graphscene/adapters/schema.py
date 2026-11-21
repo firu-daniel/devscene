@@ -1,25 +1,14 @@
-"""Loading a declared flow graph: turning parsed or on-disk data into the typed `FlowGraph` model,
-or into a `GraphError` whose violations name the node and the field.
-
-The rule: a returned graph has passed the format-4 schema this package ships
-(`schemas/flow-graph.schema.json`), then the vocabulary check, in that order. A graph failing the
-schema never reaches the vocabulary check.
+"""The format-4 schema check: `schema_violations` validates parsed data against the schema this
+package ships (`schemas/flow-graph.schema.json`) and returns every violation, sorted by path then
+reason.
 
 A schema `pattern` is matched as ECMA-262, as `ajv` matches it: its `$` only at the very end of
 the string, never before a trailing newline, and its `.` against no line terminator. A `pattern`
 using any construct outside the translator's supported set is refused when the validator is
 built, never passed to `re` untranslated.
-
-Deliberately not checked:
-- Node-id references: `to`, `resume`, `gates`, `writer`, `start`, `entries`, `roundCounts` and a
-  skip's `to` may name a node that does not exist. That is a static checker's job.
-- The names a graph gives its counters, paths, report slots and prompts, where they are used.
-- Reachability and counter caps.
-- Duplicate JSON keys, which `json.loads` collapses to the last.
 """
 
 import json
-import os
 import re
 from collections.abc import Iterable
 from functools import cache
@@ -27,9 +16,7 @@ from importlib.resources import files
 
 from jsonschema import Draft7Validator
 
-from graphscene.errors import GraphError, Violation
-from graphscene.model import FlowGraph, build_flow_graph
-from graphscene.vocabulary import vocabulary_violations
+from graphscene.model.errors import Violation
 
 _ECMA_DOT = "[^\\n\\r\\u2028\\u2029]"
 _ECMA_SYNTAX = frozenset("^$\\.*+?()[]{}|/")
@@ -143,37 +130,13 @@ def _validator() -> Draft7Validator:
     return Draft7Validator(schema)
 
 
-def load_graph(graph: object) -> FlowGraph:
-    """Validate `graph`, JSON-shaped data as `json.loads` returns it, and build its typed model."""
-    schema_violations = sorted(
+def schema_violations(graph: object) -> list[Violation]:
+    """Return every schema violation in `graph`, JSON-shaped data as `json.loads` returns it,
+    sorted by path then reason; `[]` for a schema-valid graph. Never raises `GraphError`."""
+    return sorted(
         (
             Violation(_render(error.absolute_path), error.message)
             for error in _validator().iter_errors(graph)
         ),
         key=lambda violation: (violation.path, violation.reason),
     )
-    if schema_violations:
-        raise GraphError("schema", schema_violations)
-    assert isinstance(graph, dict)
-    found = vocabulary_violations(graph)
-    if found:
-        raise GraphError("vocabulary", found)
-    return build_flow_graph(graph)
-
-
-def load_graph_file(path: str | os.PathLike[str]) -> FlowGraph:
-    """Read `path` as UTF-8 JSON and load it; a file that is not UTF-8 or not JSON is a parse-stage
-    `GraphError`, and an `OSError` propagates unchanged."""
-    with open(path, "rb") as handle:
-        data = handle.read()
-    try:
-        text = data.decode("utf-8")
-    except UnicodeDecodeError as error:
-        reason = f"not valid UTF-8: {error.reason} (byte {error.start})"
-        raise GraphError("parse", [Violation("", reason)]) from error
-    try:
-        parsed: object = json.loads(text)
-    except json.JSONDecodeError as error:
-        reason = f"not valid JSON: {error.msg} (line {error.lineno}, column {error.colno})"
-        raise GraphError("parse", [Violation("", reason)]) from error
-    return load_graph(parsed)

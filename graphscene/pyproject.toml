@@ -40,3 +40,24 @@ select = ["E", "F", "I", "B", "UP"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-p no:cacheprovider -rs"
+
+[tool.importlinter]
+root_package = "graphscene"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+id = "graphscene-layers"
+name = "Layers import downward only; adapters and engine are independent siblings"
+type = "layers"
+layers = [
+    "graphscene.facade",
+    "graphscene.adapters | graphscene.engine",
+    "graphscene.model",
+]
+
+[[tool.importlinter.contracts]]
+id = "graphscene-jsonschema-in-adapters-only"
+name = "jsonschema is imported by adapters only, never by model or engine"
+type = "forbidden"
+source_modules = ["graphscene.model", "graphscene.engine"]
+forbidden_modules = ["jsonschema"]

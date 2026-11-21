@@ -1,16 +1,14 @@
 """The rule this file exists to enforce: one error shape for every stage of loading a flow graph,
-each violation rendered as `<path>: <reason>` (`graphscene.errors`).
+each violation rendered as `<path>: <reason>` (`graphscene.model.errors`).
 
-One case per clause of the contract, each asserting the exact text; and one case rendering the
-vocabulary check's `Violation` values back to the strings it returned before it used them.
+One case per clause of the contract, each asserting the exact text.
 """
 
 import dataclasses
 
 import pytest
 
-from graphscene.errors import GraphError, Violation
-from graphscene.vocabulary import vocabulary_violations
+from graphscene.model.errors import GraphError, Violation
 
 
 def test_a_violation_renders_as_path_colon_reason() -> None:
@@ -47,20 +45,3 @@ def test_a_graph_error_without_violations_is_refused() -> None:
     with pytest.raises(ValueError) as raised:
         GraphError("vocabulary", [])
     assert str(raised.value) == "a GraphError carries at least one violation"
-
-
-def test_vocabulary_violations_render_to_the_strings_the_check_returned_before() -> None:
-    graph: dict[str, object] = {
-        "vocabulary": {"outcomes": {"done": {}}, "bindings": {}, "predicates": {}},
-        "nodes": {
-            "a": {
-                "kind": "dispatch",
-                "outcomes": {"stalled": {"to": "a"}},
-                "skip": [{"when": "never", "to": "a"}],
-            }
-        },
-    }
-    assert [str(v) for v in vocabulary_violations(graph)] == [
-        "nodes.a.outcomes.stalled: outcome 'stalled' is not declared in vocabulary.outcomes",
-        "nodes.a.skip[0].when: predicate 'never' is not declared in vocabulary.predicates",
-    ]
