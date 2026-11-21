@@ -16,13 +16,23 @@
  * {@link protectedPaths} and {@link fileToolDenyRules}, so they are the one statement of the set.
  *
  * The set: the main checkout's outer-loop scripts and their library, the hooks directories, the MCP
- * wiring, the profile and the settings files, the plugin roots, the main checkout's whole `.git`, its
+ * wiring, the profile, its local additions file (the main checkout's copy alone: a run loads no
+ * other) and the settings files, the plugin roots, the main checkout's whole `.git`, its
  * configuration file and run registry, a `.git` at each scripts-directory level, and, under the
- * sibling-run-copy glob, the same hooks, MCP and settings paths plus the {@link COPY_GIT_PATHS} rows.
+ * sibling-run-copy glob, the same hooks, MCP and settings paths plus the {@link COPY_GIT_PATHS} rows:
+ * the run copy's trust files and its branch-ref store — `HEAD`, `refs/heads` and `packed-refs`.
  * **A run copy's `.git` must never be covered as a whole, by glob or by exact path:** on a clone that
  * closes it to the run's own sandboxed git (`docs/sandbox-verification.md` CL4), so only the trust
- * files in {@link COPY_GIT_PATHS} are protected under it. {@link retiredProtectedPaths} names the
- * entry an earlier release wrote that broke this.
+ * files and the branch-ref store in {@link COPY_GIT_PATHS} are protected under it.
+ * {@link retiredProtectedPaths} names the entry an earlier release wrote that broke this.
+ *
+ * The branch-ref store is protected so that a run copy's branch moves only through the excluded
+ * commit, push and refresh wrappers, which read and swap that ref outside the sandbox
+ * (`cli/templates/scripts/lib/harness-run-lib.sh` → `hr_copy_sync_in_var`, `hr_copy_ref_swap_var`).
+ * The accepted cost: a sandboxed `git commit`, `git switch`, branch creation and `git stash push` are
+ * refused in a run copy, and no flow issues them. The `git stash push` refusal is derived, not
+ * measured: it runs `git reset --hard`, which locks `refs/heads/<branch>`. The protection is owed a
+ * measurement (`docs/sandbox-verification.md` row CS16).
  *
  * Two relative sets are projections of {@link protectedPaths}, filtered and re-rooted from its answer
  * and never listed again: {@link copySurfacePaths}, the run-copy-relative paths outside `.git` that an
@@ -63,7 +73,7 @@ import {
   RUN_LIBRARY_SCRIPT_NAME,
   type OuterLoopScript,
 } from './outerLoopScripts.js';
-import { appendReadme, assertUsableInEntry, normalizedRoot, PROFILE_PATH } from './profileEntries.js';
+import { appendReadme, assertUsableInEntry, normalizedRoot, PROFILE_LOCAL_PATH, PROFILE_PATH } from './profileEntries.js';
 import { SETTINGS_LOCAL_PATH, SETTINGS_PATH } from './projectSettings.js';
 import { MCP_PATH } from './repoRoot.js';
 import { SANDBOX_KEY } from './sandboxProfile.js';
@@ -103,7 +113,7 @@ export interface WriteProtectionInput {
 
 const GIT_DIR = '.git';
 
-/** One trust file under a run copy's `.git`, protected under the sibling-run-copy glob. */
+/** One trust file or branch-ref path under a run copy's `.git`, protected under the sibling-run-copy glob. */
 export interface CopyGitPath {
   /** Relative to the run copy, `/`-separated. */
   readonly path: string;
@@ -142,9 +152,9 @@ export interface CopyGitPath {
 
 /**
  * The run-copy `.git` paths the profile protects, in order. The runtime already refuses the first
- * three to the cwd repository's sandboxed git and leaves the last three open
+ * three to the cwd repository's sandboxed git and leaves the next three open
  * (`docs/sandbox-verification.md` CL5); the first three are restated so the protection does not rest
- * on an undocumented default.
+ * on an undocumented default. The last three are the branch-ref store (module header).
  */
 export const COPY_GIT_PATHS: readonly CopyGitPath[] = Object.freeze([
   {
@@ -183,10 +193,28 @@ export const COPY_GIT_PATHS: readonly CopyGitPath[] = Object.freeze([
     reason: 'a planted one would point that run copy at objects from another repository',
     bubblewrapDenyWrite: false,
   },
+  {
+    path: `${GIT_DIR}/HEAD`,
+    kind: 'file',
+    reason: 'it names the branch that run copy is on, which only the excluded wrappers may move',
+    bubblewrapDenyWrite: true,
+  },
+  {
+    path: `${GIT_DIR}/refs/heads`,
+    kind: 'directory',
+    reason: "it holds the run branch's ref, which only the excluded commit, push and refresh wrappers may move",
+    bubblewrapDenyWrite: true,
+  },
+  {
+    path: `${GIT_DIR}/packed-refs`,
+    kind: 'file',
+    reason: 'a branch packed there moves when it is rewritten',
+    bubblewrapDenyWrite: true,
+  },
 ]);
 
 /** The main checkout's run registry, under the configured `stateDir`. */
-function runRegistryPath(repoRoot: string, config: HarnessConfig): string {
+export function runRegistryPath(repoRoot: string, config: HarnessConfig): string {
   return join(repoRoot, normalizeRepoDir(config.stateDir ?? DEFAULTS.stateDir), RUN_LOGS_DIR, RUN_REGISTRY_FILENAME);
 }
 
@@ -219,7 +247,7 @@ function libraryDir(): string {
 /**
  * The write-protected set, in a fixed order: the main checkout's copy of every top-level outer-loop
  * script (the unsandboxed wrappers first) and the wrappers' library, the hooks
- * directories, the MCP launch surface, the profile and the project settings files, the plugin roots,
+ * directories, the MCP launch surface, the profile, its local additions file and the project settings files, the plugin roots,
  * the main checkout's whole `.git`, the {@link COPY_GIT_PATHS} rows under the sibling-run-copy glob,
  * the main checkout's configuration file, the run registry by its exact path, and a `.git` at each
  * level of the scripts directory. The configuration file and the `.git` levels are protected because the wrappers place
@@ -286,6 +314,11 @@ export function protectedPaths({
       path: join(repoRoot, PROFILE_PATH),
       kind: 'file',
       reason: "the run watcher renders every local run's --settings file from it, and a remote job passes it with --settings",
+    },
+    {
+      path: join(repoRoot, PROFILE_LOCAL_PATH),
+      kind: 'file',
+      reason: 'its entries are merged into the permission profile every run is rendered from',
     },
     { path: join(repoRoot, SETTINGS_PATH), kind: 'file', reason: 'Claude Code runs the hooks it declares outside the sandbox' },
     { path: join(glob, SETTINGS_PATH), kind: 'file', reason: "a run copy's session runs the hooks it declares outside the sandbox" },

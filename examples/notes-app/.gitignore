@@ -12,6 +12,8 @@
 .env
 # The per-machine settings file the agent runner writes beside the committed profiles.
 .claude/settings.local.json
+# One machine's additions to the committed permission profile. It is never committed.
+.claude/settings.autonomous.local.json
 # The presence-only marker one user's "don't ask again" answer writes to silence the change-request
 # offer. It lives at the main worktree's root and is checked there from every worktree of this
 # checkout, so one answer covers them all - its existence is the whole signal, so it has no

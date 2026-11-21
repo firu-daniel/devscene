@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "business-parity-reviewer return",
+  "description": "The business-parity-reviewer's return object, in every mode.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "No Must Fix, or the parity phase is disabled. A round file was written in plan-review mode only.",
+      "properties": {
+        "outcome": { "const": "PASS", "description": "No Must Fix, or the parity phase is disabled." },
+        "findings_file": { "type": "string", "minLength": 1, "description": "Plan-review mode only: the round file's full path." },
+        "reason": { "type": "string", "minLength": 1, "description": "The disabled-phase no-op only: the disabled phase, on one line." }
+      },
+      "required": ["outcome"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "At least one Must Fix; the findings were written.",
+      "properties": {
+        "outcome": { "const": "FAIL", "description": "At least one Must Fix." },
+        "findings_file": { "type": "string", "minLength": 1, "description": "The flat round file in plan-review mode, the index in implemented-solution mode; full path." },
+        "must_fix_count": { "type": "integer", "minimum": 1, "description": "The number of Must Fix findings." }
+      },
+      "required": ["outcome", "findings_file", "must_fix_count"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A cited input could not be read; no findings file was written.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "A cited input could not be read." },
+        "blocker": { "type": "string", "minLength": 1, "description": "The unreadable path and the refusal, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}

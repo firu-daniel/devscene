@@ -170,7 +170,7 @@ Two mechanisms, so a reader never has to guess which applies:
   mode excluded its `parity` / `architecture` id, or `phases.parity` is `false` so the business-parity gate
   does not run at all — so the gate-bearing phase entry flips `[x]` in the ordinary way and is correctly
   **not** `[-]`-eligible **under either provenance**. `P1` flips when the task plan converges; `R1` flips
-  "when **both gates PASS** (business-parity step 7, then architecture step 8)" — and a gate passed by
+  "when **both gates PASS** (business-parity step 7 and architecture step 8, one round)" — and a gate passed by
   exclusion **counts as passed**, so `P1` and `R1` still flip `[x]` on a round where either exclusion
   applies. `R4` — the QA entry the `qa` id and `phases.qa` each switch off whole — is the **one**
   `[-]`-eligible entry in that template.
@@ -210,7 +210,7 @@ live counterpart, so it is never a §1.8 disagreement. For what a directive id i
 `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md` — none of that is restated here.
 
 **Planning entries are coarse on purpose.** Planning converges as a unit (a revision re-runs
-parity → architecture → structural together), so there is no durable "parity passed but architecture didn't"
+the round's gates together, as one set), so there is no durable "parity passed but architecture didn't"
 mid-state to checkpoint. The **Implementation** review phases *do* split into generate/fix (`*g` / `*f`),
 which is where resume precision pays off: resume between "review generated + committed" and "findings fixed"
 **skips regeneration** (no reviewer re-dispatch) and resumes the fix loop from the findings index. `Bm`/`C2m`
@@ -287,7 +287,7 @@ one; on the same-round resume path there is nothing to commit (wrapper exit 3).
 ### 1.5 Who flips
 The **driving fork** flips only its own entries — the **planner** flips `P1–P3`, the **orchestrator** flips
 `A–D`, `G` included, the **fix-plan fork** flips `R1–R2`, the **fixes fork** flips `R3–R5`, `RG` included. **Sub-agents never touch the
-ledger** (implementers, reviewers, committers stay single-purpose). Flip points are named in each fork's thin
+ledger** (implementers and reviewers stay single-purpose). Flip points are named in each fork's thin
 override.
 
 `P0` is written by the planner fork and `R0` by the fix-plan fork; a flip of either commits under §1.6's
@@ -309,66 +309,42 @@ was switched off destroys the one record a reader consults to tell a real comple
 strictly worse than leaving the entry `[ ]`, which at least reads as unfinished. An eligible entry that
 should have been `[-]` and was seeded `[ ]` is corrected by fixing the **seeding**, never by flipping it.
 
-### 1.6 How to flip / create — direct `commit-on-branch.sh`, NEVER a committer dispatch
-Each flip (and the initial creation) is: **Edit the ledger file, then commit and push via the wrapper** —
-`bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root> <path>... -- "<subject>"`, then
-`bash <MAIN_REPO>/<scripts_dir>/push-branch.sh <repo_root>`. Call each wrapper once, alone. **Once, alone** means
+### 1.6 How to flip / create — direct `commit-on-branch.sh`, never a bare `git commit`
+Each flip is: **Edit the ledger file, then issue
+`bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root> --artifact ledger-flip --entry <entry-id> --push`**
+— or, for the initial creation, `bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root> --artifact ledger --push`.
+That one call commits and pushes. Call each wrapper once, alone. **Once, alone** means
 its own Bash call holding that one command and nothing else — no `cd`, `;`, `&&`, `||`, pipe, `echo "exit $?"`,
-`$(…)` or shell variable before or after it. Both name `<MAIN_REPO>`'s copy, because that copy
+`$(…)` or shell variable before or after it. It names `<MAIN_REPO>`'s copy, because that copy
 is the one the unattended permission profile runs outside the sandbox: the run copy's own scripts stay sandboxed,
 where a commit cannot move the main checkout's branch, whose whole `.git` the profile write-denies.
-Spell both commands literally — `<MAIN_REPO>`,
-`<repo_root>` and `<branch>` (in a path or in the subject) each as the text it resolves to, with no `$` anywhere
+Spell the command literally — `<MAIN_REPO>`,
+`<repo_root>` and `<entry-id>` each as the text it resolves to, with no `$` anywhere
 in the command: never `"$REPO_ROOT"`, `${branch}` or any other variable. From a run copy, the script-allowlist
 guard does not vouch for the main checkout's copy, so the profile's literal `allow` entry is each call's only
-grant, and a command carrying a shell expansion does not match it. Fixed subject `chore: Flow progress <entry-id> for <branch>`
+grant, and a command carrying a shell expansion does not match it. The wrapper's artifact table fixes the
+ledger path and the subject, so the call names neither: a flip lands as `chore: Flow progress <entry-id> for <branch>`
 (e.g. `chore: Flow progress A1.5f for <branch>`; for creation, `chore: Add flow-progress ledger for
-<branch>`). No `Co-Authored-By:` / trailer, no `--no-verify` — the wrapper enforces both.
+<branch>`), with no `Co-Authored-By:` / trailer and no `--no-verify`. `<entry-id>` matches `[A-Za-z0-9.]+`.
 
-⚠️ **Run the commit and the push as two separate, literal single-statement Bash commands — do NOT gate the
-push on the commit's exit code with a shell conditional** (`commit … ; if [ "$?" -eq 0 ]; then push … ; fi`).
-That compound is a headless trap: `allow-safe-compounds.sh` splits on `;` and the ` then bash push-branch.sh …`
-piece begins with a non-allow-listed `then`/`bash` prefix, so the whole command falls through the safe-compound
-allow — and nothing else matches it either, so the call **is refused at once rather than prompting**
-and the commit is never made. No guard rescues it and none refuses it:
-`git-commit-branch-guard.sh` judges only a piece whose own command word is `git`, and it judges the repository
-that command names, so a `bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root> …` piece is outside its scope by construction
-and it stays silent — its own protected-branch `ask`, which quotes the configured set back, is reserved for a
-real `git … commit` on a protected branch. Any
-`if …; then … ; fi` / `for …; do … done` control-flow block trips the same trap; plain
-single statements do not — but the commit and the push carry no `$` at all, since any shell expansion loses
-the profile's literal `allow` entry, so keep expansions out of the command itself and not only out of the
-compound. No exit-0 gate is needed anyway:
-`push-branch.sh` is non-fatal and only fast-forwards already-committed work, so an unconditional push is a
-harmless no-op ("Everything up-to-date") whenever the wrapper made no new commit — including the idempotent
-exit-3 re-flip. If a flip is ever refused, treat the commit as **not
-landed** and re-run it as a plain single-statement command.
+The flip is a Bash call costing **zero** dispatches against `MAX_TOTAL_DISPATCHES`.
 
-This is **NOT** a `committer` agent dispatch, for three reasons — the same rationale the task flow's Override
-D uses for `statistics.md`:
-1. **It fits no committer mode.** `task` / `review_item` / `ui_test_pass` each flip a `## Phase 2 Readiness`
-   box — the first two under a free-form subject; `review_plan_file` flips no box and is locked to a fixed
-   subject. The ledger has neither shape: its `## Planning` / `## Implementation` sections hold no readiness
-   box, and its subject is its own. Routing through the committer would force a new `committer.md` mode.
-2. **It would violate a stated invariant.** A committer call is an **Agent dispatch** counting against
-   `MAX_TOTAL_DISPATCHES`; a direct wrapper call is a **Bash command** costing **zero** dispatches. Across
-   ~13 (task) / ~5 (user-review) phase boundaries the committer route would burn that many dispatches for
-   nothing.
-3. **Nothing to infer.** The fork already knows exactly which entry it just completed.
+`commit-on-branch.sh` stages by explicit path — never `git add -A`/`.` — refuses a protected branch, and
+commits by plumbing, so no commit hook runs. It prints its return block, or `error: <line>` with exit 1 (a
+refusal or a git failure), 2 (protected branch) or 3 (nothing to commit). A landed exit 1 — the commit stands,
+the run copy's index did not take it — is re-synced by the wrapper itself, which then exits 0 and adds an
+`index_sync: failed — …` line only when that re-sync did not take. `--push` runs after exit 0 or exit 3 and
+never after a refusal. **Idempotency:** re-flipping an already-`[x]`
+entry stages no diff → the wrapper prints `error: nothing to commit` and exits **3** → no commit is made, and
+the same call still pushes. This makes every flip safe to re-run on a resumed run. If a flip is ever refused,
+treat the commit as **not landed** and re-run it as a plain single-statement command.
 
-`commit-on-branch.sh` is the same wrapper the committer uses internally, so the fork inherits identical
-safety (explicit-path staging — never `git add -A`/`.`, protected-branch refusal, the exit-code 0/1/2/3
-contract), and it commits by plumbing, so no commit hook runs. **Idempotency:** re-flipping an already-`[x]`
-entry stages no diff → the wrapper returns **exit 3** (nothing to commit) → no commit is made, and the
-unconditional push that follows is a harmless "Everything up-to-date" no-op (there is **no** exit-0 gate —
-see the warning above). This makes every flip safe to re-run on a resumed run.
-
-**One exit 1 is a landed commit.** A stderr line beginning `commit-on-branch.sh: committed <short_sha> on <branch>, but `
-means the commit stands and `refs/heads/<branch>` has moved; only the run copy's index did not take the
-committed paths. Count the write as landed and **never revert it** — the file already matches the new tip, so a
-revert dirties the tree. Issue the identical wrapper call once more, alone and spelled literally, to re-sync the
-index: it is expected to exit 3, and any other status is surfaced. The push that follows is unchanged. Every other
-exit 1 is a refusal or a git failure, with no commit made.
+**A landed commit is never repaired.** A flip, a creation, or any artifact commit that cites this section, that
+landed stays as it landed, whatever is wrong with it — the rule
+`${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `## The unit loop` step 5 states for every commit
+through the main checkout's wrapper: no amend, reset, rebase, `git update-ref` or second commit in its place.
+The commit point halts and hands off through the flow's **existing** `<escalate>` binding, naming the commit and
+what is wrong with it.
 
 ### 1.7 Resume-from-ledger (every fork, on every (re-)entry)
 1. Read `<state_dir>/flow_progress/<branch>_progress.md`.
@@ -383,7 +359,13 @@ exit 1 is a refusal or a git failure, with no commit made.
    saved walk, as `${CLAUDE_PLUGIN_ROOT}/instructions/task_plan_writing_instructions_autonomous.md` →
    `## Override 2 — resumability` applies it. That walk is machine-local and never a second record — where it
    and this ledger disagree, this ledger wins — and a planning loop whose entry is `[ ]`, with its draft on
-   disk and no usable walk, is reviewed again rather than skipped.
+   disk and no usable walk, is reviewed again rather than skipped. Whether that draft is committed changes
+   nothing: an unconverged plan is in branch history by design, and `P1` / `R1` is the only signal a
+   planning loop converged. Without a usable walk the within-round position is read, best effort, by the
+   walker's `start` from the round files (task plan; the loop counter starts at 0, because only a continued
+   saved walk carries it) or by the fork's own rule (fix plan), with the round's whole set of due
+   reviewers as the fallback. This holds on every resume of a planning loop — after a pause, a park or an overload
+   self-pause, and on a re-entry with or without a saved walk.
 5. `PAUSE_PROGRESS.md` (§2) is read only as a **human-readable hint / audit trail** — the ledger is
    authoritative. This composes with the clarification park/resume (`Override 2(a)`): the top-level answered pairs
    the watcher resumed for are consumed as `Override 2(a)` states; the ledger independently says which phase to be in.
@@ -514,8 +496,22 @@ The safety contract runs **before every Agent dispatch** and already does the pe
    path) means dirty-tracked. Untracked `<state_dir>/…` artifacts are tolerated — the same clean-of-tracked-changes
    invariant the watcher's run-copy reuse check uses (the watcher applies it with a pipe; the engine states it
    over unfiltered output).
-   - **Dirty-tracked** (a unit is mid-commit, between an implementer and its committer): do **NOT** pause
-     yet. Let the loop proceed through the next commit that cleans the tree (a bounded committer dispatch),
+   - **Planning artifacts only (the two plan-writing forks)** — the driving fork is a plan-writing fork, and
+     every line of that output not beginning with `??` names a path inside the fork's planning path set (the
+     fork names its planning path set and its partial artifact kind with the kind's round flags): commit the
+     round so far, then honour the pause.
+     1. Commit the round so far with
+        `bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root> --artifact <the fork's partial kind> <the fork's round flags> --push`,
+        the round flags carrying the round of the dispatch the pause interrupts — for a set, the set's round.
+        It is the call's only command, spelled as §1.6 spells it, with no shell expansion anywhere in it; the
+        kind's artifact-table row is the planning path set it stages, so it names no path. Untracked planning
+        artifacts are committed by this same call. Exit 3 (nothing to commit) is normal and still pushes; the
+        wrapper re-syncs a landed exit 1 itself and exits 0.
+     2. Honour the pause now, as **Clean-tracked** below states.
+
+     A tracked change outside the fork's planning path set makes the tree **Dirty-tracked**, unchanged.
+   - **Dirty-tracked** (a unit is mid-commit, between an implementer and its commit call): do **NOT** pause
+     yet. Let the loop proceed through the next commit that cleans the tree (a bounded commit call),
      and honor the pause at the following checkpoint — which will be clean. This keeps the pause at a clean
      boundary so resume is identical to a fresh re-launch.
    - **Clean-tracked**: honor the pause now —
@@ -536,6 +532,12 @@ The safety contract runs **before every Agent dispatch** and already does the pe
      d. **End the session** — truly stop and yield. Do NOT spin, poll, sleep, or re-dispatch. Ending the
         session is what makes the pause free of dispatch cost (same rule as a clarification park).
 
+**A round's set.** A plan-writing fork whose next action is a set of gate dispatches runs this check
+once, before the set's first dispatch, never between two of them. A PAUSE placed while a set is out waits
+for every dispatch of the set to return, and is honoured at the join: the set's returns are all in and
+recorded, the round's result is known, the fork's per-round commit has landed, and the check before the
+next dispatch pauses, its **Planning artifacts only** commit exiting 3. `<n>` / `<k>` is the set's round.
+
 Do **not** delete `<state_dir>/PAUSE` yourself (the watcher owns its lifecycle, and `rm` is not allow-listed in
 the generated profile — only `rm -rf` is on its deny floor, so a bare `rm` is refused). The
 `PAUSE_PROGRESS.md` append and `PAUSE_ACK` write are ordinary `<state_dir>/…` writes (allowed under the profile)
@@ -543,8 +545,10 @@ and are the run's only actions before ending.
 
 Granularity note: the safety contract only regains control **between** dispatches, so pause is inherently
 between-dispatch — an in-flight sub-agent (a long QA test, a review generation) finishes first. Letting a
-pending committer also finish (the dirty-tracked case above) costs at most one bounded dispatch and is worth
-it for a clean-boundary resume.
+pending commit call also finish (the dirty-tracked case above) costs at most one bounded call and is worth
+it for a clean-boundary resume. A plan-writing fork's pause defers no dispatch beyond the set already out:
+a plan round's set returns as a whole before the check runs again (**A round's set.** above), and its
+partial commit (**Planning artifacts only** above) is what makes the boundary clean.
 
 ### 2.3 Resuming
 The **watcher** owns the resume: on a `<state_dir>/RESUME` trigger for a `paused` run (kill-switch off, under
@@ -556,7 +560,11 @@ A pause resume whose previous job did not pause — a stop, a kill, or a zero ex
 
 Otherwise the re-entered fork reads `PAUSE_PROGRESS.md` as a hint and resumes via **§1.7 resume-from-ledger**. For a §2.2 pause no dirty-tree
 reconciliation is needed, because the pause was taken at a clean tracked-tree boundary and every completed
-phase's artifacts are already committed and pushed. A **§2.5 overload self-pause** is the one exception — it
+phase's artifacts are already committed and pushed. A planning pause's partial commit (§2.2 **Planning
+artifacts only**) is what makes that boundary clean, so the resumed walk continues at the interrupted dispatch
+with the round's files committed — after a pause at a set's join (§2.2 **A round's set.**), at the step the
+join led to: the writer's revision after a `FAIL` round; after a `PASS` round, the loop's next step past
+convergence (the task-plan loop's UI-test writer, the fix-plan loop's hand-off). A **§2.5 overload self-pause** is the one exception — it
 may land mid-unit — and it needs no reconciliation either, for the different reason given there: the stray
 edits belong to a unit whose detail-index box is still `[ ]`, so the normal loop re-runs it and supersedes
 them.
@@ -612,6 +620,17 @@ spares a silent session has not been measured (BG8); and the STOP and PAUSE chec
 session sleeps. Writing `PAUSE_ACK` and ending the session is the **only** durable way to survive an outage.
 
 **Action** — identical artifacts to §2.2, minus the request file (there is no `<state_dir>/PAUSE` to leave alone):
+   0. **Planning artifacts only** — a plan-writing fork first commits and pushes the round so far exactly as
+      §2.2's bullet of that name states, with `<n>` / `<k>` the round of the dispatch that died. Where some
+      dispatches of a set returned and others died, the returned verdicts are recorded first, their round
+      files stand and are committed by this step, and the dead gates alone are re-dispatched as one set; a
+      resume dispatches the gates still pending — or, in a fork whose own resume restarts the whole round,
+      the whole set, each gate replacing its own round file. The three-attempt budget counts consecutive
+      failures of that re-dispatch. The commit is local
+      `git` work and a push, not an API dispatch, so the overload does not bar it. A tracked change outside
+      the fork's planning path set skips the commit, and the self-pause proceeds regardless of tree state, as
+      below. Without it a session that self-pauses between a writer's revision and the round's commit leaves
+      the revision uncommitted, and the next session would review the committed round beside newer drafts.
    a. Append an entry to `<state_dir>/PAUSE_PROGRESS.md` (Write tool or `echo … >>`, per §2.2a) recording — on top
       of the usual timestamp / phase / detail-index state / next step — **the reason** (`API overload — 3
       consecutive dispatch failures`), **the exact dispatch** that could not be placed (its heartbeat label and
@@ -622,19 +641,19 @@ session sleeps. Writing `PAUSE_ACK` and ending the session is the **only** durab
    d. **End the session** — truly stop and yield, exactly as §2.2d.
 
 **Dirty-tracked tree — this pause deliberately diverges from §2.2.** §2.2 *defers* a pause while a unit is
-mid-commit, letting the next committer dispatch clean the tree first. Under overload that committer will fail
-too, so waiting for a clean boundary never terminates. **Self-pause regardless of tree state**, and record
+mid-commit, letting the next commit call clean the tree first. Under overload the dispatch that call waits on
+fails too, so waiting for a clean boundary never terminates. **Self-pause regardless of tree state**, and record
 every non-`??` path from the bare `git status --porcelain` in the pause note. This is sound because both
 checklists stay honest under §1.2: a phase entry flips only after its recorded outcome, and where that outcome
-has an artifact only after that artifact is committed; a detail-index item flips only on its committer's
+has an artifact only after that artifact is committed; a detail-index item flips only on its commit call's
 commit — so an uncommitted implementer edit necessarily
 belongs to a unit still marked `[ ]`. On resume the fork re-enters that unit from its detail index through the
 normal loop and the stray edits are superseded. No bespoke reconciliation, and §1.7 is unchanged; only §2.3's
 "no dirty-tree reconciliation is needed" sentence is narrowed, because an overload pause is the one pause that
 can land mid-unit.
 
-**A lost sub-agent result is re-earned, never trusted from the note.** When the failed dispatch was a
-`committer` closing a unit whose sub-agent had already produced a verdict (a `qa-tester` PASS, a reviewer
+**A lost sub-agent result is re-earned, never trusted from the note.** When the pause lands before the
+commit call closing a unit whose sub-agent had already produced a verdict (a `qa-tester` PASS, a reviewer
 verdict), that verdict dies with the pause — its index box was never flipped. Record it in the pause note as
 an audit hint, but the index stays `[ ]` and the resumed run **re-earns** it; §1.7 step 5 already makes the
 ledger and detail indices authoritative and `PAUSE_PROGRESS.md` a hint. Repeating one QA test is the price of
@@ -656,8 +675,8 @@ can cost.
 ---
 
 ## 3. Interaction with the clean-tree invariant + hard boundary
-- **New commit points.** Ledger creation and each ledger flip are new autonomous-fork commit points — add
-  them to the **Autonomous-fork commit points — the clean-tree invariant** set in
+- **New commit points.** Ledger creation, each ledger flip, a plan-writing fork's round commit and its
+  planning-pause commit (§2.2, §2.5) are new autonomous-fork commit points — add them to the **Autonomous-fork commit points — the clean-tree invariant** set in
   `${CLAUDE_PLUGIN_ROOT}/instructions/plan_orchestration_instructions_autonomous.md`. They keep the tree
   clean-of-tracked-changes at every checkpoint (an Edit-then-commit flip is atomic from the safety contract's
   between-dispatch view).

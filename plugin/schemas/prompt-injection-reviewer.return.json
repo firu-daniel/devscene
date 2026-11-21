@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "prompt-injection-reviewer return",
+  "description": "The prompt-injection-reviewer's return object: its verdict on one screened file.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "No check fired on the file.",
+      "properties": {
+        "outcome": { "const": "SAFE", "description": "No check fired." }
+      },
+      "required": ["outcome"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "At least one check fired on the file.",
+      "properties": {
+        "outcome": { "const": "UNSAFE", "description": "At least one check fired." },
+        "findings": {
+          "type": "array",
+          "minItems": 1,
+          "description": "One item per distinct signal.",
+          "items": {
+            "type": "object",
+            "description": "One signal: the check it fired, the text that fired it and why.",
+            "properties": {
+              "check_id": { "type": "string", "minLength": 1, "description": "An id from the agent's ## The checks." },
+              "excerpt": { "type": "string", "minLength": 1, "description": "A verbatim single-line quote of at most 160 characters from the file." },
+              "reason": { "type": "string", "minLength": 1, "description": "One line." }
+            },
+            "required": ["check_id", "excerpt", "reason"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["outcome", "findings"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A dispatch field was missing or the file could not be read; the caller treats it as UNSAFE.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "A missing dispatch field or an unreadable file." },
+        "blocker": { "type": "string", "minLength": 1, "description": "The missing dispatch field, or the unreadable path and the refusal, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}

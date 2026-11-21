@@ -15,13 +15,13 @@ from typing import NoReturn
 
 import pytest
 
-from fakes import InMemoryDocStore
 from devscene_docs_retrieval import cli, service
 from devscene_docs_retrieval.models import MODEL_CACHE_ENV
 from devscene_docs_retrieval.self_check import SELF_CHECK_QUESTIONS
 from devscene_docs_retrieval.service import CONFIG_FILENAME
 from devscene_docs_retrieval.store import DATABASE_URL_ENV, DocStore
 from devscene_docs_retrieval.stubs import RETRIEVAL_STUB_ENV
+from fakes import InMemoryDocStore
 from model_cache import plant_model_files
 
 UNREACHABLE_DATABASE_URL = "postgresql://127.0.0.1:1/none"

@@ -17,7 +17,6 @@ from typing import Any
 
 import pytest
 
-from fakes import InMemoryDocStore, doc_chunk
 from devscene_docs_retrieval.chunk import DocChunk
 from devscene_docs_retrieval.models import Embedder
 from devscene_docs_retrieval.refresh import EMBED_BATCH_SIZE, RefreshResult, refresh_index
@@ -28,6 +27,7 @@ from devscene_docs_retrieval.store import (
     INDEX_STATE_REBUILT,
 )
 from devscene_docs_retrieval.stubs import RETRIEVAL_STUB_ENV, resolve_models
+from fakes import InMemoryDocStore, doc_chunk
 
 CONFIG: dict[str, Any] = {
     "docs": {"root": "docs"},

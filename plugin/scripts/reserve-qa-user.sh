@@ -92,7 +92,7 @@
 # profile, whose `allowWrite` names that absolute directory, and the
 # write-protection set never covers the state directory. That `allowWrite`
 # entry names the stateDir as it stood when `init` last wrote the profile, so a
-# `stateDir` changed without `init --force` leaves the sandboxed `mkdir` refused
+# `stateDir` changed without `init --upgrade` leaves the sandboxed `mkdir` refused
 # and this script exiting 1. The set is per
 # repository by construction, so two repositories never block each other's slot
 # numbers without any name-mangling. The locks are empty directories, which git

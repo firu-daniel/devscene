@@ -70,6 +70,12 @@ const CLAUDE_DIR = '.claude';
  */
 export const PROFILE_PATH = `${CLAUDE_DIR}/settings.autonomous.json`;
 
+/**
+ * The adopter's machine-local additions to {@link PROFILE_PATH}, relative to the same root. Never
+ * generated and never committed; `profileLocal.ts` is its one reader and states what it may hold.
+ */
+export const PROFILE_LOCAL_PATH = `${CLAUDE_DIR}/settings.autonomous.local.json`;
+
 /** The profile's rationale block: the array every generated explanation is appended to. */
 export const README_KEY = '_README';
 

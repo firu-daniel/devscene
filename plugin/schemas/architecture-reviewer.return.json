@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "architecture-reviewer return",
+  "description": "The architecture-reviewer's return object, in every mode.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "No Must Fix. A round file was written in sub-cases (a) and (b) only.",
+      "properties": {
+        "outcome": { "const": "PASS", "description": "No Must Fix." },
+        "findings_file": { "type": "string", "minLength": 1, "description": "Sub-cases (a) and (b) only: the round file's full path." }
+      },
+      "required": ["outcome"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "At least one Must Fix; the findings were written.",
+      "properties": {
+        "outcome": { "const": "FAIL", "description": "At least one Must Fix." },
+        "findings_file": { "type": "string", "minLength": 1, "description": "The flat round file in plan-review mode, the index in implemented-solution mode; full path." },
+        "must_fix_count": { "type": "integer", "minimum": 1, "description": "The number of Must Fix findings." }
+      },
+      "required": ["outcome", "findings_file", "must_fix_count"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A cited input could not be read; no findings file was written.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "A cited input could not be read." },
+        "blocker": { "type": "string", "minLength": 1, "description": "The unreadable path and the refusal, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}

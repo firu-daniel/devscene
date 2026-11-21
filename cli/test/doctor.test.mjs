@@ -3162,6 +3162,38 @@ test('the machine-footprint check reports the machine, and never fails or writes
     }
   }));
 
+  subtests.push(t.test('a registry record that is not an object is not counted', async (subtest) => {
+    const dir = await wiredFixture(subtest);
+    const machine = await footprintMachine(subtest, { cap: FOOTPRINT_CAP });
+    const unitPath = await seededUnitFile(subtest);
+    seedRunRegistry(dir, {
+      'run-alive-and-running': { status: 'running', pid: process.pid },
+      'run-not-an-object': 'running',
+    });
+    seedRegistry(machine, { [repoSlug(dir)]: entryFor(dir, unitPath) });
+
+    const { status, stdout, stderr } = await runCli(dir, ['doctor'], machine.env);
+
+    assert.equal(status, 0, `doctor exited ${status}\n${stdout}\n${stderr}`);
+    assert.match(stdout, passLine('machine-footprint'));
+    assert.ok(footprintLine(stdout, stderr).includes('live=1'), footprintLine(stdout, stderr));
+  }));
+
+  subtests.push(t.test('an unparsable run registry counts 0 and does not fail the check', async (subtest) => {
+    const dir = await wiredFixture(subtest);
+    const machine = await footprintMachine(subtest, { cap: FOOTPRINT_CAP });
+    const unitPath = await seededUnitFile(subtest);
+    seedRunRegistry(dir, {});
+    writeFileSync(join(dir, STATE_DIR, RUN_LOGS_DIR, RUN_REGISTRY_FILE), '{ not json', 'utf8');
+    seedRegistry(machine, { [repoSlug(dir)]: entryFor(dir, unitPath) });
+
+    const { status, stdout, stderr } = await runCli(dir, ['doctor'], machine.env);
+
+    assert.equal(status, 0, `doctor exited ${status}\n${stdout}\n${stderr}`);
+    assert.match(stdout, passLine('machine-footprint'));
+    assert.ok(footprintLine(stdout, stderr).includes('live=0'), footprintLine(stdout, stderr));
+  }));
+
   subtests.push(t.test('an unreadable configuration reports live=0 — the schema-default registry is never read', async (subtest) => {
     const here = await wiredFixture(subtest);
     const unwired = await wiredFixture(subtest);
@@ -4300,6 +4332,52 @@ test('(e) a fence that does not name the opt-out script passes with the script d
   assert.equal(status, 0, `doctor exited ${status}\n${stdout}\n${stderr}`);
   assert.match(stdout, passLine('task-offer-rules'));
   assert.doesNotMatch(stderr, warnLine('task-offer-rules'));
+});
+
+/** The review-sweep document, spelled as an adopter's tree carries it for the reason `TASK_OFFER_FILE` is. */
+const REVIEW_SWEEP_FILE = '.claude/review-sweep.md';
+
+/** The review-sweep check: absent and untouched both warn with their own remedy, and neither fails. */
+test('the review-sweep check warns on a missing or untouched document and passes a filled one', async (t) => {
+  await t.test('an absent document warns, names init, and exits 0', async (subtest) => {
+    const dir = await wiredFixture(subtest);
+    await rm(join(dir, REVIEW_SWEEP_FILE));
+
+    const { status, stdout, stderr } = await runCli(dir, ['doctor']);
+
+    assert.equal(status, 0, `doctor exited ${status} on a condition that only warns\n${stdout}\n${stderr}`);
+    const line = detailLine(stderr, warnLine('review-sweep'));
+    assert.ok(line.includes(REVIEW_SWEEP_FILE), `the warning does not name the missing document:\n${line}`);
+    assert.match(line, /npx devscene init/);
+  });
+
+  await t.test('an untouched skeleton warns, names the sweep target, and exits 0', async (subtest) => {
+    const dir = await wiredFixture(subtest);
+    const content = readFileSync(join(dir, REVIEW_SWEEP_FILE), 'utf8');
+    assert.ok(
+      content.includes(UNFILLED_MARKER) && content.includes(GUIDANCE_MARKER),
+      `init did not write ${REVIEW_SWEEP_FILE} as an untouched skeleton, so this case proves nothing`,
+    );
+
+    const { status, stdout, stderr } = await runCli(dir, ['doctor']);
+
+    assert.equal(status, 0, `doctor exited ${status} on a condition that only warns\n${stdout}\n${stderr}`);
+    const line = detailLine(stderr, warnLine('review-sweep'));
+    assert.ok(line.includes(REVIEW_SWEEP_FILE), `the warning does not name the document:\n${line}`);
+    assert.ok(line.includes(`${ANALYZE_COMMAND} sweep`), `the warning does not name the sweep target:\n${line}`);
+    assert.match(line, /default branch/);
+  });
+
+  await t.test('a document filled by hand passes', async (subtest) => {
+    const dir = await wiredFixture(subtest);
+    writeConventionsByHand(dir, REVIEW_SWEEP_FILE);
+
+    const { status, stdout, stderr } = await runCli(dir, ['doctor']);
+
+    assert.equal(status, 0, `doctor exited ${status}\n${stdout}\n${stderr}`);
+    assert.match(stdout, passLine('review-sweep'));
+    assert.doesNotMatch(stderr, warnLine('review-sweep'));
+  });
 });
 
 /**
@@ -5592,9 +5670,10 @@ const PRE_BRANCH_CHECK_IDS = Object.freeze([
   'git', 'jj-repository', 'default-branch', 'remote', 'base-freshness', 'pre-push-guard', 'protected-set', 'jq',
   'worktrees', 'daemon-backend', 'run-watcher', 'notifications', 'repo-registry', 'machine-footprint', 'daemon-path',
   'remote-execution', 'remote-github', 'forge', 'branch-protection', 'config', 'command-wrappers', 'command-permissions', 'command-resolves',
-  'state-dir', 'artifact-tree', 'setup-analysis', 'task-offer-rules', 'layer-profile', 'layer-drift', 'tree-guards',
+  'state-dir', 'artifact-tree', 'setup-analysis', 'task-offer-rules', 'review-sweep', 'layer-profile', 'layer-drift', 'tree-guards',
   'ignore-rules', 'plugin-wiring', 'permission-profile', 'profile-paths', 'profile-tracked', 'profile-browser-deny',
-  'profile-deny-floor', 'profile-main-anchor', 'profile-sandbox', 'profile-write-protection', 'sandbox-prerequisites', 'keep-awake', 'plugin-permissions',
+  'profile-deny-floor', 'profile-main-anchor', 'profile-sandbox', 'profile-write-protection', 'profile-drift', 'outer-loop-scripts',
+  'sandbox-prerequisites', 'keep-awake', 'plugin-permissions', 'plugin-cli-version',
   'browser-wiring',
   'retrieval-dependencies', 'retrieval-model-cache', 'retrieval-index',
 ]);
@@ -5900,7 +5979,8 @@ test('Acceptance 1: with docs.retrievalBackend absent, doctor reports what an ex
  * above are spelled out.
  */
 const GH_CLI_VARIABLE = 'DEVSCENE_GH_CLI';
-const FIXTURE_GH_CLI = 'harness-fixture-gh';
+// Shares no prefix with any fixture or mkdtemp directory: the daemon-path case asserts its absence from a line printing the fixture's path.
+const FIXTURE_GH_CLI = 'fixture-unit-gh-cli';
 const REMOTE_RUN_WORKFLOW = '.github/workflows/devscene-run.yml';
 const REMOTE_RESUME_WORKFLOW = '.github/workflows/devscene-resume.yml';
 

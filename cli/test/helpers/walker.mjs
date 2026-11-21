@@ -9,8 +9,14 @@
  *
  * `node --test test` loads this file as a test file of its own, so nothing here runs at import time.
  *
- * A findings file is planted **before** the `FAIL` it stands for is fed, because the walker resolves
- * each reviewer's `arg.iteration` and each gate's round count from the folder's real contents.
+ * Every round gate's findings file — its `PASS` as well as its `FAIL` — is planted **before** the
+ * verdict it stands for is fed, because the walker reads the round number, each reviewer's
+ * `arg.iteration` and each gate's `FAIL` count from the folders' real contents.
+ *
+ * A step's `node` is passed as `--node`, which the walker requires while a round's set of gates is
+ * pending. `runConcurrently` issues a step list's calls at once — still against the copy `init`
+ * shipped into the fixture, as the rule above requires — and `blocksOf` splits one action into its
+ * `action:`-headed blocks.
  */
 
 import assert from 'node:assert/strict';
@@ -116,18 +122,51 @@ export async function walk(dir, args) {
 }
 
 /**
- * Write the `review_<n>.md` a reviewer's `FAIL` leaves behind.
+ * A `## Must Fix` section holding one entry, with both required fields unless `lacking` names one.
+ *
+ * @param {'Class' | 'Failure'} [lacking]
+ * @returns {string}
+ */
+export function mustFixSection(lacking) {
+  const lines = ['## Must Fix', '1. **fixture finding**'];
+  if (lacking !== 'Class') lines.push('   **Class:** Wrong build');
+  if (lacking !== 'Failure') lines.push('   **Failure:** If the writer follows the plan, then the build fails.');
+  return `${lines.join('\n')}\n`;
+}
+
+async function writeReview(dir, folder, n, verdict, section) {
+  const relative = `${stateDirOf(dir)}/${folder}/review_${n}.md`;
+  await mkdir(join(dir, dirname(relative)), { recursive: true });
+  await writeFile(join(dir, relative), `# review ${n}\nverdict: ${verdict}\nreview_mode: full\n${section}`, 'utf8');
+  return relative;
+}
+
+/**
+ * Write the round file `review_<n>.md` a reviewer leaves behind, in the shape
+ * `plugin/instructions/plan_review_rounds.md` → `## The round file` fixes. A `FAIL` carries a valid
+ * `## Must Fix` entry, because the gate library reads a `FAIL` without one as `unreadable`.
  *
  * @param {string} dir
  * @param {string} folder the findings folder under `stateDir`, branch segment included.
  * @param {number} n
+ * @param {'PASS' | 'FAIL'} [verdict]
  * @returns {Promise<string>} the file's repo-relative path — the `findings_file` the reviewer returns.
  */
-export async function plantReview(dir, folder, n) {
-  const relative = `${stateDirOf(dir)}/${folder}/review_${n}.md`;
-  await mkdir(join(dir, dirname(relative)), { recursive: true });
-  await writeFile(join(dir, relative), `# review ${n}\n`, 'utf8');
-  return relative;
+export async function plantReview(dir, folder, n, verdict = 'FAIL') {
+  return writeReview(dir, folder, n, verdict, verdict === 'FAIL' ? mustFixSection() : '');
+}
+
+/**
+ * Write a `verdict: FAIL` round file whose one `## Must Fix` entry omits a required field.
+ *
+ * @param {string} dir
+ * @param {string} folder the findings folder under `stateDir`, branch segment included.
+ * @param {number} n
+ * @param {'Class' | 'Failure'} lacking
+ * @returns {Promise<string>} the file's repo-relative path, as `plantReview` returns it.
+ */
+export async function plantMalformedReview(dir, folder, n, lacking) {
+  return writeReview(dir, folder, n, 'FAIL', mustFixSection(lacking));
 }
 
 /**
@@ -158,33 +197,88 @@ export async function plantLedger(dir, branch, skippedCsv) {
 }
 
 /**
- * Drive a scripted sequence and return every action, refusing on the first non-zero exit.
+ * A step is `{ start: true }` or `{ outcome }`; a step carrying `node` passes it as
+ * `--node <node>` before `--outcome`. A `PASS` or `FAIL` step carries `review: [folder, n, verdict?]`,
+ * planted first — with `verdict` defaulting to the step's own outcome — and passed as `--findings`.
  *
- * A step is `{ start: true }` or `{ outcome }`; a `FAIL` step carries `review: [folder, n]`, which
- * is planted first and passed as `--findings`. `skipped` is passed on every call as `--skipped`,
- * and `null` omits the flag so only a ledger can answer the run-mode gates.
+ * @typedef {{ start?: boolean, entry?: string, node?: string, outcome?: string, review?: [string, number, ('PASS' | 'FAIL')?] }} WalkerStep
+ */
+
+/**
+ * One step's argument vector, its findings file planted on the way.
  *
  * @param {string} dir
- * @param {ReadonlyArray<{ start?: boolean, entry?: string, outcome?: string, review?: [string, number] }>} steps
+ * @param {WalkerStep} step
+ * @param {{ branch: string, skipped: string | null }} options
+ */
+async function stepArgs(dir, step, { branch, skipped }) {
+  const args = ['start'];
+  if (!step.start) {
+    args[0] = 'next';
+    if (step.node !== undefined) args.push('--node', step.node);
+    args.push('--outcome', step.outcome);
+  }
+  args.push('--flow', FLOW, '--branch', branch);
+  if (step.entry !== undefined) args.push('--entry', step.entry);
+  if (step.review !== undefined) {
+    const [folder, n, verdict = step.outcome === 'PASS' ? 'PASS' : 'FAIL'] = step.review;
+    args.push('--findings', await plantReview(dir, `${folder}/${branch}`, n, verdict));
+  }
+  if (skipped !== null) args.push('--skipped', skipped);
+  return args;
+}
+
+/**
+ * Drive a scripted sequence and return every action, refusing on the first non-zero exit.
+ *
+ * `skipped` is passed on every call as `--skipped`, and `null` omits the flag so only a ledger can
+ * answer the run-mode gates.
+ *
+ * @param {string} dir
+ * @param {ReadonlyArray<WalkerStep>} steps
  * @param {{ branch?: string, skipped?: string | null }} [options]
  * @returns {Promise<Array<Array<[string, string]>>>}
  */
 export async function run(dir, steps, { branch = 'feat_x', skipped = 'none' } = {}) {
   const actions = [];
   for (const step of steps) {
-    const args = step.start ? ['start'] : ['next', '--outcome', step.outcome];
-    args.push('--flow', FLOW, '--branch', branch);
-    if (step.entry !== undefined) args.push('--entry', step.entry);
-    if (step.review !== undefined) {
-      const [folder, n] = step.review;
-      args.push('--findings', await plantReview(dir, `${folder}/${branch}`, n));
-    }
-    if (skipped !== null) args.push('--skipped', skipped);
+    const args = await stepArgs(dir, step, { branch, skipped });
     const result = await walk(dir, args);
     assert.equal(result.status, 0, `\`${args.join(' ')}\` exited ${result.status}\n${result.stdout}\n${result.stderr}`);
     actions.push(result.action);
   }
   return actions;
+}
+
+/**
+ * Issue every step's call at once: each step's file is planted first, then every `next` starts
+ * before any has finished. Asserts no status — which call won the lock is the caller's question.
+ *
+ * @param {string} dir
+ * @param {ReadonlyArray<WalkerStep>} steps
+ * @param {{ branch?: string, skipped?: string | null }} [options]
+ * @returns {Promise<Array<{ status: number, stdout: string, stderr: string, action: Array<[string, string]> }>>}
+ *   one result per step, in step order.
+ */
+export async function runConcurrently(dir, steps, { branch = 'feat_x', skipped = 'none' } = {}) {
+  const argv = [];
+  for (const step of steps) argv.push(await stepArgs(dir, step, { branch, skipped }));
+  return Promise.all(argv.map((args) => walk(dir, args)));
+}
+
+/**
+ * One parsed action split at each `action` pair, every block opening with its own.
+ *
+ * @param {ReadonlyArray<[string, string]>} action
+ * @returns {Array<Array<[string, string]>>}
+ */
+export function blocksOf(action) {
+  const blocks = [];
+  for (const pair of action) {
+    if (pair[0] === 'action' || blocks.length === 0) blocks.push([]);
+    blocks.at(-1).push(pair);
+  }
+  return blocks;
 }
 
 /** The pending node's state file, for a refusal asserted on the bytes on disk. */

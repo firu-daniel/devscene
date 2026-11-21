@@ -25,7 +25,11 @@ The tokens below are neither Mode-contract **bindings** (this file declares none
 
    The `branch-reviewer` agent's system prompt already covers diff-fetching, full file reads (no further sub-agent delegation for file reads), parity checks against the reference implementation (`<parity_vocabulary>`, at `<reference_impl>`), the Must Fix / Should Fix / Nice to Have format, the high-yield checklist, and the **split output** it produces — a thin **code-review index** plus one self-contained per-finding file per finding, with the `## Phase 2 Readiness — Ordered Fix List` section placed in the index (after Context, before the finding pointers). Do not duplicate or override those instructions in your prompt to it. *The parity item in that list applies only when `phases.parity` is `true` in `devscene.config.json`; when it is `false` the agent has no reference implementation to compare against and the rest of its coverage is unchanged.*
 
-3. **Present the review findings** returned by the agent to the user.
+3. **Read every `branch-reviewer` return in this flow** — step 2's and any step-4 re-spawn's — as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states:
+   - An `outcome` of `returned` → present `` `branch-reviewer.index_path` ``, `` `branch-reviewer.findings_dir` ``, `` `branch-reviewer.finding_count` `` and each `` `branch-reviewer.questions` `` item to the user. `questions` is optional: absent or empty means none.
+   - An `outcome` of `blocker`, or the third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) → report `` `branch-reviewer.blocker` `` or the check that failed, and stop.
+
+   This dispatch is single-pass, so it reads no reconciliation field.
 
 4. **If anything is unclear or seems off** in the review, do not patch over it — ask clarification questions. If the user wants a deeper pass on a specific area, re-spawn the `branch-reviewer` agent with a focused prompt (e.g., "re-review only the files under one layer's configured `path` from `<layer_path_map>`, narrowed to a single feature subtree of it, with extra attention to the checks that layer's `layers[].conventions` document defines — for a user-facing layer that is its component-size threshold and its rules on styling tokens and the localized-copy source").
 
@@ -45,7 +49,9 @@ The tokens below are neither Mode-contract **bindings** (this file declares none
       Write branch statistics. Branch: <branch>. Story index: <state_dir>/story_plans/<branch>_story_plan.md. Output: <state_dir>/branch_statistics/<branch>/statistics.md.
       ```
 
-      Dispatch with the first-write (pre-user-review) prompt above — the `statistics-plan-writer` agent owns the counting and the output format. Relay the returned `success_rate` / `statistics_file` to the user.
+      Dispatch with the first-write (pre-user-review) prompt above — the `statistics-plan-writer` agent owns the counting and the output format. Read its return as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states:
+      - An `outcome` of `written` → relay `` `statistics-plan-writer.success_rate` `` and `` `statistics-plan-writer.statistics_file` `` to the user. Never open the file to verify.
+      - An `outcome` of `not_written`, or the third consecutive return that fails the check (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`) → tell the user the statistics were not written and why — `` `statistics-plan-writer.cause` ``, or the check that failed — invent no numbers, and stop: the write is this step's last act. This is this dispatch's `error` route, and it is not a blocker.
 
    **If there ARE findings to fix, do NOT write statistics here.** The statistics write for a non-clean review happens after the fixes land — in the `/devscene:branch-implement-review` fix flow (`${CLAUDE_PLUGIN_ROOT}/instructions/code_review_fixes_instructions.md`), once every review item is `[x]`. Writing here as well would double-write.
 

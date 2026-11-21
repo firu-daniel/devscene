@@ -86,6 +86,10 @@
  *   permission profile both read, so the condition is not restated here to go stale. This command
  *   *calls* that predicate, once, to decide whether the closing report owes the registry sentence
  *   ({@link reportNextSteps}); calling it is not restating it.
+ * - **It does not run the `--upgrade` flow.** {@link run} refuses the flags that cannot accompany
+ *   {@link UPGRADE_FLAG} and hands over before any repository is resolved, so nothing above about the
+ *   wiring run's plan, its refusals or its mutations outside the plan applies to that flow
+ *   (`upgrade/initUpgrade.ts`).
  */
 
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
@@ -221,6 +225,7 @@ import {
   WORKFLOW_TRIGGER_FILE,
 } from '../remote/githubActions.js';
 import { setUpRetrieval } from '../retrieval/setup.js';
+import { runInitUpgrade } from '../upgrade/initUpgrade.js';
 import type { CommandContext, Subcommand } from './registry.js';
 
 /** The command's one-line summary, in the usage block and at the head of its own `--help`. */
@@ -411,6 +416,15 @@ const NOTIFICATIONS_FLAG = '--notifications';
 /** The flag that supplies the endpoint the opt-in needs, and without which nothing is written. */
 const PUSH_URL_FLAG = '--push-url';
 
+/** The flag that brings the outer-loop scripts and the permission profile up to this CLI. */
+const UPGRADE_FLAG = '--upgrade';
+
+/** What {@link UPGRADE_FLAG} may be given with: itself, and the one input its profile render takes. */
+const UPGRADE_COMPATIBLE_FLAG_KEYS: ReadonlySet<keyof InitFlags> = new Set<keyof InitFlags>([
+  'upgrade',
+  'referenceToolchainPath',
+]);
+
 /**
  * The subject of the first commit, which `init` makes in any repository it wires that has no commit
  * yet — the one this run created, and the one it found in that state.
@@ -491,6 +505,11 @@ export interface InitFlags extends HarnessConfigFlags, ProjectSettingsFlags {
    * Writes no config key.
    */
   readonly upgradeWorkflows?: boolean;
+  /**
+   * `--upgrade`. Replace only the outer-loop scripts and the permission profile with what this CLI
+   * ships, after a backup (`upgrade/initUpgrade.ts`). Writes no config key.
+   */
+  readonly upgrade?: boolean;
 }
 
 /**
@@ -535,8 +554,8 @@ type ValueFlagKey = Exclude<keyof InitFlags, SwitchFlagKey>;
  * (`generators/projectSettings.ts`) and `--reference-toolchain-path` reaches the permission profile
  * (`generators/permissionProfile.ts`), so both still take effect on a kept run; and the run-shape
  * rows — `--git-init`, `--reset-config`, the {@link ANALYZE_FLAG} / {@link NO_ANALYZE_FLAG} pair,
- * {@link NOTIFICATIONS_FLAG}, {@link PUSH_URL_FLAG}, {@link PLUGIN_ROOT_ENTRIES_FLAG} and
- * {@link UPGRADE_WORKFLOWS_FLAG} — are about
+ * {@link NOTIFICATIONS_FLAG}, {@link PUSH_URL_FLAG}, {@link PLUGIN_ROOT_ENTRIES_FLAG},
+ * {@link UPGRADE_WORKFLOWS_FLAG} and {@link UPGRADE_FLAG} — are about
  * the shape of the run or about artifacts outside the repository's config.
  *
  * **Marked *and* detection-steering** is the sub-case, and {@link InitOption.steersDetection} is how
@@ -604,8 +623,9 @@ function initOptions<T extends readonly InitOption[]>(
  * answers the offer to analyze this repository — which decides the wording the generated
  * always-loaded file carries — then the pair that decides whether this account gets told when an
  * unattended run finishes, which is the one pair that writes nothing into the repository at all, then
- * the switch that adds this machine's plugin-root entries to a freshly generated profile, and last the
- * switch that re-renders the two remote-execution workflows at this CLI's version.
+ * the switch that adds this machine's plugin-root entries to a freshly generated profile, then the
+ * switch that re-renders the two remote-execution workflows at this CLI's version, and last the switch
+ * that upgrades the outer-loop scripts and the permission profile instead of wiring anything.
  *
  * The first two sit together, and ahead of everything else, because they are the rows whose subject
  * is the **shape of the run** rather than a value in the generated file: one settles what `init` is
@@ -784,6 +804,12 @@ const INIT_OPTIONS: readonly InitOption[] = initOptions([
     kind: 'switch',
     summary: "Re-render the two remote-execution workflows at this CLI's version, after a .bak, when devscene-run.yml was rendered for another",
   },
+  {
+    key: 'upgrade',
+    flag: UPGRADE_FLAG,
+    kind: 'switch',
+    summary: "Replace only the outer-loop scripts and the permission profile with this CLI's, after a backup (takes --dry-run and --reference-toolchain-path)",
+  },
 ] as const);
 
 /**
@@ -793,6 +819,11 @@ const INIT_OPTIONS: readonly InitOption[] = initOptions([
  */
 function optionSpellings(option: InitOption): readonly string[] {
   return [option.flag, ...(option.aliases ?? [])];
+}
+
+/** A row's flag as a message names it: every accepted spelling, so a reader who typed an alias recognises it. */
+function namedOption(option: InitOption): string {
+  return option.aliases === undefined ? option.flag : `${option.flag} (or ${option.aliases.join(', ')})`;
 }
 
 /**
@@ -834,9 +865,8 @@ function discardedConfigFlagsWarning(flags: InitFlags): string | undefined {
     const configKey = option.configValue;
     if (configKey === undefined) continue;
     const steersDetection = option.steersDetection === true;
-    // The naming carries every accepted spelling, so a reader who typed an alias recognises the line
-    // as theirs; the re-invocation stays on the canonical one, because that half is pasted back.
-    const named = option.aliases === undefined ? option.flag : `${option.flag} (or ${option.aliases.join(', ')})`;
+    // The re-invocation stays on the canonical spelling, because that half is pasted back.
+    const named = namedOption(option);
     if (option.kind === 'switch') {
       if (flags[option.key] === true) {
         dropped.push({ flag: named, configKey, invocation: option.flag, steersDetection });
@@ -1004,6 +1034,7 @@ function parseInitFlags(argv: readonly string[]): InitFlags {
     parity: switches.has('parity'),
     pluginRootEntries: switches.has('pluginRootEntries'),
     upgradeWorkflows: switches.has('upgradeWorkflows'),
+    upgrade: switches.has('upgrade'),
   } as InitFlags;
 }
 
@@ -1060,6 +1091,24 @@ function selfAdoptionOf(repoRoot: string): boolean {
 
   throw new HarnessError(
     `refusing to wire the harness's own repository; run \`${INIT_VERB}\` in the repository you want to adopt it. ${repoRoot} carries ${MARKETPLACE_MANIFEST} and a ${CLI_MANIFEST} naming this package, so it is the harness itself rather than an adopting project: wiring it would generate a ${CONFIG_FILENAME}, a run-artifact tree and a permission profile into the tree that ships them. Run ${INIT_VERB} from the adopting repository, or point it at one with --cwd <path>. To wire this repository on purpose — the harness's own self-adoption, a contributor workflow \`docs/development.md\` documents — set ${SELF_ADOPT_ENV}=1`,
+  );
+}
+
+/**
+ * Refuse a {@link UPGRADE_FLAG} command line carrying anything the upgrade would not honour, naming
+ * every such flag. Silently ignoring one would report success for a request that was never carried out.
+ */
+function assertUpgradeFlagsUsable(flags: InitFlags, force: boolean): void {
+  const refused = INIT_OPTIONS.filter((option) => {
+    if (UPGRADE_COMPATIBLE_FLAG_KEYS.has(option.key)) return false;
+    return option.kind === 'switch' ? flags[option.key] === true : flags[option.key] !== undefined;
+  }).map(namedOption);
+  if (force) refused.unshift('--force');
+  if (refused.length === 0) return;
+
+  // Joined rather than `nameList`ed: its cap would leave a refused flag unnamed.
+  throw new HarnessError(
+    `init: ${UPGRADE_FLAG} cannot be combined with ${refused.join(', ')}: it replaces only the outer-loop scripts and the permission profile, and the one init flag it takes is --reference-toolchain-path. Nothing was written; run it again without ${refused.length === 1 ? 'that flag' : 'those flags'}`,
   );
 }
 
@@ -2190,6 +2239,14 @@ function hiddenBackupsNote(options: {
 async function run(ctx: CommandContext): Promise<number> {
   const flags = parseInitFlags(ctx.argv);
 
+  if (flags.upgrade === true) {
+    assertUpgradeFlagsUsable(flags, ctx.flags.force);
+    return runInitUpgrade(ctx, {
+      referenceToolchainPath: flags.referenceToolchainPath,
+      assertRepositoryAllowed: selfAdoptionOf,
+    });
+  }
+
   // Settled from the flags alone, and therefore ahead of the git gate: `resolveTargetRepository` may
   // create a repository, and a refusal raised after it would leave one behind in a directory this run
   // then declined to wire — the harm {@link parseQaDriver} is checked inside the parser to avoid.
@@ -2955,7 +3012,7 @@ function analyzeRecordSentence(
  * unresolved arm can offer it only after one of the two routes it names is taken.
  *
  * **Step 2 carries the settled vocabulary** (`docs/analyze.md` §1): the no-argument form, and
- * `<target>` over the configured layer names *plus* {@link RESERVED_ANALYZE_TARGETS} — the three
+ * `<target>` over the configured layer names *plus* {@link RESERVED_ANALYZE_TARGETS} — the four
  * targets that name no layer. It states what the command does in the settled terms, including the
  * one thing it does not do: a layer-profile revision is proposed and reaches
  * `devscene.config.json` only through {@link CONFIG_SET_LAYERS_COMMAND} after an explicit yes

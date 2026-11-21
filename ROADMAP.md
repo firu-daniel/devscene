@@ -10,73 +10,67 @@ Nothing here is a schedule or a promise. **The index below is the intended order
 
 | Priority | Feature |
 |---|---|
-| 1 | [Converging plan reviews](#quality-and-testing) |
-| 2 | [Security reviewer](#quality-and-testing) |
-| 3 | [Performance reviewer](#quality-and-testing) |
-| 4 | [Committer as a script](#flow-and-orchestration) |
-| 5 | [Script-driven planning pilot](#flow-and-orchestration) |
-| 6 | [DevScene studio](#scene-products) |
-| 7 | [Task researcher](#flow-and-orchestration) |
-| 8 | [Contract-first task plans](#flow-and-orchestration) |
-| 9 | [Narrower plan and branch reviewers](#quality-and-testing) |
-| 10 | [Parallel plan reviews](#flow-and-orchestration) |
-| 11 | [Parallel dispatch in waves](#flow-and-orchestration) |
-| 12 | [Multi-plan programs](#flow-and-orchestration) |
-| 13 | [Ultra-fast mode](#flow-and-orchestration) |
-| 14 | [Review severity markers](#quality-and-testing) |
-| 15 | [Script-driven autonomous flow](#flow-and-orchestration) |
-| 16 | [Test-driven development](#quality-and-testing) |
-| 17 | [Outbound HTTP listener](#security-and-containment) |
-| 18 | [RagScene](#scene-products) |
-| 19 | [GraphScene](#scene-products) |
-| 20 | [Docs-catalog retrieval](#engines-environments-and-integrations) — kept opt-in by maintainer decision after a withdrawn verdict; improving it and measuring where it pays is open |
-| 21 | [Citation groundedness gate](#quality-and-testing) |
-| 22 | [Structured agent outputs](#quality-and-testing) |
-| 23 | [Golden-task eval suite](#quality-and-testing) |
-| 24 | [Trace export](#planning-artifacts-and-reporting) |
-| 25 | [Engine / provider abstraction](#engines-environments-and-integrations) |
-| 26 | [Model-change drift gate](#quality-and-testing) |
-| 27 | [Budget governor](#engines-environments-and-integrations) |
-| 28 | [Other issue trackers](#engines-environments-and-integrations) |
-| 29 | [First published eval result](#evidence-and-adoption) |
-| 30 | [Outcome-graded eval case](#evidence-and-adoption) |
-| 31 | [Measuring the lessons ledger](#evidence-and-adoption) |
-| 32 | [MCP servers](#engines-environments-and-integrations) |
-| 33 | [Cross-repo tasks](#flow-and-orchestration) |
-| 34 | [Watcher settings surface](#flow-and-orchestration) |
-| 35 | [`branch-summary.md`](#planning-artifacts-and-reporting) |
-| 36 | [Task breakdown and estimates file](#planning-artifacts-and-reporting) |
-| 37 | [User flow diagram](#planning-artifacts-and-reporting) |
-| 38 | [Business (data) flow diagram](#planning-artifacts-and-reporting) |
-| 39 | [Integration tests](#quality-and-testing) |
-| 40 | [Regression tests](#quality-and-testing) |
-| 41 | [Fix-plan structure review](#quality-and-testing) |
-| 42 | [Deploy to a test environment](#engines-environments-and-integrations) |
-| 43 | [Cloud QA](#engines-environments-and-integrations) |
-| 44 | [Mobile QA drivers](#engines-environments-and-integrations) |
-| 45 | [Design-source ingestion](#engines-environments-and-integrations) |
-| 46 | [Second end-to-end capture](#evidence-and-adoption) |
-| 47 | [Interactive session vs harness run](#evidence-and-adoption) |
-| 48 | [`init` warns when there is no remote](#evidence-and-adoption) |
-| 49 | [OS-level sandbox in the autonomous profile](#security-and-containment) |
-| 50 | [`doctor` sandbox checks](#security-and-containment) |
-| 51 | [Threat model](#documentation) |
-| 52 | [Suggested protected branches at `init`](#security-and-containment) |
-| 53 | [Guided default-branch change](#evidence-and-adoption) |
-| 54 | [Release tags in the protected set](#security-and-containment) |
-| 55 | [Notifications settings command](#flow-and-orchestration) |
+| 1 | [Security reviewer](#quality-and-testing) |
+| 2 | [Performance reviewer](#quality-and-testing) |
+| 3 | [DevScene studio](#scene-products) |
+| 4 | [Task researcher](#flow-and-orchestration) |
+| 5 | [Contract-first task plans](#flow-and-orchestration) |
+| 6 | [Narrower plan and branch reviewers](#quality-and-testing) |
+| 7 | [Parallel dispatch in waves](#flow-and-orchestration) |
+| 8 | [Multi-plan programs](#flow-and-orchestration) |
+| 9 | [Ultra-fast mode](#flow-and-orchestration) |
+| 10 | [Script-driven autonomous flow](#flow-and-orchestration) |
+| 11 | [Test-driven development](#quality-and-testing) |
+| 12 | [Outbound HTTP listener](#security-and-containment) |
+| 13 | [RagScene](#scene-products) |
+| 14 | [GraphScene](#scene-products) |
+| 15 | [Docs-catalog retrieval](#engines-environments-and-integrations) — kept opt-in by maintainer decision after a withdrawn verdict; improving it and measuring where it pays is open |
+| 16 | [Citation groundedness gate](#quality-and-testing) |
+| 17 | [Golden-task eval suite](#quality-and-testing) |
+| 18 | [Trace export](#planning-artifacts-and-reporting) |
+| 19 | [Engine / provider abstraction](#engines-environments-and-integrations) |
+| 20 | [Model-change drift gate](#quality-and-testing) |
+| 21 | [Budget governor](#engines-environments-and-integrations) |
+| 22 | [Other issue trackers](#engines-environments-and-integrations) |
+| 23 | [First published eval result](#evidence-and-adoption) |
+| 24 | [Outcome-graded eval case](#evidence-and-adoption) |
+| 25 | [Measuring the lessons ledger](#evidence-and-adoption) |
+| 26 | [MCP servers](#engines-environments-and-integrations) |
+| 27 | [Cross-repo tasks](#flow-and-orchestration) |
+| 28 | [Watcher settings surface](#flow-and-orchestration) |
+| 29 | [`branch-summary.md`](#planning-artifacts-and-reporting) |
+| 30 | [Task breakdown and estimates file](#planning-artifacts-and-reporting) |
+| 31 | [User flow diagram](#planning-artifacts-and-reporting) |
+| 32 | [Business (data) flow diagram](#planning-artifacts-and-reporting) |
+| 33 | [Integration tests](#quality-and-testing) |
+| 34 | [Regression tests](#quality-and-testing) |
+| 35 | [Fix-plan structure review](#quality-and-testing) |
+| 36 | [Deploy to a test environment](#engines-environments-and-integrations) |
+| 37 | [Cloud QA](#engines-environments-and-integrations) |
+| 38 | [Mobile QA drivers](#engines-environments-and-integrations) |
+| 39 | [Design-source ingestion](#engines-environments-and-integrations) |
+| 40 | [Second end-to-end capture](#evidence-and-adoption) |
+| 41 | [Interactive session vs harness run](#evidence-and-adoption) |
+| 42 | [`init` warns when there is no remote](#evidence-and-adoption) |
+| 43 | [OS-level sandbox in the autonomous profile](#security-and-containment) |
+| 44 | [`doctor` sandbox checks](#security-and-containment) |
+| 45 | [Threat model](#documentation) |
+| 46 | [Suggested protected branches at `init`](#security-and-containment) |
+| 47 | [Guided default-branch change](#evidence-and-adoption) |
+| 48 | [Release tags in the protected set](#security-and-containment) |
+| 49 | [Notifications settings command](#flow-and-orchestration) |
 
 ## Flow and orchestration
 
 | Feature | What it is | Status |
 |---|---|---|
 | Ultra-fast mode | A reduced flow — plan, plan review, implementation, branch review, review fixes — with an optional duration flag. When a duration is given, the orchestrator splits it across phases (e.g. 40% planning, 20% implementation, 40% branch review and fixes) and gives each agent a time window to return in. | Open |
-| Parallel dispatch in waves | Planning and implementation agents with no dependency on each other run in parallel batches instead of one at a time. On the implementation side it is what **Contract-first task plans** make possible: each wave dispatches one implementer per layer — baseline models, then abstract contracts, then implementations and wiring. On the planning side it starts with **Parallel plan reviews**. | Open |
+| Parallel dispatch in waves | Planning and implementation agents with no dependency on each other run in parallel batches instead of one at a time. On the implementation side it is what **Contract-first task plans** make possible: each wave dispatches one implementer per layer — baseline models, then abstract contracts, then implementations and wiring. On the planning side, **Parallel plan reviews** already runs a round's plan gates as one wave. | Open |
 | Task researcher | A pre-planning agent with four responsibilities: (a) web research where the task needs it — it is granted `WebSearch` and `WebFetch`, and whether and how it stays sandboxed is still to be decided; (b) a feasibility check, asking clarifying questions at minute one; (c) a research report file for the run, which also gives the plan writer short leads; (d) rough estimates for the full requirements, flagging any task above 300 story points to be split into several branches of at most 300 each. The split itself is **Multi-plan programs**. | Open |
 | Contract-first task plans | Refactor the task-plan writer to fewer responsibilities: it writes the skeleton and the contracts between tasks — the required output and behaviour of each sub-task — rather than every implementation detail. Today the plan is so detailed that implementers mostly transcribe it, which leaves them no room to improvise and binds them to the plan when it is wrong. Where the work allows it (source code more than corpus or documentation work, and never as an absolute rule), a story is ordered in three stages, each dispatchable in parallel per layer: (a) the baseline — data models, domain entities, mappers; (b) abstract contracts — data-module functions returning the data models, domain functions or use cases calling them, the presentation layer's hooks or components — as signatures, nullable stubs or "not implemented" bodies; (c) the implementations of those contracts and the tasks that link them together. Starts with research into the writer's full current responsibilities. | Open |
-| Parallel plan reviews | The task-plan and user-review fix-plan reviewers run in parallel, each writing its own findings file; then either the plan writer reads every file, or a merging agent (possibly a new one) folds them into one. | Open |
-| Committer as a script | A script that commits and pushes, replacing the `committer` agent. | Open |
-| Script-driven planning pilot | A script walks the planning graph and runs each node as its own headless session, taking planning out of the orchestrator session; an opt-in measured pilot that ends with a cost comparison deciding whether the unit loop follows ([#159](https://github.com/firu-daniel/devscene/issues/159)). | Open |
+| Parallel plan reviews | In the task-plan loop and the user-review fix-plan loop, a round's gates fan out together, each reviewer writing its own findings file, and the round node joins them; the plan writer then reads every findings file of the round. It builds on **Converging plan reviews**: that item's round decision point is the join, and its sequence of gates is the fan-out. | Done |
+| Committer as a script | `commit-on-branch.sh`'s `--unit` / `--artifact` front end, with `--push`, over `lib/unit-commit-lib.sh`, replacing the `committer` agent: the script ticks the readiness entry, builds the subject and the body record from the index or its artifact table, stages the unit's paths, commits and pushes, and the orchestrating session calls it directly. The **Script-driven autonomous flow** will source the same library from its driver. | Done |
+| Script-driven planning pilot | A script walks the planning graph and runs each node as its own headless session, taking planning out of the orchestrator session; an opt-in measured pilot that ends with a cost comparison deciding whether the unit loop follows ([#159](https://github.com/firu-daniel/devscene/issues/159)). | Done |
 | Script-driven autonomous flow | The whole autonomous flow on the script-driven graph, removing the orchestrator session. Follows the planning pilot if its cost comparison favours it. | Open |
 | Multi-plan programs | A task too big for one plan becomes an ordered chain of plans — one branch each, at most 300 story points, split from the **Task researcher**'s estimates — each picked up from the inbox when the previous one finishes. **The mechanism is a per-run base branch**, which also covers the standalone case of a run starting from a branch other than `defaultBranch` — a hotfix from `prod`, a fix on `release/x.y`: the config lists the allowed bases, the drop or `/devscene:branch-prompt` picks one, and the run records it; the run copy, the branch-review diff and the branch refresh all use that recorded base. Today every run is cut from `defaultBranch`, so the only way is to change the key for one run and change it back. **Lead, to be researched:** when the researcher splits a task, the program cuts its own base branch from `defaultBranch`; each plan's branch is cut from that base, refreshes from it before it lands (an earlier plan may have landed meanwhile), and lands back into it; the base reaches `defaultBranch` through the usual human-merged pull request. The research must first settle whether that is safe under the protected-branch set and the sandbox: who merges into the base, given that a run never merges today; and how a branch cut from a base other runs wrote passes the protected-surface check that the run copy now makes against `defaultBranch`. | Open |
 | Cross-repo tasks | One task split into per-repository plans with an explicit contract between them. | Open |
@@ -101,15 +95,15 @@ Nothing here is a schedule or a promise. **The index below is the intended order
 |---|---|---|
 | Line-number citations never block | Review findings anchor on symbols; a stale line number in a citation is no longer a blocking finding. | Done |
 | Citation groundedness gate | Every citation in a plan, a review finding or a justification is checked against the file and symbol it names, so a fabricated or miscited reference fails the gate instead of reaching a reviewer. | Open |
-| Structured agent outputs | Every agent's return validated against a declared schema at the seam — reviewer verdicts, writer file paths and counts, the statistics block, the committer's sha and subject. The contracts already exist in prose and callers parse those lines word for word, so renaming one breaks a caller silently today. | Open |
+| Structured agent outputs | Every agent under `plugin/agents/` declares its return in `plugin/schemas/<agent>.return.json`, and its callers read fields rather than lines. A new agent without a schema file fails `cli/test/agent-return-schemas.test.mjs`. The mechanism and its decisions are recorded in [`docs/structured-agent-returns.md`](docs/structured-agent-returns.md). | Done |
 | Golden-task eval suite | A frozen set of task prompts with rubrics, re-run whenever the harness's own instructions change, graded per task class. `evals/` holds one provisional case. | Open |
 | Model-change drift gate | Pin the model a flow runs on, and re-run the golden-task suite when that pin changes, so a model upgrade or deprecation surfaces as a measured diff rather than as drift discovered mid-branch. | Open |
 | Integration tests | The pipeline writes integration tests for the change — and widget/component tests where the stack has them. | Open |
 | Regression tests | The pipeline writes regression tests for the behaviour a branch fixes or changes. | Open |
 | Fix-plan structure review | A structural reviewer for the user-review fix-plan flow, matching the one the task plan already has. | Open |
-| Converging plan reviews | The first two review rounds of a task plan review the whole plan; from the third round on, the reviewers only check that the previous round's Must Fix items were addressed instead of reviewing the plan again. The same for the user-review fix plan. | Open |
+| Converging plan reviews | Every plan reviewer runs every round against the same version of the task plan, and one decision point closes the round. From the third round on, the reviewers run in converging mode: they check that the previous round's Must Fix items were addressed, and note anything else as non-gating incidental findings that the end-of-branch reviewers follow up. The autonomous fork commits each round. The same holds for the user-review fix plan, whose routing stays prose ([`docs/converging-plan-reviews.md`](docs/converging-plan-reviews.md)). | Done |
 | Narrower plan and branch reviewers | Refactor the task-plan reviewer to fewer responsibilities — the plan's structure, and whether it covers and offers a solution for every requirement of the task prompt — and spread the rest across the other reviewers. Starts with research into its full current responsibilities; whether the same applies to the end-of-branch `branch-reviewer` is part of that research. | Open |
-| Review severity markers | Revisit what really is a Must Fix — possibly a review should carry Must Fix items only. | Open |
+| Review severity markers | Revisit what really is a Must Fix — possibly a review should carry Must Fix items only. | Done |
 | Security reviewer | A security reviewer agent at the end-of-branch review and in the user-review fix-plan phase, and in the plan phase where security issues can be detected from a plan at all. Its scope draws on Claude Code's existing security review command. | Open |
 | Performance reviewer | A performance reviewer agent at the same three points: the end-of-branch review, the user-review fix-plan phase, and the plan phase where performance issues can be detected from a plan at all. | Open |
 | Test-driven development | The pipeline writes the tests before the implementation they cover. | Open |
@@ -165,7 +159,7 @@ Parts of the harness extracted as products of their own.
 | Feature | What it is | Status |
 |---|---|---|
 | RagScene | The docs retrieval extracted from the harness as its own product ([`docs/rag-extraction-research/`](docs/rag-extraction-research/README.md)). | Open |
-| GraphScene | The flow-graph navigation extracted from the harness ([`docs/flow-graph-walker.md`](docs/flow-graph-walker.md)). | Open |
+| GraphScene | The flow-graph navigation extracted from the harness ([`docs/flow-graph-walker.md`](docs/flow-graph-walker.md)). Shipped: the library skeleton at `graphscene/`, with no graph walker, its import boundary enforced by its own test, and gated by gate 13's legs 13e–13g ([`docs/development.md`](docs/development.md) §5); and the generic flow-graph schema, format 4, in which a graph declares its own vocabulary, with its used-against-declared names check, the harness's planning graph authored in it and its format-3 copy generated from it ([`docs/flow-graph-walker.md`](docs/flow-graph-walker.md) → *Format 4*); and the graph model, `load_graph`, which validates a parsed graph against the format-4 schema and the vocabulary check and returns it as typed objects, with one error type, `GraphError`, for every rejection ([`graphscene/README.md`](graphscene/README.md)). Left: the engine, the walker's port onto it, and the harness-side package; and the format-4 cutover — the walker and the format-3 readers moving to format 4, and the generated copy and its generator retired. | In progress |
 | DevScene studio | DevScene studio. | Open |
 
 ## Documentation

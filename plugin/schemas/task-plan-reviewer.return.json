@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "task-plan-reviewer return",
+  "description": "The task-plan-reviewer's return object.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "No Must Fix remains; the round file was written.",
+      "properties": {
+        "outcome": { "const": "PASS", "description": "No Must Fix remains." },
+        "findings_file": { "type": "string", "minLength": 1, "description": "The round file's full path." }
+      },
+      "required": ["outcome", "findings_file"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "At least one Must Fix; the round file was written.",
+      "properties": {
+        "outcome": { "const": "FAIL", "description": "At least one Must Fix." },
+        "findings_file": { "type": "string", "minLength": 1, "description": "The round file's full path." },
+        "must_fix_count": { "type": "integer", "minimum": 1, "description": "The number of Must Fix entries." }
+      },
+      "required": ["outcome", "findings_file", "must_fix_count"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A cited input could not be read; no round file was written.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "A cited input could not be read." },
+        "blocker": { "type": "string", "minLength": 1, "description": "The unreadable path and the refusal, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}

@@ -4,6 +4,8 @@ You are the **orchestrator** for the task-plan writing phase. Your job is to dis
 
 Context discipline applies just like in implementation: do not read findings files, do not echo agent output back verbatim. Pass paths between agents and summarize at the end.
 
+On the opt-in script-driven planning path no session reads this file: the watcher's planning driver (`<scripts_dir>/lib/planning-driver-lib.sh`) walks the graph itself, takes the dispatch blocks of `## Loop` and `## UI-test-plan write loop` as its prompts — filled with the walker's values, with nothing appended but a resumed writer's answers — and takes `## Setup (once per session)` step 4's `MAX_TOTAL_DISPATCHES` as its cap. `<scripts_dir>/lib/planning-node-lib.sh` keys on all of the following, so each is wire text: the `## Setup (once per session)` heading and its `MAX_TOTAL_DISPATCHES = ` line; the `## Loop` and `## UI-test-plan write loop` headings; each `###` heading under them that carries a dispatch block; and the fence count under each of those `###` headings.
+
 > **You were dispatched via a mode fork — read that fork's binding table too.** This file supplies no mode-specific values.
 
 ---
@@ -29,13 +31,13 @@ The `Used at` column is load-bearing, not documentation. All five bindings below
 
 | Binding | Used at | Meaning (short) |
 |---|---|---|
-| `<escalate>` | `## Setup` step 2 (task prompt missing); `## The walker` (a non-zero exit); the walker's `binding: <escalate>` line, acted on in `## Loop` step 5 and in `## UI-test-plan write loop` step 3; `## Stop conditions` entries 4–5 | This flow's path for halting and reporting an **agent/flow blocker**. Never used for a `<state_dir>/STOP` halt or the dispatch-cap halt — see `## Setup` step 3 and `## Safety contract`. |
-| `<ask>` | the walker's `binding: <ask>` line, acted on in `## Loop` step 1 and `## UI-test-plan write loop` step 1 (a writer returns `## Questions`); `## Stop conditions` entry 3 | This flow's clarification path — what to do when the flow **needs an answer before it can continue**. Distinct from `<escalate>`: an answer can bring the flow back. |
+| `<escalate>` | `## Setup` step 2 (task prompt missing); `## The walker` (a non-zero exit); the walker's `binding: <escalate>` line, acted on in `## Loop` step 5 and in `## UI-test-plan write loop` step 3; `## Stop conditions` entries 4–6 | This flow's path for halting and reporting an **agent/flow blocker**. Never used for a `<state_dir>/STOP` halt or the dispatch-cap halt — see `## Setup` step 3 and `## Safety contract`. |
+| `<ask>` | the walker's `binding: <ask>` line, acted on in `## Loop` step 1 and `## UI-test-plan write loop` step 1 (a writer returns an `outcome` of `questions`); `## Stop conditions` entry 3 | This flow's clarification path — what to do when the flow **needs an answer before it can continue**. Distinct from `<escalate>`: an answer can bring the flow back. |
 | `<terminal_handoff>` | the walker's `binding: <terminal_handoff>` line, acted on in `## Convergence` | What happens when both loops converge — present-and-stop, or emit-a-summary-and-fall-through. |
 | `<existing_artifact_decision>` | `## Setup` step 5; `## The walker` → **Continuing a saved walk.** | How this flow decides what to do when a story index or a saved walk already exists on (re-)entry. |
 | `<reentry_command>` | `## Setup` step 3 (STOP soft-fail at launch); `## Safety contract` step 1 (pre-dispatch STOP check) | The command named in a halt message ("… re-run X to continue"). |
 
-Every **other** `<…>` name in this file is **not** a binding. `<branch>` and `<prompt_path>` are **path placeholders** and resolve from `## Setup` below; an unresolved one means you arrived here without reading that Setup, and is not a stop condition (`${CLAUDE_PLUGIN_ROOT}/instructions/mode_contract.md` → `### Bindings vs. path placeholders`). The rest are neither kind: `<state_dir>`, `<scripts_dir>`, `<parity_vocabulary>`, `<reference_impl>` and `<layer_names>` are **config values** declared in `## Resolved values` above, and `<findings_file>`, `<iteration>`, `<entry>`, `<outcome>`, `<skipped>`, `<total_dispatches>`, `<agent_name>`, `<i>` and `<N>` are bound below, at their point of use.
+Every **other** `<…>` name in this file is **not** a binding. `<branch>` and `<prompt_path>` are **path placeholders** and resolve from `## Setup` below; an unresolved one means you arrived here without reading that Setup, and is not a stop condition (`${CLAUDE_PLUGIN_ROOT}/instructions/mode_contract.md` → `### Bindings vs. path placeholders`). The rest are neither kind: `<state_dir>`, `<scripts_dir>`, `<parity_vocabulary>`, `<reference_impl>` and `<layer_names>` are **config values** declared in `## Resolved values` above, and `<findings_file>`, `<findings_files>`, `<iteration>`, `<review_mode>`, `<revision_note>`, `<entry>`, `<outcome>`, `<skipped>`, `<total_dispatches>`, `<agent_name>`, `<i>` and `<N>` are bound below, at their point of use.
 
 ---
 
@@ -52,6 +54,7 @@ Every **other** `<…>` name in this file is **not** a binding. `<branch>` and `
    | Plan-review findings folder | `<state_dir>/task_plan_reviews/<branch>/` |
    | Business-parity-review findings folder | `<state_dir>/business_parity_reviews/<branch>/` (reached only when `phases.parity` is `true` — the planning graph's `skipped` gate on `business_parity_review`, which `## The walker` applies) |
    | Architecture-review findings folder | `<state_dir>/architecture_reviews/<branch>/` |
+   | Revision notes folder | `<state_dir>/plan_revisions/<branch>/` (the writer writes one `task_plan_revision_<iteration>.md` per revision) |
    | UI-test plan index output | `<state_dir>/ui_test_plans/<branch>_ui_test_plan.md` (reached only when `phases.qa` is `true` — the planning graph's `skipped` gate on `ui_writer`, which `## The walker` applies) |
    | UI-test per-test files output dir | `<state_dir>/ui_test_plans/<branch>/` (holds one `ui_test_<N>.md` per readiness entry) |
    | UI-test plan-review findings folder | `<state_dir>/ui_test_plan_reviews/<branch>/` |
@@ -59,12 +62,12 @@ Every **other** `<…>` name in this file is **not** a binding. `<branch>` and `
 3. **STOP file soft-fail at launch:** if `<state_dir>/STOP` exists, halt and report: `Halted by STOP file at <state_dir>/STOP. Delete the file and re-run <reentry_command> to continue.` Do NOT delete the STOP file yourself — it is owned by whoever created it, never by this flow. Then stop. (A STOP file is a user-initiated stop, not a flow blocker: it halts exactly as written here.)
 4. **Initialize safety counters:**
    - Run `echo 0 > <state_dir>/.dispatch_counter` to reset the persistent dispatch counter. The counter lives in `<state_dir>/.dispatch_counter` — on disk rather than in context, so it survives harness auto-compaction; re-read on every dispatch (see the safety contract below). It is a machine-local run artifact: keep it out of commits (`init`'s managed ignore block covers it), and never stage `<state_dir>/` as a directory.
-   - `MAX_TOTAL_DISPATCHES = 40` — a runaway backstop that sits **behind** both loops' own `iteration >= 5` caps, never in front of them. Sizing: `## Loop` dispatches **four** agents per revision (`task-plan-writer`, `business-parity-reviewer`, `architecture-reviewer`, `task-plan-reviewer`) and caps at 5 revisions → 20; the UI-test-plan loop resets `iteration` and dispatches two per revision → 10; 30 bounded, and the remaining 10 absorb writer clarification re-dispatches. Reaching it therefore means a re-dispatch runaway, not non-convergence — non-convergence escalates at those loop caps first. If you hit it, halt.
+   - `MAX_TOTAL_DISPATCHES = 40` — a runaway backstop that sits **behind** both loops' own `iteration >= 5` caps, never in front of them. Sizing: `## Loop` dispatches the writer, then the round's three gates (`business-parity-reviewer`, `architecture-reviewer`, `task-plan-reviewer`) as one set — still **exactly** four agents per round, because every gate runs every round — and caps at 5 revisions → 20; the UI-test-plan loop resets `iteration` and dispatches two per revision → 10; 30 bounded, and the remaining 10 absorb writer clarification re-dispatches and refused-round-file re-dispatches. Reaching it therefore means a re-dispatch runaway, not non-convergence — non-convergence escalates at those loop caps first. If you hit it, halt.
 5. **If a story index already exists** at `<state_dir>/story_plans/<branch>_story_plan.md`, **or the fork's `<existing_artifact_decision>` weighs a saved walk** (as `## The walker` → **Continuing a saved walk.** describes), apply `<existing_artifact_decision>` — reading the story index briefly first where it exists (heading list + Phase 2 Readiness entries only — don't ingest the per-task files) — which decides between **proceed fresh** (write from scratch), **extend** (pass that instruction to the writer), **review** (send the existing draft back through its loop's gates, neither rewritten nor skipped), **continue** (a saved walk is continued where it stopped, as `## The walker` → **Continuing a saved walk.** states) and **skip** (this loop has nothing to do). A fork's decision may select **continue** whether or not a story index exists, because a writer can park before it writes one. Do not silently overwrite, and do not pick one yourself — this core supplies no default.
 6. **Establish the run mode — grep first, open the contract only on a hit.** Run `grep -nE '^#+ *Run mode' <prompt_path>`. **No hit → this run has no run mode**: hold `none` for this session, emit `📌 Run mode: none` where a disclosure is owed, and do **not** open `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md`. **A hit → read `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md` and follow it**, resolving that section to its directive ids and holding them for this session. Reading the task prompt is permitted and always was: the path-only rule in `## What you must NOT do` names review artifacts and plan files, and the prompt is neither — nothing here carves an exception out of that rule. Two follow-on facts have other owners and are not restated here: the **durable record** of what you read, and the seeding of its skipped-phase markers, belong to the fork that creates that record on the flows whose fork maintains one; and the **re-read immediately before each gate below** is what you actually act on — never a value carried forward from here.
 
    **Who reads first.** This step is appended below steps 1–5, while a fork that creates the run's durable record does so as its *first* Setup act — so this step is not always the first read. The rule: the run mode is obtained by whichever participant reaches it first — the engine entry command's confirm-and-establish step where the session has one, otherwise this step, otherwise the creating fork performing the same grep-first check itself immediately before its creation write — and **the creation write never happens without a resolved run mode**, an absent `### Run mode` section resolving to "no run mode", which is a value, not a missing one. Where this step runs after the record already carries its run-mode block (a resume, or a fork that read first), **read the recorded block** and do not re-derive it from the prompt: the recorded block is the tie-break `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md` states.
-7. **Start or continue the walker.** **continue** issues no `start`: continue the saved walk as `## The walker` → **Continuing a saved walk.** states. Every other outcome picks `<entry>`: **proceed fresh** gives `plan_writer`; **extend** gives `plan_writer`, except where the answers being resumed were raised inside the UI-test-plan loop — by `ui-tests-plan-writer`'s `## Questions` or at that loop's cap — which gives `ui_writer`, so the answers reach the writer whose loop parked. Where a saved walk parked at `<ask>` is usable, **continue** reaches the writer that parked instead, through the walker's `resume:` line; the exception is for a park at a loop's cap, which is a finished walk, and for a lost saved walk. **review** gives the first gate of the loop whose draft no reviewer has passed: `business_parity_review` for the task-plan draft, whose skip gates pass the walk to `architecture_review` as usual, and `ui_review` for the UI-test-plan draft when the task-plan loop is skipped. **skip** gives `ui_writer`, or `convergence` when the UI-test-plan loop is also done or does not run. A fork's own resume rule that skips a loop, or that reviews a draft, maps the same way. Issue `## The walker`'s `start` form with that entry and act on what it prints.
+7. **Start or continue the walker.** **continue** issues no `start`: continue the saved walk as `## The walker` → **Continuing a saved walk.** states. Every other outcome picks `<entry>`: **proceed fresh** gives `plan_writer`; **extend** gives `plan_writer`, except where the answers being resumed were raised inside the UI-test-plan loop — by `` `ui-tests-plan-writer.questions` `` or at that loop's cap — which gives `ui_writer`, so the answers reach the writer whose loop parked. Where a saved walk parked at `<ask>` is usable, **continue** reaches the writer that parked instead, through the walker's `resume:` line; the exception is for a park at a loop's cap, which is a finished walk, and for a lost saved walk. **review** gives `plan_round` for the task-plan draft — whose fan-out passes skipped gates as usual — and `ui_review` for the UI-test-plan draft when the task-plan loop is skipped. **skip** gives `ui_writer`, or `convergence` when the UI-test-plan loop is also done or does not run. A fork's own resume rule that skips a loop, or that reviews a draft, maps the same way. Issue `## The walker`'s `start` form with that entry and act on what it prints.
 
 ---
 
@@ -76,45 +79,34 @@ Every **other** `<…>` name in this file is **not** a binding. `<branch>` and `
 
 ```
 bash <scripts_dir>/flow-walker.sh start --flow task_plan_writing --branch <branch> --entry <entry> --skipped <skipped>
-bash <scripts_dir>/flow-walker.sh next --flow task_plan_writing --branch <branch> --outcome <outcome> --findings <findings_file> --skipped <skipped>
+bash <scripts_dir>/flow-walker.sh next --flow task_plan_writing --branch <branch> --node <node> --outcome <outcome> --findings <findings_file> --skipped <skipped>
 bash <scripts_dir>/flow-walker.sh current --flow task_plan_writing --branch <branch>
 ```
 
-Pass `--findings` only with `--outcome FAIL`. **Pass `--skipped` only when no flow-progress ledger exists** at the path `${CLAUDE_PLUGIN_ROOT}/instructions/autonomous_pause_and_ledger.md` → `### 1.1 File` gives it; where one exists the walker reads the run mode from it. `<skipped>` is the run mode's skipped ids joined by commas with no space, or `none`, re-read before each call by the bounded extraction `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md` → `## The section contract — name, shape, and how it is found` defines; where `## Setup` step 6's grep had no hit it is `none`.
+Pass `--node` — the `node:` of the block whose dispatch returned — with every outcome but `answered`. `<findings_file>` is `` `business-parity-reviewer.findings_file` ``, `` `architecture-reviewer.findings_file` `` or `` `task-plan-reviewer.findings_file` `` on an `outcome` of `PASS` or `FAIL` from that plan gate (`business_parity_review`, `architecture_review`, `plan_review`), and `` `ui-tests-plan-reviewer.findings_file` `` on an `outcome` of `FAIL` from `ui_review`; pass `--findings` with no other outcome. **Pass `--skipped` only when no flow-progress ledger exists** at the path `${CLAUDE_PLUGIN_ROOT}/instructions/autonomous_pause_and_ledger.md` → `### 1.1 File` gives it; where one exists the walker reads the run mode from it. `<skipped>` is the run mode's skipped ids joined by commas with no space, or `none`, re-read before each call by the bounded extraction `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md` → `## The section contract — name, shape, and how it is found` defines; where `## Setup` step 6's grep had no hit it is `none`.
 
-**`<outcome>`, from the agent's return:**
-
-| The return carries | `--outcome` |
-|---|---|
-| a `## Questions` section | `questions` |
-| a writer's `story_file` / `ui_test_index` | `returned` |
-| `verdict: PASS` | `PASS` |
-| `verdict: FAIL` | `FAIL`, with the reviewer's `findings_file:` as `<findings_file>` |
-| `no_ui: true` | `no_ui` |
-| `error:` | `error` |
-| `blocker:` | `blocker` |
-| an answer that came back through `<ask>` | `answered` |
-
-Take the first row whose left cell the return matches: a writer that returns `## Questions` beside its summary block — or beside `no_ui: true` — passes `questions`.
+**`<outcome>`, from the agent's return.** Read the return as `${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## Reading a return` states, against the fields the section for `node:` reads for that outcome. `--outcome` is the return object's `outcome`, and `answered` for an answer that came back through `<ask>`. A return that fails that check takes **A dispatch that did not return** below; on its third consecutive failure for the same node, pass `--outcome error` (`${CLAUDE_PLUGIN_ROOT}/instructions/agent_return_contract.md` → `## A return that fails the check`).
 
 **Acting on what it prints:**
 
-- **`action: dispatch`** — apply `## Safety contract`, then dispatch `agent:` with the block of the section `node:` names: `plan_writer` → `## Loop` step 1, `business_parity_review` → step 2, `architecture_review` → step 3, `plan_review` → step 4, `ui_writer` → `## UI-test-plan write loop` step 1, `ui_review` → its step 2. `prompt:` picks the writer's first-iteration (`initial`) or revision block, `arg.iteration:` fills `iteration: <iteration>` and `arg.findings_file:` fills `<findings_file>`. Then pass the return back with `next`.
-- **`action: binding`** — apply the binding its `binding:` line names, as the section for `node:` states: `<ask>` and `<escalate>` there, `<terminal_handoff>` at `## Convergence`.
-- **`skip: <node> <skipped|passed-by-exclusion>`** on either action — a gate passed with no dispatch; note it for `## Convergence`. **`ledger: <id>`** — the fork's to act on, and a no-op where no ledger is kept.
+- **`action: dispatch`** — one block is one dispatch; **several blocks are one set** — a round's due gates (`${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The round file`) — so apply `## Safety contract` to each, send the set as that section states, and record each return with `next` as it is read, in any order. For each block, dispatch `agent:` with the block of the section `node:` names: `plan_writer` → `## Loop` step 1, `business_parity_review` → step 2, `architecture_review` → step 3, `plan_review` → step 4, `ui_writer` → `## UI-test-plan write loop` step 1, `ui_review` → its step 2. `prompt:` picks the writer's first-iteration (`initial`) or revision block. `arg.iteration:` fills a gate's `iteration: <iteration>` and, on a writer revision, the revision note's `<iteration>`; on a writer's initial or extend dispatch it fills nothing in the prompt and is the round a fork's pause commit names. `arg.review_mode:` fills `review_mode: <review_mode>`. The `arg.findings_file:` values, in printed order joined by `, `, fill `<findings_files>` on a `plan_writer` revision; `ui_writer`'s one fills `<findings_file>`. Then pass the return back with `next`.
+- **`action: wait`** — the set is still out: its `pending:` lines name the gates whose returns are not recorded. Nothing to dispatch; record the next return as it is read.
+- **`action: binding`** — apply the binding its `binding:` line names, as the section for `node:` states: `<ask>` and `<escalate>` there, `<terminal_handoff>` at `## Convergence`. Its `held:` lines name every gate whose `error` or `blocker` outcome the walker held until the set was in; `<escalate>` carries them all.
+- **`refused: <gate> attempt <n> of 3: <reason>`** — that gate's round file failed the check (`${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The Must Fix entry`) and its return recorded nothing. On `action: wait`, keep recording the other gates' returns. On `action: dispatch`, send the printed set as usual; each reviewer replaces its own round file.
+- **`skip: <node> <skipped|passed-by-exclusion>`** on either action — a gate passed with no dispatch; note it for `## Convergence`. **`ledger: <id>`** — the fork's to act on, and a no-op where no ledger is kept. **`round: <n> <PASS|FAIL>`** — the fork's to act on, and a no-op where no fork acts on it.
 
 **Continuing a saved walk.** This runs where `<existing_artifact_decision>` weighs a saved walk: issue the `current` form first, because it is read-only. Read what it prints:
 
-- `action: dispatch` — a dispatch was pending when the last session ended: continue by acting on the printed action exactly as **`action: dispatch`** above states — `## Safety contract` first, then the dispatch — and act on its `skip:` and `ledger:` lines too, because a printed-again `ledger:` line is the fork's to make harmless. Issue no `start`: the counter and every `review_<n>` series carry on.
-- `binding: <ask>` — a writer's `## Questions` parked the walk: continue only where the answers to that park reach this session through `<ask>`'s channel. Pass `answered`, then dispatch the writer the walker prints, with the answers appended as `## Loop` step 1 states; the walker's `resume:` line names that writer, and its prompt variant is the one the writer parked on. Without the answers the walk is not continued.
+- `action: dispatch` — a dispatch was pending when the last session ended: continue by acting on the printed action exactly as **`action: dispatch`** above states — `## Safety contract` first, then the dispatch; a pending set re-prints only its gates with no recorded outcome, and those are dispatched as a set — and act on its `skip:` and `ledger:` lines too, because a printed-again `ledger:` line is the fork's to make harmless. Issue no `start`: the counter and every `review_<n>` series carry on.
+- `binding: <ask>` — a writer's `questions` outcome parked the walk: continue only where the answers to that park reach this session through `<ask>`'s channel. Pass `answered`, then dispatch the writer the walker prints, with the answers appended as `## Loop` step 1 states; the walker's `resume:` line names that writer, and its prompt variant is the one the writer parked on. Without the answers the walk is not continued.
 - any other `binding:` — the walk finished: `<terminal_handoff>`, or `<escalate>` at a cap, an `error` or a `blocker`. It is **not** continued, and nothing it printed is acted on again, because acting again would repeat the escalation or the hand-off.
 - exit 1 — no walk of this flow is saved for this branch: that is the answer, **not** a blocker, and the decision falls back to its other cases.
 
-A saved walk is **unusable**, whatever `current` printed, when the artifact its pending action works on is absent: the story index, for `business_parity_review`, `architecture_review`, `plan_review`, a `plan_writer` whose `prompt:` is `revision` and a `ui_writer` whose `prompt:` is `initial`; the UI-test index, for `ui_review` and a `ui_writer` whose `prompt:` is `revision`; and the `arg.findings_file` of any revision. Check each with a plain `ls` of its `## Setup` step 2 path, which tests existence without reading content, so the path-only rule in `## What you must NOT do` still holds. An unusable walk is treated exactly as exit 1.
+A saved walk is **unusable**, whatever `current` printed, when the artifact its pending action works on is absent: the story index, for `business_parity_review`, `architecture_review`, `plan_review`, a `plan_writer` whose `prompt:` is `revision` and a `ui_writer` whose `prompt:` is `initial`; the UI-test index, for `ui_review` and a `ui_writer` whose `prompt:` is `revision`; and every `arg.findings_file` of any revision. Check each with a plain `ls` of its `## Setup` step 2 path, which tests existence without reading content, so the path-only rule in `## What you must NOT do` still holds. An unusable walk is treated exactly as exit 1. Whether a plan file is committed never makes a walk usable or unusable, nor a loop converged: the fork's durable record decides convergence.
 
 A fork may name further conditions under which a saved walk is not used. Where the fork keeps a durable record of progress, that record wins over the saved walk, which is machine-local and never a second record.
 
-**A non-zero exit is a blocker** — except `current`'s exit 1 under **Continuing a saved walk.**, which is an answer; its exit 2 still is a blocker: route it through `<escalate>` with the walker's `flow-walker:` line — or `bash`'s own line where the script is absent, an adoption that has not re-run `init` since the walker shipped. **A dispatch that did not return** (an API overload, a dropped connection) is not an outcome: issue `current`, which re-prints the pending action unchanged, and dispatch again. `current` is also how you recover the pending action after an auto-compaction, and how a (re-)entry finds a saved walk.
+**A non-zero exit is a blocker** — except `current`'s exit 1 under **Continuing a saved walk.**, which is an answer; its exit 2 still is a blocker: route it through `<escalate>` with the walker's `flow-walker:` line — or `bash`'s own line where the script is absent, an adoption that has not re-run `init` since the walker shipped. **A dispatch that did not return** (an API overload, a dropped connection) is not an outcome: record every return of the set that did come back first, then issue `current`, which re-prints the pending action — of a set, only its gates still pending — and dispatch again. A return that fails `## Reading a return`'s check is handled the same way and records nothing, until its third consecutive failure for the same node, which is passed as `--outcome error`; the `<escalate>` that follows names the agent and the check that failed. `current` is also how you recover the pending action after an auto-compaction, and how a (re-)entry finds a saved walk.
 
 ---
 
@@ -138,13 +130,15 @@ Before you spawn any writer or reviewer agent (`task-plan-writer`, `business-par
    Example: `[plan-write · iter 0] → task-plan-writer  (#1)`
 4. **Compose the prompt — knowledge, not conclusions.** The dispatch prompt is exactly the block its governing instruction defines, plus at most the sanctioned `context_notes:` line. What may and may not go in it, and the record you owe for anything you added, are canonical in `${CLAUDE_PLUGIN_ROOT}/instructions/dispatch_discipline_instructions.md` — **read that file once at session start; it binds every dispatch you make.** No part of that boundary is restated here.
 
+**A set.** For a printed set, run steps 1–3 once per block, in printed order, and compose each block's prompt under step 4, before anything goes out; a halt at any block sends none of the set. Then send every dispatch of the set in **one message**, as foreground `Agent` calls and never with `run_in_background`, so they run concurrently; a run that sends them one at a time produces the same round. Do not send the next action until every return of the set is recorded.
+
 A gate the walker skips never reaches this contract, because the walker prints no dispatch for it — which is what *make no dispatch, increment no counter, print no heartbeat* requires.
 
 ---
 
 ## Loop
 
-This loop's order, its revision counter and its cap are the walker's (`## The walker`); each step below is one node — its dispatch block and the rules that are judgement rather than routing. **The `iteration:` argument a dispatch block passes is the walker's `arg.iteration:`, the next free `review_<n>.md` index in that block's own `findings_folder` — never the loop counter**, which is what the heartbeat's `iter` shows.
+This loop's routing — the writer, then its round's gates as one set — its revision counter and its cap are the walker's (`## The walker`); each step below is one node — its dispatch block and the rules that are judgement rather than routing. **For the three plan gates of this loop (steps 2–4), a gate's `iteration:` is the round number the walker prints** — the same index in every gate's folder, carrying on across the branch's planning history, and not the loop counter the heartbeat's `iter` shows (every `start` sets that to 0; it alone drives the cap and the review mode). Every plan gate writes its round file on `PASS` and `FAIL` alike (`${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The round file`). The exception is `ui_review` (`## UI-test-plan write loop` → step 2), which is not a round gate: its `iteration:` stays the walker's `arg.iteration:`, the next free `review_<n>.md` index in its own `<state_dir>/ui_test_plan_reviews/<branch>/` folder.
 
 ### 1. Spawn `task-plan-writer`
 
@@ -160,18 +154,21 @@ Outputs: story index at <state_dir>/story_plans/<branch>_story_plan.md and per-t
 Or, for revision iterations:
 
 ```
-Revise the task plan per findings at <findings_file>.
+Revise the task plan per findings at <findings_files>.
+Revision note: <state_dir>/plan_revisions/<branch>/task_plan_revision_<iteration>.md
 Story index: <state_dir>/story_plans/<branch>_story_plan.md
 Per-task files: <state_dir>/task_plans/<branch>/
 ```
 
-The writer returns `story_file`, `task_files_dir`, and `tasks_count` — note these for the hand-off; do not read the files themselves. **When `phases.parity` is `true` in `devscene.config.json`**, the writer **also** surfaces any excluded or deferred `<parity_vocabulary>` behaviours in a `## Parity exclusions / deferrals` section of its return. Note that section's contents (each entry's authorising task-prompt line or `TODO: @claude` marker) for the convergence summary — path-only discipline still applies, so this is the writer's own return text, not the plan files. When `phases.parity` is `false` the writer returns no such section and you do not ask for one.
+The writer revises per `${CLAUDE_PLUGIN_ROOT}/instructions/plan_review_rounds.md` → `## The writer's revision`.
 
-If the writer returns a `## Questions` section in its output, pass `questions`; on the walker's `binding: <ask>`, **stop and route the questions through `<ask>` verbatim**. If an answer comes back, pass `answered` and dispatch the writer the walker then prints with each answer appended to the prompt between the markers of `${CLAUDE_PLUGIN_ROOT}/instructions/untrusted_input.md` → `## The markers`. Do not invent answers.
+On an `outcome` of `returned`, note `` `task-plan-writer.story_file` ``, `` `task-plan-writer.task_files_dir` `` and `` `task-plan-writer.tasks_count` `` for the hand-off; do not read the files themselves. **When `phases.parity` is `true` in `devscene.config.json`**, also note `` `task-plan-writer.parity_exclusions` ``, which is **optional** — each item an excluded or deferred `<parity_vocabulary>` behaviour with its authorising task-prompt line or `TODO: @claude` marker — for the convergence summary; it is the writer's own return, not the plan files, so path-only discipline holds, and absent or empty means none. When `phases.parity` is `false` the writer returns no such field and you do not ask for one.
+
+On an `outcome` of `questions`, pass `questions`; on the walker's `binding: <ask>`, **stop and route each `` `task-plan-writer.questions` `` item through `<ask>` verbatim**. If an answer comes back, pass `answered` and dispatch the writer the walker then prints with each answer appended to the prompt between the markers of `${CLAUDE_PLUGIN_ROOT}/instructions/untrusted_input.md` → `## The markers`. Do not invent answers.
 
 ### 2. Business-parity review (plan-review mode)
 
-Business parity comes **before** architecture — catch a deviation from `<parity_vocabulary>`'s business logic in the plan (a wrong remote-call name, a mismatched request-payload field, a flipped `<` vs `<=`, a side-effect reorder) before spending architecture / structural review effort, and before any code is written.
+This gate reviews the plan against `<parity_vocabulary>`'s business logic, catching a deviation (a wrong remote-call name, a mismatched request-payload field, a flipped `<` vs `<=`, a side-effect reorder) before any code is written.
 
 Dispatch `business-parity-reviewer` in **plan-review mode** (same arg names as the architecture step):
 
@@ -181,15 +178,17 @@ task_files_dir: <state_dir>/task_plans/<branch>/
 prompt_path: <prompt_path>
 findings_folder: <state_dir>/business_parity_reviews/<branch>/
 iteration: <iteration>
+review_mode: <review_mode>
+revision_note: <state_dir>/plan_revisions/<branch>/task_plan_revision_<iteration>.md
 ```
 
-(The reviewer creates `<state_dir>/business_parity_reviews/<branch>/` itself only when it has findings to write — do NOT `mkdir -p` here, matching the existing reviewer-folder convention.)
+(The reviewer creates `<state_dir>/business_parity_reviews/<branch>/` itself with its first round file — do NOT `mkdir -p` here.)
 
-Pass its verdict back as step 5 states.
+Pass its `outcome` back as step 5 states.
 
 ### 3. Architecture review (plan-review mode)
 
-Architecture comes **before** the structural plan review — catch layer-placement / dependency-direction problems in the plan before the structural reviewer (and before any code is written).
+This gate reviews the plan's architecture, catching layer-placement / dependency-direction problems before any code is written.
 
 Dispatch `architecture-reviewer` in **plan-review mode** (same arg names as `task-plan-reviewer`):
 
@@ -199,15 +198,17 @@ task_files_dir: <state_dir>/task_plans/<branch>/
 prompt_path: <prompt_path>
 findings_folder: <state_dir>/architecture_reviews/<branch>/
 iteration: <iteration>
+review_mode: <review_mode>
+revision_note: <state_dir>/plan_revisions/<branch>/task_plan_revision_<iteration>.md
 ```
 
-(The reviewer creates `<state_dir>/architecture_reviews/<branch>/` itself only when it has findings to write — do NOT `mkdir -p` here, matching the existing reviewer-folder convention.)
+(The reviewer creates `<state_dir>/architecture_reviews/<branch>/` itself with its first round file — do NOT `mkdir -p` here.)
 
-Pass its verdict back as step 5 states.
+Pass its `outcome` back as step 5 states.
 
 ### 4. Spawn `task-plan-reviewer`
 
-(The reviewer creates `<state_dir>/task_plan_reviews/<branch>/` itself only when it has findings to write — do NOT `mkdir -p` here.)
+(The reviewer creates `<state_dir>/task_plan_reviews/<branch>/` itself with its first round file — do NOT `mkdir -p` here.)
 
 ```
 story_path: <state_dir>/story_plans/<branch>_story_plan.md
@@ -215,11 +216,13 @@ task_files_dir: <state_dir>/task_plans/<branch>/
 prompt_path: <prompt_path>
 findings_folder: <state_dir>/task_plan_reviews/<branch>/
 iteration: <iteration>
+review_mode: <review_mode>
+revision_note: <state_dir>/plan_revisions/<branch>/task_plan_revision_<iteration>.md
 ```
 
 ### 5. Parse the reviewer's return
 
-Pass the verdict — this step's, or step 2's or 3's — to the walker as `## The walker` maps it, and act on what it prints, including a `ledger:` line. On a `binding: <escalate>`, `<escalate>` carries the lines the walker printed after `node:`; where they include an `evidence:` line for the story index's `## Scope register`, also name the rows whose `Disposition` is **in dispute** — the walker names the section, and which rows are in dispute is your judgement.
+Pass each gate's `outcome` — this step's, step 2's and step 3's — to the walker with its `--node` **and** its `findings_file` (`` `task-plan-reviewer.findings_file` ``, `` `business-parity-reviewer.findings_file` ``, `` `architecture-reviewer.findings_file` ``), as `## The walker` maps it, in the order the returns are read, and act on the last call's print, including a `round:` and a `ledger:` line. On a `binding: <escalate>`, `<escalate>` carries every line the walker printed after `node:` — on a cap, the open gates and the findings files included; where they include an `evidence:` line for the story index's `## Scope register`, also name the rows whose `Disposition` is **in dispute** — the walker names the section, and which rows are in dispute is your judgement.
 
 ---
 
@@ -229,7 +232,7 @@ The QA-side analog of the task-plan loop: a `ui-tests-plan-writer` writes the UI
 
 ### 1. Spawn `ui-tests-plan-writer`
 
-**A run-mode skip is a third terminal state.** The walker's `skip: ui_writer passed-by-exclusion` (`qa` among the skipped ids) means no plan is written and no reviewer is dispatched, and neither is owed. It sits alongside the `ui-tests-plan-reviewer`'s `verdict: PASS` and the `no_ui: true` short-circuit below, and it is distinct from `no_ui` in provenance: an authored exclusion decided before the run began, not a writer's finding that there is nothing to test. Report it as such — never in the `no_ui` wording, and never with a writer's `reason`, because no writer ran.
+**A run-mode skip is a third terminal state.** The walker's `skip: ui_writer passed-by-exclusion` (`qa` among the skipped ids) means no plan is written and no reviewer is dispatched, and neither is owed. It sits alongside an `outcome` of `PASS` from `ui-tests-plan-reviewer` and the **No-UI short-circuit** below, and it is distinct from `no_ui` in provenance: an authored exclusion decided before the run began, not a writer's finding that there is nothing to test. Report it as such — never in the `no_ui` wording, and never with a writer's `reason`, because no writer ran.
 
 First iteration prompt:
 
@@ -248,15 +251,15 @@ Index: <state_dir>/ui_test_plans/<branch>_ui_test_plan.md
 Per-test files: <state_dir>/ui_test_plans/<branch>/
 ```
 
-The writer returns `ui_test_index`, `ui_test_files_dir`, and `tests_count` — note these for the hand-off; do not read the files themselves.
+On an `outcome` of `returned`, note `` `ui-tests-plan-writer.ui_test_index` ``, `` `ui-tests-plan-writer.ui_test_files_dir` `` and `` `ui-tests-plan-writer.tests_count` `` for the hand-off; do not read the files themselves.
 
-**No-UI short-circuit.** If the writer returns `no_ui: true` (it wrote no plan because the branch renders no interactively-testable UI), pass `no_ui`: there is no plan to review, and the walker dispatches no reviewer. Note the no-UI outcome (and the writer's `reason`) for the hand-off. Do **not** treat the absent index as an error.
+**No-UI short-circuit.** On an `outcome` of `no_ui` (the writer wrote no plan because the branch renders no interactively-testable UI), pass `no_ui`: there is no plan to review, and the walker dispatches no reviewer. Note the no-UI outcome and `` `ui-tests-plan-writer.reason` `` for the hand-off. Do **not** treat the absent index as an error.
 
-If the writer returns a `## Questions` section in its output, pass `questions`; on the walker's `binding: <ask>`, **stop and route the questions through `<ask>` verbatim** (same handling as the task-plan-writer). If an answer comes back, pass `answered` and dispatch the writer the walker then prints with each answer appended to the prompt between the markers of `${CLAUDE_PLUGIN_ROOT}/instructions/untrusted_input.md` → `## The markers`. Do not invent answers.
+On an `outcome` of `questions`, pass `questions`; on the walker's `binding: <ask>`, **stop and route each `` `ui-tests-plan-writer.questions` `` item through `<ask>` verbatim** (same handling as the task-plan-writer). If an answer comes back, pass `answered` and dispatch the writer the walker then prints with each answer appended to the prompt between the markers of `${CLAUDE_PLUGIN_ROOT}/instructions/untrusted_input.md` → `## The markers`. Do not invent answers.
 
 ### 2. Spawn `ui-tests-plan-reviewer`
 
-The UI-test plan **is** meta-reviewed. Dispatch the `ui-tests-plan-reviewer` once per iteration against the UI-test index + per-test files — it validates the split index ↔ per-test 1:1 correspondence, that each per-test file matches the `ui-tests-plan-writer` contract, that each `**Capability / MCP:**` annotation names a capability the configured QA driver's variant actually has (or, where that variant declares no capability set, carries the not-applicable marker `n/a (<qa_driver> variant declares no capability set)`), that cited element selectors and backend names are real, that every asserted status/value attribute literal agrees with its authority — the call site in the application source that writes it, or the task file that introduces the attribute where this loop runs before that source exists — and that the `## Phase 2 Readiness — Ordered Fix List` heading is byte-identical. Give it:
+The UI-test plan **is** meta-reviewed. Dispatch the `ui-tests-plan-reviewer` once per iteration against the UI-test index + per-test files — it validates the split index ↔ per-test 1:1 correspondence, that each per-test file matches the `ui-tests-plan-writer` contract, that each `**Capability / MCP:**` annotation names a capability the configured QA driver's variant actually has (or, where that variant declares no capability set, carries the not-applicable marker `n/a (<qa_driver> variant declares no capability set)`), that cited element selectors and backend names are real, that every asserted status/value attribute literal agrees with its authority — the call site in the application source that writes it, or the task file that introduces the attribute where this loop runs before that source exists — and that the `## Phase 2 Readiness — Ordered Fix List` heading is byte-identical. `ui_review` is not a round gate: its `iteration:` is the walker's `arg.iteration:`, the next free `review_<n>.md` index in `<state_dir>/ui_test_plan_reviews/<branch>/`. Give it:
 
 ```
 ui_test_index: <state_dir>/ui_test_plans/<branch>_ui_test_plan.md
@@ -270,7 +273,7 @@ iteration: <iteration>
 
 ### 3. Parse the reviewer's return
 
-Pass the verdict to the walker and act on what it prints, including a `ledger:` line, as `## Loop` step 5 states.
+Pass the reviewer's `outcome` to the walker — with `` `ui-tests-plan-reviewer.findings_file` `` as `<findings_file>` on an `outcome` of `FAIL` — and act on what it prints, including a `ledger:` line, as `## Loop` step 5 states.
 
 ---
 
@@ -286,10 +289,10 @@ The flow has converged when the walker printed `binding: <terminal_handoff>`. It
 
 At that point hand off via `<terminal_handoff>`. Carry these facts into the hand-off — they are what it reports. Every value comes from a writer's own return: **do not paste either plan's content**, and do not open the plan files to produce them.
 
-- `tasks_count`, from the `task-plan-writer`'s return.
-- The story-index path (`<state_dir>/story_plans/<branch>_story_plan.md`) and the per-task directory (`<state_dir>/task_plans/<branch>/`).
-- **When `phases.parity` is `true`: every excluded or deferred `<parity_vocabulary>` behaviour the writer reported** in its `## Parity exclusions / deferrals` section — each with its authorising task-prompt line (for an explicit exclusion) or its entry-point `// TODO: @claude add a follow up task for this: …` marker location (for a deferral) — so omissions are visible at review. If the writer reported none, state that no `<parity_vocabulary>` behaviours were excluded or deferred. When `phases.parity` is `false` there is no such section and the hand-off carries nothing on this line.
-- The UI-test-plan index path (`<state_dir>/ui_test_plans/<branch>_ui_test_plan.md`), the per-test directory (`<state_dir>/ui_test_plans/<branch>/`), and `tests_count` from the UI-test writer's return — **or**, when that writer returned `no_ui: true`, the no-UI variant instead: the branch renders no interactively-testable UI, so **no UI-test plan was written and QA will be skipped**, with the writer's `reason`. In that case there is no UI-test index or per-test directory to report. **When `phases.qa` is `false`** the loop never ran at all: report that this project has no QA phase enabled, so no UI-test plan was written — again with no index or per-test directory to report. **Or**, fourth, when the loop never ran because `qa` is among the recorded skipped ids, the run-mode variant instead: the run mode excluded QA, so **no UI-test plan was written and QA will be skipped**, with the recorded directive as the reason — likewise no index, no per-test directory and no `tests_count`. Report exactly one of the four, and keep the fourth distinct from the second: an authored exclusion is never reported in the `no_ui` wording and never carries a writer's `reason`, because no writer ran.
+- `` `task-plan-writer.tasks_count` ``.
+- The story-index path, `` `task-plan-writer.story_file` `` (`<state_dir>/story_plans/<branch>_story_plan.md`), and the per-task directory, `` `task-plan-writer.task_files_dir` `` (`<state_dir>/task_plans/<branch>/`).
+- **When `phases.parity` is `true`: every excluded or deferred `<parity_vocabulary>` behaviour the writer reported** in `` `task-plan-writer.parity_exclusions` `` — each with its authorising task-prompt line (for an explicit exclusion) or its entry-point `// TODO: @claude add a follow up task for this: …` marker location (for a deferral) — so omissions are visible at review. If that field is absent, state that no `<parity_vocabulary>` behaviours were excluded or deferred. When `phases.parity` is `false` there is no such field and the hand-off carries nothing on this line.
+- The UI-test-plan index path, `` `ui-tests-plan-writer.ui_test_index` `` (`<state_dir>/ui_test_plans/<branch>_ui_test_plan.md`), the per-test directory, `` `ui-tests-plan-writer.ui_test_files_dir` `` (`<state_dir>/ui_test_plans/<branch>/`), and `` `ui-tests-plan-writer.tests_count` `` — **or**, when that writer returned an `outcome` of `no_ui`, the no-UI variant instead: the branch renders no interactively-testable UI, so **no UI-test plan was written and QA will be skipped**, with `` `ui-tests-plan-writer.reason` ``. In that case there is no UI-test index or per-test directory to report. **When `phases.qa` is `false`** the loop never ran at all: report that this project has no QA phase enabled, so no UI-test plan was written — again with no index or per-test directory to report. **Or**, fourth, when the loop never ran because `qa` is among the recorded skipped ids, the run-mode variant instead: the run mode excluded QA, so **no UI-test plan was written and QA will be skipped**, with the recorded directive as the reason — likewise no index, no per-test directory and no `` `ui-tests-plan-writer.tests_count` ``. Report exactly one of the four, and keep the fourth distinct from the second: an authored exclusion is never reported in the `no_ui` wording and never carries `` `ui-tests-plan-writer.reason` ``, because no writer ran.
 - **The run mode you re-read at the gates:** the directive ids honoured this run (its `skipped:` set) and any directive that was ignored, with the task prompt's `### Run mode` section as the authority. Like the two `📌` disclosure lines below, these are **yours** rather than a writer's, and producing them breaches nothing above: the prompt's `### Run mode` section is one of this flow's own inputs, and the record it is kept in — on the flows whose fork maintains one — is this flow's own durable state. Neither is a findings file or a plan file.
 - The mandatory `📌 Dispatch additions: …` disclosure line, in the exact form `${CLAUDE_PLUGIN_ROOT}/instructions/dispatch_discipline_instructions.md` → `## The disclosure line` gives it (including its `none` form, which is a normal outcome). This one value is **yours**, not a writer's: `<N>` is your own count of the blocks you wrote at the record step above, so producing it opens no file and leaves the path-only discipline above intact.
 - The mandatory `📌 Run mode: …` disclosure line, in the exact form `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md` → `## The disclosure line` gives it, including its `none` form (a prompt carrying no such section at all — a normal outcome) and its ignored-directive suffix. Where this flow's hand-off is a fork-held `<terminal_handoff>` / convergence-summary value, the line is **emitted inside that value**, at the fork's own disclosure site — the same arrangement `${CLAUDE_PLUGIN_ROOT}/instructions/dispatch_discipline_instructions.md` → `## Activation` describes for its own line. This section states the obligation and the form; the fork emits it.
@@ -302,15 +305,16 @@ Whether the flow stops at the hand-off or falls through past it is `<terminal_ha
 
 - **STOP file present** at `<state_dir>/STOP` (checked before every dispatch — see `## Safety contract` above). It halts exactly as that step words it: a plain report naming `<reentry_command>`, then stop — **never** routed through `<escalate>`, because a STOP file is a user-initiated stop, not a flow blocker.
 - **`total_dispatches > MAX_TOTAL_DISPATCHES`** — session ceiling exceeded. It halts exactly as `## Safety contract` step 2 words it: a plain report + stop, **not** an escalation — this flow does not park on a cap hit.
-- Either writer (`task-plan-writer` or `ui-tests-plan-writer`) returns `## Questions` → stop and route them verbatim through `<ask>`; the flow continues only once an answer comes back.
+- Either writer returns an `outcome` of `questions` → stop and route each item of `` `task-plan-writer.questions` `` or `` `ui-tests-plan-writer.questions` `` verbatim through `<ask>`; the flow continues only once an answer comes back.
 - The walker printed `binding: <escalate>`, or exited non-zero → `<escalate>`, carrying what it printed and the in-dispute rows `## Loop` step 5 names.
-- Any agent returns `error:` or `blocker:` → `<escalate>`.
+- A writer returns an `outcome` of `blocker` → `<escalate>` at once, carrying `` `task-plan-writer.blocker` `` or `` `ui-tests-plan-writer.blocker` ``.
+- A gate returns an `outcome` of `blocker` → pass `blocker` to the walker as that gate's outcome, and keep `` `business-parity-reviewer.blocker` ``, `` `architecture-reviewer.blocker` ``, `` `task-plan-reviewer.blocker` `` or `` `ui-tests-plan-reviewer.blocker` `` for the escalation; a return from any node that fails `## The walker`'s routing check three consecutive times → pass `error` as that node's outcome. Either way `<escalate>` follows when the walker prints its binding — for a gate, the held binding after the set.
 
 ---
 
 ## What you must NOT do
 
-- Do NOT read the contents of `<state_dir>/task_plan_reviews/<branch>/review_*.md`, `<state_dir>/business_parity_reviews/<branch>/review_*.md`, `<state_dir>/architecture_reviews/<branch>/review_*.md`, or `<state_dir>/ui_test_plan_reviews/<branch>/review_*.md`. Path-only.
+- Do NOT read the contents of `<state_dir>/task_plan_reviews/<branch>/review_*.md`, `<state_dir>/business_parity_reviews/<branch>/review_*.md`, `<state_dir>/architecture_reviews/<branch>/review_*.md`, or `<state_dir>/ui_test_plan_reviews/<branch>/review_*.md`, or the revision notes under `<state_dir>/plan_revisions/<branch>/`. Path-only.
 - Do NOT read the story index, per-task files, UI-test index, or per-test file content to verify quality. The reviewer's PASS is the contract.
 - Do NOT edit the story index, per-task files, UI-test index, or per-test files directly. Dispatch the relevant writer.
 - Do NOT decide for yourself what happens after `## Convergence`. That section states the facts the hand-off carries; `<terminal_handoff>` states what the flow does with them. Do not add a gate the binding does not state, and do not skip one it does.
@@ -318,6 +322,7 @@ Whether the flow stops at the hand-off or falls through past it is `<terminal_ha
 - Do NOT choose the next step from anything but the walker's output.
 - Do NOT edit `<state_dir>/.flow_walker_state`. It is the walker's.
 - Do NOT call `next` for a dispatch that did not return — issue `current` instead (`## The walker`).
+- Do NOT send a set's dispatches with `run_in_background`, one per message, or before every block's safety-contract steps ran.
 - Do NOT infer a run mode from anything but its own record — the source `${CLAUDE_PLUGIN_ROOT}/instructions/run_mode_instructions.md` → `## The durable record` names for this flow. Not from the plan, not from a reviewer's return.
 - Do NOT paraphrase a run-mode directive into any dispatch prompt. A directive addressed to a sub-agent reaches that agent through the prompt the agent reads itself; putting your reading of it into a dispatch is a conclusion rather than knowledge, under `${CLAUDE_PLUGIN_ROOT}/instructions/dispatch_discipline_instructions.md`.
 - Do NOT add anything to a dispatch prompt beyond what its governing instruction defines and the one sanctioned `context_notes:` line. The rule — **Knowledge, not conclusions** — and the record you owe for every addition are canonical in `${CLAUDE_PLUGIN_ROOT}/instructions/dispatch_discipline_instructions.md`; this list does not restate them.

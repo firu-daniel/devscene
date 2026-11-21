@@ -4,6 +4,8 @@
 # `devscene.config.json` at run time, answers "is this branch protected?",
 # routes an inbox filename to its engine and branch (`hr_inbox_route_var`) and
 # judges whether that branch may be taken in (`hr_inbox_branch_refusal_var`),
+# answers the clarification channel's highest question index and its top-level
+# answered pairs (`hr_max_question_index`, `hr_top_level_answered_pairs`),
 # derives a branch name from a title (`hr_derive_branch`), judges whether a
 # path lies strictly inside the state directory's scratch directory
 # (`hr_scratch_path_var`), answers whether the progress comment is on
@@ -21,6 +23,9 @@
 # answers whether a launch holds the host awake (`hr_keep_awake`,
 # `hr_keep_awake_probe_var`, `hr_keep_awake_mode_var`), whether it is on mains
 # power (`hr_on_mains_power`) and starts that hold (`hr_keep_awake_hold_var`),
+# answers whether a launch takes the script-driven planning pilot
+# (`hr_script_driven_planning`) and where the runtime loads the plugin from
+# (`hr_plugin_runtime_root_var`),
 # owns the Run gates lane for `run-test-suite.sh`,
 # `launch-sandboxed-gates.sh` and `run-analytics.sh` — its layout
 # (`hr_test_run_lane_dir`), label
@@ -148,7 +153,7 @@
 #      `autonomous_logs/remote_status.json`, `clarifications/<branch>/`,
 #      `PAUSE_PROGRESS.md`, `.flow_walker_state`, the move-aside directory
 #      `autonomous_logs/remote_superseded/` and, only where nothing exists yet,
-#      files under the eight planning paths `hr_remote_planning_paths` assigns;
+#      files under the nine planning paths `hr_remote_planning_paths` assigns;
 #      outside it, only the caller-named `<out_dir>` (its `planning/` included)
 #      of `hr_remote_bundle_write`, the caller-named `<dst>` of
 #      `hr_remote_copy_tree` (which `hr_remote_bundle_write` names under
@@ -442,7 +447,8 @@
 # `HR_LANE_OWNER_AT` and `HR_LANE_BROKEN_OWNER`, and the remote state bundle's
 # names, which `hr_remote_names_var` assigns, with `HR_REMOTE_PLANNING_PATHS`
 # (`hr_remote_planning_paths`) and `HR_REMOTE_PLANNING_PLACED` /
-# `HR_REMOTE_PLANNING_KEPT` (`hr_remote_bundle_restore`), `HR_REMOTE_ASIDE`
+# `HR_REMOTE_PLANNING_KEPT` / `HR_REMOTE_PLANNING_WITHHELD` /
+# `HR_REMOTE_WALKER_WITHHELD` (`hr_remote_bundle_restore`), `HR_REMOTE_ASIDE`
 # (`hr_remote_move_aside`), `HR_REMOTE_STATE_DIR`, `HR_REMOTE_STATE_FROM`
 # and `HR_REMOTE_STATE_CHECKOUT`
 # (`hr_remote_state_dir_var`) and `HR_REMOTE_LINKED`
@@ -1911,11 +1917,12 @@ hr_config_load() {
   # reads as the name `true`, and drops one carrying a newline, which
   # `hr_cfg_list_var`'s newline-joined value would split into two names.
   #
-  # A `phases.*`, `docs.retrieval`, `execution.progressComments` or
-  # `execution.keepAwake` value that is not a boolean is emitted as `invalid`, so
-  # the string `"true"` — which `tostring` would otherwise make indistinguishable
-  # from `true` — reaches `hr_phase_enabled`, `hr_docs_retrieval_applies`,
-  # `hr_progress_comments` or `hr_keep_awake` as a value it refuses (2).
+  # A `phases.*`, `docs.retrieval`, `execution.progressComments`,
+  # `execution.keepAwake` or `execution.scriptDrivenPlanning` value that is not a
+  # boolean is emitted as `invalid`, so the string `"true"` — which `tostring`
+  # would otherwise make indistinguishable from `true` — reaches
+  # `hr_phase_enabled`, `hr_docs_retrieval_applies`, `hr_progress_comments`,
+  # `hr_keep_awake` or `hr_script_driven_planning` as a value it refuses (2).
   #
   # `sandbox.optedOut` is a computed flag rather than the raw `reason`, because
   # `s()` drops `"null"` and `""` and the string `"null"` is a taken opt-out. Its
@@ -1959,6 +1966,8 @@ hr_config_load() {
         try (.execution.progressComments | if type == "boolean" or . == null then . else "invalid" end) catch null),
       s("execution.keepAwake";
         try (.execution.keepAwake | if type == "boolean" or . == null then . else "invalid" end) catch null),
+      s("execution.scriptDrivenPlanning";
+        try (.execution.scriptDrivenPlanning | if type == "boolean" or . == null then . else "invalid" end) catch null),
       s("docs.retrievalBackend"; try .docs.retrievalBackend catch null),
       s("docs.retrieval";        try (.docs.retrieval | if type == "boolean" or . == null then . else "invalid" end) catch null),
       s("forge";                 try .forge                catch null),
@@ -2287,6 +2296,99 @@ hr_keep_awake() {
     false) return 1 ;;
   esac
   return 2
+}
+
+# `execution.scriptDrivenPlanning` — whether a launch of the task engine takes
+# the script-driven planning pilot, in local and job mode alike. THE ONE READER
+# OF THE KEY IN THIS FAMILY, and the shell mirror of `cli/src/config/model.ts`
+# → `scriptDrivenPlanningEnabled`. PRINTS NOTHING: 0 = `true`; 1 = `false` or
+# absent (the schema default); 2 = the configuration is unresolvable or the
+# value is not a boolean. The watcher passes the MAIN checkout — in a job, the
+# job's own checkout — never a run copy, whose `devscene.config.json` a session
+# can rewrite.
+hr_script_driven_planning() {
+  local root="${1-}"
+  hr_config_load "$root" || return 2
+  hr_cfg_scalar_var "execution.scriptDrivenPlanning" || return 1
+  case "$HR_CFG_VALUE" in
+    true) return 0 ;;
+    false) return 1 ;;
+  esac
+  return 2
+}
+
+# ---------------------------------------------------------------------------
+# The plugin's runtime root: the read-only shell mirror of
+# `cli/src/machine/plugins.ts` → `pluginRuntimeRoot` (with its fallback,
+# `pluginInstallRoot`), over the same two agent-runner records under
+# `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/`. Change the selection there
+# and here together. Re-derived on every call and never cached: the install
+# root carries the plugin version.
+# ---------------------------------------------------------------------------
+
+# The plugin's identity in the runner's records — mirrors of
+# `cli/src/core/pluginIdentity.ts` → `PLUGIN_NAME` and
+# `cli/src/generators/projectSettings.ts` → `MARKETPLACE_NAME` and `PLUGIN_KEY`.
+HR_PLUGIN_NAME="devscene"
+HR_PLUGIN_MARKETPLACE="devscene"
+HR_PLUGIN_KEY="$HR_PLUGIN_NAME@$HR_PLUGIN_MARKETPLACE"
+
+# hr_plugin_runtime_root_var [<repo_root>] — set `HR_PLUGIN_RUNTIME_ROOT` to the
+# directory the runtime loads this harness's plugin from, and return 0; 1, with
+# it empty, when neither record yields one. A `directory`-sourced marketplace
+# gives `<installLocation>/<the manifest's plugin source>`; anything else falls
+# back to `installed_plugins.json`'s row: the `project` row whose `projectPath`
+# is <repo_root>, else the `user` row, else the first usable one. Reads only;
+# every unreadable, unparsable or unnavigable record is the fallback, never a
+# fault.
+hr_plugin_runtime_root_var() {
+  local repo="${1-}" home="${CLAUDE_CONFIG_DIR-}" location relative value
+  HR_PLUGIN_RUNTIME_ROOT=""
+  if [ -z "$home" ]; then
+    [ -n "${HOME-}" ] || return 1
+    home="$HOME/.claude"
+  fi
+  home="${home%/}"
+
+  location=$(jq -r --arg m "$HR_PLUGIN_MARKETPLACE" '
+    if type == "object" then (.[$m] // null) else null end
+    | if type == "object" and (.source | type) == "object" and .source.source == "directory"
+         and (.installLocation | type) == "string" and .installLocation != ""
+      then .installLocation else empty end' "$home/plugins/known_marketplaces.json" 2>/dev/null) || location=""
+  if [ -n "$location" ]; then
+    relative=$(jq -r --arg n "$HR_PLUGIN_NAME" '
+      if type == "object" and (.plugins | type) == "array" then
+        [.plugins[] | select(type == "object" and .name == $n)][0] // null
+      else null end
+      | if type == "object" and (.source | type) == "string" and .source != "" then .source else empty end' \
+      "$location/.claude-plugin/marketplace.json" 2>/dev/null) || relative=""
+    if [ -n "$relative" ]; then
+      while :; do
+        case "$relative" in
+          ./*) relative="${relative#./}" ;;
+          *) break ;;
+        esac
+      done
+      relative="${relative%/}"
+      case "$relative" in
+        '' | .) HR_PLUGIN_RUNTIME_ROOT="${location%/}" ;;
+        *) HR_PLUGIN_RUNTIME_ROOT="${location%/}/$relative" ;;
+      esac
+      return 0
+    fi
+  fi
+
+  value=$(jq -r --arg k "$HR_PLUGIN_KEY" --arg repo "$repo" '
+    (if type == "object" and (.plugins | type) == "object" then (.plugins[$k] // null) else null end)
+    | (if type == "array" then
+         [.[] | select(type == "object" and (.installPath | type) == "string" and .installPath != "")]
+       else [] end) as $rows
+    | ([$rows[] | select($repo != "" and .scope == "project" and .projectPath == $repo)]
+       + [$rows[] | select(.scope == "user")] + $rows)
+    | if length > 0 then .[0].installPath else empty end' "$home/plugins/installed_plugins.json" 2>/dev/null) || value=""
+  [ -n "$value" ] || return 1
+  HR_PLUGIN_RUNTIME_ROOT="$value"
+  return 0
 }
 
 # ---------------------------------------------------------------------------
@@ -3033,6 +3135,62 @@ hr_inbox_branch_refusal_var() {
     *) HR_INBOX_REFUSAL="whether '$branch' is protected cannot be judged: the protected set in '$root/devscene.config.json' cannot be resolved" ;;
   esac
   return 1
+}
+
+# ---------------------------------------------------------------------------
+# The clarification channel's index answers — one definition each.
+# ---------------------------------------------------------------------------
+
+# hr_max_question_index <clar_dir>
+#
+# The highest numbered question_<n>.md index under <clar_dir>, top level and
+# answered/ together, or 0 when there is none. Numeric-only names, as the
+# resume and the exit classification accept. Prints the integer and nothing else,
+# because every caller captures it: the watcher's park-loop guard, park resume
+# and exit classification, and the planning record library.
+hr_max_question_index() {
+  local clar_dir="$1" q n max=0
+  for q in "$clar_dir"/question_*.md "$clar_dir"/answered/question_*.md; do
+    [ -e "$q" ] || continue
+    n="${q##*/}"
+    n="${n#question_}"
+    n="${n%.md}"
+    case "$n" in
+      '' | *[!0-9]*) continue ;;
+    esac
+    # Base 10 forced, so a zero-padded index is not read as octal.
+    if [ "$((10#$n))" -gt "$max" ]; then
+      max="$((10#$n))"
+    fi
+  done
+  printf '%s\n' "$max"
+}
+
+# hr_top_level_answered_pairs <clar_dir>
+#
+# Every top-level index with both files, space-separated and numerically sorted,
+# whether or not another top-level question is still unanswered; prints nothing
+# when there is none. The watcher's spawn_engine records it at every launch, and
+# the planning driver filters it. Each
+# index is printed as its file name spells it, because archive_answered_pair
+# rebuilds the file names from it; `sort -n` orders a zero-padded one in base 10.
+hr_top_level_answered_pairs() {
+  local clar_dir="$1" q n answered_list="" answered_set
+  for q in "$clar_dir"/question_*.md; do
+    [ -e "$q" ] || continue
+    n="${q##*/}"
+    n="${n#question_}"
+    n="${n%.md}"
+    case "$n" in
+      '' | *[!0-9]*) continue ;;
+    esac
+    [ -f "$clar_dir/answer_${n}.md" ] || continue
+    answered_list="${answered_list}${n}
+"
+  done
+  [ -n "$answered_list" ] || return 0
+  answered_set="$(printf '%s' "$answered_list" | sort -n | tr '\n' ' ')"
+  printf '%s\n' "${answered_set% }"
 }
 
 # ---------------------------------------------------------------------------
@@ -4796,10 +4954,13 @@ hr_copy_sync_main_git() {
 # one-branch-one-checkout rule gives a worktree), a branch <main> lacks, a
 # heal whose compare-and-swap fails, and a diverged clone. 0 synced, healed or
 # a no-op (main or worktree, `HR_SYNC_TIP` empty); 1 with `HR_SYNC_REFUSAL`
-# set to one sentence naming the branch and the failed step.
+# set to one sentence naming the branch and the failed step. The diverged
+# sentence also names the cause, read from the tips' first parents and trees,
+# and both full ids in two `update-ref` repair commands it spells and never runs.
 hr_copy_sync_in_var() {
   local main="${1-}" gitdir="${2-}" branch="${3-}" kind cmain clone ref
   local up out line oid="" count=0 cur main_old status tab=$'\t'
+  local c_parent m_parent c_tree m_tree cause worktree
   HR_SYNC_TIP=""
   HR_SYNC_REFUSAL=""
   kind=$(hr_copy_kind "$main" "$gitdir") || kind=""
@@ -4905,7 +5066,24 @@ EOF
             fi
             ;;
           1)
-            HR_SYNC_REFUSAL="cannot sync branch '$branch' in from '$clone': the clone (${oid:0:12}) and the main checkout (${main_old:0:12}) have diverged"
+            # A failed read leaves its value empty: the relation is then unknown, never a refusal of its own.
+            c_parent=$(hr_copy_sync_main_git "$cmain" rev-parse --verify --quiet "$oid^" 2>/dev/null) || c_parent=""
+            m_parent=$(hr_copy_sync_main_git "$cmain" rev-parse --verify --quiet "$main_old^" 2>/dev/null) || m_parent=""
+            c_tree=$(hr_copy_sync_main_git "$cmain" rev-parse --verify --quiet "$oid^{tree}" 2>/dev/null) || c_tree=""
+            m_tree=$(hr_copy_sync_main_git "$cmain" rev-parse --verify --quiet "$main_old^{tree}" 2>/dev/null) || m_tree=""
+            cause="one of them moved outside the wrappers"
+            worktree=" and bring the clone's index and working tree to that tip"
+            if [ -n "$c_parent" ] && [ "$c_parent" = "$m_parent" ]; then
+              if [ -n "$c_tree" ] && [ "$c_tree" = "$m_tree" ]; then
+                cause="the clone's tip rewrote the main checkout's outside the wrappers (same parent, same tree)"
+                worktree=""
+              elif [ -n "$c_tree" ] && [ -n "$m_tree" ]; then
+                cause="the clone's tip rewrote the main checkout's outside the wrappers (same parent, different tree)"
+              else
+                cause="the clone's tip rewrote the main checkout's outside the wrappers (same parent)"
+              fi
+            fi
+            HR_SYNC_REFUSAL="cannot sync branch '$branch' in from '$clone': the clone (${oid:0:12}) and the main checkout (${main_old:0:12}) have diverged — $cause; nothing was moved. To keep the clone's tip, run git -C '$cmain' update-ref $ref $oid $main_old; to keep the main checkout's, run git -C '$clone' update-ref $ref $main_old $oid$worktree. Then answer the park."
             return 1
             ;;
           *)
@@ -6035,18 +6213,24 @@ HR_REMOTE_WORKFLOWS_DIR='.github/workflows'
 #                                          task_plan_reviews/<branch>
 #                                          business_parity_reviews/<branch>
 #                                          architecture_reviews/<branch>
+#                                          plan_revisions/<branch>
 #                                          ui_test_plan_reviews/<branch>
 #
 # The walker state loses its dot because `actions/upload-artifact` skips hidden
 # files by default. THE BUNDLE ITSELF IS NEVER COMMITTED. Every file outside
 # `planning/` is gitignored machine-local state, and the remote-status and
 # move-aside paths sit under `autonomous_logs/`, whose ignore rule already
-# covers them. The files under `planning/` are untracked drafts that the flow
-# commits itself at its P1/P3 convergence; the bundle only carries them.
+# covers them. The task-plan loop's files under `planning/` are committed and
+# pushed at each round's end and on a planning pause, so the bundle's copy of
+# them matters only before the first round commit, and a job restore withholds
+# it once the story index is tracked (`hr_remote_bundle_restore`). The UI-test-plan
+# loop's files stay untracked until its convergence; for them the bundle is
+# still the only carrier.
 #
 # THE PLANNING PATHS ARE A MIRROR of the contracts that write and stage them:
 # `plugin/instructions/task_plan_writing_instructions_autonomous.md` →
-# `## Override 3` and `## Override 4` staging lists, and
+# `## Override 3` and `## Override 4` staging lists and
+# `## Override 6 — commit each plan-review round`'s per-round staging list, and
 # `<scripts_dir>/flows/task_plan_writing.graph.json` → each node's `findingsFolder`. A path
 # added there is an edit to `hr_remote_planning_paths`. Only planning is
 # carried because the walker's one graph is `task_plan_writing.graph.json`;
@@ -6061,7 +6245,8 @@ HR_REMOTE_WORKFLOWS_DIR='.github/workflows'
 # the next job, and the user's local mirror. The walker state: the next job
 # only. `planning/`: the next job only, never a mirror — an untracked draft left
 # in the mirror would make its later fast-forward to `origin/<branch>` refuse,
-# because the draft's own convergence commit adds the same path. `run.log`: the
+# because a commit on the branch adds the same path — the per-round commit of
+# the task-plan files, or the UI-test plan's convergence commit. `run.log`: the
 # user only — `sync` copies it to the main checkout's logs directory itself,
 # and no restore places it.
 #
@@ -6147,7 +6332,7 @@ hr_github_resume_route() {
 
 # hr_remote_planning_paths <branch>
 #
-# Assigns `HR_REMOTE_PLANNING_PATHS`: the eight planning paths of the format
+# Assigns `HR_REMOTE_PLANNING_PATHS`: the nine planning paths of the format
 # above, relative to <state_dir>, newline-separated, no trailing slash. 1 with
 # an empty value for an empty <branch>.
 hr_remote_planning_paths() {
@@ -6161,6 +6346,7 @@ ui_test_plans/$branch
 task_plan_reviews/$branch
 business_parity_reviews/$branch
 architecture_reviews/$branch
+plan_revisions/$branch
 ui_test_plan_reviews/$branch"
   return 0
 }
@@ -6576,8 +6762,22 @@ hr_remote_move_aside() {
 # where nothing exists, counted in `HR_REMOTE_PLANNING_PLACED`; one whose target
 # exists is left byte-identical — the checkout's copy is the branch's committed
 # record — and counted in `HR_REMOTE_PLANNING_KEPT`. A symlink, a non-regular
-# entry or a path outside the set counts in neither. Both are `0` at entry and
-# stay `0` in `mirror` mode.
+# entry or a path outside the set counts in none of the three counters.
+#
+# A COMMITTED ROUND IS THE WHOLE TASK-PLAN STATE. When <root> tracks the story
+# index (`git ls-files --error-unmatch`; any non-zero exit, `git` absent
+# included, is untracked), every such file under the six task-plan paths — the
+# story index, `task_plans/`, `task_plan_reviews/`, `business_parity_reviews/`,
+# `architecture_reviews/`, `plan_revisions/` — is placed nowhere and counted in
+# `HR_REMOTE_PLANNING_WITHHELD`: those files are committed at every round's end,
+# so a draft newer than the commit — a job killed mid-round — placed beside it
+# would leave the next session walking a mixture of two revisions. When the
+# bundle carries a walker state and any withheld file is missing from <root> or
+# differs from its copy there (`cmp -s`), the walker state is not placed and
+# `HR_REMOTE_WALKER_WITHHELD` is `1`, so the next session's `start` decides from
+# the committed round. The UI-test-plan paths keep the never-overwrites rule in
+# both cases: they stay untracked until their convergence. All four counters
+# are `0` at entry and stay `0` in `mirror` mode.
 #
 # THE CLARIFICATION DIRECTORY IS REPLACED WHOLESALE, AND NOTHING IS DELETED. An
 # existing target is moved aside by `hr_remote_move_aside` before the bundle's
@@ -6591,9 +6791,11 @@ hr_remote_move_aside() {
 # `branch` other than <branch>) or <root>'s configuration is unresolvable.
 hr_remote_bundle_restore() {
   local bundle="${1-}" root="${2-}" branch="${3-}" mode="${4-}"
-  local state base named target tmp pdir file rel p inset
+  local state base named target tmp pdir file rel p inset tracked differs
   HR_REMOTE_PLANNING_PLACED=0
   HR_REMOTE_PLANNING_KEPT=0
+  HR_REMOTE_PLANNING_WITHHELD=0
+  HR_REMOTE_WALKER_WITHHELD=0
   [ -n "$bundle" ] && [ -n "$root" ] && [ -n "$branch" ] || return 1
   case "$mode" in
     job|mirror) ;;
@@ -6621,10 +6823,11 @@ hr_remote_bundle_restore() {
   fi
   [ "$mode" = job ] || return 0
 
-  if [ -f "$bundle/$HR_REMOTE_WALKER_FILE" ]; then
-    mkdir -p "$base" 2>/dev/null || return 1
-    cp "$bundle/$HR_REMOTE_WALKER_FILE" "$base/$HR_REMOTE_WALKER_SOURCE" 2>/dev/null || return 1
+  tracked=0
+  if git -C "$root" ls-files --error-unmatch -- "$state/story_plans/${branch}_story_plan.md" >/dev/null 2>&1; then
+    tracked=1
   fi
+  differs=0
   pdir="$bundle/$HR_REMOTE_PLANNING_DIR"
   if [ -d "$pdir" ] && [ ! -L "$pdir" ]; then
     hr_remote_planning_paths "$branch" || return 1
@@ -6646,6 +6849,19 @@ hr_remote_bundle_restore() {
 $HR_REMOTE_PLANNING_PATHS
 EOF
       [ "$inset" = 1 ] || continue
+      if [ "$tracked" = 1 ]; then
+        case "$rel" in
+          "story_plans/${branch}_story_plan.md" | "task_plans/$branch"/* | \
+          "task_plan_reviews/$branch"/* | "business_parity_reviews/$branch"/* | \
+          "architecture_reviews/$branch"/* | "plan_revisions/$branch"/*)
+            HR_REMOTE_PLANNING_WITHHELD=$((HR_REMOTE_PLANNING_WITHHELD + 1))
+            if [ ! -f "$base/$rel" ] || [ -L "$base/$rel" ] || ! cmp -s "$file" "$base/$rel"; then
+              differs=1
+            fi
+            continue
+            ;;
+        esac
+      fi
       if [ -e "$base/$rel" ] || [ -L "$base/$rel" ]; then
         HR_REMOTE_PLANNING_KEPT=$((HR_REMOTE_PLANNING_KEPT + 1))
         continue
@@ -6655,6 +6871,14 @@ EOF
       cp "$file" "$target" 2>/dev/null || return 1
       HR_REMOTE_PLANNING_PLACED=$((HR_REMOTE_PLANNING_PLACED + 1))
     done < <(find "$pdir" -type f 2>/dev/null)
+  fi
+  if [ -f "$bundle/$HR_REMOTE_WALKER_FILE" ]; then
+    if [ "$differs" = 1 ]; then
+      HR_REMOTE_WALKER_WITHHELD=1
+    else
+      mkdir -p "$base" 2>/dev/null || return 1
+      cp "$bundle/$HR_REMOTE_WALKER_FILE" "$base/$HR_REMOTE_WALKER_SOURCE" 2>/dev/null || return 1
+    fi
   fi
   mkdir -p "$base/$HR_REMOTE_LOGS_DIR" 2>/dev/null || return 1
   tmp=$(mktemp "$base/$HR_REMOTE_STATUS_SOURCE.tmp.XXXXXX" 2>/dev/null) || return 1
