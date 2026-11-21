@@ -202,6 +202,7 @@ A row-`G.4` layer that returns an `outcome` of `already_passing` takes this outc
 - `${CLAUDE_PLUGIN_ROOT}/instructions/code_review_instructions.md`
 - `${CLAUDE_PLUGIN_ROOT}/instructions/code_review_fixes_instructions.md`
 - `${CLAUDE_PLUGIN_ROOT}/instructions/user_review_fixes_instructions.md`
+- `${CLAUDE_PLUGIN_ROOT}/instructions/probe_route.md`
 - `${CLAUDE_PLUGIN_ROOT}/docs/AUTONOMOUS_FLOW.md`
 - `docs/config.md`
 - `docs/cli.md`

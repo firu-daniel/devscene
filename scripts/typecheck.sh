@@ -60,14 +60,37 @@ fi
 # runs as gate 16 (`docs/development.md` §5). Every unit runs `commands.typecheck` over the whole
 # tree, so a script that does not parse fails the unit that wrote it rather than a later gate run.
 # Its output is not redirected: its failure lines name each file, and its summary names the
-# interpreter. Both steps always run; the exit is the build's status when the build failed, else
-# the parse check's.
+# interpreter.
+#
+# Hand-added the same way, for the same reason: `bash scripts/python-service.sh check`, every
+# Python package's `ruff` and `mypy` legs, so a Python defect fails the unit that wrote it rather
+# than gate 13. It calls `check` rather than listing packages: the package set is that script's
+# table's. Its exit 3 — no leg failed, at least one unprovisioned — is graded `BLOCKED` and not a
+# failure, on gate 13's ground: a missing environment is not a defect in the tree. Its output is not
+# redirected: each leg prints its own `python-service: check:` line.
+#
+# Every step always runs; the exit is the build's status when the build failed, else the parse
+# check's when it failed, else the Python step's failure status.
 bash scripts/check-shell-parse.sh
 parse_status=$?
+python_status=0
+if [ -f scripts/python-service.sh ]; then
+  bash scripts/python-service.sh check
+  python_status=$?
+  if [ "$python_status" -eq 3 ]; then
+    echo "typecheck: python checks BLOCKED - uv is not on PATH or a package environment is not provisioned; install uv if it is missing, then run bash scripts/python-service.sh provision outside the sandbox"
+    python_status=0
+  fi
+else
+  echo "typecheck: python checks SKIPPED - scripts/python-service.sh is not in this checkout"
+fi
 npm run build "$@"
 status=$?
 if [ "$status" -eq 0 ]; then
   status=$parse_status
+fi
+if [ "$status" -eq 0 ]; then
+  status=$python_status
 fi
 
 # Exactly one verdict line, so no caller ever appends an exit-code probe to this script. That
