@@ -5,7 +5,9 @@ The rule: the document's top level carries `"version": 1` beside the state's fie
 the attribute's own name, with no case mapping; each action and passage object carries its `kind`
 first; a `tuple` is a JSON array, an `End.reports` pair a 2-element array, a `Mapping` a JSON
 object in key order, and `None` a JSON `null` under a key that is always present. The codec reads
-only what it writes: a document of another version is refused.
+only what it writes: a document of another version is refused. A change to the document's shape
+(a key added, removed or renamed, a `kind` added or removed, or a value encoded differently) raises
+`_VERSION`, and a document of an older version is refused, never migrated.
 
 Decoding rebuilds the frozen types with `tuple`s and `MappingProxyType`s over fresh `dict`s, as
 `graphscene.adapters.builder` builds the graph. A malformed document raises
