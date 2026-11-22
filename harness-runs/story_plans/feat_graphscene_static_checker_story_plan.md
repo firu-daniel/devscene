@@ -28,7 +28,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_static_check
 
 1. [x] **Task 1** — Add the reference check `reference_violations` over `FlowGraph` in `engine/references.py` _(layer: graphscene)_ _(points: 20)_
 2. [x] **Task 2** — Add `static_violations` with the five generic graph checks and their fixtures in `engine/static_check.py` _(layer: graphscene)_ _(points: 20)_
-3. [ ] **Task 3** — Move the vocabulary check onto `FlowGraph` and load as schema, build, vocabulary, static _(layer: graphscene)_ _(points: 20)_
+3. [x] **Task 3** — Move the vocabulary check onto `FlowGraph` and load as schema, build, vocabulary, static _(layer: graphscene)_ _(points: 20)_
 4. [ ] **Task 4** — Export `static_violations` and hold loading to the static negatives _(layer: graphscene)_ _(points: 15)_
 5. [ ] **Task 5** — Describe the static checker and the new loading order in `graphscene/README.md` _(layer: graphscene)_ _(points: 10)_
 6. [ ] **Task 6** — Wire the static fixtures into `validate:graphscene-schema` and update the root documents of record _(layer: general)_ _(points: 10)_

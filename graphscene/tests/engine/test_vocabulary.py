@@ -1,23 +1,27 @@
 """The rule this file exists to enforce: every name a flow graph uses is one it declares, and each
 binding is used where its primitive allows (`graphscene.engine.vocabulary.vocabulary_violations`).
 
-The check returns `Violation` values (`graphscene.model.errors.Violation`). Each clause has a
-planted in-test graph asserting the exact list returned; `valid_generic.json`
-returns nothing; and each `vocabulary_negative_*.json` fixture, a schema-valid copy of it with one
-change, returns exactly its one violation. One case renders the check's `Violation` values back to
-the strings it returned before it used them.
+The check reads the built model: every graph here goes through
+`graphscene.adapters.builder.build_flow_graph` first, and the check returns `Violation` values
+(`graphscene.model.errors.Violation`). Each clause has a planted in-test graph asserting the exact
+list returned; `valid_generic.json` returns nothing; and each `vocabulary_negative_*.json` fixture,
+a schema-valid copy of it with one change, returns exactly its one violation. One case renders the
+check's `Violation` values back to the strings it returned before it used them.
 
 Deliberately not covered:
 - Schema validity: the fixtures are validated against the schema from the repository root, and the
   check assumes a schema-valid graph.
-- Node-id references, reachability and counter caps, which belong to a static checker.
+- Node-id references, reachability and counter caps: the static checker's
+  (`graphscene.engine.static_check`).
 """
 
 import json
 from pathlib import Path
 
+from graphscene.adapters.builder import build_flow_graph
 from graphscene.engine.vocabulary import vocabulary_violations
 from graphscene.model.errors import Violation
+from graphscene.model.flow_graph import FlowGraph
 
 _FIXTURES = Path(__file__).parents[1] / "fixtures" / "flow_graph"
 
@@ -90,22 +94,49 @@ def _vocabulary() -> dict[str, object]:
     }
 
 
-def _graph(nodes: dict[str, object]) -> dict[str, object]:
-    return {"vocabulary": _vocabulary(), "nodes": nodes}
+def _graph(nodes: dict[str, object], vocabulary: dict[str, object] | None = None) -> FlowGraph:
+    return build_flow_graph(
+        {
+            "formatVersion": 4,
+            "flow": "planted",
+            "description": "a planted graph",
+            "vocabulary": _vocabulary() if vocabulary is None else vocabulary,
+            "start": "a",
+            "entries": ["a"],
+            "counters": {},
+            "paths": {},
+            "reports": [],
+            "nodes": nodes,
+        }
+    )
 
 
 def _dispatch(outcomes: dict[str, object], **extra: object) -> dict[str, object]:
-    return {"kind": "dispatch", "outcomes": outcomes, **extra}
+    return {
+        "kind": "dispatch",
+        "agent": "worker",
+        "heartbeat": "beat",
+        "outcomes": outcomes,
+        **extra,
+    }
 
 
 def _round(outcomes: dict[str, object]) -> dict[str, object]:
-    return {"kind": "round", "outcomes": outcomes}
+    return {
+        "kind": "round",
+        "parallel": False,
+        "gates": [],
+        "writer": "w",
+        "counter": "n",
+        "convergingFrom": 1,
+        "outcomes": outcomes,
+    }
 
 
-def _load(name: str) -> dict[str, object]:
+def _load(name: str) -> FlowGraph:
     parsed: object = json.loads((_FIXTURES / name).read_text(encoding="utf-8"))
     assert isinstance(parsed, dict)
-    return parsed
+    return build_flow_graph(parsed)
 
 
 def test_clause_1_an_undeclared_outcome_is_named() -> None:
@@ -299,16 +330,10 @@ def test_each_vocabulary_negative_fixture_returns_its_one_violation() -> None:
 
 
 def test_vocabulary_violations_render_to_the_strings_the_check_returned_before() -> None:
-    graph: dict[str, object] = {
-        "vocabulary": {"outcomes": {"done": {}}, "bindings": {}, "predicates": {}},
-        "nodes": {
-            "a": {
-                "kind": "dispatch",
-                "outcomes": {"stalled": {"to": "a"}},
-                "skip": [{"when": "never", "to": "a"}],
-            }
-        },
-    }
+    graph = _graph(
+        {"a": _dispatch({"stalled": {"to": "a"}}, skip=[{"when": "never", "to": "a"}])},
+        vocabulary={"outcomes": {"done": {}}, "bindings": {}, "predicates": {}},
+    )
     assert [str(v) for v in vocabulary_violations(graph)] == [
         "nodes.a.outcomes.stalled: outcome 'stalled' is not declared in vocabulary.outcomes",
         "nodes.a.skip[0].when: predicate 'never' is not declared in vocabulary.predicates",

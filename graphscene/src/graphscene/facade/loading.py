@@ -2,15 +2,13 @@
 or into a `GraphError` whose violations name the node and the field.
 
 The rule: a returned graph has passed the format-4 schema this package ships
-(`schemas/flow-graph.schema.json`), then the vocabulary check, in that order, and is then built. A
-graph failing the schema never reaches the vocabulary check.
+(`schemas/flow-graph.schema.json`), been built, then passed the vocabulary check and the static
+checks, in that order. A graph failing one stage never reaches the next.
 
 Deliberately not checked:
-- Node-id references: `to`, `resume`, `gates`, `writer`, `start`, `entries`, `roundCounts` and a
-  skip's `to` may name a node that does not exist. That is a static checker's job.
-- The names a graph gives its counters, paths, report slots and prompts, where they are used.
-- Reachability and counter caps.
 - Duplicate JSON keys, which `json.loads` collapses to the last.
+- What runs a node (an agent's existence, its return schema): a harness check, outside this
+  package.
 """
 
 import os
@@ -18,6 +16,7 @@ import os
 from graphscene.adapters.builder import build_flow_graph
 from graphscene.adapters.json_file import read_json_file
 from graphscene.adapters.schema import schema_violations
+from graphscene.engine.static_check import static_violations
 from graphscene.engine.vocabulary import vocabulary_violations
 from graphscene.model.errors import GraphError
 from graphscene.model.flow_graph import FlowGraph
@@ -29,10 +28,14 @@ def load_graph(graph: object) -> FlowGraph:
     if found:
         raise GraphError("schema", found)
     assert isinstance(graph, dict)
-    found = vocabulary_violations(graph)
+    built = build_flow_graph(graph)
+    found = vocabulary_violations(built)
     if found:
         raise GraphError("vocabulary", found)
-    return build_flow_graph(graph)
+    found = static_violations(built)
+    if found:
+        raise GraphError("static", found)
+    return built
 
 
 def load_graph_file(path: str | os.PathLike[str]) -> FlowGraph:
