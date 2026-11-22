@@ -13,7 +13,10 @@ check 9 reports round by round, rounds in key order, and within a round each gat
 `gates` order, then the writer, then the other edges and skips that target the round, by source
 node in key order. Every reason opens with its check id. The walked edge set W is: a
 `RouteEdge`'s `to`, a `BindingEdge`'s `resume` when it is not `None`, each `SkipEntry`'s `to`, and
-a round node's fan-out to each of its `gates`. The checks are total: targets, bindings and outcome
+a round node's fan-out to each of its `gates`. Check 3 walks F, a node's uncapped route edges and
+its skips; for a fail edge that is not a gate's edge into its own round, F also walks a round
+node's fan-out to its `gates`, since only that round's join breaks a cycle through its fan-out.
+The checks are total: targets, bindings and outcome
 declarations are looked up with `.get`, so a graph built in code that an earlier stage would
 refuse never raises.
 
@@ -74,6 +77,14 @@ def _uncapped(node: Node) -> list[str]:
     ]
     if isinstance(node, DispatchNode):
         targets.extend(entry.to for entry in node.skip or ())
+    return targets
+
+
+def _uncapped_with_fan_out(node: Node) -> list[str]:
+    """`_uncapped`, plus a round node's fan-out to each of its `gates`."""
+    targets = _uncapped(node)
+    if isinstance(node, RoundNode):
+        targets.extend(node.gates)
     return targets
 
 
@@ -154,7 +165,10 @@ def _fail_cycle_capped(graph: FlowGraph) -> list[Violation]:
                 continue
             if _verdict(graph, outcome) != "fail":
                 continue
-            if node_id in _reached(graph, [edge.to], _uncapped):
+            target = graph.nodes.get(edge.to)
+            own_round = isinstance(target, RoundNode) and node_id in target.gates
+            successors = _uncapped if own_round else _uncapped_with_fan_out
+            if node_id in _reached(graph, [edge.to], successors):
                 found.append(
                     Violation(
                         f"nodes.{node_id}.outcomes.{outcome}",

@@ -10,7 +10,9 @@ changes it, or plants its own graph, so that one clause fires, and asserts the e
 returned. Each review-loop clause of checks 8 and 9 is planted on both kinds of round: on a review
 loop it fires, and on a plain round (`_plain_round`, no `writer`) the same graph returns nothing,
 while the round rules fire on both. Check 8's graph-wide clause is planted on a graph declaring a
-review loop, where it fires, and on one declaring none, where it does not run.
+review loop, where it fires, and on one declaring none, where it does not run. A fail cycle closed
+through a plain round's fan-out is planted on a graph declaring no review loop, where check 3
+names it.
 `valid_generic.json` and `valid_plain_round.json` return nothing, and each
 `static_negative_*.json` fixture in `_NEGATIVES`, a schema-valid copy of `valid_generic.json` with
 one change, returns exactly its one violation. Expected values are hand-written from reading each
@@ -269,6 +271,24 @@ def test_fail_cycle_capped_a_cycle_closed_only_through_a_resume_is_not_reported(
         "t": _TERMINAL,
     }
     assert _check(nodes) == []
+
+
+def test_fail_cycle_capped_a_cycle_through_a_plain_rounds_fan_out_is_named() -> None:
+    # `a` is no gate; it rejects into plain round `r` with no increment, and gate `g`'s held
+    # outcome routes back to `a`, so the cycle closes through `r`'s fan-out.
+    nodes = _base()
+    nodes["a"] = _dispatch({"done": {"to": "r"}, "rejected": {"to": "r"}})
+    nodes["g"] = _gate(
+        outcomes={"approved": {"to": "r"}, "rejected": {"to": "r"}, "crashed": {"to": "a"}}
+    )
+    nodes["r"] = _plain_round()
+    assert _check(nodes) == [
+        Violation(
+            "nodes.a.outcomes.rejected",
+            "fail-cycle-capped: outcome 'rejected' routes 'a' -> 'r' with no increment, and 'r' "
+            "reaches 'a' again",
+        )
+    ]
 
 
 def test_gate_in_round_a_gate_in_zero_rounds_is_named() -> None:

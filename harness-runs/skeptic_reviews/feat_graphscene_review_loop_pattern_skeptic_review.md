@@ -23,7 +23,7 @@ I checked the story index's claims against the code, `rounds.py` and `transition
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Walk a round's fan-out in check 3 for every fail edge but a gate's own, so an uncapped fail cycle through a plain round is refused _(layer: graphscene)_
+1. [x] **Finding 1** — Walk a round's fan-out in check 3 for every fail edge but a gate's own, so an uncapped fail cycle through a plain round is refused _(layer: graphscene)_
 
 ---
 
