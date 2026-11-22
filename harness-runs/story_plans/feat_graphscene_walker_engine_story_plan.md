@@ -38,7 +38,7 @@ Top risks: The three engine modules share one mutable draft and call each other 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_walker_engine/task_<K>_plan.md`. The entries are ordered bottom-up by ship sequence, with the catch-all layer last.
 
 1. [x] **Task 1** — Declare the walk's actions and passages in `model/walk_actions.py` _(layer: graphscene)_ _(points: 10)_
-2. [ ] **Task 2** — Declare `WalkState` and the `StateStore` and `PredicateHost` protocols in `model/walk_state.py` _(layer: graphscene)_ _(points: 10)_
+2. [x] **Task 2** — Declare `WalkState` and the `StateStore` and `PredicateHost` protocols in `model/walk_state.py` _(layer: graphscene)_ _(points: 10)_
 3. [ ] **Task 3** — Build the walk's transitions in `engine/transitions.py`: arrival, skips, edges, caps, bindings, round open and close _(layer: graphscene)_ _(points: 20)_
 4. [ ] **Task 4** — Record a gate's outcome in an open round and join the set in `engine/rounds.py` _(layer: graphscene)_ _(points: 15)_
 5. [ ] **Task 5** — Add the `Walker` with `start`, `next` and `current` in `engine/walker.py` _(layer: graphscene)_ _(points: 15)_
