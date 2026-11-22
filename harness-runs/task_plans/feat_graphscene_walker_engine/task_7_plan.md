@@ -29,6 +29,8 @@
 - [ ] **`write` and `lock`.**
   - `write` creates the parent directory when it is missing, writes UTF-8 to a `tempfile.NamedTemporaryFile(dir=path.parent, delete=False)`, flushes and `fsync`s it, `os.replace`s it onto `path`, and removes the temporary file if any step before the replace fails.
   - `lock` is a `contextlib.contextmanager` that opens `<path>.lock` anew on every call (a separate open file description, so threads exclude each other as processes do).
+  - **Deviations from plan:** `lock` also creates the parent directory when it is missing, as `write` does. The `Walker` takes the lock before the first `write`, so without this a store whose directory does not exist yet would fail with `FileNotFoundError` on its first `start`.
+  - **Deviations from plan:** `read` decodes UTF-8 inside the same `try` as `state_from_json`. A `UnicodeDecodeError` is a `ValueError`, so a file that is not UTF-8 gets the same `<path>: <reason>` wrapping instead of escaping without the file's path.
 - [ ] **`test_state_file.py`.** Its module docstring opens *"The rule this file exists to enforce"*. Everything is under `tmp_path`, never inside the checkout. Cover these:
   - `read` of an absent file is `None`;
   - a `write` then `read` round trip;
