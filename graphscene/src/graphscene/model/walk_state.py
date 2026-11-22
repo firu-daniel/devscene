@@ -1,4 +1,5 @@
-"""The walk's persisted position, and the two protocols the engine drives and a caller implements.
+"""The walk's persisted position, the input a host hands `start` to begin inside a round, and the
+two protocols the engine drives and a caller implements.
 
 `WalkState` is where a walk stands; `StateStore` is where it is saved; `PredicateHost` answers the
 predicates the graph names.
@@ -19,6 +20,10 @@ Field meanings:
 - `reports` is slot → status recorded so far.
 - `skipped` is node → the predicate name that skipped it on its latest arrival, so a cap's
   `round_counts` can drop a node whose predicate has `in_round_counts` false.
+- `RoundResume` is a host's entry into a round at `Walker.start`: `round` is the round node,
+  `number` its round number, and `records` the outcomes already recorded, in any order. It carries
+  no counter, because `start` sets every counter to 0. It is never saved: a resumed walk is saved
+  as an ordinary `WalkState`, so the walk-state document is unchanged.
 """
 
 import contextlib
@@ -37,6 +42,13 @@ class OpenRound:
     number: int
     due: tuple[str, ...]
     records: Mapping[str, GateRecord]
+
+
+@dataclass(frozen=True)
+class RoundResume:
+    round: str
+    number: int
+    records: tuple[GateRecord, ...] = ()
 
 
 @dataclass(frozen=True)
