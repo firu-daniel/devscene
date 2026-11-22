@@ -7,7 +7,7 @@
  * or `XDG_CACHE_HOME` — the package is a row of a closed table, and `provision` lets a host with no
  * `uv` bootstrap (`SKIPPED`, exit 0) while the legs still exit 3 (`BLOCKED`); `probe` runs only a `.py`
  * file inside the state directory's `scratch/` and passes that file's status through, and `check`
- * grades an unprovisioned leg as exit 3, never as a failure.** The table has two rows,
+ * grades an unprovisioned leg as exit 3, never as a failure.** The table has three rows,
  * and a row with no console script or no compose project refuses `run` / `container-test` with exit 2
  * before calling `uv`; `provision` syncs every row, in table order. That is what makes
  * gate 13 runnable in a run copy, whose sandboxes allow writes to the copy and a temporary
@@ -42,11 +42,14 @@ import { runBash, runGit, WORKSPACE_ROOT } from './helpers/fixture.mjs';
 const SCRIPT = join(WORKSPACE_ROOT, 'scripts', 'python-service.sh');
 const PACKAGE = 'docs-retrieval-service';
 const LIBRARY = 'graphscene';
+const RUNTIME = 'devscene-runtime';
+/** The table's rows, in table order. */
+const ROWS = [PACKAGE, LIBRARY, RUNTIME];
 const CONSOLE_SCRIPT = 'devscene-docs-retrieval';
 const OTHER_PACKAGE = 'other-package';
 const LEG_PREFIX = ['run', '--frozen', '--no-sync', '--no-cache'];
 const UNKNOWN_PACKAGE_LINE = (dir) =>
-  `python-service: unknown package '${dir}'; the packages are: ${PACKAGE}, ${LIBRARY}`;
+  `python-service: unknown package '${dir}'; the packages are: ${PACKAGE}, ${LIBRARY}, ${RUNTIME}`;
 const USAGE_PREFIX = 'usage: bash scripts/python-service.sh [--package <dir>] ';
 
 /**
@@ -107,7 +110,7 @@ function resolveOnBase(tool, pathValue) {
 }
 
 /**
- * One case's fixture: a git repository holding the script, both table rows' packages and a Python
+ * One case's fixture: a git repository holding the script, every table row's package and a Python
  * package that is not a row, beside a `bin/uv` stub, an empty `HOME`, an empty `XDG_CACHE_HOME` and
  * the stub's call log — all under one `realpath`-resolved directory under `os.tmpdir()`.
  *
@@ -122,7 +125,7 @@ async function buildFixture(t, { withLibrary = false } = {}) {
   const bin = join(root, 'bin');
   const home = join(root, 'home');
   const cache = join(root, 'xdg-cache');
-  for (const dir of [repo, bin, home, cache, join(repo, 'scripts'), join(repo, PACKAGE), join(repo, LIBRARY), join(repo, OTHER_PACKAGE)]) {
+  for (const dir of [repo, bin, home, cache, join(repo, 'scripts'), join(repo, PACKAGE), join(repo, LIBRARY), join(repo, RUNTIME), join(repo, OTHER_PACKAGE)]) {
     await mkdir(dir, { recursive: true });
   }
   await runGit(repo, ['init', '-q']);
@@ -130,6 +133,7 @@ async function buildFixture(t, { withLibrary = false } = {}) {
   await copyFile(SCRIPT, script);
   await writeFile(join(repo, PACKAGE, 'pyproject.toml'), `[project]\nname = "${PACKAGE}"\n`, 'utf8');
   await writeFile(join(repo, LIBRARY, 'pyproject.toml'), `[project]\nname = "${LIBRARY}"\n`, 'utf8');
+  await writeFile(join(repo, RUNTIME, 'pyproject.toml'), `[project]\nname = "${RUNTIME}"\n`, 'utf8');
   await writeFile(join(repo, OTHER_PACKAGE, 'pyproject.toml'), `[project]\nname = "${OTHER_PACKAGE}"\n`, 'utf8');
   await writeFile(join(repo, OTHER_PACKAGE, 'uv.lock'), 'version = 1\n', 'utf8');
   if (withLibrary) {
@@ -249,41 +253,43 @@ test('the legs, provisioned: each records its argv, the package directory and th
   await assertNothingUnderHome(fixture, all);
 });
 
-test(`the legs under --package ${LIBRARY}: each records its argv, ${LIBRARY}/ and its four values`, async (t) => {
-  const fixture = await buildFixture(t);
-  await fixture.plantVenv(LIBRARY);
-  const all = [];
-  for (const leg of LEGS.filter((entry) => entry.args[0] !== 'run').concat([
-    { args: ['test', 'tests/a.py'], argvs: [[...LEG_PREFIX, 'pytest', 'tests/a.py']] },
-  ])) {
-    const args = ['--package', LIBRARY, ...leg.args];
-    const result = await fixture.runScript(args);
-    assert.equal(result.status, 0, `${args.join(' ')}: ${result.stderr}`);
-    const calls = await fixture.takeCalls();
-    assertCalls(calls, fixture.repo, leg.argvs, args.join(' '), LIBRARY);
-    all.push(...calls);
-  }
-  await assertNothingUnderHome(fixture, all);
-});
+for (const row of [LIBRARY, RUNTIME]) {
+  test(`the legs under --package ${row}: each records its argv, ${row}/ and its four values`, async (t) => {
+    const fixture = await buildFixture(t);
+    await fixture.plantVenv(row);
+    const all = [];
+    for (const leg of LEGS.filter((entry) => entry.args[0] !== 'run').concat([
+      { args: ['test', 'tests/a.py'], argvs: [[...LEG_PREFIX, 'pytest', 'tests/a.py']] },
+    ])) {
+      const args = ['--package', row, ...leg.args];
+      const result = await fixture.runScript(args);
+      assert.equal(result.status, 0, `${args.join(' ')}: ${result.stderr}`);
+      const calls = await fixture.takeCalls();
+      assertCalls(calls, fixture.repo, leg.argvs, args.join(' '), row);
+      all.push(...calls);
+    }
+    await assertNothingUnderHome(fixture, all);
+  });
 
-test(`run, container-test and sync --with-models under --package ${LIBRARY} exit 2 with the row's refusal line and call no uv`, async (t) => {
-  const fixture = await buildFixture(t);
-  await fixture.plantVenv(LIBRARY);
-  const refusals = [
-    [['--package', LIBRARY, 'run', 'serve'], `python-service: package '${LIBRARY}' has no console script`],
-    [['--package', LIBRARY, 'container-test'], `python-service: package '${LIBRARY}' has no container tests`],
-    [['--package', LIBRARY, 'sync', '--with-models'], `python-service: package '${LIBRARY}' has no models extra`],
-  ];
-  for (const [args, line] of refusals) {
-    const result = await fixture.runScript(args);
-    assert.equal(result.status, 2, `${args.join(' ')}: ${result.stderr}`);
-    const lines = result.stderr.split('\n').filter(Boolean);
-    assert.equal(lines[0], line, result.stderr);
-    assert.ok(lines[1]?.startsWith(USAGE_PREFIX), `no usage line: ${result.stderr}`);
-    assert.equal(lines.length, 2, result.stderr);
-    assert.deepEqual(await fixture.takeCalls(), [], `${args.join(' ')} called uv`);
-  }
-});
+  test(`run, container-test and sync --with-models under --package ${row} exit 2 with the row's refusal line and call no uv`, async (t) => {
+    const fixture = await buildFixture(t);
+    await fixture.plantVenv(row);
+    const refusals = [
+      [['--package', row, 'run', 'serve'], `python-service: package '${row}' has no console script`],
+      [['--package', row, 'container-test'], `python-service: package '${row}' has no container tests`],
+      [['--package', row, 'sync', '--with-models'], `python-service: package '${row}' has no models extra`],
+    ];
+    for (const [args, line] of refusals) {
+      const result = await fixture.runScript(args);
+      assert.equal(result.status, 2, `${args.join(' ')}: ${result.stderr}`);
+      const lines = result.stderr.split('\n').filter(Boolean);
+      assert.equal(lines[0], line, result.stderr);
+      assert.ok(lines[1]?.startsWith(USAGE_PREFIX), `no usage line: ${result.stderr}`);
+      assert.equal(lines.length, 2, result.stderr);
+      assert.deepEqual(await fixture.takeCalls(), [], `${args.join(' ')} called uv`);
+    }
+  });
+}
 
 test('a failing tool maps to exit 1, and lint runs both of its calls before failing', async (t) => {
   const fixture = await buildFixture(t);
@@ -360,17 +366,21 @@ test('provision syncs the rows in table order, each in its own directory, and re
   const sync = ['sync', '--frozen', '--group', 'dev'];
   const ok = await fixture.runScript(['provision']);
   assert.equal(ok.status, 0, ok.stderr);
-  assert.equal(ok.stdout, `python-service: provisioned ${PACKAGE}\npython-service: provisioned ${LIBRARY}\n`);
+  assert.equal(
+    ok.stdout,
+    'python-service: provisioned docs-retrieval-service\n' +
+      'python-service: provisioned graphscene\n' +
+      'python-service: provisioned devscene-runtime\n',
+  );
   const calls = await fixture.takeCalls();
-  assert.equal(calls.length, 2, 'provision: one sync per row');
-  assertCalls(calls.slice(0, 1), fixture.repo, [sync], `provision, ${PACKAGE}`);
-  assertCalls(calls.slice(1), fixture.repo, [sync], `provision, ${LIBRARY}`, LIBRARY);
+  assert.equal(calls.length, ROWS.length, 'provision: one sync per row');
+  ROWS.forEach((row, i) => assertCalls(calls.slice(i, i + 1), fixture.repo, [sync], `provision, ${row}`, row));
   await assertNothingUnderHome(fixture, calls);
 
   const failed = await fixture.runScript(['provision'], { env: { FAKE_UV_STATUS: '1' } });
   assert.equal(failed.status, 1, failed.stderr);
   const stderrLines = failed.stderr.split('\n');
-  for (const row of [PACKAGE, LIBRARY]) {
+  for (const row of ROWS) {
     assert.ok(stderrLines.includes(`python-service: provision: ${row} failed (exit 1)`), failed.stderr);
   }
 });
@@ -485,34 +495,35 @@ test('probe with no library beside the script exits 1 naming it, and calls no uv
   assert.deepEqual(await fixture.takeCalls(), []);
 });
 
-/** The `check` stdout for `verdicts`, four in table order: each row's `lint`, then its `typecheck`. */
+/** The `check` stdout for `verdicts`, two per row in table order: each row's `lint`, then its `typecheck`. */
 function checkLines(verdicts) {
-  const legs = [PACKAGE, LIBRARY].flatMap((row) => ['lint', 'typecheck'].map((leg) => `${row} ${leg}`));
+  assert.equal(verdicts.length, ROWS.length * 2, 'checkLines: one verdict per row and leg');
+  const legs = ROWS.flatMap((row) => ['lint', 'typecheck'].map((leg) => `${row} ${leg}`));
   return legs.map((leg, i) => `python-service: check: ${leg} ${verdicts[i]}\n`).join('');
 }
 
 const CHECK_ARGVS = [LEGS[0].argvs[0], LEGS[0].argvs[1], LEGS[1].argvs[0]];
 
-test('check, both rows provisioned: six calls in table order, each at its row, four PASS lines, exit 0', async (t) => {
+test('check, every row provisioned: three calls per row in table order, each at its row, all PASS, exit 0', async (t) => {
   const fixture = await buildFixture(t);
-  await fixture.plantVenv();
-  await fixture.plantVenv(LIBRARY);
+  for (const row of ROWS) await fixture.plantVenv(row);
   const result = await fixture.runScript(['check']);
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, checkLines(['PASS', 'PASS', 'PASS', 'PASS']));
+  assert.equal(result.stdout, checkLines(['PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS']));
   const calls = await fixture.takeCalls();
-  assert.equal(calls.length, 6, 'check: six uv calls');
-  assertCalls(calls.slice(0, 3), fixture.repo, CHECK_ARGVS, `check, ${PACKAGE}`);
-  assertCalls(calls.slice(3), fixture.repo, CHECK_ARGVS, `check, ${LIBRARY}`, LIBRARY);
+  assert.equal(calls.length, CHECK_ARGVS.length * ROWS.length, 'check: three uv calls per row');
+  ROWS.forEach((row, i) =>
+    assertCalls(calls.slice(i * 3, i * 3 + 3), fixture.repo, CHECK_ARGVS, `check, ${row}`, row),
+  );
   await assertNothingUnderHome(fixture, calls);
 });
 
-test(`check with only ${PACKAGE} provisioned grades ${LIBRARY} BLOCKED and exits 3`, async (t) => {
+test(`check with only ${PACKAGE} provisioned grades ${LIBRARY} and ${RUNTIME} BLOCKED and exits 3`, async (t) => {
   const fixture = await buildFixture(t);
   await fixture.plantVenv();
   const result = await fixture.runScript(['check']);
   assert.equal(result.status, 3, result.stderr);
-  assert.equal(result.stdout, checkLines(['PASS', 'PASS', 'BLOCKED', 'BLOCKED']));
+  assert.equal(result.stdout, checkLines(['PASS', 'PASS', 'BLOCKED', 'BLOCKED', 'BLOCKED', 'BLOCKED']));
   assertCalls(await fixture.takeCalls(), fixture.repo, CHECK_ARGVS, `check, ${PACKAGE}`);
 });
 
@@ -521,22 +532,21 @@ test('check with a failing tool grades FAIL over BLOCKED, exits 1 and still runs
   await fixture.plantVenv();
   const result = await fixture.runScript(['check'], { env: { FAKE_UV_STATUS: '1' } });
   assert.equal(result.status, 1, result.stderr);
-  assert.equal(result.stdout, checkLines(['FAIL', 'FAIL', 'BLOCKED', 'BLOCKED']));
+  assert.equal(result.stdout, checkLines(['FAIL', 'FAIL', 'BLOCKED', 'BLOCKED', 'BLOCKED', 'BLOCKED']));
   assertCalls(await fixture.takeCalls(), fixture.repo, CHECK_ARGVS, `check failing, ${PACKAGE}`);
 });
 
-test('check with no uv on PATH prints four BLOCKED lines and exits 3', async (t) => {
+test('check with no uv on PATH prints a BLOCKED line per row and leg and exits 3', async (t) => {
   const fixture = await buildFixture(t);
   const realUv = resolveOnBase('uv', fixture.base);
   if (realUv !== undefined) {
     t.skip(`the base PATH resolves a real uv at ${realUv}`);
     return;
   }
-  await fixture.plantVenv();
-  await fixture.plantVenv(LIBRARY);
+  for (const row of ROWS) await fixture.plantVenv(row);
   const result = await fixture.runScript(['check'], { noUv: true });
   assert.equal(result.status, 3, result.stderr);
-  assert.equal(result.stdout, checkLines(['BLOCKED', 'BLOCKED', 'BLOCKED', 'BLOCKED']));
+  assert.equal(result.stdout, checkLines(['BLOCKED', 'BLOCKED', 'BLOCKED', 'BLOCKED', 'BLOCKED', 'BLOCKED']));
 });
 
 test('check takes no argument and no --package', async (t) => {
