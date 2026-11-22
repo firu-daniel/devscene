@@ -16,3 +16,9 @@
 - **cost this run:** 3 node session(s)
 
 # Task run (Phase D)
+
+## A resume launch named a pause note that did not exist, and found an already-consumed park pair still at the top level
+- **category:** silent-failure
+- **evidence:** this session's launch prompt said "RESUME from a PAUSE: read harness-runs/PAUSE_PROGRESS.md", but `harness-runs/PAUSE_PROGRESS.md` was absent in this checkout (and in the main checkout). `harness-runs/clarifications/feat_devscene_runtime_skeleton/question_1.md` (a Phase A Task 2 layer-implementer park) and its `answer_1.md` (written 21:02) were still at the top level, although the session that consumed them had already landed Task 2 (`e462394c`, 21:05) and Task 3 (`f3d47ade`, 21:06) and exited; the prompt-injection screen re-screened `answer_1.md` at this launch (one extra dispatch). Ledger at launch: `A` still `[ ]`, Tasks 1–3 `[x]` in the story index.
+- **cost this run:** one prompt-injection-reviewer dispatch on an answer whose question was already resolved; the orchestrator had to judge that the top-level pair was not a pending planner answer (Override 2(a)) from commit history.
+- **hypothesis:** the previous session ended without a clean pause or the watcher's post-exit archive step, so the pair was never moved under `answered/`.
