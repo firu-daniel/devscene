@@ -42,3 +42,5 @@ These tests are planted in place, not committed fixtures, so they need no `packa
 ```
 bash scripts/python-service.sh --package graphscene test tests/facade/test_loading.py
 ```
+
+**Deviations from plan:** The suggested code indexes `nodes["checks"]` on a `dict[str, object]`, which mypy strict rejects; implemented through the file's existing `_node` helper instead, with the parametrize list split one entry per line as `ruff format` requires. Behaviour as specified.

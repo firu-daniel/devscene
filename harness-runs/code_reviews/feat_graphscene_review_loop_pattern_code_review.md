@@ -43,7 +43,7 @@ Three findings follow, none of them a Must Fix.
 
 1. [x] **Finding 3** — Rejoin the stub line "key order; within" in the `references.py` module docstring _(layer: graphscene)_
 2. [x] **Finding 2** — Drop the stale "the builder require them" docstring and "become optional" comment, and test `review_loop` on the built plain-round fixture _(layer: graphscene)_
-3. [ ] **Finding 1** — Test the round-node schema dependency clauses beyond writer-without-counter _(layer: graphscene)_
+3. [x] **Finding 1** — Test the round-node schema dependency clauses beyond writer-without-counter _(layer: graphscene)_
 
 ---
 

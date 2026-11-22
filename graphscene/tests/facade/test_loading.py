@@ -2,7 +2,9 @@
 the order schema, vocabulary, static, and stops at the first that fails; it rejects every fixture
 `ajv` rejects, at the schema stage, every vocabulary negative, at the vocabulary stage, and every
 static negative, at the static stage; each rejection names the node and the field where the
-fixture's one change sits;
+fixture's one change sits; a round that does not declare `writer` but carries `counter`,
+`convergingFrom`, `plan` or `revisionNote`, and a round declaring `writer` without
+`convergingFrom`, are rejected at the schema stage;
 `valid_generic.json` loads, and `valid_plain_round.json` loads with its round carrying no review
 loop; a number the schema accepts as an integer, written `3.0`, loads as
 an `int`; a schema `pattern` is matched as ECMA-262 matches it, so a trailing newline or a `.`
@@ -75,6 +77,35 @@ def test_a_schema_negative_is_rejected_at_the_schema_stage(name: str, path: str)
         load_graph(_parsed(name))
     assert raised.value.stage == "schema"
     assert path in [violation.path for violation in raised.value.violations]
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("counter", "attempt"),
+        ("convergingFrom", 1),
+        ("plan", ["article"]),
+        ("revisionNote", "article"),
+    ],
+)
+def test_a_review_loop_key_on_a_round_without_a_writer_is_rejected_at_the_schema_stage(
+    key: str, value: object
+) -> None:
+    graph = copy.deepcopy(_parsed("valid_plain_round.json"))
+    _node(graph, "checks")[key] = value
+    with pytest.raises(GraphError) as raised:
+        load_graph(graph)
+    assert raised.value.stage == "schema"
+    assert "nodes.checks" in [violation.path for violation in raised.value.violations]
+
+
+def test_a_writer_without_converging_from_is_rejected_at_the_schema_stage() -> None:
+    graph = copy.deepcopy(_parsed("valid_generic.json"))
+    del _node(graph, "review_round")["convergingFrom"]
+    with pytest.raises(GraphError) as raised:
+        load_graph(graph)
+    assert raised.value.stage == "schema"
+    assert "nodes.review_round" in [violation.path for violation in raised.value.violations]
 
 
 @pytest.mark.parametrize(("name", "path"), _VOCABULARY_NEGATIVES)
