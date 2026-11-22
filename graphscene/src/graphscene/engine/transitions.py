@@ -12,8 +12,8 @@ The rule:
   where no entry holds clears that entry. When an entry holds, the walk
   moves on to the entry's `to` with no dispatch; a node reached twice in one arrival is refused,
   and so is a predicate the host cannot answer. Otherwise the node is dispatched, carrying the
-  round number and convergence of the round it is a gate of, or the round number of the round it
-  writes.
+  round number of the round it is a gate of, with that round's convergence when it is a review
+  loop, or the round number of the review loop it writes (`graphscene.engine.review_loop`).
 - `follow_edge` takes a binding edge to `take_binding`; on a routed edge it resets, then
   increments (a counter reaching its cap takes `onCap` and goes no further), then advances the
   named round's number, records the edge's report and ledger entry, sets or clears the target's
@@ -31,15 +31,15 @@ Deliberately not covered:
 
 - A graph that did not pass `load_graph`: its guarantees are relied on, never re-checked.
 - Path templates, heartbeats and round files: the host's.
-- The review loop's rules, recording a gate's outcome and the held join
-  (`graphscene.engine.rounds`), and validating a caller's step and reading or writing state
-  (`graphscene.engine.walker`).
+- Recording a gate's outcome and the held join (`graphscene.engine.rounds`), and validating a
+  caller's step and reading or writing state (`graphscene.engine.walker`).
 """
 
 from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 
+from graphscene.engine.review_loop import is_converging, review_loop, review_loops
 from graphscene.model.flow_graph import (
     BindingEdge,
     DispatchNode,
@@ -171,17 +171,21 @@ def _dispatch(
     closed_round: tuple[GateRecord, ...],
     passed: tuple[Passage, ...],
 ) -> Dispatch:
-    rounds = [n for n in graph.nodes.values() if isinstance(n, RoundNode)]
     round_number: int | None = None
     converging: bool | None = None
-    gate_of = next((r for r in rounds if node.id in r.gates), None)
+    gate_of = next(
+        (n for n in graph.nodes.values() if isinstance(n, RoundNode) and node.id in n.gates),
+        None,
+    )
     if gate_of is not None:
         round_number = draft.round_numbers[gate_of.id]
-        converging = draft.counters[gate_of.counter] >= gate_of.converging_from
+        loop = review_loop(gate_of)
+        if loop is not None:
+            converging = is_converging(loop, draft.counters)
     else:
-        writer_of = next((r for r in rounds if r.writer == node.id), None)
-        if writer_of is not None:
-            round_number = draft.round_numbers[writer_of.id]
+        written = next((lp for lp in review_loops(graph) if lp.writer == node.id), None)
+        if written is not None:
+            round_number = draft.round_numbers[written.round]
     return Dispatch(
         node=node.id,
         agent=node.agent,
