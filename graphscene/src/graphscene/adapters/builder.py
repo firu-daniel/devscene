@@ -98,6 +98,10 @@ def _opt_str(fields: Mapping[str, object], key: str, path: str) -> str | None:
     return _str(fields[key], _join(path, key)) if key in fields else None
 
 
+def _opt_int(fields: Mapping[str, object], key: str, path: str) -> int | None:
+    return _int(fields[key], _join(path, key)) if key in fields else None
+
+
 def _opt_strs(fields: Mapping[str, object], key: str, path: str) -> tuple[str, ...] | None:
     return _strs(fields[key], _join(path, key)) if key in fields else None
 
@@ -236,9 +240,9 @@ def _node(node_id: str, value: object, path: str) -> Node:
             id=node_id,
             parallel=_bool(fields.get("parallel"), _join(path, "parallel")),
             gates=_strs(fields.get("gates"), _join(path, "gates")),
-            writer=_str(fields.get("writer"), _join(path, "writer")),
-            counter=_str(fields.get("counter"), _join(path, "counter")),
-            converging_from=_int(fields.get("convergingFrom"), _join(path, "convergingFrom")),
+            writer=_opt_str(fields, "writer", path),
+            counter=_opt_str(fields, "counter", path),
+            converging_from=_opt_int(fields, "convergingFrom", path),
             plan=_opt_strs(fields, "plan", path),
             revision_note=_opt_str(fields, "revisionNote", path),
             outcomes=_edges(fields.get("outcomes"), _join(path, "outcomes")),

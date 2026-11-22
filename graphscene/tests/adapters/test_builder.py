@@ -2,8 +2,9 @@
 (`graphscene.adapters.builder.build_flow_graph`) mirrors the declaration one to one, and keeps
 references as ids.
 
-Every expected value is hand-written from reading `valid_generic.json`; a planted in-test graph
-covers the optional keys that fixture leaves out.
+Every expected value is hand-written from reading `valid_generic.json` or
+`valid_plain_round.json`; a planted in-test graph covers the optional keys those fixtures leave
+out.
 
 Deliberately not covered:
 - Validation: the builder runs after the schema and vocabulary checks, and is given only graphs
@@ -170,6 +171,18 @@ def test_the_round_and_terminal_nodes_mirror_the_fixture() -> None:
         evidence="article",
     )
     assert graph.nodes["published"] == TerminalNode(id="published", binding="<finish>")
+
+
+def test_a_round_without_a_writer_carries_none_for_the_review_loop_keys() -> None:
+    loaded = json.loads((_FIXTURES / "valid_plain_round.json").read_text(encoding="utf-8"))
+    checks = build_flow_graph(cast(dict[str, object], loaded)).nodes["checks"]
+    assert isinstance(checks, RoundNode)
+    assert checks.gates == ("lint", "license")
+    assert checks.writer is None
+    assert checks.counter is None
+    assert checks.converging_from is None
+    assert checks.plan is None
+    assert checks.revision_note is None
 
 
 def test_every_optional_key_lands_on_its_snake_case_attribute() -> None:

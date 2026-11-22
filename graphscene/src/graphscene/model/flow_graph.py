@@ -114,13 +114,16 @@ class DispatchNode:
 
 @dataclass(frozen=True)
 class RoundNode:
+    """`writer`, `counter` and `converging_from` are `None` together on a round that is not a
+    review loop (`graphscene.engine.review_loop`)."""
+
     kind: ClassVar[Literal["round"]] = "round"
     id: str
     parallel: bool
     gates: tuple[str, ...]
-    writer: str
-    counter: str
-    converging_from: int
+    writer: str | None
+    counter: str | None
+    converging_from: int | None
     plan: tuple[str, ...] | None
     revision_note: str | None
     outcomes: Mapping[str, Edge]

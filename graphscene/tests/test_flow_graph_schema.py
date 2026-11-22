@@ -22,6 +22,7 @@ _FIXTURES = Path(__file__).parent / "fixtures" / "flow_graph"
 
 _FIXTURE_NAMES = [
     "valid_generic.json",
+    "valid_plain_round.json",
     "schema_negative_format_version_3.json",
     "schema_negative_no_vocabulary.json",
     "schema_negative_unknown_primitive.json",
@@ -29,6 +30,7 @@ _FIXTURE_NAMES = [
     "schema_negative_outcome_verdict_and_held.json",
     "schema_negative_skip_construct.json",
     "schema_negative_round_three_outcomes.json",
+    "schema_negative_writer_without_counter.json",
 ]
 
 _HARNESS_NAMES = frozenset(

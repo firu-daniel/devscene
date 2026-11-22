@@ -230,8 +230,16 @@
     },
     "roundNode": {
       "type": "object",
+      "description": "A round that declares writer is a review loop: its writer writes what the gates review and revises it when the round fails, it requires counter and convergingFrom, and it alone may carry plan and revisionNote. A round without writer dispatches its gates as one set and joins them, and nothing more.",
       "additionalProperties": false,
-      "required": ["kind", "parallel", "gates", "writer", "counter", "convergingFrom", "outcomes"],
+      "required": ["kind", "parallel", "gates", "outcomes"],
+      "dependencies": {
+        "writer": ["counter", "convergingFrom"],
+        "counter": ["writer"],
+        "convergingFrom": ["writer"],
+        "plan": ["writer"],
+        "revisionNote": ["writer"]
+      },
       "properties": {
         "kind": { "const": "round" },
         "parallel": {
@@ -247,7 +255,7 @@
         },
         "writer": {
           "$ref": "#/definitions/nodeId",
-          "description": "The dispatch node that writes the plan the gates review, and revises it when the round fails."
+          "description": "The dispatch node that writes the plan the gates review, and revises it when the round fails. Declaring it makes the round a review loop."
         },
         "counter": {
           "$ref": "#/definitions/identifier",
