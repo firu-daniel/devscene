@@ -39,7 +39,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_round_resume
 1. [x] **Task 1** — Add the `RoundResume` model type beside `OpenRound` _(layer: graphscene)_ _(points: 8)_
 2. [x] **Task 2** — Enter a round with recorded gates through `enter_round` in `rounds.py` _(layer: graphscene)_ _(points: 15)_
 3. [x] **Task 3** — Give `Walker.start` a keyword-only `resume` and its refusals _(layer: graphscene)_ _(points: 20)_
-4. [ ] **Task 4** — Export `RoundResume`, document the round entry, walk it end to end _(layer: graphscene)_ _(points: 15)_
+4. [x] **Task 4** — Export `RoundResume`, document the round entry, walk it end to end _(layer: graphscene)_ _(points: 15)_
 5. [ ] **Task 5** — Record the round entry on the GraphScene roadmap row _(layer: general)_ _(points: 5)_
 
 ## Scope register
