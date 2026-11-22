@@ -5,20 +5,66 @@ never cancels them; the join takes the first held gate's edge in the round's `ga
 else closes the round through `graphscene.engine.transitions.close_round`. `record_gate` refuses,
 in this order, a gate not due in the open round, a gate already recorded, an outcome its node
 does not declare, and an outcome declaring neither a verdict nor held. A verdict outcome records
-its edge's report; its edge's `to` is the round and is not followed.
+its edge's report; its edge's `to` is the round and is not followed. `enter_round` opens a round
+as `open_round` does, refuses a record for a gate skipped on this arrival, then records each
+record through `record_gate` in `gates` order; it returns the set of gates still out, or the
+join's step once every due gate is recorded.
 
 Deliberately not covered:
 
 - Whether a set is pending at all and whether a gate was named, and reading or writing state:
   `graphscene.engine.walker`'s. `record_gate` assumes `draft.open_round` is set.
+- Refusing a record for a gate outside the round, a repeated gate or a negative round number,
+  and setting the round's number before `enter_round`: `graphscene.engine.walker`'s. Deciding
+  which round to enter and with which records: the host's.
 """
 
 from types import MappingProxyType
 
-from graphscene.engine.transitions import WalkDraft, close_round, follow_edge, take_binding
+from graphscene.engine.transitions import (
+    WalkDraft,
+    close_round,
+    follow_edge,
+    open_round,
+    take_binding,
+)
 from graphscene.model.flow_graph import BindingEdge, FlowGraph, RoundNode, RouteEdge, TerminalNode
 from graphscene.model.walk_actions import DispatchSet, GateRecord, Refused, Step, Wait
 from graphscene.model.walk_state import OpenRound, PredicateHost
+
+
+def enter_round(
+    graph: FlowGraph,
+    host: PredicateHost,
+    draft: WalkDraft,
+    round_id: str,
+    records: tuple[GateRecord, ...],
+) -> Step:
+    number = draft.round_numbers[round_id]
+    opened = open_round(graph, host, draft, round_id)
+    if isinstance(opened, Refused) or not records:
+        return opened
+    round_node = graph.nodes[round_id]
+    assert isinstance(round_node, RoundNode)
+    by_gate = {r.gate: r for r in records}
+    ordered = tuple(by_gate[g] for g in round_node.gates if g in by_gate)
+    current = draft.open_round
+    due = current.due if current is not None and current.round == round_id else ()
+    for r in ordered:
+        if r.gate not in due:
+            return Refused(
+                f"'{r.gate}' is skipped in round {number}: a skipped gate carries no record"
+            )
+    step: Step = opened
+    for r in ordered:
+        step = record_gate(graph, host, draft, r.gate, r.outcome, r.detail)
+        if isinstance(step, Refused):
+            return step
+    if isinstance(step, Wait):
+        pending = draft.pending
+        assert isinstance(pending, DispatchSet)
+        return pending
+    return step
 
 
 def record_gate(
