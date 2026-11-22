@@ -4,6 +4,7 @@ The rule: this layer may import every layer below it — `graphscene.adapters`, 
 and `graphscene.model` — and `__all__` holds exactly the package root's names, in its order.
 """
 
+from graphscene.engine.static_check import static_violations
 from graphscene.engine.vocabulary import vocabulary_violations
 from graphscene.facade.loading import load_graph, load_graph_file
 from graphscene.model.errors import GraphError, Stage, Violation
@@ -38,6 +39,7 @@ __all__: list[str] = [
     "Stage",
     "Violation",
     "vocabulary_violations",
+    "static_violations",
     "FlowGraph",
     "NodeKind",
     "Primitive",
