@@ -36,7 +36,6 @@ def review_loop(node: RoundNode) -> ReviewLoop | None:
 def _loop(
     round_id: str, writer: str | None, counter: str | None, converging_from: int | None
 ) -> ReviewLoop | None:
-    # Typed optional so this module needs no edit when the three fields become optional.
     if writer is None or counter is None or converging_from is None:
         return None
     return ReviewLoop(round_id, writer, counter, converging_from)

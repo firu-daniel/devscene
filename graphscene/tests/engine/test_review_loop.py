@@ -3,14 +3,10 @@
 reached `convergingFrom` (`graphscene.engine.review_loop`).
 
 Graphs are built through `graphscene.adapters.builder.build_flow_graph`, from
-`valid_generic.json` or from a graph planted through
+`valid_generic.json`, `valid_plain_round.json` or a graph planted through
 `graphscene/tests/engine/walk_support.py` → `planted`; every expected value is hand-written from
-reading the graph.
-
-Deliberately not covered:
-
-- A built round node lacking the three fields: the schema, the model and the builder require
-  them, so the absent case is pinned through `_loop` directly.
+reading the graph. A round lacking only one or two of the three fields, which the schema refuses,
+is pinned through `_loop` directly.
 """
 
 import json
@@ -49,6 +45,16 @@ def test_the_fixture_round_is_a_review_loop() -> None:
     node = build_flow_graph(parsed).nodes["review_round"]
     assert isinstance(node, RoundNode)
     assert review_loop(node) == ReviewLoop("review_round", "draft", "attempt", 1)
+
+
+def test_the_plain_round_fixture_is_no_review_loop() -> None:
+    parsed: object = json.loads((_FIXTURES / "valid_plain_round.json").read_text(encoding="utf-8"))
+    assert isinstance(parsed, dict)
+    graph = build_flow_graph(parsed)
+    node = graph.nodes["checks"]
+    assert isinstance(node, RoundNode)
+    assert review_loop(node) is None
+    assert review_loops(graph) == ()
 
 
 def test_review_loops_returns_every_round_in_nodes_key_order() -> None:
