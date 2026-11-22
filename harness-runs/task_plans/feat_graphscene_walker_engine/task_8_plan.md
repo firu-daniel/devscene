@@ -25,11 +25,10 @@
 
 **Work:**
 
-- [ ] **Both `__all__` lists.** In `facade/__init__.py` and `__init__.py`, import from each defining module (never from the package root) and append to **both** `__all__` lists, in this order after `"TerminalNode"`:
+- [ ] **`facade/__init__.py` — import from the defining modules.** Import each new name from its defining module, never from the package root: `Walker` from `graphscene.engine.walker`; `FileStateStore` from `graphscene.adapters.state_file`; `StateStore`, `PredicateHost`, `WalkState`, `OpenRound` and `Awaiting` from `graphscene.model.walk_state`; the rest from `graphscene.model.walk_actions`. Append them to its `__all__`, in this order after `"TerminalNode"`:
 
   `"Walker"`, `"FileStateStore"`, `"StateStore"`, `"PredicateHost"`, `"WalkState"`, `"OpenRound"`, `"Awaiting"`, `"Step"`, `"Action"`, `"Dispatch"`, `"DispatchSet"`, `"Wait"`, `"Interrupt"`, `"Stop"`, `"End"`, `"Refused"`, `"GateRecord"`, `"Passage"`, `"SkipPassage"`, `"RoundPassage"`, `"LedgerPassage"`
-
-  Extend the package root's docstring with one sentence naming the walker and its file store (`.claude/context/graphscene.md` → `## What accompanies a new module`, the public-name row).
+- [ ] **`__init__.py` — re-export from `graphscene.facade`.** Add the same names to the existing `from graphscene.facade import (…)` block, the same as the names already there; the package root imports nothing from a defining module (`.claude/context/graphscene.md` → `## The public surface`: *"re-exported from `graphscene.facade`"*). Append them to its `__all__` in the same order as above, so both lists stay equal. Extend the package root's docstring with one sentence naming the walker and its file store (`.claude/context/graphscene.md` → `## What accompanies a new module`, the public-name row), keeping its sentence *"The surface is re-exported from `graphscene.facade`"* true.
 - [ ] **`test_public_surface.py`.** Append the same names to `_EXPECTED` in the same order. Bound the model slice in `_DEFINED_IN` to the flow-graph names only, from `_EXPECTED[7:]` to `_EXPECTED[7:28]`, the 21 names from `"FlowGraph"` to `"TerminalNode"`, and add one entry per new name against its defining module:
   - `graphscene.engine.walker` for `Walker`;
   - `graphscene.adapters.state_file` for `FileStateStore`;
