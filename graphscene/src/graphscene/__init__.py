@@ -2,9 +2,10 @@
 
 It exposes loading a declared flow graph into its typed model (`load_graph`, `load_graph_file`,
 `FlowGraph` and the objects it holds), and `GraphError`, the error every rejection raises.
-Alongside loading, it exposes the static checker, `static_violations`. The surface is
-re-exported from `graphscene.facade`; no module inside the package imports from the package
-root.
+Alongside loading, it exposes the static checker, `static_violations`, and the walker, `Walker`,
+which steps a loaded graph and saves its position through a `StateStore` such as the file-backed
+`FileStateStore`. The surface is re-exported from `graphscene.facade`; no module inside the package
+imports from the package root.
 
 The boundary: this package imports only the standard library, itself and its declared runtime
 dependencies, and it never reads the harness's configuration file. Harness integration lives in a
@@ -12,30 +13,51 @@ separate distribution that depends on this one, never the reverse (`tests/test_b
 """
 
 from graphscene.facade import (
+    Action,
+    Awaiting,
     BindingDeclaration,
     BindingEdge,
     CounterDeclaration,
+    Dispatch,
     DispatchNode,
+    DispatchSet,
     Edge,
+    End,
     EndBinding,
+    FileStateStore,
     FlowGraph,
+    GateRecord,
     GraphError,
+    Interrupt,
     InterruptBinding,
+    LedgerPassage,
     Node,
     NodeKind,
     OnCapEdge,
+    OpenRound,
     OutcomeDeclaration,
+    Passage,
     PredicateDeclaration,
+    PredicateHost,
     Primitive,
+    Refused,
     RoundNode,
+    RoundPassage,
     RouteEdge,
     SkipEntry,
+    SkipPassage,
     Stage,
+    StateStore,
+    Step,
+    Stop,
     StopBinding,
     TerminalNode,
     Verdict,
     Violation,
     Vocabulary,
+    Wait,
+    Walker,
+    WalkState,
     load_graph,
     load_graph_file,
     static_violations,
@@ -71,4 +93,25 @@ __all__: list[str] = [
     "DispatchNode",
     "RoundNode",
     "TerminalNode",
+    "Walker",
+    "FileStateStore",
+    "StateStore",
+    "PredicateHost",
+    "WalkState",
+    "OpenRound",
+    "Awaiting",
+    "Step",
+    "Action",
+    "Dispatch",
+    "DispatchSet",
+    "Wait",
+    "Interrupt",
+    "Stop",
+    "End",
+    "Refused",
+    "GateRecord",
+    "Passage",
+    "SkipPassage",
+    "RoundPassage",
+    "LedgerPassage",
 ]

@@ -4,8 +4,10 @@ The rule: this layer may import every layer below it — `graphscene.adapters`, 
 and `graphscene.model` — and `__all__` holds exactly the package root's names, in its order.
 """
 
+from graphscene.adapters.state_file import FileStateStore
 from graphscene.engine.static_check import static_violations
 from graphscene.engine.vocabulary import vocabulary_violations
+from graphscene.engine.walker import Walker
 from graphscene.facade.loading import load_graph, load_graph_file
 from graphscene.model.errors import GraphError, Stage, Violation
 from graphscene.model.flow_graph import (
@@ -30,6 +32,29 @@ from graphscene.model.flow_graph import (
     TerminalNode,
     Verdict,
     Vocabulary,
+)
+from graphscene.model.walk_actions import (
+    Action,
+    Dispatch,
+    DispatchSet,
+    End,
+    GateRecord,
+    Interrupt,
+    LedgerPassage,
+    Passage,
+    Refused,
+    RoundPassage,
+    SkipPassage,
+    Step,
+    Stop,
+    Wait,
+)
+from graphscene.model.walk_state import (
+    Awaiting,
+    OpenRound,
+    PredicateHost,
+    StateStore,
+    WalkState,
 )
 
 __all__: list[str] = [
@@ -61,4 +86,25 @@ __all__: list[str] = [
     "DispatchNode",
     "RoundNode",
     "TerminalNode",
+    "Walker",
+    "FileStateStore",
+    "StateStore",
+    "PredicateHost",
+    "WalkState",
+    "OpenRound",
+    "Awaiting",
+    "Step",
+    "Action",
+    "Dispatch",
+    "DispatchSet",
+    "Wait",
+    "Interrupt",
+    "Stop",
+    "End",
+    "Refused",
+    "GateRecord",
+    "Passage",
+    "SkipPassage",
+    "RoundPassage",
+    "LedgerPassage",
 ]
