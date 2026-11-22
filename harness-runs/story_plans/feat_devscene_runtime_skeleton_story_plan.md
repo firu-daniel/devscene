@@ -56,7 +56,7 @@ This branch creates `devscene-runtime/`, DevScene's own Python runtime, at the r
 
 Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_devscene_runtime_skeleton/task_<K>_plan.md` file.
 
-1. [ ] **Task 1** — Create the `devscene-runtime/` package: manifest with the `graphscene` path dependency, empty typed `devscene_runtime`, its import-boundary test and README _(layer: general)_ _(points: 20)_
+1. [x] **Task 1** — Create the `devscene-runtime/` package: manifest with the `graphscene` path dependency, empty typed `devscene_runtime`, its import-boundary test and README _(layer: general)_ _(points: 20)_
 2. [ ] **Task 2** — Add `devscene-runtime` to `scripts/python-service.sh`'s package table, lock the package, and test that `graphscene` resolves and the lock tracks it _(layer: general)_ _(points: 15)_
 3. [ ] **Task 3** — Add gate 13's legs 13h–13j, the nightly `uv audit` step for the new lock, and the boundary test's tree-guard entry _(layer: general)_ _(points: 10)_
 4. [ ] **Task 4** — Pin the `devscene-runtime` row, its refusals and the three-row `provision` and `check` in `cli/test/python-service.test.mjs` _(layer: cli)_ _(points: 15)_
