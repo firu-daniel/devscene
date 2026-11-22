@@ -7,7 +7,7 @@
 - `review_loops(graph: FlowGraph) -> tuple[ReviewLoop, ...]`;
 - `ReviewLoop.writer: str`.
 
-**Where this task stops.** After this task, neither module reads `RoundNode.writer`, `.counter` or `.converging_from` as a non-optional value. Task 4 makes those fields `| None` and edits neither file. Planting a writer-less round in tests is Task 5's (`graphscene/tests/engine/test_static_check.py`, `graphscene/tests/engine/test_references.py`), because one can only be built after Task 4. On every graph that loads today this task returns the identical list.
+**Where this task stops.** After this task, neither module reads `RoundNode.writer`, `.counter` or `.converging_from` as a non-optional value. Task 4 makes those fields `| None` and edits neither file. Planting a writer-less round in tests is Task 5's (`graphscene/tests/engine/test_static_check.py`, `graphscene/tests/engine/test_references.py`), because one can only be built after Task 4. On every graph that loads today this task returns the identical list. One existing planted case changes: `test_gate_in_round_a_gate_in_zero_rounds_is_named`, whose graph declares no round; Task 5 rewrites it. This task does not edit `graphscene/tests/engine/test_static_check.py`.
 
 **The split, as the story index's `## Context` decides it** (clause labels as `graphscene/tests/engine/test_static_check.py` names them):
 - **Round rules, every round:**
