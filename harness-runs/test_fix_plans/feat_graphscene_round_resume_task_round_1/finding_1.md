@@ -31,3 +31,5 @@ FAIL: test (exit 1)
 - [ ] Confirm with `grep -rnF` of the home directory over `harness-runs/code_reviews/feat_graphscene_round_resume_code_review.md` that the file no longer names it.
 
 Do not add an exclusion to `scripts/check-machine-paths.sh` or otherwise weaken gate 6a: the review is a committed artifact, and the gate is right to refuse it.
+
+- **Deviations from plan:** The row-`G.4` check ran no single-file test: the finding names no test file (`none — test`, gate 6a), and a gate script is never run by the unit. Took the fix-site fallback instead. Before the edit, the fix site still held the fix-free text: `grep -rnF` of the home directory over the code review matched line 9's `**Pass 0.**` paragraph. After the edit, the same `grep -rnF` returned no match (exit 1). Gate 6a itself (`scripts/check-machine-paths.sh`, reached through `commands.test` → `scripts/run-gates.sh`) was not run; that is deferred to the Run gates phase. `commands.typecheck` (`bash scripts/typecheck.sh`) ran from the repository root and printed `PASS: typecheck`.

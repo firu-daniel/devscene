@@ -14,7 +14,7 @@ The typecheck gate passed (`gate typecheck exited 0`); the test gate exited 1 on
 
 This list is the **single source of truth** for the fix loop: it walks these entries in order and flips each `[ ]` itself. Any `[ ]` marker elsewhere in this plan or its per-finding files is informational only.
 
-1. [ ] **Finding 1** — Remove the machine paths from the code review's Pass 0 line. _(layer: general)_
+1. [x] **Finding 1** — Remove the machine paths from the code review's Pass 0 line. _(layer: general)_
 
 ---
 
