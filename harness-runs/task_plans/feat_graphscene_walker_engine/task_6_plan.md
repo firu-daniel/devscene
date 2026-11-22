@@ -41,3 +41,8 @@
 
 - [ ] `bash scripts/python-service.sh --package graphscene test tests/adapters/test_walk_json.py` passes.
 - [ ] `walk_json.py` imports only `graphscene.model` modules and the standard library, never `graphscene.engine`.
+
+**Deviations from plan:**
+
+- The plan spells the refusal `ValueError(f"{path}: {reason}")` with `path` `""` for the root, which would render a root refusal as `": <reason>"`. Implemented as `f"{path or '(root)'}: {reason}"`, the rendering `graphscene/src/graphscene/model/errors.py` → `Violation.__str__` and `graphscene/src/graphscene/adapters/builder.py` → `_object` already use, so a root refusal reads `(root): not valid JSON: …` / `(root): expected object`. Every non-root path is as the plan spells it.
+- Reasons chosen where the plan names only the clause: `missing key`, `unexpected key`, `expected string|integer|boolean|array|object`, `expected 2-element array` (an `End.reports` pair), `unknown kind '<kind>'` (also for a non-`dispatch` kind inside `DispatchSet.dispatches`), `unsupported version <json value>`, `expected one of '…', …` for `awaiting` and `verdict`, and `not valid JSON: <msg> (line <n>, column <n>)` as `graphscene/src/graphscene/adapters/json_file.py` words it. A JSON number with a fraction part (`1.0` included) is refused as an integer, since the codec reads only what it writes.
