@@ -1,5 +1,5 @@
-"""The rule this file exists to enforce: the package root exposes exactly the graph-model and
-checker surface, and each name it exposes is the object its own module defines.
+"""The rule this file exists to enforce: the package root exposes exactly the graph-model, checker
+and walker surface, and each name it exposes is the object its own module defines.
 
 `__all__` is compared as a list, so adding, removing or reordering a name is a reviewed change.
 """
@@ -7,12 +7,16 @@ checker surface, and each name it exposes is the object its own module defines.
 import pytest
 
 import graphscene
+import graphscene.adapters.state_file
 import graphscene.engine.static_check
 import graphscene.engine.vocabulary
+import graphscene.engine.walker
 import graphscene.facade
 import graphscene.facade.loading
 import graphscene.model.errors
 import graphscene.model.flow_graph
+import graphscene.model.walk_actions
+import graphscene.model.walk_state
 
 _EXPECTED: list[str] = [
     "load_graph",
@@ -43,6 +47,27 @@ _EXPECTED: list[str] = [
     "DispatchNode",
     "RoundNode",
     "TerminalNode",
+    "Walker",
+    "FileStateStore",
+    "StateStore",
+    "PredicateHost",
+    "WalkState",
+    "OpenRound",
+    "Awaiting",
+    "Step",
+    "Action",
+    "Dispatch",
+    "DispatchSet",
+    "Wait",
+    "Interrupt",
+    "Stop",
+    "End",
+    "Refused",
+    "GateRecord",
+    "Passage",
+    "SkipPassage",
+    "RoundPassage",
+    "LedgerPassage",
 ]
 
 _DEFINED_IN: dict[str, object] = {
@@ -53,7 +78,28 @@ _DEFINED_IN: dict[str, object] = {
     "Violation": graphscene.model.errors,
     "vocabulary_violations": graphscene.engine.vocabulary,
     "static_violations": graphscene.engine.static_check,
-    **{name: graphscene.model.flow_graph for name in _EXPECTED[7:]},
+    **{name: graphscene.model.flow_graph for name in _EXPECTED[7:28]},
+    "Walker": graphscene.engine.walker,
+    "FileStateStore": graphscene.adapters.state_file,
+    "StateStore": graphscene.model.walk_state,
+    "PredicateHost": graphscene.model.walk_state,
+    "WalkState": graphscene.model.walk_state,
+    "OpenRound": graphscene.model.walk_state,
+    "Awaiting": graphscene.model.walk_state,
+    "Step": graphscene.model.walk_actions,
+    "Action": graphscene.model.walk_actions,
+    "Dispatch": graphscene.model.walk_actions,
+    "DispatchSet": graphscene.model.walk_actions,
+    "Wait": graphscene.model.walk_actions,
+    "Interrupt": graphscene.model.walk_actions,
+    "Stop": graphscene.model.walk_actions,
+    "End": graphscene.model.walk_actions,
+    "Refused": graphscene.model.walk_actions,
+    "GateRecord": graphscene.model.walk_actions,
+    "Passage": graphscene.model.walk_actions,
+    "SkipPassage": graphscene.model.walk_actions,
+    "RoundPassage": graphscene.model.walk_actions,
+    "LedgerPassage": graphscene.model.walk_actions,
 }
 
 
