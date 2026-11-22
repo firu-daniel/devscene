@@ -4,11 +4,14 @@ The rule: `static_violations` returns the reference violations
 (`graphscene.engine.references.reference_violations`) alone when there are any. Otherwise it
 returns the graph checks' violations: all of check 1 (`reachable-from-start`), then 2
 (`reaches-terminal`), 3 (`fail-cycle-capped`), 8 (`gate-in-round`) and 9 (`round-fan-out`), the
-ids `scripts/check-flow-graph.sh` gives them. Each check reports nodes in key order, and every
-reason opens with its check id. The walked edge set W is: a `RouteEdge`'s `to`, a `BindingEdge`'s
-`resume` when it is not `None`, each `SkipEntry`'s `to`, and a round node's fan-out to each of its
-`gates`. The checks are total: targets, bindings and outcome declarations are looked up with
-`.get`, so a graph built in code that an earlier stage would refuse never raises.
+ids `scripts/check-flow-graph.sh` gives them. Checks 1, 2, 3 and 8 report nodes in key order;
+check 9 reports round by round, rounds in key order, and within a round each gate's clauses in
+`gates` order, then the writer, then the other edges and skips that target the round, by source
+node in key order. Every reason opens with its check id. The walked edge set W is: a
+`RouteEdge`'s `to`, a `BindingEdge`'s `resume` when it is not `None`, each `SkipEntry`'s `to`, and
+a round node's fan-out to each of its `gates`. The checks are total: targets, bindings and outcome
+declarations are looked up with `.get`, so a graph built in code that an earlier stage would
+refuse never raises.
 
 Deliberately not checked:
 - Schema validity and declared names: earlier loading stages.

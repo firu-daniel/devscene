@@ -46,7 +46,7 @@ No new test reads a tree of repository files, so no new `treeGuards` entry is ow
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — State `round-fan-out`'s real report order in the `static_check.py` and `test_static_check.py` docstrings _(layer: graphscene)_
+1. [x] **Finding 1** — State `round-fan-out`'s real report order in the `static_check.py` and `test_static_check.py` docstrings _(layer: graphscene)_
 
 ---
 

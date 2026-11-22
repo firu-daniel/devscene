@@ -1,8 +1,8 @@
 """The rule this file exists to enforce: `graphscene.engine.static_check.static_violations` returns
 the reference violations alone when there are any, and otherwise the violations of checks 1
 (`reachable-from-start`), 2 (`reaches-terminal`), 3 (`fail-cycle-capped`), 8 (`gate-in-round`)
-and 9 (`round-fan-out`), in that order, each reporting nodes in key order with a reason opening
-with its check id.
+and 9 (`round-fan-out`), in that order and in the report order `graphscene.engine.static_check`
+states, each reason opening with its check id.
 
 Each planted graph is a complete format-4 mapping built with
 `graphscene.adapters.builder.build_flow_graph`. `_base` is a clean one-round graph; each case
