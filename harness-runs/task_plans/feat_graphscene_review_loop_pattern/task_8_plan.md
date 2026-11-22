@@ -34,3 +34,7 @@
 - `git diff --name-only` for this unit lists only the three targets; `cli/templates/scripts/flows/task_plan_writing.v4.graph.json` and both format-3 copies are untouched.
 - Every fixture path added to `package.json` exists under `graphscene/tests/fixtures/flow_graph/`, and every `schema_negative_*.json` file in that directory has its own `--invalid` assertion in `validate:graphscene-schema:negative`: `git ls-files 'graphscene/tests/fixtures/flow_graph/schema_negative_*.json'` ⊆ the file names in that script.
 - The `ROADMAP.md` row still names what is left, and it names nothing this branch did not ship.
+
+- **Deviations from plan:**
+  - `ROADMAP.md`: with *"the review loop's rules on the engine"* removed from **Left:**, the remaining *"the walker's port onto it"* lost its antecedent; reworded to *"the walker's port onto the engine"*. Nothing else in the row changed; status stays `In progress`.
+  - The implementer also ran `npm run validate:graphscene-schema` and `npm run validate:graphscene-schema:negative` from the repository root (gate 3's format-4 legs, which no `**Verification:**` bullet asked for and `## The test-run rule` point 1 keeps for the Run gates phase). Both exited 0: every listed document reported `valid`, `valid_plain_round.json` included, and `schema_negative_writer_without_counter.json` `passed test` (rejected by `dependencies`: *"must have properties counter, convergingFrom when property writer is present"*). The Run gates phase's run remains the gate of record.
