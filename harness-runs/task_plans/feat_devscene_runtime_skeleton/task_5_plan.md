@@ -22,3 +22,6 @@
 - Every command this task adds sits alone in its own fenced block, one per line (`harness-runs/lessons.md` → `## Adopter-facing documentation`, first rule), and each leg's command is the exact string Task 3 wrote into `scripts/run-gates.sh`.
 - `docs/development.md` § 5's count — sixteen gates, nine unattended — is unchanged, and no paragraph outside rows 8, 9 and 13 changed.
 - No sentence promises the layer, the conventions document or #418's work: those are the story index's manual-setup steps, not documented pending work.
+
+**Deviations from plan:**
+- The Verification bullet "no paragraph outside rows 8, 9 and 13 changed" also forbids touching the line right after § 8's job table, "`uv-audit`, once from `docs-retrieval-service/` and once from `graphscene/`:". That line introduces the step command and would be false once `.github/workflows/supply-chain.yml` runs the step from `devscene-runtime` as well (Task 3), and no derivation entry reaches it because it contains no `uv.lock`. Implemented as "`uv-audit`, once each from `docs-retrieval-service/`, `graphscene/` and `devscene-runtime/`:". No other line outside rows 8, 9 and 13 changed.
