@@ -3,7 +3,12 @@
 
 The rule:
 
-- Only `start` replaces a saved walk, and it sets every counter and round number to 0.
+- Only `start` replaces a saved walk. It sets every counter to 0 and every round number to 0
+  except the round a `RoundResume` names, which takes its `number`; entering that round with
+  records records them as `next` would.
+- `start` refuses a resume it cannot place: a round that is not a round of the flow, a number
+  below 0, records given while the walk enters elsewhere, a record for a gate outside the round,
+  and a second record for one gate.
 - `start` and `next` hold the store's lock from before the read until after the write.
 - `next` and `current` refuse a walk of another flow.
 - `current` takes no lock and changes nothing: it re-returns the saved pending action.
@@ -11,12 +16,13 @@ The rule:
 
 Deliberately not covered:
 
-- Reading round evidence at `start`: the host's.
+- Reading round evidence at `start`, which round to resume and whether its records are
+  consistent: the host's.
 - What a host does with a review loop's round number, convergence and findings: the host's;
   which round is a review loop is `graphscene.engine.review_loop`'s.
 """
 
-from graphscene.engine.rounds import record_gate
+from graphscene.engine.rounds import enter_round, record_gate
 from graphscene.engine.transitions import WalkDraft, arrive, follow_edge
 from graphscene.model.flow_graph import (
     BindingEdge,
@@ -26,7 +32,7 @@ from graphscene.model.flow_graph import (
     RoundNode,
 )
 from graphscene.model.walk_actions import Dispatch, GateRecord, Interrupt, Refused, Step
-from graphscene.model.walk_state import PredicateHost, StateStore, WalkState
+from graphscene.model.walk_state import PredicateHost, RoundResume, StateStore, WalkState
 
 
 class Walker:
@@ -35,7 +41,7 @@ class Walker:
         self.store = store
         self.host = host
 
-    def start(self, entry: str | None = None) -> Step:
+    def start(self, entry: str | None = None, *, resume: RoundResume | None = None) -> Step:
         graph = self.graph
         e = entry or graph.start
         with self.store.lock():
@@ -44,8 +50,17 @@ class Walker:
             for node in graph.nodes.values():
                 if isinstance(node, RoundNode) and e in node.gates:
                     return Refused(f"'{e}' is a gate of round '{node.id}': enter at the round")
+            if resume is not None:
+                refused = self._unplaceable(e, resume)
+                if refused is not None:
+                    return refused
             draft = WalkDraft.fresh(graph)
-            step = arrive(graph, self.host, draft, e)
+            if resume is not None:
+                draft.round_numbers[resume.round] = resume.number
+            if resume is not None and e == resume.round:
+                step = enter_round(graph, self.host, draft, e, resume.records)
+            else:
+                step = arrive(graph, self.host, draft, e)
             if not isinstance(step, Refused):
                 self.store.write(draft.freeze())
             return step
@@ -70,6 +85,26 @@ class Walker:
             return refused
         assert state is not None
         return state.pending
+
+    def _unplaceable(self, e: str, resume: RoundResume) -> Refused | None:
+        graph = self.graph
+        r, n = resume.round, resume.number
+        round_node = graph.nodes.get(r)
+        if not isinstance(round_node, RoundNode):
+            return Refused(f"'{r}' is not a round of flow '{graph.flow}'")
+        if n < 0:
+            return Refused(f"round number {n} of round '{r}' is below 0")
+        if resume.records and e != r:
+            return Refused(f"records of round '{r}' are given, but the walk enters at '{e}'")
+        for record in resume.records:
+            if record.gate not in round_node.gates:
+                return Refused(f"'{record.gate}' is not a gate of round '{r}'")
+        seen: set[str] = set()
+        for record in resume.records:
+            if record.gate in seen:
+                return Refused(f"a second record for '{record.gate}' in round '{r}'")
+            seen.add(record.gate)
+        return None
 
     def _foreign(self, state: WalkState | None) -> Refused | None:
         if state is None:
