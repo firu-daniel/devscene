@@ -9,7 +9,7 @@ Source: harness-runs/task_prompts/feat_graphscene_round_resume_task_prompt.md â†
 ## Planning
 - [x] P0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_graphscene_round_resume_task_prompt.md sha256=1f1bd437ac29de963fc2a13c14d69d2de365c9c3eb7d157d018d161fb5760412
-- [ ] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
+- [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) â€” or no_ui
 - [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
