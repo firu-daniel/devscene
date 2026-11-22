@@ -1,6 +1,8 @@
-"""The rule this file exists to enforce: loading (`graphscene.facade.loading`) rejects every
-fixture `ajv` rejects, at the schema stage, and every vocabulary negative, at the vocabulary
-stage; each rejection names the node and the field where the fixture's one change sits;
+"""The rule this file exists to enforce: loading (`graphscene.facade.loading`) runs its stages in
+the order schema, vocabulary, static, and stops at the first that fails; it rejects every fixture
+`ajv` rejects, at the schema stage, every vocabulary negative, at the vocabulary stage, and every
+static negative, at the static stage; each rejection names the node and the field where the
+fixture's one change sits;
 `valid_generic.json` loads; a number the schema accepts as an integer, written `3.0`, loads as
 an `int`; a schema `pattern` is matched as ECMA-262 matches it, so a trailing newline or a `.`
 against a line terminator is rejected; and a file that is not UTF-8 or not JSON is rejected at the
@@ -41,6 +43,15 @@ _VOCABULARY_NEGATIVES: list[tuple[str, str]] = [
     ("vocabulary_negative_unknown_predicate.json", "nodes.edit_check.skip[0].when"),
 ]
 
+_STATIC_NEGATIVES: list[tuple[str, str]] = [
+    ("static_negative_node_known.json", "nodes.draft.outcomes.done.to"),
+    ("static_negative_reachable_from_start.json", "nodes.orphan"),
+    ("static_negative_reaches_terminal.json", "nodes.published"),
+    ("static_negative_fail_cycle_capped.json", "nodes.review_round.outcomes.rejected"),
+    ("static_negative_gate_in_round.json", "nodes.review_round.gates[1]"),
+    ("static_negative_round_fan_out.json", "nodes.edit_check.outcomes.approved"),
+]
+
 
 def _parsed(name: str) -> dict[str, object]:
     loaded = json.loads((_FIXTURES / name).read_text(encoding="utf-8"))
@@ -70,6 +81,30 @@ def test_a_vocabulary_negative_is_rejected_at_the_vocabulary_stage(name: str, pa
         load_graph(_parsed(name))
     assert raised.value.stage == "vocabulary"
     assert [violation.path for violation in raised.value.violations] == [path]
+
+
+@pytest.mark.parametrize(("name", "path"), _STATIC_NEGATIVES)
+def test_a_static_negative_is_rejected_at_the_static_stage(name: str, path: str) -> None:
+    with pytest.raises(GraphError) as raised:
+        load_graph(_parsed(name))
+    assert raised.value.stage == "static"
+    assert [violation.path for violation in raised.value.violations] == [path]
+
+
+def test_a_vocabulary_failure_never_reaches_the_static_stage() -> None:
+    graph = copy.deepcopy(_parsed("valid_generic.json"))
+    outcomes = _node(graph, "edit_check")["outcomes"]
+    assert isinstance(outcomes, dict)
+    outcomes["finished"] = {"to": "nowhere"}
+    with pytest.raises(GraphError) as raised:
+        load_graph(graph)
+    assert raised.value.stage == "vocabulary"
+    assert raised.value.violations == (
+        Violation(
+            "nodes.edit_check.outcomes.finished",
+            "outcome 'finished' is not declared in vocabulary.outcomes",
+        ),
+    )
 
 
 def test_the_valid_generic_graph_loads() -> None:

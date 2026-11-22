@@ -1,5 +1,5 @@
-"""The rule this file exists to enforce: the package root exposes exactly the graph-model surface,
-and each name it exposes is the object its own module defines.
+"""The rule this file exists to enforce: the package root exposes exactly the graph-model and
+checker surface, and each name it exposes is the object its own module defines.
 
 `__all__` is compared as a list, so adding, removing or reordering a name is a reviewed change.
 """
@@ -7,6 +7,7 @@ and each name it exposes is the object its own module defines.
 import pytest
 
 import graphscene
+import graphscene.engine.static_check
 import graphscene.engine.vocabulary
 import graphscene.facade
 import graphscene.facade.loading
@@ -20,6 +21,7 @@ _EXPECTED: list[str] = [
     "Stage",
     "Violation",
     "vocabulary_violations",
+    "static_violations",
     "FlowGraph",
     "NodeKind",
     "Primitive",
@@ -50,7 +52,8 @@ _DEFINED_IN: dict[str, object] = {
     "Stage": graphscene.model.errors,
     "Violation": graphscene.model.errors,
     "vocabulary_violations": graphscene.engine.vocabulary,
-    **{name: graphscene.model.flow_graph for name in _EXPECTED[6:]},
+    "static_violations": graphscene.engine.static_check,
+    **{name: graphscene.model.flow_graph for name in _EXPECTED[7:]},
 }
 
 

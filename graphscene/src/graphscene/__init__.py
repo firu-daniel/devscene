@@ -1,9 +1,10 @@
 """GraphScene, a generic flow-graph navigation library.
 
 It exposes loading a declared flow graph into its typed model (`load_graph`, `load_graph_file`,
-`FlowGraph` and the objects it holds), and `GraphError`, the error every rejection raises. The
-surface is re-exported from `graphscene.facade`; no module inside the package imports from the
-package root.
+`FlowGraph` and the objects it holds), and `GraphError`, the error every rejection raises.
+Alongside loading, it exposes the static checker, `static_violations`. The surface is
+re-exported from `graphscene.facade`; no module inside the package imports from the package
+root.
 
 The boundary: this package imports only the standard library, itself and its declared runtime
 dependencies, and it never reads the harness's configuration file. Harness integration lives in a
@@ -37,6 +38,7 @@ from graphscene.facade import (
     Vocabulary,
     load_graph,
     load_graph_file,
+    static_violations,
     vocabulary_violations,
 )
 
@@ -47,6 +49,7 @@ __all__: list[str] = [
     "Stage",
     "Violation",
     "vocabulary_violations",
+    "static_violations",
     "FlowGraph",
     "NodeKind",
     "Primitive",

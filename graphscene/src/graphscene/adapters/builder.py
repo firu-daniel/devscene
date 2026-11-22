@@ -1,5 +1,5 @@
 """`build_flow_graph`, which builds the typed, immutable form of a declared format-4 flow graph
-(`graphscene.model.flow_graph`) from an already-validated parsed graph.
+(`graphscene.model.flow_graph`) from a parsed graph that has passed the schema check.
 
 The mapping rules, from the schema's declaration to the model:
 - Attribute names: each attribute is its schema key in snake_case — `formatVersion` →
@@ -24,10 +24,11 @@ it raises `TypeError` naming the dotted path — object keys joined with ".", ar
 "[i]", as `graphscene.model.errors.Violation.path` writes them — never a `GraphError`.
 
 Deliberately not covered:
-- Validation, which is the facade's: the schema check and the vocabulary check run first.
+- Validation, which is the facade's: the schema check runs before the build, and the vocabulary
+  and static checks run on the model it returns.
 - Resolving node-id and other name references (`to`, `resume`, `gates`, `writer`, `start`,
   `entries`, `round_counts`, counter, path, report-slot, prompt and binding names): they stay
-  `str` ids, and checking that they exist belongs to a later static checker.
+  `str` ids, and checking that they exist is `graphscene.engine.static_check`'s.
 - Any harness name.
 """
 
@@ -257,7 +258,7 @@ def _node(node_id: str, value: object, path: str) -> Node:
 
 def build_flow_graph(graph: Mapping[str, object]) -> FlowGraph:
     """Build the typed model of `graph`, a parsed format-4 flow graph that already passed the
-    schema check and the vocabulary check."""
+    schema check."""
     fields = _object(graph, "")
     if fields.get("formatVersion") != 4 or isinstance(fields.get("formatVersion"), bool):
         raise TypeError("formatVersion: expected 4")

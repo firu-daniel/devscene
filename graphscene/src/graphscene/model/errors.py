@@ -21,7 +21,7 @@ class Violation:
         return f"{self.path or '(root)'}: {self.reason}"
 
 
-Stage: TypeAlias = Literal["parse", "schema", "vocabulary"]
+Stage: TypeAlias = Literal["parse", "schema", "vocabulary", "static"]
 
 
 class GraphError(ValueError):
