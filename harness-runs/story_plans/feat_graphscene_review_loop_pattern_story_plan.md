@@ -55,7 +55,7 @@ The pattern declares no interrupt of its own, so `Walker.next` still consumes an
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_review_loop_pattern/task_<K>_plan.md`. Entries are ordered bottom-up by ship sequence, with the catch-all layer last.
 
-1. [ ] **Task 1** — Add the review-loop pattern module `engine/review_loop.py` _(layer: graphscene)_ _(points: 10)_
+1. [x] **Task 1** — Add the review-loop pattern module `engine/review_loop.py` _(layer: graphscene)_ _(points: 10)_
 2. [ ] **Task 2** — Dispatch a round's writer and gates through the review-loop pattern _(layer: graphscene)_ _(points: 8)_
 3. [ ] **Task 3** — Split checks 8 and 9 into round rules and review-loop rules _(layer: graphscene)_ _(points: 18)_
 4. [ ] **Task 4** — Make a round's writer, counter and convergingFrom an optional group _(layer: graphscene)_ _(points: 20)_
