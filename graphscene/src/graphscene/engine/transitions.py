@@ -199,9 +199,7 @@ def arrive(
     node_id: str,
     *,
     closed_round: tuple[GateRecord, ...] = (),
-    open_gates: tuple[str, ...] = (),
 ) -> Step:
-    # `open_gates` is unused here; it is kept in the call shape `graphscene.engine.walker` uses.
     visited: set[str] = set()
     while True:
         if node_id in visited:

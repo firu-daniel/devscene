@@ -35,7 +35,7 @@ Finding 1 was confirmed by a probe run through `bash scripts/python-service.sh -
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 2** — Remove the unused `open_gates` keyword and its false comment from `arrive` _(layer: graphscene)_
+1. [x] **Finding 2** — Remove the unused `open_gates` keyword and its false comment from `arrive` _(layer: graphscene)_
 2. [ ] **Finding 1** — Clear a node's `skipped` entry on an arrival where no skip holds, so a cap stop counts a gate dispatched after an earlier skip _(layer: graphscene)_
 
 ---
