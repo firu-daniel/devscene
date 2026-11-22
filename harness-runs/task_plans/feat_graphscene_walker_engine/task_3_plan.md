@@ -100,3 +100,12 @@ From `graphscene.model.walk_state` it consumes:
 - [ ] `bash scripts/python-service.sh --package graphscene test tests/engine/test_transitions.py` passes.
 - [ ] `transitions.py` imports only `graphscene.model` modules and the standard library, never `graphscene.adapters` (the `graphscene-layers` contract).
 - [ ] Grep `transitions.py` for any outcome, binding or predicate name used as a literal and find none: routing is on `verdict`, `held`, the binding class, `records` and `in_round_counts` only.
+
+- **Deviations from plan:**
+  - `take_binding` takes `reason` and `resume` as `str | None` (an edge's declared types), while `Stop.reason` and `Interrupt.resume` are `str`. Rather than assert, it returns `Refused(f"binding '{name}' is an interrupt and needs resume")` / `Refused(f"binding '{name}' is a stop and needs reason")`, the vocabulary check's own reason texts; a loaded graph never reaches either. `close_round` likewise returns `Refused(f"round '{round_id}' declares no outcome with verdict '{verdict}'")` when no outcome matches, and an outcome whose declaration is missing counts as not failing — so "nothing raises" holds without re-checking the graph.
+  - `follow_edge` takes `onCap` at the cap only when the edge declares one; an edge with `increment` and no `onCap` continues to arrive.
+  - `arrive` accepts `open_gates` and does not use it: the plan's signature (consumed by Task 5) carries it, and no step of `arrive` reads it. A one-line code comment says so.
+  - `open_round` sets `OpenRound.records` to `MappingProxyType({})`, not a plain `{}`, per the model's immutability rule.
+  - `open_round` / `close_round` assert that `round_id` names a `RoundNode` and each gate a `DispatchNode` — type narrowing on a `load_graph` guarantee, not a refusal path.
+  - `test_transitions.py` imports the support module relatively (`from .walk_support import …`); `graphscene/tests/engine/` is a package.
+  - Verification run: `bash scripts/python-service.sh --package graphscene test tests/engine/test_transitions.py` — 15 passed; `bash scripts/typecheck.sh` — `PASS: typecheck` (graphscene lint and typecheck PASS); tree guard `tests/test_layers.py` — 11 passed (the import-linter contracts, so `transitions.py` imports no `graphscene.adapters`); a grep of `transitions.py`'s string literals found only `Awaiting` and `Verdict` enum words, the `{cap}` / `{open_gates}` placeholders and refusal texts.
