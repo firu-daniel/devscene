@@ -9,7 +9,8 @@
 # on PATH, and 14d where neither provides `zizmor` 1.30.1. Two of the nine are conditional. Gate 11 runs where the retrieval model cache is
 # provisioned and the workspace's retrieval packages are installed, and is reported BLOCKED with the
 # hand-run gates where they are not. Gate 13 (the Python packages: the docs-retrieval service's
-# legs 13a–13d and the GraphScene library's legs 13e, 13f and 13g) reports a leg BLOCKED where `uv` or that
+# legs 13a–13d, the GraphScene library's legs 13e, 13f and 13g, and the DevScene runtime's legs 13h,
+# 13i and 13j) reports a leg BLOCKED where `uv` or that
 # package's synced environment is missing, and its container leg 13d SKIPPED unless
 # HARNESS_GATES_CONTAINERS=1 is set on a machine with Docker. Neither outcome is a pass or a failure.
 # Gate 16 parses every tracked or untracked-unignored shell script with `bash -n` under `/bin/bash`,
@@ -419,6 +420,9 @@ run_unit() {
     13e) gate_header 13 "Python packages"; python_gate "13e GraphScene lint" noskip bash scripts/python-service.sh --package graphscene lint ;;
     13f) gate_header 13 "Python packages"; python_gate "13f GraphScene typecheck" noskip bash scripts/python-service.sh --package graphscene typecheck ;;
     13g) gate_header 13 "Python packages"; python_gate "13g GraphScene tests" noskip bash scripts/python-service.sh --package graphscene test ;;
+    13h) gate_header 13 "Python packages"; python_gate "13h devscene-runtime lint" noskip bash scripts/python-service.sh --package devscene-runtime lint ;;
+    13i) gate_header 13 "Python packages"; python_gate "13i devscene-runtime typecheck" noskip bash scripts/python-service.sh --package devscene-runtime typecheck ;;
+    13j) gate_header 13 "Python packages"; python_gate "13j devscene-runtime tests" noskip bash scripts/python-service.sh --package devscene-runtime test ;;
     14a)
       gate_header 14 "rendered workflows parse"
       # 14a, 14c and 14d render through `cli/dist`, so they depend on gate 2a. 14c and 14d are
@@ -490,7 +494,7 @@ run_unit() {
 }
 
 # A stopped round returns 1 having pushed its failure onto `failed`, so the closing block exits 1.
-gr_run_round run_unit 1 2a 2b 2c 2d 2e 3a 3b 3c 3d 3e 3f 3g 3h 3i 4 6a 6b 6c 6d 6e 6f 11 13a 13b 13c 13d 13e 13f 13g 14a 14c 14d 16
+gr_run_round run_unit 1 2a 2b 2c 2d 2e 3a 3b 3c 3d 3e 3f 3g 3h 3i 4 6a 6b 6c 6d 6e 6f 11 13a 13b 13c 13d 13e 13f 13g 13h 13i 13j 14a 14c 14d 16
 
 python_blocked_list=""
 if [ ${#python_blocked[@]} -gt 0 ]; then

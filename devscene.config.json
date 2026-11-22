@@ -134,6 +134,14 @@
     {
       "test": "tests/test_layers.py",
       "covers": "graphscene/pyproject.toml"
+    },
+    {
+      "test": "tests/test_boundary.py",
+      "covers": "devscene-runtime/src/devscene_runtime/**"
+    },
+    {
+      "test": "tests/test_boundary.py",
+      "covers": "devscene-runtime/pyproject.toml"
     }
   ],
   "execution": {
