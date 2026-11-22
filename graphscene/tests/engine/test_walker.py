@@ -1,7 +1,9 @@
-"""The rule this file exists to enforce: only `start` replaces a saved walk, with every counter and
-round number at 0; `start` and `next` step under the store's lock and write only a step that is
-not `Refused`; `next` refuses, with exact text, a step the saved walk cannot take; `current` takes
-no lock, writes nothing and re-returns the saved pending action (`graphscene.engine.walker`).
+"""The rule this file exists to enforce: only `start` replaces a saved walk, with every counter at
+0 and every round number at 0 except a resumed round's, which takes the `RoundResume`'s number;
+`start` refuses, with exact text, an entry it cannot take and a resume it cannot place; `start`
+and `next` step under the store's lock and write only a step that is not `Refused`; `next`
+refuses, with exact text, a step the saved walk cannot take; `current` takes no lock, writes
+nothing and re-returns the saved pending action (`graphscene.engine.walker`).
 
 Every case drives a `Walker` over a `MemoryStore` and a graph planted through
 `graphscene/tests/engine/walk_support.py` → `planted`, answered by an `AnswerTable`, and every
@@ -30,7 +32,7 @@ from graphscene.model.walk_actions import (
     Stop,
     Wait,
 )
-from graphscene.model.walk_state import WalkState
+from graphscene.model.walk_state import RoundResume, WalkState
 
 from .walk_support import AnswerTable, planted
 
@@ -137,13 +139,13 @@ def _writer(
     )
 
 
-def _gate_dispatch(node: str) -> Dispatch:
+def _gate_dispatch(node: str, number: int = 0) -> Dispatch:
     return Dispatch(
         node=node,
         agent="worker",
         prompt=None,
         counters=MappingProxyType({"attempt": 0}),
-        round_number=0,
+        round_number=number,
         converging=False,
         closed_round=(),
         passed=(),
@@ -221,6 +223,113 @@ def test_a_refused_arrival_at_start_writes_nothing() -> None:
         "the host cannot answer predicate 'stage_disabled' for node 'g1'"
     )
     assert store.writes == 0
+
+
+# start with a resume
+
+
+def test_a_partial_resume_dispatches_only_the_unrecorded_gate_at_the_resumed_number() -> None:
+    store = MemoryStore()
+    walker = _walker(store)
+    resume = RoundResume("review_round", 2, (GateRecord("g1", "approved", "f/review_2.md"),))
+    pending = DispatchSet("review_round", 2, (_gate_dispatch("g2", 2),), ())
+    assert walker.start("review_round", resume=resume) == pending
+    assert store.writes == 1
+    assert walker.current() == pending
+    assert walker.next("approved", node="g2") == End(
+        "<finish>", "published", reports=(), passed=(RoundPassage("review_round", 2, "pass"),)
+    )
+
+
+def test_a_resume_with_every_gate_recorded_and_one_rejected_closes_fail_at_once() -> None:
+    store = MemoryStore()
+    records = (
+        GateRecord("g1", "rejected", "f/review_2.md"),
+        GateRecord("g2", "approved", "f/review_2b.md"),
+    )
+    resume = RoundResume("review_round", 2, records)
+    assert _walker(store).start("review_round", resume=resume) == _writer(
+        "rework",
+        1,
+        3,
+        closed_round=records,
+        passed=(RoundPassage("review_round", 2, "fail"),),
+    )
+    assert store.writes == 1
+
+
+def test_a_resume_at_the_writer_entry_dispatches_the_writer_at_the_resumed_number() -> None:
+    store = MemoryStore()
+    assert _walker(store).start(resume=RoundResume("review_round", 4)) == _writer(None, 0, 4)
+    assert store.state is not None
+    assert dict(store.state.round_numbers) == {"review_round": 4}
+
+
+def test_a_resume_replacing_a_saved_walk_mid_loop_keeps_every_counter_at_zero() -> None:
+    store = MemoryStore()
+    walker = _rejected_once(store)
+    assert walker.start("review_round", resume=RoundResume("review_round", 5)) == DispatchSet(
+        "review_round", 5, (_gate_dispatch("g1", 5), _gate_dispatch("g2", 5)), ()
+    )
+    assert store.state is not None
+    assert dict(store.state.counters) == {"attempt": 0}
+    assert dict(store.state.round_numbers) == {"review_round": 5}
+
+
+def _refused_start(
+    walker: Walker, store: MemoryStore, entry: str | None, resume: RoundResume
+) -> object:
+    """Start once without a resume, then return the resumed `start`'s step, asserting it wrote
+    nothing."""
+    walker.start()
+    writes = store.writes
+    step = walker.start(entry, resume=resume)
+    assert store.writes == writes
+    return step
+
+
+def test_a_resume_naming_a_node_that_is_not_a_round_is_refused_with_the_exact_text() -> None:
+    store = MemoryStore()
+    step = _refused_start(_walker(store), store, "review_round", RoundResume("draft", 0))
+    assert step == Refused("'draft' is not a round of flow 'article_review'")
+
+
+def test_a_resume_below_round_zero_is_refused_with_the_exact_text() -> None:
+    store = MemoryStore()
+    step = _refused_start(_walker(store), store, "review_round", RoundResume("review_round", -1))
+    assert step == Refused("round number -1 of round 'review_round' is below 0")
+
+
+def test_records_given_while_the_walk_enters_elsewhere_are_refused_with_the_exact_text() -> None:
+    store = MemoryStore()
+    resume = RoundResume("review_round", 1, (GateRecord("g1", "approved", None),))
+    step = _refused_start(_walker(store), store, "draft", resume)
+    assert step == Refused(
+        "records of round 'review_round' are given, but the walk enters at 'draft'"
+    )
+
+
+def test_a_record_for_a_gate_outside_the_round_is_refused_with_the_exact_text() -> None:
+    store = MemoryStore()
+    resume = RoundResume("review_round", 1, (GateRecord("draft", "done", None),))
+    step = _refused_start(_walker(store), store, "review_round", resume)
+    assert step == Refused("'draft' is not a gate of round 'review_round'")
+
+
+def test_a_second_record_for_one_gate_is_refused_with_the_exact_text() -> None:
+    store = MemoryStore()
+    records = (GateRecord("g1", "approved", None), GateRecord("g1", "rejected", None))
+    resume = RoundResume("review_round", 1, records)
+    step = _refused_start(_walker(store), store, "review_round", resume)
+    assert step == Refused("a second record for 'g1' in round 'review_round'")
+
+
+def test_a_record_for_a_skipped_gate_is_refused_with_the_exact_text() -> None:
+    store = MemoryStore()
+    walker = Walker(_graph(skip=True), store, AnswerTable({("stage_disabled", "g1"): True}))
+    resume = RoundResume("review_round", 2, (GateRecord("g1", "approved", None),))
+    step = _refused_start(walker, store, "review_round", resume)
+    assert step == Refused("'g1' is skipped in round 2: a skipped gate carries no record")
 
 
 # next

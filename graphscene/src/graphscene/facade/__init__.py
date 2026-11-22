@@ -53,6 +53,7 @@ from graphscene.model.walk_state import (
     Awaiting,
     OpenRound,
     PredicateHost,
+    RoundResume,
     StateStore,
     WalkState,
 )
@@ -92,6 +93,7 @@ __all__: list[str] = [
     "PredicateHost",
     "WalkState",
     "OpenRound",
+    "RoundResume",
     "Awaiting",
     "Step",
     "Action",

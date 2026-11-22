@@ -1,6 +1,6 @@
-"""The rule this file exists to enforce: a walk's saved position is an immutable plain type, and
-`StateStore` and `PredicateHost` are structural protocols a caller satisfies without subclassing
-(`graphscene.model.walk_state`).
+"""The rule this file exists to enforce: a walk's saved position, and the `RoundResume` a host hands
+`start`, are immutable plain types, and `StateStore` and `PredicateHost` are structural protocols a
+caller satisfies without subclassing (`graphscene.model.walk_state`).
 
 The protocol cases are graded by `mypy`, which checks each in-test class against the annotated
 local it is assigned to; at run time they only show the classes construct.
@@ -14,7 +14,13 @@ from types import MappingProxyType
 import pytest
 
 from graphscene.model.walk_actions import End, GateRecord
-from graphscene.model.walk_state import OpenRound, PredicateHost, StateStore, WalkState
+from graphscene.model.walk_state import (
+    OpenRound,
+    PredicateHost,
+    RoundResume,
+    StateStore,
+    WalkState,
+)
 
 _RECORD = GateRecord("review", "pass", None)
 _OPEN_ROUND = OpenRound(
@@ -23,6 +29,7 @@ _OPEN_ROUND = OpenRound(
     due=("review", "parity"),
     records=MappingProxyType({"review": _RECORD}),
 )
+_RESUME = RoundResume(round="review_round", number=2, records=(_RECORD,))
 _STATE = WalkState(
     flow="plan",
     node="review_round",
@@ -37,11 +44,15 @@ _STATE = WalkState(
 )
 
 
-@pytest.mark.parametrize("instance", (_OPEN_ROUND, _STATE), ids=lambda i: type(i).__name__)
+@pytest.mark.parametrize("instance", (_OPEN_ROUND, _RESUME, _STATE), ids=lambda i: type(i).__name__)
 def test_every_class_is_frozen(instance: object) -> None:
     first_field = dataclasses.fields(instance)[0].name  # type: ignore[arg-type]
     with pytest.raises(dataclasses.FrozenInstanceError):
         setattr(instance, first_field, "changed")
+
+
+def test_a_round_resume_defaults_to_no_records() -> None:
+    assert RoundResume("review_round", 0).records == ()
 
 
 class _MemoryStore:
