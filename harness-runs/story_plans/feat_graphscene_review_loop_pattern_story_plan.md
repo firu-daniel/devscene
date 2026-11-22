@@ -57,7 +57,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_review_loop_
 
 1. [x] **Task 1** — Add the review-loop pattern module `engine/review_loop.py` _(layer: graphscene)_ _(points: 10)_
 2. [x] **Task 2** — Dispatch a round's writer and gates through the review-loop pattern _(layer: graphscene)_ _(points: 8)_
-3. [ ] **Task 3** — Split checks 8 and 9 into round rules and review-loop rules _(layer: graphscene)_ _(points: 18)_
+3. [x] **Task 3** — Split checks 8 and 9 into round rules and review-loop rules _(layer: graphscene)_ _(points: 18)_
 4. [ ] **Task 4** — Make a round's writer, counter and convergingFrom an optional group _(layer: graphscene)_ _(points: 20)_
 5. [ ] **Task 5** — Test the plain round in the static checks, references and transitions _(layer: graphscene)_ _(points: 20)_
 6. [ ] **Task 6** — Load and walk the plain-round fixture through the public surface _(layer: graphscene)_ _(points: 15)_

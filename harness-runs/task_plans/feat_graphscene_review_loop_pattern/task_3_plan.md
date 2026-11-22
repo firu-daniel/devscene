@@ -51,3 +51,7 @@
 - `git grep -nE "r\.writer|node\.writer|\.converging_from|gate_of\.counter" -- graphscene/src/graphscene/engine/static_check.py graphscene/src/graphscene/engine/references.py` prints only the `references.py` line that passes `node.writer` into `_opt_node_known`.
 - Reading `static_negative_gate_in_round.json` and `static_negative_round_fan_out.json` against the new code: each still yields exactly the violation `graphscene/tests/engine/test_static_check.py` → `_NEGATIVES` lists for it, because `valid_generic.json`'s `review_round` declares `writer`.
 - `git diff` shows no change to any reason f-string's text in `static_check.py`.
+
+**Deviations from plan:**
+- The `git diff` f-string bullet: no literal text of any reason f-string changed. Two reason f-strings change their interpolated expression, `node.writer` / `r.writer` → `loop.writer`, as the Work list requires; the value is the same string. Clause (ii)'s two f-strings changed only their indentation, from moving under the `if loop is not None:` guard.
+- `test_gate_in_round_a_gate_in_zero_rounds_is_named` is expected to stop yielding its violation under the new graph-wide guard, as the plan states. Not run here: this unit did not create or edit that file, and Task 5 rewrites the test.
