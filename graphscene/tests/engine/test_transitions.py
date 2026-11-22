@@ -111,6 +111,30 @@ def _article() -> FlowGraph:
     )
 
 
+def _release() -> FlowGraph:
+    """`intake` routes to the plain round `checks`, which declares no writer, over gates `lint`
+    and `license`."""
+    return planted(
+        {
+            "intake": _dispatch({"done": {"to": "checks"}}),
+            "lint": _dispatch({"approved": {"to": "checks"}, "rejected": {"to": "checks"}}),
+            "license": _dispatch({"approved": {"to": "checks"}, "rejected": {"to": "checks"}}),
+            "checks": {
+                "kind": "round",
+                "parallel": True,
+                "gates": ["lint", "license"],
+                "outcomes": {
+                    "approved": {"to": "published"},
+                    "rejected": {"binding": "<halt>", "reason": "limit"},
+                },
+            },
+            "published": _TERMINAL,
+        },
+        start="intake",
+        entries=["intake"],
+    )
+
+
 def _edge(graph: FlowGraph, node_id: str, outcome: str) -> Edge:
     node = graph.nodes[node_id]
     assert not isinstance(node, TerminalNode)
@@ -139,6 +163,45 @@ def test_arrival_at_a_dispatch_node_dispatches_it_with_its_writer_round_number()
     )
     assert step == expected
     assert (draft.node, draft.awaiting, draft.pending) == ("draft", "dispatch", expected)
+
+
+def test_a_plain_round_dispatches_each_gate_with_its_number_and_no_convergence() -> None:
+    graph = _release()
+    draft = WalkDraft.fresh(graph)
+    step = arrive(graph, _NO_ANSWERS, draft, "checks")
+    assert step == DispatchSet(
+        round="checks",
+        number=0,
+        dispatches=tuple(
+            Dispatch(
+                node=gate,
+                agent="worker",
+                prompt=None,
+                counters=MappingProxyType({"attempt": 0}),
+                round_number=0,
+                converging=None,
+                closed_round=(),
+                passed=(),
+            )
+            for gate in ("lint", "license")
+        ),
+        passed=(),
+    )
+
+
+def test_a_node_routing_into_a_plain_round_is_dispatched_with_no_round_number() -> None:
+    graph = _release()
+    step = arrive(graph, _NO_ANSWERS, WalkDraft.fresh(graph), "intake")
+    assert step == Dispatch(
+        node="intake",
+        agent="worker",
+        prompt=None,
+        counters=MappingProxyType({"attempt": 0}),
+        round_number=None,
+        converging=None,
+        closed_round=(),
+        passed=(),
+    )
 
 
 def test_a_skip_chain_records_each_report_and_passage_and_dispatches_where_it_ends() -> None:

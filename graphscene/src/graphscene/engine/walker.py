@@ -12,7 +12,8 @@ The rule:
 Deliberately not covered:
 
 - Reading round evidence at `start`: the host's.
-- The review loop's rules: the host's.
+- What a host does with a review loop's round number, convergence and findings: the host's;
+  which round is a review loop is `graphscene.engine.review_loop`'s.
 """
 
 from graphscene.engine.rounds import record_gate

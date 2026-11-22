@@ -7,9 +7,16 @@ states, each reason opening with its check id.
 Each planted graph is a complete format-4 mapping built with
 `graphscene.adapters.builder.build_flow_graph`. `_base` is a clean one-round graph; each case
 changes it, or plants its own graph, so that one clause fires, and asserts the exact list
-returned. `valid_generic.json` returns nothing, and each `static_negative_*.json` fixture in
-`_NEGATIVES`, a schema-valid copy of it with one change, returns exactly its one violation.
-Expected values are hand-written from reading each graph.
+returned. Each review-loop clause of checks 8 and 9 is planted on both kinds of round: on a review
+loop it fires, and on a plain round (`_plain_round`, no `writer`) the same graph returns nothing,
+while the round rules fire on both. Check 8's graph-wide clause is planted on a graph declaring a
+review loop, where it fires, and on one declaring none, where it does not run. A fail cycle closed
+through a plain round's fan-out is planted on a graph declaring no review loop, where check 3
+names it.
+`valid_generic.json` and `valid_plain_round.json` return nothing, and each
+`static_negative_*.json` fixture in `_NEGATIVES`, a schema-valid copy of `valid_generic.json` with
+one change, returns exactly its one violation. Expected values are hand-written from reading each
+graph.
 
 Deliberately not covered:
 - Checks 4–7 of `scripts/check-flow-graph.sh`: they read plugin documents and are not ported.
@@ -111,6 +118,14 @@ def _round(**overrides: object) -> dict[str, object]:
             "rejected": {"to": "a", "increment": "n", "onCap": _HALT_ON_CAP},
         },
     }
+    node.update(overrides)
+    return node
+
+
+def _plain_round(**overrides: object) -> dict[str, object]:
+    node = _round()
+    for key in ("writer", "counter", "convergingFrom"):
+        del node[key]
     node.update(overrides)
     return node
 
@@ -258,16 +273,59 @@ def test_fail_cycle_capped_a_cycle_closed_only_through_a_resume_is_not_reported(
     assert _check(nodes) == []
 
 
+def test_fail_cycle_capped_a_cycle_through_a_plain_rounds_fan_out_is_named() -> None:
+    # `a` is no gate; it rejects into plain round `r` with no increment, and gate `g`'s held
+    # outcome routes back to `a`, so the cycle closes through `r`'s fan-out.
+    nodes = _base()
+    nodes["a"] = _dispatch({"done": {"to": "r"}, "rejected": {"to": "r"}})
+    nodes["g"] = _gate(
+        outcomes={"approved": {"to": "r"}, "rejected": {"to": "r"}, "crashed": {"to": "a"}}
+    )
+    nodes["r"] = _plain_round()
+    assert _check(nodes) == [
+        Violation(
+            "nodes.a.outcomes.rejected",
+            "fail-cycle-capped: outcome 'rejected' routes 'a' -> 'r' with no increment, and 'r' "
+            "reaches 'a' again",
+        )
+    ]
+
+
 def test_gate_in_round_a_gate_in_zero_rounds_is_named() -> None:
-    nodes: dict[str, dict[str, object]] = {
-        "a": _dispatch({"done": {"to": "t"}, "rejected": {"to": "t"}}),
-        "t": _TERMINAL,
-    }
+    nodes = _base()
+    nodes["a"] = _dispatch({"done": {"to": "r"}, "rejected": {"to": "t"}})
     assert _check(nodes) == [
         Violation(
             "nodes.a",
             "gate-in-round: node 'a' routes a fail verdict with no increment and is a gate of 0 "
             "round nodes, not exactly one",
+        )
+    ]
+
+
+def test_gate_in_round_a_graph_declaring_no_review_loop_runs_no_graph_wide_clause() -> None:
+    nodes: dict[str, dict[str, object]] = {
+        "a": _dispatch({"done": {"to": "t"}, "rejected": {"to": "t"}}),
+        "t": _TERMINAL,
+    }
+    assert _check(nodes) == []
+
+
+def test_gate_in_round_a_plain_round_runs_no_graph_wide_clause() -> None:
+    # The graph of `test_gate_in_round_a_gate_in_zero_rounds_is_named`, with `r` a plain round.
+    nodes = _base()
+    nodes["a"] = _dispatch({"done": {"to": "r"}, "rejected": {"to": "t"}})
+    nodes["r"] = _plain_round()
+    assert _check(nodes) == []
+
+
+def test_gate_in_round_a_plain_round_naming_a_non_dispatch_gate_is_named() -> None:
+    nodes = _base()
+    nodes["r"] = _plain_round(gates=["g", "t"])
+    assert _check(nodes) == [
+        Violation(
+            "nodes.r.gates[1]",
+            "gate-in-round: round 'r' names 't' as a gate, which is not a dispatch node",
         )
     ]
 
@@ -367,9 +425,40 @@ def test_round_fan_out_ii_a_gate_with_no_pass_outcome_is_named() -> None:
     ]
 
 
+def test_round_fan_out_i_a_plain_round_gate_routing_a_verdict_elsewhere_is_named() -> None:
+    nodes = _base()
+    nodes["g"] = _gate(outcomes={"approved": {"to": "t"}, "rejected": {"to": "r"}})
+    nodes["r"] = _plain_round()
+    assert _check(nodes) == [
+        Violation(
+            "nodes.g.outcomes.approved",
+            "round-fan-out: gate 'g' of round 'r' does not route outcome 'approved' to the round",
+        )
+    ]
+
+
+def test_round_fan_out_ii_a_plain_round_gate_with_no_pass_outcome_is_not_named() -> None:
+    nodes = _base()
+    nodes["g"] = _gate(outcomes={"rejected": {"to": "r"}})
+    nodes["r"] = _plain_round()
+    assert _check(nodes) == []
+
+
 def test_round_fan_out_iii_a_gate_skipping_elsewhere_is_named() -> None:
     nodes = _base()
     nodes["g"] = _gate(skip=[{"when": "off", "to": "t"}])
+    assert _check(nodes) == [
+        Violation(
+            "nodes.g.skip[0].to",
+            "round-fan-out: gate 'g' of round 'r' skips to 't', not to the round",
+        )
+    ]
+
+
+def test_round_fan_out_iii_a_plain_round_gate_skipping_elsewhere_is_named() -> None:
+    nodes = _base()
+    nodes["g"] = _gate(skip=[{"when": "off", "to": "t"}])
+    nodes["r"] = _plain_round()
     assert _check(nodes) == [
         Violation(
             "nodes.g.skip[0].to",
@@ -427,6 +516,13 @@ def test_round_fan_out_v_a_skip_from_a_node_that_is_not_a_gate_is_named() -> Non
     ]
 
 
+def test_round_fan_out_v_a_plain_round_admits_a_route_from_a_node_that_is_no_writer() -> None:
+    # On a review loop `a` is the writer; on a plain round it is only another node routing in.
+    nodes = _base()
+    nodes["r"] = _plain_round()
+    assert _check(nodes) == []
+
+
 def test_a_reference_violation_is_returned_alone() -> None:
     nodes = _base()
     nodes["a"] = _dispatch({"done": {"to": "r"}, "crashed": {"to": "zz"}})
@@ -451,6 +547,10 @@ def test_two_checks_firing_come_back_in_check_order() -> None:
 
 def test_the_valid_generic_graph_has_no_violation() -> None:
     assert static_violations(build_flow_graph(_load("valid_generic.json"))) == []
+
+
+def test_the_valid_plain_round_graph_has_no_violation() -> None:
+    assert static_violations(build_flow_graph(_load("valid_plain_round.json"))) == []
 
 
 def test_each_static_negative_fixture_returns_exactly_its_one_violation() -> None:

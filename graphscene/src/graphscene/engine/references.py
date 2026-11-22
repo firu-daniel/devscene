@@ -5,13 +5,13 @@ is listed in `entries`, and each violation's reason opens with its check id (`no
 `counter-known`, `path-known`, `report-slot-known`, `prompt-known`, `start-in-entries`).
 `reference_violations` returns one `Violation` per unresolved name, in document order: `start`,
 each `entries[i]`, the `start-in-entries` violation, then nodes in key order. Within a round node:
-`gates[i]`, `writer`, `counter`, `plan[i]`, `revisionNote`, then its outcomes in key order; within
-a dispatch node: its outcomes in key order, then its `skip` entries. Within a route edge: `to`,
-`increment`, `reset`, `prompt`, `report.<slot>` in key order, `onCap.roundCounts[i]`,
-`onCap.evidence`; within a binding edge: `resume`, `roundCounts[i]`, `evidence`; within a skip
-entry: `to`, then `report.<slot>`. Paths use the serialized spelling (`onCap`, `roundCounts`,
-`revisionNote`). An unknown `start` is reported once, as `node-known`; an unknown route `to`
-carrying a `prompt` is reported as `node-known` alone.
+`gates[i]`, `writer` and `counter` when present, `plan[i]`, `revisionNote`, then its outcomes in
+key order; within a dispatch node: its outcomes in key order, then its `skip` entries. Within a
+route edge: `to`, `increment`, `reset`, `prompt`, `report.<slot>` in key order,
+`onCap.roundCounts[i]`, `onCap.evidence`; within a binding edge: `resume`, `roundCounts[i]`,
+`evidence`; within a skip entry: `to`, then `report.<slot>`. Paths use the serialized spelling
+(`onCap`, `roundCounts`, `revisionNote`). An unknown `start` is reported once, as `node-known`; an
+unknown route `to` carrying a `prompt` is reported as `node-known` alone.
 
 Deliberately not checked:
 - Binding, outcome and predicate names: the vocabulary check's (`graphscene.engine.vocabulary`).
@@ -41,6 +41,10 @@ def _node_known(path: str, name: str, graph: FlowGraph) -> list[Violation]:
     if name in graph.nodes:
         return []
     return [Violation(path, f"node-known: '{name}' is not a node")]
+
+
+def _opt_node_known(path: str, name: str | None, graph: FlowGraph) -> list[Violation]:
+    return [] if name is None else _node_known(path, name, graph)
 
 
 def _counter_known(path: str, name: str | None, graph: FlowGraph) -> list[Violation]:
@@ -130,7 +134,7 @@ def _round(node_path: str, node: RoundNode, graph: FlowGraph) -> list[Violation]
     found: list[Violation] = []
     for index, gate in enumerate(node.gates):
         found.extend(_node_known(f"{node_path}.gates[{index}]", gate, graph))
-    found.extend(_node_known(f"{node_path}.writer", node.writer, graph))
+    found.extend(_opt_node_known(f"{node_path}.writer", node.writer, graph))
     found.extend(_counter_known(f"{node_path}.counter", node.counter, graph))
     for index, name in enumerate(node.plan or ()):
         found.extend(_path_known(f"{node_path}.plan[{index}]", name, graph))

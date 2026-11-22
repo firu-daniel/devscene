@@ -1,0 +1,72 @@
+{
+  "formatVersion": 4,
+  "flow": "release_checks",
+  "description": "A small release flow: an intake step accepts a release, a lint check and a license check run together in one round, and the release is published once both accept it.",
+  "vocabulary": {
+    "outcomes": {
+      "done": {},
+      "accepted": { "verdict": "pass" },
+      "rejected": { "verdict": "fail" },
+      "crashed": { "held": true }
+    },
+    "bindings": {
+      "<halt>": { "primitive": "stop", "reasons": ["failed", "crash"] },
+      "<finish>": { "primitive": "end" }
+    },
+    "predicates": {}
+  },
+  "start": "intake",
+  "entries": ["intake", "checks"],
+  "counters": {},
+  "paths": {},
+  "reports": [],
+  "nodes": {
+    "intake": {
+      "kind": "dispatch",
+      "agent": "release-intake",
+      "heartbeat": "[intake · attempt {iteration}] → release-intake",
+      "outcomes": {
+        "accepted": { "to": "checks" },
+        "rejected": { "to": "discarded" },
+        "crashed": { "binding": "<halt>", "reason": "crash" }
+      }
+    },
+    "lint": {
+      "kind": "dispatch",
+      "agent": "lint-checker",
+      "heartbeat": "[checks · lint · attempt {iteration}] → lint-checker",
+      "outcomes": {
+        "accepted": { "to": "checks" },
+        "rejected": { "to": "checks" },
+        "crashed": { "binding": "<halt>", "reason": "crash" }
+      }
+    },
+    "license": {
+      "kind": "dispatch",
+      "agent": "license-checker",
+      "heartbeat": "[checks · license · attempt {iteration}] → license-checker",
+      "outcomes": {
+        "accepted": { "to": "checks" },
+        "rejected": { "to": "checks" },
+        "crashed": { "binding": "<halt>", "reason": "crash" }
+      }
+    },
+    "checks": {
+      "kind": "round",
+      "parallel": true,
+      "gates": ["lint", "license"],
+      "outcomes": {
+        "accepted": { "to": "published" },
+        "rejected": { "binding": "<halt>", "reason": "failed" }
+      }
+    },
+    "published": {
+      "kind": "terminal",
+      "binding": "<finish>"
+    },
+    "discarded": {
+      "kind": "terminal",
+      "binding": "<finish>"
+    }
+  }
+}

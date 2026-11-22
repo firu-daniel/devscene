@@ -1,12 +1,14 @@
 """The rule this file exists to enforce: a caller importing only from `graphscene` walks a graph
 loaded by `load_graph` or `load_graph_file` through a `Walker` over a `FileStateStore`, with a host
-answering skips, from the start to an end, a cap, a held crash or a skipped gate; `current` re-reads
-the saved step through a new `Walker` and store on the same path; and when a round's gates are
-recorded from concurrent threads, each with its own `Walker` and store, exactly one call returns
-the join and every other returns a `Wait` naming its own gate.
+answering skips, from the start to an end, a cap, a held crash or a skipped gate; a round with no
+review loop dispatches its gates with no `converging` and stops on its own `rejected` edge, writing
+only the state file and its lock; `current` re-reads the saved step through a new `Walker` and
+store on the same path; and when a round's gates are recorded from concurrent threads, each with
+its own `Walker` and store, exactly one call returns the join and every other returns a `Wait`
+naming its own gate.
 
-Every expected value is hand-written from reading `valid_generic.json`, never taken from the
-walker's output.
+Every expected value is hand-written from reading `valid_generic.json` and
+`valid_plain_round.json`, never taken from the walker's output.
 
 Deliberately not covered:
 
@@ -36,7 +38,9 @@ from graphscene import (
     load_graph_file,
 )
 
-_FIXTURE = Path(__file__).parents[1] / "fixtures" / "flow_graph" / "valid_generic.json"
+_FIXTURES = Path(__file__).parents[1] / "fixtures" / "flow_graph"
+_FIXTURE = _FIXTURES / "valid_generic.json"
+_PLAIN_ROUND = _FIXTURES / "valid_plain_round.json"
 
 _EXTRA_GATES = ("style_check", "fact_check", "legal_check")
 
@@ -161,6 +165,58 @@ def test_a_skipped_gate_closes_the_round_as_a_pass_at_once(tmp_path: Path) -> No
         reports=(("edit_check", "bypassed"),),
         passed=(SkipPassage("edit_check", "bypassed"), RoundPassage("review_round", 0, "pass")),
     )
+
+
+def _checker(node: str, agent: str) -> Dispatch:
+    return Dispatch(
+        node=node,
+        agent=agent,
+        prompt=None,
+        counters={},
+        round_number=0,
+        converging=None,
+        closed_round=(),
+        passed=(),
+    )
+
+
+def test_a_round_with_no_review_loop_stops_on_its_rejected_edge(tmp_path: Path) -> None:
+    walker = _walker(tmp_path / "walk.json", load_graph_file(_PLAIN_ROUND))
+    assert walker.start() == Dispatch(
+        node="intake",
+        agent="release-intake",
+        prompt=None,
+        counters={},
+        round_number=None,
+        converging=None,
+        closed_round=(),
+        passed=(),
+    )
+    assert walker.next("accepted") == DispatchSet(
+        "checks",
+        0,
+        (_checker("lint", "lint-checker"), _checker("license", "license-checker")),
+        (),
+    )
+    assert walker.next("accepted", node="lint") == Wait(
+        "checks", GateRecord("lint", "accepted", None), ("license",)
+    )
+    assert walker.next("rejected", node="license") == Stop(
+        "<halt>",
+        node="checks",
+        agent=None,
+        reason="failed",
+        summary=None,
+        evidence=None,
+        round_counts=(),
+        held=(),
+        closed_round=(
+            GateRecord("lint", "accepted", None),
+            GateRecord("license", "rejected", None),
+        ),
+        passed=(RoundPassage("checks", 0, "fail"),),
+    )
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["walk.json", "walk.json.lock"]
 
 
 def test_current_re_reads_the_saved_step_through_a_new_walker(tmp_path: Path) -> None:
