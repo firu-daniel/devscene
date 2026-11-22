@@ -4,7 +4,8 @@ with its check id (`graphscene.engine.references.reference_violations`).
 
 Each planted graph is a complete format-4 mapping built with
 `graphscene.adapters.builder.build_flow_graph`, so the check reads what the builder produces.
-Each id position has a planted case asserting the exact list returned; `valid_generic.json`
+Each id position has a planted case asserting the exact list returned, and a round declaring no
+`writer` and no `counter` has one asserting neither is reported; `valid_generic.json`
 returns nothing; and each `static_negative_*.json` fixture in `_NEGATIVES`, a schema-valid copy of
 it with one change, returns exactly its one violation. Expected values are hand-written from
 reading each planted graph.
@@ -138,6 +139,14 @@ def test_node_known_an_unknown_gate_and_writer_are_named() -> None:
         Violation("nodes.r.gates[1]", "node-known: 'zz' is not a node"),
         Violation("nodes.r.writer", "node-known: 'yy' is not a node"),
     ]
+
+
+def test_a_plain_round_declaring_no_writer_and_no_counter_reports_neither() -> None:
+    plain = _round()
+    for key in ("writer", "counter", "convergingFrom"):
+        del plain[key]
+    graph = _graph({"a": _a({"done": {"to": "r"}}), "r": plain, "t": _TERMINAL})
+    assert _check(graph) == []
 
 
 def test_node_known_an_unknown_route_to_is_named() -> None:
