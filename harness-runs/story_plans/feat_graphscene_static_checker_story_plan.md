@@ -26,7 +26,7 @@ This branch gives GraphScene its static checker: a pure library call that takes 
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_static_checker/task_<K>_plan.md`. They are ordered bottom-up by ship sequence, with the catch-all layer last.
 
-1. [ ] **Task 1** — Add the reference check `reference_violations` over `FlowGraph` in `engine/references.py` _(layer: graphscene)_ _(points: 20)_
+1. [x] **Task 1** — Add the reference check `reference_violations` over `FlowGraph` in `engine/references.py` _(layer: graphscene)_ _(points: 20)_
 2. [ ] **Task 2** — Add `static_violations` with the five generic graph checks and their fixtures in `engine/static_check.py` _(layer: graphscene)_ _(points: 20)_
 3. [ ] **Task 3** — Move the vocabulary check onto `FlowGraph` and load as schema, build, vocabulary, static _(layer: graphscene)_ _(points: 20)_
 4. [ ] **Task 4** — Export `static_violations` and hold loading to the static negatives _(layer: graphscene)_ _(points: 15)_
