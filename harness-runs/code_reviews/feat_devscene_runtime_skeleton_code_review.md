@@ -32,7 +32,7 @@ What remains: two Should Fix items, both about the strength of the new package's
 **This section is the single source of truth for the per-item fix loop.** The orchestrator walks the `[ ]` entries below from top to bottom, and the committing role flips each one to `[x]` as that fix's commit lands. Each entry resolves to `harness-runs/code_reviews/feat_devscene_runtime_skeleton_code_review/finding_<K>.md` through its `**Finding K**` reference. The leading number is the fix order. `K` is the finding's stable identity.
 
 1. [x] **Finding 4** — Name `devscene-runtime` in gate 13's no-pytest-cache sentence in `docs/development.md` _(layer: general)_
-2. [ ] **Finding 3** — Add a planted-manifest case for `allowed_names` / `_declared_dependencies` to `devscene-runtime/tests/test_boundary.py` _(layer: general)_
+2. [x] **Finding 3** — Add a planted-manifest case for `allowed_names` / `_declared_dependencies` to `devscene-runtime/tests/test_boundary.py` _(layer: general)_
 3. [ ] **Finding 2** — Move the duplicated requirement-name parser into `devscene-runtime/tests/requirement_names.py` and import it in both test files _(layer: general)_
 4. [ ] **Finding 1** — Compare GraphScene's version specifiers, not only names, in the lock-staleness test _(layer: general)_
 

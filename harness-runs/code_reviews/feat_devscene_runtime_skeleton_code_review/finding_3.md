@@ -19,3 +19,5 @@ def test_declared_dependencies_are_parsed_into_import_names(tmp_path: Path) -> N
 ```
 
 The expected values are written by hand from the planted manifest. `devscene-runtime/tests/test_boundary.py` is the one test file this fix edits, so it is the only test the fix runs, through `bash scripts/python-service.sh --package devscene-runtime test tests/test_boundary.py`.
+
+- **Deviations from plan:** The fix snippet split the planted manifest's string literal across two implicitly concatenated lines; `ruff format` (devscene-runtime lint leg of `bash scripts/typecheck.sh`) rejected that form, so the literal is written as one line. Content and assertions are unchanged.

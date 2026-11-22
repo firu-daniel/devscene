@@ -229,3 +229,13 @@ def test_graphscene_is_a_declared_dependency() -> None:
     declared = _declared_dependencies(_PYPROJECT)
     assert _GRAPHSCENE in declared, declared
     assert _GRAPHSCENE in allowed_names(_PYPROJECT)
+
+
+def test_declared_dependencies_are_parsed_into_import_names(tmp_path: Path) -> None:
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "planted"\ndependencies = ["graphscene", "Some-Package[extra]>=6"]\n',
+        encoding="utf-8",
+    )
+    assert _declared_dependencies(pyproject) == ["graphscene", "some_package"]
+    assert {"graphscene", "some_package"} <= allowed_names(pyproject)
