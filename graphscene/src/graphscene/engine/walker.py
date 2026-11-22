@@ -17,8 +17,14 @@ Deliberately not covered:
 
 from graphscene.engine.rounds import record_gate
 from graphscene.engine.transitions import WalkDraft, arrive, follow_edge
-from graphscene.model.flow_graph import DispatchNode, FlowGraph, RoundNode
-from graphscene.model.walk_actions import Interrupt, Refused, Step
+from graphscene.model.flow_graph import (
+    BindingEdge,
+    DispatchNode,
+    FlowGraph,
+    InterruptBinding,
+    RoundNode,
+)
+from graphscene.model.walk_actions import Dispatch, GateRecord, Interrupt, Refused, Step
 from graphscene.model.walk_state import PredicateHost, StateStore, WalkState
 
 
@@ -100,10 +106,17 @@ class Walker:
                     f"the walk is interrupted at '{state.node}': "
                     f"resume with outcome '{pending.resume_outcome}'"
                 )
-            return arrive(graph, host, draft, pending.resume)
+            return arrive(graph, host, draft, pending.resume, closed_round=pending.closed_round)
         dispatch_node = graph.nodes[state.node]
         assert isinstance(dispatch_node, DispatchNode)
         edge = dispatch_node.outcomes.get(outcome)
         if edge is None:
             return Refused(f"outcome '{outcome}' is not declared by node '{state.node}'")
-        return follow_edge(graph, host, draft, state.node, edge)
+        carried: tuple[GateRecord, ...] = ()
+        if (
+            isinstance(edge, BindingEdge)
+            and isinstance(graph.vocabulary.bindings[edge.binding], InterruptBinding)
+            and isinstance(pending, Dispatch)
+        ):
+            carried = pending.closed_round
+        return follow_edge(graph, host, draft, state.node, edge, closed_round=carried)

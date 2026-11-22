@@ -322,15 +322,16 @@ def test_a_failed_round_sends_the_writer_its_rework_prompt() -> None:
 def test_an_interrupt_resumes_only_on_its_resume_outcome_with_the_stored_prompt() -> None:
     store = MemoryStore()
     walker = _rejected_once(store)
+    closed = (GateRecord("g1", "rejected", None), GateRecord("g2", "approved", None))
     assert walker.next("crashed") == Interrupt(
-        "<pause>", "draft", "article-writer", "draft", "resumed", ()
+        "<pause>", "draft", "article-writer", "draft", "resumed", (), closed
     )
     writes = store.writes
     assert walker.next("done") == Refused(
         "the walk is interrupted at 'draft': resume with outcome 'resumed'"
     )
     assert store.writes == writes
-    assert walker.next("resumed") == _writer("rework", 1, 1)
+    assert walker.next("resumed") == _writer("rework", 1, 1, closed_round=closed)
     assert store.writes == writes + 1
 
 

@@ -31,7 +31,7 @@ I read the engine against `cli/templates/scripts/flow-walker.sh` and the `cli/te
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Carry the closed round through an interrupt so a resumed revision writer keeps its gate records _(layer: graphscene)_
+1. [x] **Finding 1** — Carry the closed round through an interrupt so a resumed revision writer keeps its gate records _(layer: graphscene)_
 
 ---
 

@@ -98,6 +98,7 @@ _ACTIONS: tuple[tuple[Awaiting, Action], ...] = (
             resume="review",
             resume_outcome="answered",
             passed=_PASSED,
+            closed_round=(_SET_RECORD,),
         ),
     ),
     ("interrupt", Interrupt("ask", "review_round", None, "review_round", "answered", ())),

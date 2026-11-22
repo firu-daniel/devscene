@@ -123,6 +123,7 @@ def _action_out(action: Action) -> dict[str, object]:
             "agent": action.agent,
             "resume": action.resume,
             "resume_outcome": action.resume_outcome,
+            "closed_round": _records_out(action.closed_round),
             "passed": _passed_out(action.passed),
         }
     if isinstance(action, Stop):
@@ -344,7 +345,18 @@ def _action(value: object, path: str) -> Action:
         )
     if kind == "interrupt":
         fields = _fields(
-            value, path, ("kind", "binding", "node", "agent", "resume", "resume_outcome", "passed")
+            value,
+            path,
+            (
+                "kind",
+                "binding",
+                "node",
+                "agent",
+                "resume",
+                "resume_outcome",
+                "closed_round",
+                "passed",
+            ),
         )
         return Interrupt(
             binding=_str(fields["binding"], _join(path, "binding")),
@@ -352,6 +364,7 @@ def _action(value: object, path: str) -> Action:
             agent=_optional(_str, fields["agent"], _join(path, "agent")),
             resume=_str(fields["resume"], _join(path, "resume")),
             resume_outcome=_str(fields["resume_outcome"], _join(path, "resume_outcome")),
+            closed_round=_tuple(_record, fields["closed_round"], _join(path, "closed_round")),
             passed=_tuple(_passage, fields["passed"], _join(path, "passed")),
         )
     if kind == "stop":

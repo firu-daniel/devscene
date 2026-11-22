@@ -17,6 +17,8 @@ Field meanings:
 - A `Dispatch` inside a `DispatchSet` carries `passed=()`, and the set carries the passages.
 - `SkipPassage.status` is the skipping predicate's `records`.
 - `GateRecord.detail` is the host's opaque detail, such as a findings path.
+- `Interrupt.closed_round` is the closed round the interrupted dispatch carried; the resume
+  re-dispatches with it.
 
 Deliberately not covered:
 
@@ -100,6 +102,7 @@ class Interrupt:
     resume: str
     resume_outcome: str
     passed: tuple[Passage, ...]
+    closed_round: tuple[GateRecord, ...] = ()
 
 
 @dataclass(frozen=True)

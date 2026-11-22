@@ -18,8 +18,8 @@ The rule:
   increments (a counter reaching its cap takes `onCap` and goes no further), then advances the
   named round's number, records the edge's report and ledger entry, sets or clears the target's
   prompt, and arrives at `to`.
-- `take_binding` routes on the binding declaration's class: an interrupt pauses at the node, a
-  stop ends the walk, and an end on an edge is refused.
+- `take_binding` routes on the binding declaration's class: an interrupt pauses at the node,
+  carrying the closed round it was given, a stop ends the walk, and an end on an edge is refused.
 - `open_round` skips its gates as `arrive` skips a node, without following a skip's `to`, and
   dispatches the remaining gates as one set; with none due, it closes at once. `close_round`
   fails when any recorded gate's outcome declares verdict fail, records a `RoundPassage`, and
@@ -311,7 +311,7 @@ def take_binding(
         if resume is None:
             return Refused(f"binding '{name}' is an interrupt and needs resume")
         interrupt = Interrupt(
-            name, node_id, agent, resume, binding.resume_outcome, tuple(draft.passed)
+            name, node_id, agent, resume, binding.resume_outcome, tuple(draft.passed), closed_round
         )
         return _settle(draft, node_id, "interrupt", interrupt)
     if reason is None:
