@@ -26,3 +26,9 @@
 - **cost this run:** 6 node session(s)
 
 # Task run (Phase D)
+
+## A layer-implementer's tree-guard run was refused in one unit and allowed in the others
+- **category:** tooling-gap
+- **evidence:** Phase A, Task 2 (`[A · Task 2 · graphscene · iter 0] → layer-implementer  (#2)`): the implementer reported `bash scripts/python-service.sh --package graphscene test tests/test_layers.py` refused ("running in don't ask mode") and returned the flag "The graphscene layer-contract tree guard (tests/test_layers.py) was not run: the command was refused." The same command ran and passed (11 tests) in the Task 1, 3 and 4 dispatches and in code-review Findings 2 and 3 and skeptic Finding 1, in the same session; commit e15c6909 carries Task 2 without the guard run
+- **cost this run:** the `tests/test_layers.py` tree guard went unrun for Task 2's change to `graphscene/src/graphscene/engine/transitions.py`; it was covered only later, by the next unit's guard run and the Phase G round-1 full suite (`pass`)
+- **hypothesis:** (guess) the refusal depends on the exact command form the sub-agent issued, not on the command itself
