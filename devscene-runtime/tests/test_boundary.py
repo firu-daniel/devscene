@@ -21,20 +21,19 @@ Deliberately not covered:
 """
 
 import ast
-import re
 import sys
 import tomllib
 from pathlib import Path
 
 import graphscene
 
+from requirement_names import dependency_name
+
 _ROOT = Path(__file__).resolve().parents[1]
 _PACKAGE_DIR = _ROOT / "src" / "devscene_runtime"
 _PYPROJECT = _ROOT / "pyproject.toml"
 
 _GRAPHSCENE = "graphscene"
-
-_REQUIREMENT_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
 # A dependency whose import name differs from its normalised PEP 508 name is added here when it
 # arrives, keyed by that normalised name.
@@ -46,16 +45,9 @@ _PLANTED_ALLOWED = _STDLIB_AND_SELF | {_GRAPHSCENE}
 _PLANTED_PUBLIC = frozenset({"Walker"})
 
 
-def _dependency_name(requirement: str) -> str:
-    match = _REQUIREMENT_NAME.match(requirement.strip())
-    if match is None:
-        raise ValueError(f"unparseable dependency: {requirement!r}")
-    return match.group(0).lower().replace("-", "_")
-
-
 def _declared_dependencies(pyproject: Path) -> list[str]:
     project = tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]
-    return [_dependency_name(entry) for entry in project.get("dependencies", [])]
+    return [dependency_name(entry) for entry in project.get("dependencies", [])]
 
 
 def allowed_names(pyproject: Path) -> frozenset[str]:

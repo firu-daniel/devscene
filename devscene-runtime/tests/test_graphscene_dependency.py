@@ -8,11 +8,12 @@ Deliberately not covered:
 - GraphScene's `dev` group: it never reaches this package's environment.
 """
 
-import re
 import tomllib
 from pathlib import Path
 
 import graphscene
+
+from requirement_names import dependency_name
 
 _ROOT = Path(__file__).resolve().parents[1]
 _CHECKOUT = Path(__file__).resolve().parents[2]
@@ -21,15 +22,6 @@ _LOCK = _ROOT / "uv.lock"
 _GRAPHSCENE_PYPROJECT = _CHECKOUT / "graphscene" / "pyproject.toml"
 
 _RELOCK = "bash scripts/python-service.sh --package devscene-runtime lock"
-
-_REQUIREMENT_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
-
-
-def _dependency_name(requirement: str) -> str:
-    match = _REQUIREMENT_NAME.match(requirement.strip())
-    if match is None:
-        raise ValueError(f"unparseable dependency: {requirement!r}")
-    return match.group(0).lower().replace("-", "_")
 
 
 def test_graphscene_imports_from_this_checkouts_sibling() -> None:
@@ -48,7 +40,7 @@ def test_the_lock_resolves_graphscene_from_the_path_with_its_declared_dependenci
     assert len(entries) == 1, f"uv.lock has no single graphscene entry; re-lock: {_RELOCK}"
     entry = entries[0]
     assert entry["source"] == {"editable": "../graphscene"}, f"re-lock: {_RELOCK}"
-    locked = {_dependency_name(item["name"]) for item in entry["metadata"]["requires-dist"]}
+    locked = {dependency_name(item["name"]) for item in entry["metadata"]["requires-dist"]}
     project = tomllib.loads(_GRAPHSCENE_PYPROJECT.read_text(encoding="utf-8"))["project"]
-    declared = {_dependency_name(item) for item in project.get("dependencies", [])}
+    declared = {dependency_name(item) for item in project.get("dependencies", [])}
     assert locked == declared, f"uv.lock is stale against graphscene's manifest; re-lock: {_RELOCK}"
