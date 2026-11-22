@@ -35,3 +35,5 @@ The modules are `model/walk_actions.py`, `model/walk_state.py`, `engine/transiti
 
 - [ ] Re-run the story index's command derivation entry. No README line it prints still says that nothing walks a graph, that no Protocol exists, or that the package keeps no persisted state.
 - [ ] Every module name the README now cites exists under `graphscene/src/graphscene/`, and every public name it cites is in `graphscene/src/graphscene/__init__.py` → `__all__`.
+
+**Deviations from plan:** The never-logs bullet said the library "reports through return values and `GraphError` only"; `FileStateStore` raises `ValueError` and `TimeoutError` (`graphscene/src/graphscene/adapters/state_file.py` → `read`, `lock`), so it now reads "return values and exceptions only", with the new refusal bullet naming each exception. The `walk_json.py` functions, `transitions.py` and `rounds.py` are cited and marked "not public", as the row already marks `references.py`; every name cited without that mark is in `__all__`.
