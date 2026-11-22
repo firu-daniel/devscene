@@ -8,7 +8,8 @@ The rule:
 - `arrive` lands on a node. A terminal node ends the walk with its binding and the recorded
   reports in the graph's `reports` order. A round node opens its round. A dispatch node asks the
   host each of its `skip` entries in order, on every arrival and never from a cache: an entry
-  that holds records its report, a `SkipPassage` and the node's `skipped` entry, and the walk
+  that holds records its report, a `SkipPassage` and the node's `skipped` entry; an arrival
+  where no entry holds clears that entry. When an entry holds, the walk
   moves on to the entry's `to` with no dispatch; a node reached twice in one arrival is refused,
   and so is a predicate the host cannot answer. Otherwise the node is dispatched, carrying the
   round number and convergence of the round it is a gate of, or the round number of the round it
@@ -159,6 +160,7 @@ def _taken_skip(
             )
             draft.skipped[node.id] = entry.when
             return entry
+    draft.skipped.pop(node.id, None)
     return None
 
 

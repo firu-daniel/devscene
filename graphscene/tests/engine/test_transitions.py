@@ -404,6 +404,31 @@ def test_open_round_skips_one_gate_without_following_it_and_dispatches_the_other
     assert draft.reports == {"edit_check": "bypassed"}
 
 
+def test_a_gate_dispatched_after_an_earlier_skip_is_counted_again() -> None:
+    graph = _article()
+    draft = WalkDraft.fresh(graph)
+    open_round(graph, AnswerTable({("stage_disabled", "g1"): True}), draft, "review_round")
+    assert draft.skipped == {"g1": "stage_disabled"}
+    draft.open_round = None
+    step = open_round(graph, _NO_ANSWERS, draft, "review_round")
+    assert isinstance(step, DispatchSet)
+    assert tuple(d.node for d in step.dispatches) == ("g1", "g2")
+    assert draft.skipped == {}
+    stop = take_binding(
+        graph,
+        draft,
+        "review_round",
+        "<halt>",
+        reason="limit",
+        resume=None,
+        summary=None,
+        round_counts=("g1", "g2"),
+        evidence=None,
+    )
+    assert isinstance(stop, Stop)
+    assert stop.round_counts == ("g1", "g2")
+
+
 def test_an_all_skipped_round_closes_pass_at_once() -> None:
     graph = planted(
         {

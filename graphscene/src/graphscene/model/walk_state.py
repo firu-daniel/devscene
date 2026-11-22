@@ -17,8 +17,8 @@ Field meanings:
 - `prompts` is the prompt variant last routed to each dispatch node; an interrupt's resume
   re-dispatches with it.
 - `reports` is slot → status recorded so far.
-- `skipped` is node → the predicate name that skipped it, so a cap's `round_counts` can drop a node
-  whose predicate has `in_round_counts` false.
+- `skipped` is node → the predicate name that skipped it on its latest arrival, so a cap's
+  `round_counts` can drop a node whose predicate has `in_round_counts` false.
 """
 
 import contextlib

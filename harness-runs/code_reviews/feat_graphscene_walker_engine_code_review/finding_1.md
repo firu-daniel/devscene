@@ -70,3 +70,5 @@ This contradicts the branch's own contract. Skips are answered by the host on ev
    In `_article()`, `g1` skips under `stage_disabled`, which `valid_generic.json` declares with `inRoundCounts: false`. Without the fix, the last assertion gets `("g2",)`.
 
 This fix edits only one test file, `graphscene/tests/engine/test_transitions.py`, so that is the only test file it runs: `bash scripts/python-service.sh --package graphscene test tests/engine/test_transitions.py`.
+
+**Deviations from plan:** Step 2 asked to append the clause to the `arrive` bullet; since the bullet continues past "the node's \`skipped\` entry", the clause went in after it and the rest of the sentence now starts "When an entry holds, the walk moves on…". The meaning is unchanged.
