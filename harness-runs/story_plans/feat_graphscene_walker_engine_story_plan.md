@@ -46,7 +46,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_walker_engin
 7. [x] **Task 7** — Add `FileStateStore`, a locked, atomically replaced state file, in `adapters/state_file.py` _(layer: graphscene)_ _(points: 15)_
 8. [x] **Task 8** — Make the walker public and drive whole walks, concurrent gates included, through `graphscene` _(layer: graphscene)_ _(points: 20)_
 9. [x] **Task 9** — Bring `graphscene/README.md` up to date with the walker, its state and its store _(layer: graphscene)_ _(points: 8)_
-10. [ ] **Task 10** — Record the walker engine as shipped in `ROADMAP.md`'s GraphScene row _(layer: general)_ _(points: 5)_
+10. [x] **Task 10** — Record the walker engine as shipped in `ROADMAP.md`'s GraphScene row _(layer: general)_ _(points: 5)_
 
 ## Scope register
 
