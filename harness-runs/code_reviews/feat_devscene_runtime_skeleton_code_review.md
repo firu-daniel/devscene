@@ -34,7 +34,7 @@ What remains: two Should Fix items, both about the strength of the new package's
 1. [x] **Finding 4** — Name `devscene-runtime` in gate 13's no-pytest-cache sentence in `docs/development.md` _(layer: general)_
 2. [x] **Finding 3** — Add a planted-manifest case for `allowed_names` / `_declared_dependencies` to `devscene-runtime/tests/test_boundary.py` _(layer: general)_
 3. [x] **Finding 2** — Move the duplicated requirement-name parser into `devscene-runtime/tests/requirement_names.py` and import it in both test files _(layer: general)_
-4. [ ] **Finding 1** — Compare GraphScene's version specifiers, not only names, in the lock-staleness test _(layer: general)_
+4. [x] **Finding 1** — Compare GraphScene's version specifiers, not only names, in the lock-staleness test _(layer: general)_
 
 ---
 
