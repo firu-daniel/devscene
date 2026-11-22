@@ -60,7 +60,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_review_loop_
 3. [x] **Task 3** — Split checks 8 and 9 into round rules and review-loop rules _(layer: graphscene)_ _(points: 18)_
 4. [x] **Task 4** — Make a round's writer, counter and convergingFrom an optional group _(layer: graphscene)_ _(points: 20)_
 5. [x] **Task 5** — Test the plain round in the static checks, references and transitions _(layer: graphscene)_ _(points: 20)_
-6. [ ] **Task 6** — Load and walk the plain-round fixture through the public surface _(layer: graphscene)_ _(points: 15)_
+6. [x] **Task 6** — Load and walk the plain-round fixture through the public surface _(layer: graphscene)_ _(points: 15)_
 7. [ ] **Task 7** — Describe the review-loop pattern in `graphscene/README.md` _(layer: graphscene)_ _(points: 8)_
 8. [ ] **Task 8** — Wire the new fixtures into the root scripts and update the root documents _(layer: general)_ _(points: 10)_
 
