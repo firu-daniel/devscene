@@ -28,7 +28,7 @@ _Written by `/devscene:analyze` in `existing` mode, from `README.md`, `package.j
 | Root prose document | `SCREAMING_CASE.md` at the repository root | `ARCHITECTURE.md` |
 | JSON schema | `schemas/<name>.schema.json` | `schemas/devscene.config.schema.json` |
 | Schema negative fixture | `schemas/negative/<kebab-case>.json` | `schemas/negative/layers-no-catch-all.json` |
-| Python source module | `<package>/src/<import_name>/<snake_case>.py`, where `<package>` is a Python layer's `layers[].path` | `docs-retrieval-service/src/devscene_docs_retrieval/refresh.py` |
+| Python source module | `<package>/src/<import_name>/<snake_case>.py`, where `<package>` is a Python layer's `layers[].path`; in a package with internal layers, `<package>/src/<import_name>/<internal_layer>/<snake_case>.py` | `docs-retrieval-service/src/devscene_docs_retrieval/refresh.py`, `devscene-flow-host/src/devscene_flow_host/records/config.py` |
 | Python test suite | `<package>/tests/test_<snake_case>.py`; the suite's Python support modules (`conftest.py`, fakes, bridges) sit beside them under their own `<snake_case>.py` names, and a bridge's Node half as `<snake_case>.mjs` | `graphscene/tests/test_boundary.py` |
 
 _Written by `/devscene:analyze` in `existing` mode, from the real file names under `cli/src`, `cli/test`, `cli/templates`, `plugin/agents`, `plugin/commands`, `plugin/instructions`, `plugin/hooks`, `plugin/samples`, `docs`, `schemas` and the repository root; merged in `existing` mode with the two Python rows, read from the tracked file names under `docs-retrieval-service/src`, `docs-retrieval-service/tests`, `graphscene/src` and `graphscene/tests`._
