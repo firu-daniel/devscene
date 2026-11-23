@@ -14,7 +14,7 @@ The log's BLOCKED legs (typecheck's `devscene-flow-host lint` / `typecheck`, and
 
 **This section is the single source of truth for the fix loop.** The loop walks the `[ ]` entries below top-to-bottom; `[ ]` markers anywhere else (for example sub-step bullets inside a per-finding file) are informational only and are never the iteration source.
 
-1. [ ] **Finding 1** — Replace the absolute machine paths in the code review's Pass 0 sweep line with repo-relative forms. _(layer: general)_
+1. [x] **Finding 1** — Replace the absolute machine paths in the code review's Pass 0 sweep line with repo-relative forms. _(layer: general)_
 
 ---
 
