@@ -90,7 +90,7 @@ Task 1 is a catch-all (`general`) task, though half of what it touches sits unde
 
 Each entry resolves 1:1 to `harness-runs/task_plans/chore_rename_devscene_runtime/task_<K>_plan.md`. The ship order is by dependency, producer before consumer, with the catch-all layer's documentation task and its check-and-park unit last (see `## Context` for why the `cli` task follows Task 1).
 
-1. [ ] **Task 1** — Move the package to `devscene-flow-host/`, rename it `devscene_flow_host` and narrow its stated scope _(layer: general)_ _(points: 20)_
+1. [x] **Task 1** — Move the package to `devscene-flow-host/`, rename it `devscene_flow_host` and narrow its stated scope _(layer: general)_ _(points: 20)_
 2. [ ] **Task 2** — Point the Python-service test's third package row at `devscene-flow-host` _(layer: cli)_ _(points: 5)_
 3. [ ] **Task 3** — Point the two `devscene.config.json` tree guards at the renamed package paths _(layer: general)_ _(points: 5)_
 4. [ ] **Task 4** — Rename the package in gate legs 13h–13j, `docs/development.md` and `ROADMAP.md` _(layer: general)_ _(points: 15)_
