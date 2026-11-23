@@ -45,7 +45,7 @@ Imports point down only, and `records` never imports `graphscene`. The contracts
 
 ## Errors
 
-`RecordError` is the one anticipated failure: a record absent, or not readable as the harness writes it, with a one-line message naming the file. Any other `OSError` propagates. A malformed refusal record raises `ValueError` naming the file, and its lock `TimeoutError`, as the walk's store does; a round gate with no `findingsFolder` raises `ValueError`. Which exit status either becomes is the caller's; the package has no command line yet.
+`RecordError` is the one anticipated failure: a record absent, or not readable as the harness writes it, with a one-line message naming the file. Any other `OSError` propagates. A malformed refusal record raises `ValueError` naming the file, and its lock `TimeoutError`, as the walk's store does; a round gate with no `findingsFolder` raises `ValueError`. Which exit status each of these becomes is the caller's; the package has no command line yet.
 
 ## The lock follows GraphScene
 

@@ -39,7 +39,7 @@ The two findings below are wording-only.
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 2** — Say "each of these" instead of "either" in the host README's `## Errors` closing sentence _(layer: devscene-flow-host)_
+1. [x] **Finding 2** — Say "each of these" instead of "either" in the host README's `## Errors` closing sentence _(layer: devscene-flow-host)_
 2. [ ] **Finding 1** — Drop the duplicated README link and the stray "and" from the `ROADMAP.md` GraphScene row _(layer: general)_
 
 ---
