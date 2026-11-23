@@ -7,6 +7,9 @@ dependencies = [
     "jsonschema>=4.26",
 ]
 
+[project.scripts]
+graphscene = "graphscene.facade.cli:main"
+
 [dependency-groups]
 dev = [
     "ruff",

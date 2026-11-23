@@ -1,6 +1,9 @@
 """The rule this file exists to enforce: `graphscene.adapters.walk_json` turns a `WalkState` into
 its version-1 JSON document and back with no loss, and refuses a malformed document with a
-`ValueError` naming the dotted path and the reason.
+`ValueError` naming the dotted path and the reason; its step document of an action is that
+action's `pending` encoding in the state document and of a `Refused` is
+`{"kind": "refused", "reason": …}`; and it reads a round-resume document into a `RoundResume`,
+refusing a malformed one in the state codec's words.
 
 The round-trip states are hand-built, one per pending-action variant; together they carry every
 passage kind, an `OpenRound` with records and every optional field both set and `None`. The
@@ -13,7 +16,12 @@ from types import MappingProxyType
 
 import pytest
 
-from graphscene.adapters.walk_json import state_from_json, state_to_json
+from graphscene.adapters.walk_json import (
+    resume_from_json,
+    state_from_json,
+    state_to_json,
+    step_document,
+)
 from graphscene.model.walk_actions import (
     Action,
     Dispatch,
@@ -23,12 +31,13 @@ from graphscene.model.walk_actions import (
     Interrupt,
     LedgerPassage,
     Passage,
+    Refused,
     RoundPassage,
     SkipPassage,
     Stop,
     Wait,
 )
-from graphscene.model.walk_state import Awaiting, OpenRound, WalkState
+from graphscene.model.walk_state import Awaiting, OpenRound, RoundResume, WalkState
 
 _SET_RECORD = GateRecord("review", "pass", "findings/review_0.md")
 _NULL_RECORD = GateRecord("parity", "held", None)
@@ -388,4 +397,93 @@ _REFUSALS: tuple[tuple[str, str, str], ...] = (
 def test_a_malformed_document_is_refused_naming_its_path(text: str, message: str) -> None:
     with pytest.raises(ValueError) as caught:
         state_from_json(text)
+    assert str(caught.value) == message
+
+
+@pytest.mark.parametrize(
+    ("awaiting", "pending"),
+    _ACTIONS,
+    ids=[f"{type(pending).__name__}-{index}" for index, (_, pending) in enumerate(_ACTIONS)],
+)
+def test_the_step_document_of_an_action_is_its_pending_encoding(
+    awaiting: Awaiting, pending: Action
+) -> None:
+    document = json.loads(state_to_json(_state(awaiting, pending, None)))
+    assert step_document(pending) == document["pending"]
+
+
+def test_the_step_document_of_a_refusal_carries_its_kind_first() -> None:
+    document = step_document(Refused("no walk of flow 'plan' is saved"))
+    assert document == {"kind": "refused", "reason": "no walk of flow 'plan' is saved"}
+    assert list(document)[0] == "kind"
+
+
+_RESUME = """{
+ "round": "review_round",
+ "number": 2,
+ "records": [
+  {"gate": "review", "outcome": "fail", "detail": "f/review_2.md"},
+  {"gate": "parity", "outcome": "held", "detail": null}
+ ]
+}
+"""
+
+
+def test_a_hand_written_resume_document_decodes_field_by_field() -> None:
+    resume = resume_from_json(_RESUME)
+    assert resume == RoundResume(
+        round="review_round",
+        number=2,
+        records=(
+            GateRecord("review", "fail", "f/review_2.md"),
+            GateRecord("parity", "held", None),
+        ),
+    )
+    assert isinstance(resume.records, tuple)
+
+
+def _resume(**changes: object) -> str:
+    """The hand-written resume document with keys replaced; a value of `...` drops the key."""
+    document: dict[str, object] = json.loads(_RESUME)
+    for key, value in changes.items():
+        if value is ...:
+            del document[key]
+        else:
+            document[key] = value
+    return json.dumps(document)
+
+
+_RESUME_REFUSALS: tuple[tuple[str, str, str], ...] = (
+    ("missing-records", _resume(records=...), "records: missing key"),
+    ("extra-key", _resume(version=1), "version: unexpected key"),
+    ("number-true", _resume(number=True), "number: expected integer"),
+    ("number-fraction", _resume(number=1.5), "number: expected integer"),
+    (
+        "record-missing-detail",
+        _resume(
+            records=[
+                {"gate": "review", "outcome": "fail", "detail": None},
+                {"gate": "parity", "outcome": "held"},
+            ]
+        ),
+        "records[1].detail: missing key",
+    ),
+    (
+        "parse-failure",
+        '{"round": "review_round",',
+        "(root): not valid JSON: Expecting property name enclosed in double quotes"
+        " (line 1, column 26)",
+    ),
+    ("root-is-array", "[]", "(root): expected object"),
+)
+
+
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [(t, m) for _, t, m in _RESUME_REFUSALS],
+    ids=[i for i, _, _ in _RESUME_REFUSALS],
+)
+def test_a_malformed_resume_document_is_refused_naming_its_path(text: str, message: str) -> None:
+    with pytest.raises(ValueError) as caught:
+        resume_from_json(text)
     assert str(caught.value) == message
