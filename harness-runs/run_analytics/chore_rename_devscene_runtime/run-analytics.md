@@ -4,31 +4,31 @@
 
 | Measure | Value |
 |---|---|
-| Sessions | 11 (0 incomplete) |
-| Engine / planning node sessions | 2 / 9 |
-| Span | 46m 54s |
-| Wall | 45m 46s |
-| Session wall, summed over sessions | 50m 13s |
-| Active | 34m 59s |
+| Sessions | 12 (0 incomplete) |
+| Engine / planning node sessions | 3 / 9 |
+| Span | 2h22m |
+| Wall | 2h19m |
+| Session wall, summed over sessions | 2h23m |
+| Active | 2h08m |
 | Host-suspended | 0.0s |
 | Idle | 10m 47s |
-| Cost | $26.93 |
-| Input tokens (uncached) | 700 |
-| Total input tokens (incl. cache) | 34376939 |
-| Output tokens | 323909 |
-| Thinking tokens (main thread) | 95937 |
-| Cache read tokens | 32409534 |
-| Cache write tokens | 1966705 |
-| Cache write tokens, main thread (5m / 1h) | 0 / 1376922 |
-| Cache hit ratio | 0.9428 |
-| Requests | 342 |
-| Request latency p50 / p90 / p99 / max | 1.9s / 11.7s / 31.5s / 10m 47s |
+| Cost | $44.35 |
+| Input tokens (uncached) | 1272 |
+| Total input tokens (incl. cache) | 79810124 |
+| Output tokens | 433373 |
+| Thinking tokens (main thread) | 101541 |
+| Cache read tokens | 76743168 |
+| Cache write tokens | 3065684 |
+| Cache write tokens, main thread (5m / 1h) | 0 / 1665985 |
+| Cache hit ratio | 0.9616 |
+| Requests | 617 |
+| Request latency p50 / p90 / p99 / max | 1.7s / 8.5s / 26.8s / 10m 47s |
 | Requests over the idle threshold | 1 |
 | API retries | 0 |
-| Permission denials | 15 |
+| Permission denials | 16 |
 | Sub-agents failed / killed | 0 / 0 |
 | Slowest sub-agent | devscene:layer-implementer — Implement Task 1 (general) — 14m 08s (session 11) |
-| Rate-limit peak | seven_day 0.54 |
+| Rate-limit peak | seven_day 0.55 |
 
 Wall, Active, Host-suspended and Idle are the run's own: overlapping sessions' time counts once. The summed session wall counts each session's wall in full.
 
@@ -48,7 +48,7 @@ Wall, Active, Host-suspended and Idle are the run's own: overlapping sessions' t
 
 ## Network refusals
 
-11 of 11 sessions scanned.
+12 of 12 sessions scanned.
 
 No refused network call.
 
@@ -61,7 +61,139 @@ Lines in finished Run gates logs that carry a proxy refusal string or a plain co
 - on macOS, Seatbelt's own violation records go to the system log, not to the test output;
 - a test whose name or output quotes one of these strings is listed too.
 
-No Run gates round log was scanned.
+No possible network attempt in 2 round logs.
+
+## Gate rounds
+
+Wait is the orchestrator's wait on `run-test-suite.sh --wait <label>`, summed over every polling row whose command ends in that label; — when none matches, as for a label waited on fewer than three times in a session (no polling row is written for it) or a command cut at 160 characters.
+
+A phase's test-file total sums each file's own seconds, so it exceeds the gate's wall time when files run in parallel.
+
+### Round task_round_1 — fail
+
+| Measure | Value |
+|---|---|
+| Wait (every run of task_round_1) | 36m 44s |
+| Gate rows | 37 (complete) |
+| Test files — full | 223 files, 17492.3 s summed |
+
+| Phase | Gate | Status | Seconds |
+|---|---|---|---|
+| full | 1 | ok | 0 s |
+| full | 2a | ok | 3 s |
+| full | 2b | ok | 0 s |
+| full | 2c | ok | 1 s |
+| full | 2d | ok | 0 s |
+| full | 2e | ok | 0 s |
+| full | 3a | ok | 0 s |
+| full | 3b | ok | 3 s |
+| full | 3c | ok | 2 s |
+| full | 3d | ok | 1 s |
+| full | 3e | ok | 1 s |
+| full | 3f | ok | 1 s |
+| full | 3g | ok | 1 s |
+| full | 3h | ok | 1 s |
+| full | 3i | ok | 0 s |
+| full | 4 | ok | 2209 s |
+| full | 6a | FAIL | 2 s |
+| full | 6b | ok | 1 s |
+| full | 6c | ok | 1 s |
+| full | 6d | ok | 4 s |
+| full | 6e | ok | 0 s |
+| full | 6f | ok | 0 s |
+| full | 11 | ok | 18 s |
+| full | 13a | ok | 1 s |
+| full | 13b | ok | 0 s |
+| full | 13c | ok | 17 s |
+| full | 13d | SKIPPED | 0 s |
+| full | 13e | ok | 1 s |
+| full | 13f | ok | 0 s |
+| full | 13g | ok | 6 s |
+| full | 13h | BLOCKED | 0 s |
+| full | 13i | BLOCKED | 0 s |
+| full | 13j | BLOCKED | 0 s |
+| full | 14a | ok | 2 s |
+| full | 14c | ok | 1 s |
+| full | 14d | SKIPPED | 1 s |
+| full | 16 | ok | 2 s |
+
+#### Slowest test files — full (10 of 223)
+
+| File | Status | Seconds | Tests | Failed |
+|---|---|---|---|---|
+| test/planning-driver-control.test.mjs | pass | 1089.6 | 17 | 0 |
+| test/watcher-review-drop-payloads.test.mjs | pass | 811.1 | 21 | 0 |
+| test/watcher-remote-job.test.mjs | pass | 632.2 | 29 | 0 |
+| test/watcher-placeholder-host.test.mjs | pass | 618.9 | 27 | 0 |
+| test/watcher-remote-dispatch.test.mjs | pass | 599.7 | 17 | 0 |
+| test/remote-run.test.mjs | pass | 592.2 | 130 | 0 |
+| test/doctor.test.mjs | pass | 547.7 | 1 | 0 |
+| test/remote-control.test.mjs | pass | 538.0 | 83 | 0 |
+| test/remote-control-review.test.mjs | pass | 520.9 | 33 | 0 |
+| test/watcher-run-profile.test.mjs | pass | 483.2 | 21 | 0 |
+
+### Round task_round_2 — pass
+
+| Measure | Value |
+|---|---|
+| Wait (every run of task_round_2) | 37m 14s |
+| Gate rows | 37 (complete) |
+| Test files — full | 223 files, 17829.5 s summed |
+
+| Phase | Gate | Status | Seconds |
+|---|---|---|---|
+| focused | 6a | ok | 1 s |
+| full | 1 | ok | 0 s |
+| full | 2a | ok | 4 s |
+| full | 2b | ok | 0 s |
+| full | 2c | ok | 0 s |
+| full | 2d | ok | 0 s |
+| full | 2e | ok | 0 s |
+| full | 3a | ok | 1 s |
+| full | 3b | ok | 3 s |
+| full | 3c | ok | 2 s |
+| full | 3d | ok | 1 s |
+| full | 3e | ok | 0 s |
+| full | 3f | ok | 2 s |
+| full | 3g | ok | 0 s |
+| full | 3h | ok | 2 s |
+| full | 3i | ok | 0 s |
+| full | 4 | ok | 2248 s |
+| full | 6b | ok | 1 s |
+| full | 6c | ok | 1 s |
+| full | 6d | ok | 4 s |
+| full | 6e | ok | 0 s |
+| full | 6f | ok | 0 s |
+| full | 11 | ok | 17 s |
+| full | 13a | ok | 0 s |
+| full | 13b | ok | 1 s |
+| full | 13c | ok | 13 s |
+| full | 13d | SKIPPED | 0 s |
+| full | 13e | ok | 0 s |
+| full | 13f | ok | 1 s |
+| full | 13g | ok | 5 s |
+| full | 13h | BLOCKED | 0 s |
+| full | 13i | BLOCKED | 0 s |
+| full | 13j | BLOCKED | 1 s |
+| full | 14a | ok | 1 s |
+| full | 14c | ok | 2 s |
+| full | 14d | SKIPPED | 0 s |
+| full | 16 | ok | 2 s |
+
+#### Slowest test files — full (10 of 223)
+
+| File | Status | Seconds | Tests | Failed |
+|---|---|---|---|---|
+| test/planning-driver-control.test.mjs | pass | 1117.3 | 17 | 0 |
+| test/watcher-review-drop-payloads.test.mjs | pass | 811.6 | 21 | 0 |
+| test/watcher-remote-job.test.mjs | pass | 634.5 | 29 | 0 |
+| test/watcher-placeholder-host.test.mjs | pass | 619.6 | 27 | 0 |
+| test/remote-run.test.mjs | pass | 600.7 | 130 | 0 |
+| test/watcher-remote-dispatch.test.mjs | pass | 600.6 | 17 | 0 |
+| test/doctor.test.mjs | pass | 563.6 | 1 | 0 |
+| test/remote-control.test.mjs | pass | 549.3 | 83 | 0 |
+| test/remote-control-review.test.mjs | pass | 530.9 | 33 | 0 |
+| test/watcher-run-profile.test.mjs | pass | 483.7 | 21 | 0 |
 
 ## Session 1 — 2026-11-23T07:24:30.444Z → 2026-11-23T07:25:20.873Z
 
@@ -1120,3 +1252,144 @@ Remainder: tokens the session total holds that neither the orchestrator's reques
 | Turns | 55 |
 | Time to first token | 1.1s |
 | Rate-limit peak | seven_day 0.54 |
+
+## Session 12 — 2026-11-23T08:13:01.229Z → 2026-11-23T09:46:46.515Z
+
+Session id: `297bf334-6b65-40a8-9f02-38b9138e36a4`
+
+### Time
+
+| Wall | duration_ms | duration_api_ms | Host-suspended | Idle | Active | Sub-agents (union) | Suspend source |
+|---|---|---|---|---|---|---|---|
+| 1h33m | 1h33m | 16m 46s | 0.0s | 0.0s | 1h33m | 9m 59s | none |
+
+### Idle gaps (over 120 s)
+
+None.
+
+### Request latency
+
+| Context | Requests | p50 | p90 | p99 | Max | Over threshold |
+|---|---|---|---|---|---|---|
+| all | 275 | 1.6s | 5.7s | 16.6s | 21.5s | 0 |
+| devscene:architecture-reviewer | 26 | 2.2s | 9.0s | 21.5s | 21.5s | 0 |
+| devscene:branch-reviewer | 24 | 2.8s | 9.7s | 18.6s | 18.6s | 0 |
+| devscene:layer-implementer | 14 | 1.4s | 5.7s | 7.5s | 7.5s | 0 |
+| devscene:prompt-injection-reviewer | 1 | 1.4s | 1.4s | 1.4s | 1.4s | 0 |
+| devscene:review-plan-reviewer | 16 | 2.5s | 5.8s | 11.1s | 11.1s | 0 |
+| devscene:skeptic-reviewer | 12 | 2.8s | 9.1s | 9.6s | 9.6s | 0 |
+| devscene:statistics-plan-writer | 5 | 3.0s | 16.6s | 16.6s | 16.6s | 0 |
+| devscene:test-fix-plan-writer | 10 | 3.1s | 4.2s | 6.5s | 6.5s | 0 |
+| orchestrator | 167 | 1.4s | 2.2s | 10.4s | 12.0s | 0 |
+
+### Tool time
+
+| Tool | Context | Calls | Total | Max |
+|---|---|---|---|---|
+| Agent — sub-agent wall time | orchestrator | 10 | 9m 59s | 2m 13s |
+| Bash | devscene:architecture-reviewer | 21 | 6.1s | 0.6s |
+| Bash | devscene:branch-reviewer | 21 | 7.4s | 1.1s |
+| Bash | devscene:layer-implementer | 18 | 17.3s | 6.9s |
+| Bash | devscene:review-plan-reviewer | 12 | 3.8s | 0.8s |
+| Bash | devscene:skeptic-reviewer | 14 | 3.7s | 0.4s |
+| Bash | devscene:statistics-plan-writer | 6 | 1.4s | 0.2s |
+| Bash | devscene:test-fix-plan-writer | 11 | 2.6s | 0.3s |
+| Bash | orchestrator | 222 | 1h17m | 1m 03s |
+| Edit | devscene:layer-implementer | 2 | 0.0s | 0.0s |
+| Edit | orchestrator | 13 | 0.5s | 0.0s |
+| Read | devscene:architecture-reviewer | 21 | 1.5s | 0.3s |
+| Read | devscene:branch-reviewer | 13 | 1.3s | 0.3s |
+| Read | devscene:layer-implementer | 5 | 0.4s | 0.2s |
+| Read | devscene:prompt-injection-reviewer | 3 | 0.0s | 0.0s |
+| Read | devscene:review-plan-reviewer | 12 | 0.3s | 0.2s |
+| Read | devscene:skeptic-reviewer | 4 | 0.0s | 0.0s |
+| Read | devscene:statistics-plan-writer | 4 | 0.0s | 0.0s |
+| Read | devscene:test-fix-plan-writer | 4 | 0.0s | 0.0s |
+| Read | orchestrator | 17 | 2.4s | 0.3s |
+| Skill | orchestrator | 1 | 0.0s | 0.0s |
+| Write | devscene:branch-reviewer | 1 | 0.0s | 0.0s |
+| Write | devscene:statistics-plan-writer | 1 | 0.0s | 0.0s |
+| Write | devscene:test-fix-plan-writer | 2 | 0.0s | 0.0s |
+| Write | orchestrator | 2 | 0.0s | 0.0s |
+
+`Agent` / `Task` rows are sub-agent wall time: each row sums every dispatch's own wall time, which `### Sub-agents` breaks down per dispatch, so dispatches sent together count once each and the sum can exceed the time the orchestrator waited, which is `### Time`'s `Sub-agents (union)`. They are not time spent in a tool.
+
+#### Slowest calls (sub-agent dispatches excluded)
+
+| Tool | Context | Started | Duration | Result bytes | Error | Permission denied |
+|---|---|---|---|---|---|---|
+| Bash | orchestrator | 2026-11-23T09:07:16.326Z | 1m 03s | 19 | true | false |
+| Bash | orchestrator | 2026-11-23T09:09:28.863Z | 1m 03s | 19 | true | false |
+| Bash | orchestrator | 2026-11-23T08:36:59.138Z | 1m 03s | 19 | true | false |
+| Bash | orchestrator | 2026-11-23T08:26:17.519Z | 1m 03s | 19 | true | false |
+| Bash | orchestrator | 2026-11-23T08:44:25.525Z | 1m 03s | 19 | true | false |
+| Bash | orchestrator | 2026-11-23T08:31:40.477Z | 1m 02s | 19 | true | false |
+| Bash | orchestrator | 2026-11-23T08:27:23.106Z | 1m 02s | 19 | true | false |
+| Bash | orchestrator | 2026-11-23T09:13:46.286Z | 1m 02s | 19 | true | false |
+| Bash | orchestrator | 2026-11-23T09:08:22.892Z | 1m 02s | 19 | true | false |
+| Bash | orchestrator | 2026-11-23T08:32:45.526Z | 1m 02s | 19 | true | false |
+
+#### Polling loops
+
+| Context | Command | Count | Total |
+|---|---|---|---|
+| orchestrator | bash scripts/run-test-suite.sh --wait task_round_1 | 36 | 36m 44s |
+| orchestrator | bash scripts/run-test-suite.sh --wait task_round_2 | 37 | 37m 14s |
+| orchestrator | ls harness-runs/STOP harness-runs/PAUSE 2>/dev/null; cat harness-runs/.dispatch_counter 2>/dev/null \|\| echo 0 | 6 | 1.6s |
+| orchestrator | ls harness-runs/STOP harness-runs/PAUSE 2>/dev/null; echo checked | 74 | 1m 02s |
+
+### Sub-agents
+
+| Type | Description | Duration | Requests | Output tokens | Input tokens (uncached) | Total input tokens (incl. cache) | Cache read tokens | Cache write tokens | Wall share |
+|---|---|---|---|---|---|---|---|---|---|
+| devscene:prompt-injection-reviewer | Screen clarification answer | 4.6s | 1 | 395 | 4 | 30524 | 11511 | 19009 | 0.0008 |
+| devscene:layer-implementer | Implement Task 5 (general) | 40.0s | 7 | 3520 | 16 | 371597 | 330245 | 41336 | 0.0071 |
+| devscene:architecture-reviewer | A2 architecture review of branch | 1m 52s | 21 | 11239 | 44 | 2378343 | 2214318 | 163981 | 0.0199 |
+| devscene:branch-reviewer | Phase B end-of-branch review | 2m 13s | 24 | 13503 | 50 | 3194226 | 3014205 | 179971 | 0.0238 |
+| devscene:review-plan-reviewer | B.2 meta-review of code review | 1m 13s | 16 | 7234 | 34 | 1332509 | 1217633 | 114842 | 0.013 |
+| devscene:skeptic-reviewer | C2 adversarial skeptic review | 1m 14s | 12 | 7766 | 26 | 816260 | 735866 | 80368 | 0.0133 |
+| devscene:test-fix-plan-writer | G.2 write test fix plan round 1 | 55.1s | 10 | 6142 | 22 | 378912 | 337892 | 40998 | 0.0098 |
+| devscene:architecture-reviewer | G.2 arch gate on test fix plan | 35.1s | 5 | 3750 | 12 | 274025 | 200077 | 73936 | 0.0062 |
+| devscene:layer-implementer | G.4 fix Finding 1 (general) | 35.3s | 7 | 2977 | 16 | 358003 | 307897 | 50090 | 0.0063 |
+| devscene:statistics-plan-writer | D.1 write branch statistics | 35.4s | 5 | 4376 | 12 | 223894 | 178497 | 45385 | 0.0063 |
+
+Wall share is each dispatch's own duration over the session's wall, so overlapping dispatches' wall shares can sum past 1.
+
+### Cost and tokens
+
+| Measure | Value |
+|---|---|
+| Cost | $17.42 |
+| Cost — claude-opus-5-5 | $17.42 |
+| Input tokens (uncached) | 572 |
+| Total input tokens (incl. cache) | 45433185 |
+| Output tokens | 109464 |
+| Thinking tokens (main thread) | 5604 |
+| Cache read tokens | 44333634 |
+| Cache write tokens | 1098979 |
+| Cache write tokens, main thread (5m / 1h) | 0 / 289063 |
+| Cache hit ratio | 0.9758 |
+| Token source | result.modelUsage |
+
+#### Token attribution
+
+| Context | Input tokens (uncached) | Total input tokens (incl. cache) | Output tokens | Cache read tokens | Cache write tokens |
+|---|---|---|---|---|---|
+| orchestrator | 336 | 36074892 | 3582 | 35785493 | 289063 |
+| sub-agents | 236 | 9358293 | 60902 | 8548141 | 809916 |
+| remainder | 0 | 0 | 44980 | 0 | 0 |
+
+Remainder: tokens the session total holds that neither the orchestrator's requests nor the dispatches' transcripts account for.
+
+### Reliability
+
+| Measure | Value |
+|---|---|
+| API retries | 0 |
+| Permission denials | 1 |
+| Sub-agents spawned / failed / killed | 10 / 0 / 0 |
+| terminal_reason | completed |
+| stop_reason | end_turn |
+| Turns | 267 |
+| Time to first token | 1.2s |
+| Rate-limit peak | seven_day 0.55 |
