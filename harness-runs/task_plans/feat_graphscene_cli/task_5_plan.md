@@ -21,6 +21,9 @@
 
 **Verification:**
 
-- Re-run the story index's `## Scope register` derivation entries A and B. Every hit they print appears as a register row, and the two rows this task owns (the **Gate 13** sentence and the `GraphScene` roadmap row) now read as described above.
+- Check only the two sites this task owns, from the repository root:
+  - `git grep -n -E '^\| GraphScene \|' -- ROADMAP.md` prints the `GraphScene` row, and that row's *Shipped:* list now ends with the command-line clause from the first Work bullet, its *Left:* list and status cell unchanged.
+  - `git grep -n -E 'no console script' -- docs/development.md` prints only lines inside the **Gate 13** paragraph. The `graphscene` sentence among them now describes the **row** and carries the `uv run --frozen --no-sync --project graphscene graphscene …` clause; the `devscene-flow-host` sentence, if it matches, is unchanged.
+  - Hits of the same phrases elsewhere in the tree are out of this task's scope and are not checked here. In particular, `graphscene/README.md` → `## The command line`, which Task 4 adds, may say the wrapper row names no console script; that is expected and is not this task's to edit.
 - `docs/development.md`'s refusal facts still match `scripts/python-service.sh` → `package_row`, whose `graphscene` row still sets `row_console_script=""`.
 - The roadmap clause's link resolves to the heading Task 4 added, spelled byte-for-byte.
