@@ -56,3 +56,5 @@
 
 - `tests/test_re_entry.py` passes, with each expected set's gate list and round number written from the `STATE` paragraph's rules, never from the walker's output.
 - After a lost-walk `start_walk`, the counter is 0 while the round number carries on from the files.
+
+**Deviations from plan:** Step 2 put only `round_resume` under `RefusalStore.lock()`; `start_walk` holds that lock through steps 2–4 (`walker.start` and `clear()`), so a concurrent `record_outcome` cannot write a refusal between the start and the clear — the same lock order `record_outcome` uses (refusal lock before the walk's). The refusal cases also assert that a `Refused` start (entry `plan_review`, not an entry of the flow) keeps the refusal file, the step-4 clause.

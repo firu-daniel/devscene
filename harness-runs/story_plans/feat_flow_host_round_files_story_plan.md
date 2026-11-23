@@ -53,7 +53,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_host_round_files/t
 5. [x] **Task 5** — Keep a round's reviewer-file refusals in the host's own file beside the walk _(layer: devscene-flow-host)_ _(points: 15)_
 6. [x] **Task 6** — Build a round's `RoundResume` from the files on disk _(layer: devscene-flow-host)_ _(points: 20)_
 7. [x] **Task 7** — Record a gate's outcome under the reviewer-file rules _(layer: devscene-flow-host)_ _(points: 20)_
-8. [ ] **Task 8** — Start a walk from the round files and re-read it without its refused gates _(layer: devscene-flow-host)_ _(points: 15)_
+8. [x] **Task 8** — Start a walk from the round files and re-read it without its refused gates _(layer: devscene-flow-host)_ _(points: 15)_
 9. [ ] **Task 9** — Describe the round and reviewer files in the package README _(layer: devscene-flow-host)_ _(points: 8)_
 10. [ ] **Task 10** — List the host's new suites under gate 13 and its round files in the roadmap _(layer: general)_ _(points: 8)_
 
