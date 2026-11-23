@@ -93,3 +93,8 @@ Use only the standard library besides (`argparse`, `json`, `pathlib`, `sys`, `ty
 - `cli.py` contains no `print(` without an explicit `file=` naming an injected stream, and no direct `sys.stdout` / `sys.stderr` write outside the `None`-default resolution in `main`.
 - `cli.py`'s imports are the standard library plus the defining modules named in this file's "Where this module may reach", and it re-implements no wire form. Its only use of the JSON forms is calling `check_document`, `step_document` and `resume_from_json`: it builds no `"violations"` object, contains no `partition(": ")` / `split(": "` of a reason, and encodes no action.
 - `graphscene/uv.lock` is unchanged in the diff.
+
+- **Deviations from plan:**
+  - `cli.py` imports four more names than the "Where this module may reach" list gives, each from its defining `model` module, which `facade` may import (`.claude/context/graphscene.md` → `## The internal layers`): `Refused` and `Step` from `graphscene.model.walk_actions` (the exit-3 test and `_walk`'s return type), `RoundResume` from `graphscene.model.walk_state` and `FlowGraph` from `graphscene.model.flow_graph` (annotations). No wire form is built from them.
+  - `resume_from_json`'s `ValueError` carries a path inside the document, not the file's path. To meet "a malformed `--resume` file → exit 4 naming its path", `cli.py` prefixes it with the file path as `<file>: <error>`, the way `FileStateStore.read` prefixes the state path. A non-UTF-8 resume file (`UnicodeDecodeError`, also a `ValueError`) is reported the same way.
+  - The `--help` case asserts exit 0 and usage text on stdout. Argparse's help text is not compared verbatim.
