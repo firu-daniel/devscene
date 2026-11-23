@@ -78,7 +78,13 @@ Every command loads the graph first and prints one JSON document on stdout as on
 
 `--help`, on `graphscene` or on any command, is the one exception to the one-JSON-document rule: it prints the help text on stdout and exits `0`.
 
-`bash scripts/python-service.sh provision` installs the console script into the package environment. Once it has, run the command from the repository root:
+Install the console script into the package environment first, outside any sandbox (this provisions every package's environment):
+
+```
+bash scripts/python-service.sh provision
+```
+
+Then run the command from the repository root:
 
 ```
 uv run --frozen --no-sync --project graphscene graphscene check graphscene/tests/fixtures/flow_graph/valid_generic.json
