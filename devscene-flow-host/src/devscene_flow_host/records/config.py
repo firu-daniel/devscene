@@ -55,32 +55,27 @@ def read_config(repo_root: Path) -> HarnessConfig:
 
 
 def _state_dir(document: dict[str, object], path: Path) -> str:
-    if "stateDir" not in document:
+    value = document.get("stateDir")
+    if value is None:
         return DEFAULT_STATE_DIR
-    value = document["stateDir"]
     if not isinstance(value, str):
         raise RecordError(f"{path}: stateDir is not a string")
     return value.rstrip("/") or DEFAULT_STATE_DIR
 
 
 def _phases(document: dict[str, object]) -> Mapping[str, bool | None]:
-    resolved: dict[str, bool | None]
-    if "phases" not in document:
-        # The schema defaults every phase to off, so absent is off, never unresolvable.
-        resolved = {phase: False for phase in PHASES}
-    else:
-        value = document["phases"]
-        if isinstance(value, dict):
-            resolved = {phase: _phase(value, phase) for phase in PHASES}
-        else:
-            resolved = {phase: None for phase in PHASES}
-    return MappingProxyType(resolved)
+    # `hr_config_load` reads a `null` value as not set and a phase under a `phases` that is not an
+    # object as `null`, and `hr_phase_enabled` reads not set as off; the schema defaults every
+    # phase to off.
+    value = document.get("phases")
+    phases: dict[str, object] = value if isinstance(value, dict) else {}
+    return MappingProxyType({phase: _phase(phases, phase) for phase in PHASES})
 
 
 def _phase(phases: dict[str, object], phase: str) -> bool | None:
-    if phase not in phases:
+    value = phases.get(phase)
+    if value is None:
         return False
-    value = phases[phase]
     if isinstance(value, bool):
         return value
     return None

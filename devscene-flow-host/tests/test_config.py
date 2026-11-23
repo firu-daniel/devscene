@@ -63,9 +63,19 @@ def test_a_non_boolean_phase_is_unresolvable(tmp_path: Path) -> None:
     assert dict(config.phases) == {"parity": False, "qa": None, "docs": False}
 
 
-def test_phases_that_are_not_an_object_are_all_unresolvable(tmp_path: Path) -> None:
-    config = read_config(_plant(tmp_path, '{"phases": []}'))
-    assert dict(config.phases) == {"parity": None, "qa": None, "docs": None}
+@pytest.mark.parametrize("text", ['{"phases": []}', '{"phases": null}', '{"phases": "x"}'])
+def test_phases_that_are_not_an_object_are_all_off(tmp_path: Path, text: str) -> None:
+    config = read_config(_plant(tmp_path, text))
+    assert dict(config.phases) == {"parity": False, "qa": False, "docs": False}
+
+
+def test_a_null_phase_is_off(tmp_path: Path) -> None:
+    config = read_config(_plant(tmp_path, '{"phases": {"qa": null}}'))
+    assert dict(config.phases) == {"parity": False, "qa": False, "docs": False}
+
+
+def test_a_null_state_dir_takes_the_default(tmp_path: Path) -> None:
+    assert read_config(_plant(tmp_path, '{"stateDir": null}')).state_dir == "devscene"
 
 
 def test_a_missing_file_is_a_record_error(tmp_path: Path) -> None:
