@@ -24,3 +24,7 @@
 
   It passes: read the `# pass` / `# fail` counts and the exit status.
 - `git grep -n -i "devscene-runtime" -- cli/test/python-service.test.mjs` prints nothing.
+
+**Deviations from plan:**
+
+- Evidence downgrade, the unit's `commands.typecheck` run: `bash scripts/typecheck.sh` ended `PASS: typecheck`, but its own output reported two steps as not run — `python-service: check: devscene-flow-host lint BLOCKED` and `python-service: check: devscene-flow-host typecheck BLOCKED`, each preceded by `python-service: not provisioned: no synced environment at <repo_root>/devscene-flow-host/.venv`. This unit changes no Python file; its change (`cli/test/python-service.test.mjs`) is covered by the TypeScript build and the single-file run, which passed (`# pass 25`, `# fail 0`). The `devscene-flow-host` lint and typecheck steps are verified by the Run gates phase's whole-tree `commands.typecheck` run in a provisioned run copy.
