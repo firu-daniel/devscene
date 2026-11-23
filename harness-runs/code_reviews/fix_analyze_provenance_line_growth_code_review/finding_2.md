@@ -21,3 +21,6 @@ Confirmed by reading `plugin/commands/analyze.md` → (4b) and `plugin/agents/co
 2. In `cli/test/conventions-provenance-line.test.mjs`, the test `'analyze.md (4b) points at the bound rather than copying it'`, add `"adds nothing to that section's provenance note"` to the `present` array after `'whose per-section counterpart is the provenance note above'`. The new phrase sits inside the (4b)→(4c) slice the test already reads, and it contains none of the phrases in the test's `absent` array.
 
 The only test this fix runs is the suite it edits: `npm test --workspace cli -- test/conventions-provenance-line.test.mjs`, from the repository root, as one plain foreground command. The full suite runs later, in the Run gates phase.
+
+**Deviations from plan:**
+- `cli` layer (fix item 2) ran `npm test --workspace cli -- test/conventions-provenance-line.test.mjs` before the `plugin` layer's fix item 1 had landed: `# tests 4`, `# pass 3`, `# fail 1`, the failure being `plugin/commands/analyze.md → (4b): missing "adds nothing to that section's provenance note"`. That is the phrase fix item 1 adds, and the tag orders the layers `cli, plugin`. The `plugin` layer's run of this same file is the after-result.

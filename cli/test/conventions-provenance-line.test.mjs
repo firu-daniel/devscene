@@ -110,6 +110,7 @@ test('analyze.md (4b) points at the bound rather than copying it', () => {
       "the note replaces that section's previous note",
       "bounded as (4a)'s provenance line is",
       'whose per-section counterpart is the provenance note above',
+      "adds nothing to that section's provenance note",
     ],
     [PASS_ONLY, AREA_LEVEL, NO_PER_FILE, NO_CARRY, NO_CARRY_ANALYZE],
   );

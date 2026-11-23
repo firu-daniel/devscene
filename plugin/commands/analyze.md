@@ -290,15 +290,16 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    either section, **`role: context`** when it wrote neither. The check subset that applies is the reviewer's
    own (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-reviewer.md` → `## The corpus pass — what to verify`). A
    corpus finding naming this `document_path` is, on **`fixable`**, **applied by this session and never
-   dispatched**: no writer may touch this file (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` →
-   `## Scope`). **It is applied only inside a section this run itself wrote or merged**; a finding landing in a
-   section this run classified **`skip`**, or anywhere else in the file — the generated routing table, the
-   ledger-path block, the agent-authoring section, the `## Where a change request runs` section — is **not
-   applied and is carried to step 6 as outstanding**, naming the finding and whether the line is the adopter's
-   own skip answer or `init`'s output. On **`context`** it is applied by nobody and carried to step 6 as
-   outstanding. **A corpus finding this session declines on the merits** — not one the fence above bars it from
-   applying — is reported as this target's **conflict line in step 6, from this session's own record**.
-   Recording it is a **duty, not a permission**, exactly as it is for the writer.
+   dispatched**, and adds nothing to that section's provenance note, as a writer's fix adds nothing to its line:
+   no writer may touch this file (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` → `## Scope`). **It is
+   applied only inside a section this run itself wrote or merged**; a finding landing in a section this run
+   classified **`skip`**, or anywhere else in the file — the generated routing table, the ledger-path block, the
+   agent-authoring section, the `## Where a change request runs` section — is **not applied and is carried to
+   step 6 as outstanding**, naming the finding and whether the line is the adopter's own skip answer or `init`'s
+   output. On **`context`** it is applied by nobody and carried to step 6 as outstanding. **A corpus finding this
+   session declines on the merits** — not one the fence above bars it from applying — is reported as this
+   target's **conflict line in step 6, from this session's own record**. Recording it is a **duty, not a
+   permission**, exactly as it is for the writer.
 
    The **setup-pending banner is not a classification input** — it records that setup offered the analysis,
    not which sections are filled. Its absence (an unforced `devscene init` re-run over a

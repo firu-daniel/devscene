@@ -31,7 +31,7 @@
 
 1. [x] **Finding 3** — Drop the "git history records them" rationale from the writer's provenance bullet _(layer: plugin)_
 2. [x] **Finding 1** — State check (1)'s provenance-line exception everywhere the corpus pass says check (1) does not run _(layer: plugin)_
-3. [ ] **Finding 2** — Keep the session's corpus fixes to `.claude/CLAUDE.md` out of the section's provenance note, and hold the phrase in the suite _(layer: cli, plugin)_
+3. [x] **Finding 2** — Keep the session's corpus fixes to `.claude/CLAUDE.md` out of the section's provenance note, and hold the phrase in the suite _(layer: cli, plugin)_
 
 ---
 
