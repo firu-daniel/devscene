@@ -42,3 +42,24 @@ select = ["E", "F", "I", "B", "UP"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-p no:cacheprovider -rs"
+
+[tool.importlinter]
+root_package = "devscene_flow_host"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+id = "devscene-flow-host-layers"
+name = "Layers import downward only: commands over host over records"
+type = "layers"
+layers = [
+    "devscene_flow_host.commands",
+    "devscene_flow_host.host",
+    "devscene_flow_host.records",
+]
+
+[[tool.importlinter.contracts]]
+id = "devscene-flow-host-graphscene-outside-records"
+name = "graphscene is never imported by records"
+type = "forbidden"
+source_modules = ["devscene_flow_host.records"]
+forbidden_modules = ["graphscene"]

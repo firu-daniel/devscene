@@ -9,6 +9,12 @@ The rule: this package imports only the standard library, itself and its declare
 dependencies. It reaches `graphscene` through its public surface only — `import graphscene` or
 `from graphscene import <name in graphscene.__all__>`, never a submodule such as
 `graphscene.engine` — and GraphScene never imports it (`tests/test_boundary.py`).
+
+The package is three layers, `commands` over `host` over `records`, and an import only ever
+points downward; only `host` and `commands` import `graphscene`. The contracts in
+`pyproject.toml` hold them (`tests/test_layers.py`). The package root exports nothing, because
+adopters never import this package, and no module inside the package imports from the package
+root: each imports the defining module of what it needs.
 """
 
 __all__: list[str] = []
