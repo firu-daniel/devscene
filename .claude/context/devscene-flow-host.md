@@ -7,7 +7,7 @@
 ## What this layer is, and what it is not
 
 - **It is the harness's GraphScene host, imported as `devscene_flow_host`.** What belongs in it, what goes to its own `devscene`-prefixed package and what goes to `graphscene/` instead is owned by `.claude/context/conventions.md` → `## The layers` and `### Where a new responsibility goes` (`devscene-flow-host/README.md` → `## What it is`; `devscene-flow-host/src/devscene_flow_host/__init__.py` module docstring). This layer's consequence: a change that is useful without DevScene, or a DevScene Python integration that does not feed GraphScene, has drifted out of this layer.
-- **It stays in this repository and is never shipped to an adopter**, a rule `.claude/context/conventions.md` → `## The layers` owns together with what it bars in `cli/templates/` and `plugin/`. (`devscene-flow-host/README.md` → `## What it is`).
+- **It stays in this repository and is never shipped to an adopter**, a rule `.claude/context/conventions.md` → `## The layers` owns together with what it bars in `cli/templates/` and `plugin/` (`devscene-flow-host/README.md` → `## What it is`).
 - **Source lives under `devscene-flow-host/src/devscene_flow_host/`, tests under `devscene-flow-host/tests/`.** The wheel packages `src/devscene_flow_host` and nothing else (`devscene-flow-host/pyproject.toml` → `[tool.hatch.build.targets.wheel]`). File naming follows the always-loaded file's **Python source module** and **Python test suite** rows.
 
 ## What it may depend on
