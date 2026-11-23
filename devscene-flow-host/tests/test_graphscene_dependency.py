@@ -37,7 +37,7 @@ _PYPROJECT = _ROOT / "pyproject.toml"
 _LOCK = _ROOT / "uv.lock"
 _GRAPHSCENE_PYPROJECT = _CHECKOUT / "graphscene" / "pyproject.toml"
 
-_RELOCK = "bash scripts/python-service.sh --package devscene-runtime lock"
+_RELOCK = "bash scripts/python-service.sh --package devscene-flow-host lock"
 
 
 def test_graphscene_imports_from_this_checkouts_sibling() -> None:

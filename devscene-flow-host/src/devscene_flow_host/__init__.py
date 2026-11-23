@@ -1,6 +1,9 @@
-"""DevScene's own Python runtime.
+"""The harness's GraphScene host.
 
-It holds only DevScene's meanings; anything useful without DevScene belongs in GraphScene.
+It holds only the code that feeds GraphScene the harness's configuration, records, predicates,
+executor configuration and hooks, and the commands over it; anything useful without DevScene
+belongs in GraphScene; another DevScene Python integration gets its own `devscene`-prefixed
+package.
 
 The rule: this package imports only the standard library, itself and its declared runtime
 dependencies. It reaches `graphscene` through its public surface only — `import graphscene` or

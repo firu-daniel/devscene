@@ -9,7 +9,7 @@
 # root, with the console script `run` invokes, the compose project prefix `container-test` uses and
 # the extra `sync --with-models` installs. Its rows are `docs-retrieval-service`
 # (`devscene-docs-retrieval`, `devscene-docs-retrieval-test`, `models`), `graphscene` (no console
-# script, no compose project, no `models` extra) and `devscene-runtime` (no console script, no
+# script, no compose project, no `models` extra) and `devscene-flow-host` (no console script, no
 # compose project, no `models` extra; it depends on `graphscene` through an editable path source, so
 # its environment reads `graphscene/src/` in the same checkout).
 #
@@ -84,7 +84,7 @@
 #
 # WHERE IT WRITES. `.venv`, `.ruff_cache` and `.mypy_cache` sit under the package directory: per
 # checkout by construction, ignored by the root `.gitignore`, and skipped by gate 6a. pytest writes
-# no `.pytest_cache` for `docs-retrieval-service`, `graphscene` or `devscene-runtime` (each one's
+# no `.pytest_cache` for `docs-retrieval-service`, `graphscene` or `devscene-flow-host` (each one's
 # `pyproject.toml` `addopts` carries `-p no:cacheprovider`); a row whose package leaves it on gets
 # one there, covered the same way.
 # The legs' `--no-cache` sends `uv`'s own writes to a temporary directory under $TMPDIR. Only `lock`,
@@ -101,7 +101,7 @@
 # Deliberately no `-e`: each failure is mapped onto the exit contract above.
 set -uo pipefail
 
-PACKAGES="docs-retrieval-service graphscene devscene-runtime"
+PACKAGES="docs-retrieval-service graphscene devscene-flow-host"
 DEFAULT_PACKAGE="docs-retrieval-service"
 
 # Sets the row's fields; returns 1 for a directory that is not a row. An empty field means the row
@@ -118,7 +118,7 @@ package_row() {
       row_compose_prefix=""
       row_models_extra=""
       ;;
-    devscene-runtime)
+    devscene-flow-host)
       row_console_script=""
       row_compose_prefix=""
       row_models_extra=""

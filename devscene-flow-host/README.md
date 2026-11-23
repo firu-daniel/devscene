@@ -1,10 +1,10 @@
-# devscene-runtime
+# devscene-flow-host
 
 **Who reads this:** a contributor changing this package. It owns what the package is, what it may depend on, how its lock follows GraphScene's, and how its toolchain is run here.
 
 ## What it is
 
-`devscene-runtime` is DevScene's own Python runtime, imported as `devscene_runtime`. It holds only DevScene's meanings, and no behaviour yet. Anything useful without DevScene goes in GraphScene (`graphscene/`), not here.
+`devscene-flow-host` is the harness's GraphScene host, imported as `devscene_flow_host`. It holds only the code that feeds GraphScene the harness's configuration, records, predicates, executor configuration and hooks, and the commands over it, and no behaviour yet. Any other DevScene Python integration gets its own `devscene`-prefixed package rather than a place here. Anything useful without DevScene goes in GraphScene (`graphscene/`), not here.
 
 It stays in this repository: it is not part of the npm package (`cli/package.json` → `files`), and adopters never import it.
 
@@ -20,7 +20,7 @@ It stays in this repository: it is not part of the npm package (`cli/package.jso
 This package's `uv.lock` pins GraphScene's own runtime dependencies as resolved through the path source. A change to `graphscene/pyproject.toml` → `[project] dependencies` re-locks this package too:
 
 ```
-bash scripts/python-service.sh --package devscene-runtime lock
+bash scripts/python-service.sh --package devscene-flow-host lock
 ```
 
 `tests/test_graphscene_dependency.py` fails until it is done.
@@ -32,25 +32,25 @@ Every command goes through `scripts/python-service.sh`, run from the repository 
 Lint:
 
 ```
-bash scripts/python-service.sh --package devscene-runtime lint
+bash scripts/python-service.sh --package devscene-flow-host lint
 ```
 
 Typecheck:
 
 ```
-bash scripts/python-service.sh --package devscene-runtime typecheck
+bash scripts/python-service.sh --package devscene-flow-host typecheck
 ```
 
 Test:
 
 ```
-bash scripts/python-service.sh --package devscene-runtime test
+bash scripts/python-service.sh --package devscene-flow-host test
 ```
 
-`test` forwards paths to `pytest`, relative to `devscene-runtime/`:
+`test` forwards paths to `pytest`, relative to `devscene-flow-host/`:
 
 ```
-bash scripts/python-service.sh --package devscene-runtime test tests/test_boundary.py
+bash scripts/python-service.sh --package devscene-flow-host test tests/test_boundary.py
 ```
 
 Provision every package's environment, outside any sandbox:

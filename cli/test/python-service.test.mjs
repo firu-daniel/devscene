@@ -42,7 +42,7 @@ import { runBash, runGit, WORKSPACE_ROOT } from './helpers/fixture.mjs';
 const SCRIPT = join(WORKSPACE_ROOT, 'scripts', 'python-service.sh');
 const PACKAGE = 'docs-retrieval-service';
 const LIBRARY = 'graphscene';
-const RUNTIME = 'devscene-runtime';
+const RUNTIME = 'devscene-flow-host';
 /** The table's rows, in table order. */
 const ROWS = [PACKAGE, LIBRARY, RUNTIME];
 const CONSOLE_SCRIPT = 'devscene-docs-retrieval';
@@ -370,7 +370,7 @@ test('provision syncs the rows in table order, each in its own directory, and re
     ok.stdout,
     'python-service: provisioned docs-retrieval-service\n' +
       'python-service: provisioned graphscene\n' +
-      'python-service: provisioned devscene-runtime\n',
+      'python-service: provisioned devscene-flow-host\n',
   );
   const calls = await fixture.takeCalls();
   assert.equal(calls.length, ROWS.length, 'provision: one sync per row');

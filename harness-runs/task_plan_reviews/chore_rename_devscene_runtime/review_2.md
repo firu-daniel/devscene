@@ -1,0 +1,12 @@
+# Task plan review — round 2
+
+verdict: PASS
+review_mode: converging
+
+## Should Fix
+1. **Story index (`chore_rename_devscene_runtime_story_plan.md`), `## Scope register` row 5: the disposition names an owning task that changes nothing.** Row 5 (`.github/workflows/supply-chain.yml`) is `change`, with the owner `Task 5`. But `task_5_plan.md` → `### Targets` reads "None", and its text says *"This task edits no file. That includes `.github/workflows/supply-chain.yml`."* Under the register's two dispositions (`change` names the task that changes the site; `no-change` states a reason), this site is a `no-change` for the run. The reason would be that the maintainer makes the edit at Task 5's park (manual step 1), Task 5 checks it, and no run-landed commit may change the file. No implementer acts on the register cell, so no failure sentence completes. Still, the row now says a task changes a file that no task targets.
+
+2. **Story index, `Manual setup required:` step 1: the workflow edit locates the step wrongly.** The step says *"change the third step's `working-directory: devscene-runtime`"*. In `.github/workflows/supply-chain.yml` → `uv-audit`, the steps are `actions/checkout`, `astral-sh/setup-uv`, then `working-directory: docs-retrieval-service`, `graphscene` and `devscene-runtime`. The `devscene-runtime` step is the **fifth** step, the third of the `working-directory` steps. The quoted literal appears only once in the file, so a maintainer still finds the right line. Task 5's blocker line, which spells the edit by its literal alone, is correct. Say "the last `working-directory` step" or drop the ordinal.
+
+## Incidental findings (not gating)
+- Verified while checking the revised park route, for the end-of-branch reviewers. The maintainer's workflow commit in the run copy does not trip the watcher's protected-surface check on resume. `cli/templates/scripts/lib/harness-run-lib.sh` → `hr_run_protected_rel_paths` lists only the githooks directory, `.mcp.json`, `.claude/settings*.json` and the docs-search scripts, not `.github/workflows/`. The run copy's `remote "origin"` carries `fetch = +refs/heads/*:refs/remotes/origin/*`, so manual step 2's explicit-refspec push does move the copy's `origin/<branch>`, which Task 5's **Push check** reads. That check cannot see whether the maintainer did the main checkout's fetch. The plan states this as a residual (`Top risks:`, fourth risk), and both the blocker line and manual step 2 name the fetch.

@@ -1,10 +1,10 @@
-"""The rule this file exists to enforce: the package at `src/devscene_runtime/` imports only the
+"""The rule this file exists to enforce: the package at `src/devscene_flow_host/` imports only the
 standard library, itself and its declared runtime dependencies; it reaches `graphscene` through
 its public surface only (`import graphscene`, `from graphscene import <name>` with the name in
 `graphscene.__all__`, never a submodule such as `graphscene.engine`); and GraphScene never
 imports it, which `graphscene/tests/test_boundary.py` enforces from the other side.
 
-`scan` parses every module under `src/devscene_runtime/` with `ast` and, for every `import`,
+`scan` parses every module under `src/devscene_flow_host/` with `ast` and, for every `import`,
 absolute `from ... import` and call to `importlib.import_module`, `import_module` or `__import__`
 with an absolute string-constant module name (a relative one, with a leading `.` or a non-zero
 constant `level`, is skipped), flags (a) a top-level name outside the allowed set; (b) a
@@ -30,7 +30,7 @@ import graphscene
 from requirement_names import dependency_name
 
 _ROOT = Path(__file__).resolve().parents[1]
-_PACKAGE_DIR = _ROOT / "src" / "devscene_runtime"
+_PACKAGE_DIR = _ROOT / "src" / "devscene_flow_host"
 _PYPROJECT = _ROOT / "pyproject.toml"
 
 _GRAPHSCENE = "graphscene"
@@ -39,7 +39,7 @@ _GRAPHSCENE = "graphscene"
 # arrives, keyed by that normalised name.
 _IMPORT_NAMES: dict[str, str] = {}
 
-_STDLIB_AND_SELF = frozenset(sys.stdlib_module_names) | {"devscene_runtime"}
+_STDLIB_AND_SELF = frozenset(sys.stdlib_module_names) | {"devscene_flow_host"}
 
 _PLANTED_ALLOWED = _STDLIB_AND_SELF | {_GRAPHSCENE}
 _PLANTED_PUBLIC = frozenset({"Walker"})
