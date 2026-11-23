@@ -20,7 +20,7 @@
     "commandFamily": "npm",
     "review": {
       "verdict": "applied",
-      "rationale": "Read devscene-runtime/pyproject.toml, devscene-runtime/README.md and scripts/python-service.sh PACKAGES; the devscene-runtime Python package added in #454 fell to the general catch-all with no conventions document, so it was given its own layer and conventions document beside cli, plugin, docs-retrieval, graphscene and the retained general catch-all at path .",
+      "rationale": "Read devscene-flow-host/pyproject.toml, devscene-flow-host/README.md, scripts/python-service.sh PACKAGES and devscene.config.json treeGuards; #457 renamed devscene-runtime/ to devscene-flow-host/, leaving the devscene-runtime layer pointing at a missing directory, so that row was renamed to devscene-flow-host (name, path and conventions document) beside cli, plugin, docs-retrieval, graphscene and the retained general catch-all at path .",
       "at": "2026-11-23"
     }
   },
@@ -46,9 +46,9 @@
       "conventions": ".claude/context/graphscene.md"
     },
     {
-      "name": "devscene-runtime",
-      "path": "devscene-runtime",
-      "conventions": ".claude/context/devscene-runtime.md"
+      "name": "devscene-flow-host",
+      "path": "devscene-flow-host",
+      "conventions": ".claude/context/devscene-flow-host.md"
     },
     {
       "name": "general",
