@@ -12,8 +12,9 @@ It stays in this repository: it is not part of the npm package (`cli/package.jso
 
 - **The package imports only the standard library, itself and its declared runtime dependencies.** It reaches `graphscene` through its public surface only — `import graphscene` or `from graphscene import <name in graphscene.__all__>`, never a submodule such as `graphscene.engine` — and GraphScene never imports it.
 - **`graphscene` is an editable path dependency on `../graphscene`** (`pyproject.toml` → `[tool.uv.sources]`), so one sync provisions both packages, this package's environment imports the checkout's current `graphscene/src/graphscene/`, and no release is needed.
+- **The tests stay inside the same boundary, widened only by the `dev` dependency group.** A module under `tests/` imports the standard library, `devscene_flow_host`, the declared runtime dependencies through the same public surface, the `dev` group's tools, and the suite's own support modules — never another package's tests or another layer's source. Reading a tracked file of another layer as test input (the walker's graph file, GraphScene's manifest) is not an import and stays allowed.
 
-`tests/test_boundary.py` and `tests/test_layers.py` enforce these rules.
+`tests/test_boundary.py` and `tests/test_layers.py` enforce these rules for the package; `tests/` itself is not scanned, so the tests' rule is held by review.
 
 ## The layers
 
