@@ -27,3 +27,5 @@
   - Hits of the same phrases elsewhere in the tree are out of this task's scope and are not checked here. In particular, `graphscene/README.md` → `## The command line`, which Task 4 adds, may say the wrapper row names no console script; that is expected and is not this task's to edit.
 - `docs/development.md`'s refusal facts still match `scripts/python-service.sh` → `package_row`, whose `graphscene` row still sets `row_console_script=""`.
 - The roadmap clause's link resolves to the heading Task 4 added, spelled byte-for-byte.
+
+**Deviations from plan:** The first Work bullet places the clause after the `RoundResume` clause, but the `devscene-flow-host` skeleton clause follows `RoundResume` in the row, and the first Verification bullet requires the *Shipped:* list to end with the new clause. Implemented as the last clause of the *Shipped:* list, which is after the `RoundResume` clause and satisfies both.
