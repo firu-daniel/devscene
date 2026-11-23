@@ -1,4 +1,4 @@
-### Task 5 — Rename the package in the supply-chain workflow, then park for the maintainer's push
+### Task 5 — Rename the package in the supply-chain workflow
 
 **Goal:** Make the nightly `uv-audit` job audit the renamed package's lock. `.github/workflows/supply-chain.yml` names `devscene-runtime` twice: in its header comment, and in the `uv-audit` job's `working-directory: devscene-runtime` step. After merge, the job would `cd` into a directory that no longer exists and fail every night.
 
@@ -9,7 +9,7 @@
 
 This task makes the workflow match that sentence and changes nothing else.
 
-**Why this task is last, and what happens after its commit.** `push-branch.sh` refuses every unattended push whose commits change a path under `.github/workflows/`. It prints a `refusing to push:` line and exits `0` (`cli/templates/scripts/push-branch.sh` → `NO UNATTENDED PUSH CHANGES A WORKFLOW FILE`). So once this commit lands, the run's push of the branch is refused. **The run parks and asks the maintainer to push it**, and it resumes once the maintainer answers that the push is done (story index `## Context`, manual steps 1 and 2). Neither this task nor its implementer pushes, retries the push, splits the commit, or works around the refusal in any other way. Every earlier task's commit was pushed before this one, which is why it ships last.
+**Why this task is last, and what happens after its commit.** `push-branch.sh` refuses every unattended push whose commits change a path under `.github/workflows/`. It prints a `refusing to push:` line and exits `0` (`cli/templates/scripts/push-branch.sh` → `NO UNATTENDED PUSH CHANGES A WORKFLOW FILE`). So once this commit lands, the run's push of the branch is refused. The commit call reports `pushed: failed`, which the flow treats as best-effort and never escalates (`plugin/instructions/plan_orchestration_instructions_autonomous.md` → `### <commit_call>` → **The push is best-effort inside the wrapper.**). **This task does not park the run, and neither does the refused push.** The park belongs to **Task 6**, which this commit hands off to. Task 6 is the next readiness entry. It returns a `blocker` until the maintainer's re-lock commit and this task's workflow commit are both on the branch's remote. That blocker reaches the flow's `<escalate>` park (story index `## Context` → **The workflow push.**, manual steps 1 and 2). Neither this task nor its implementer pushes, retries the push, splits the commit, or works around the refusal in any other way. Every earlier task's commit was pushed before this one, which is why the workflow edit ships after all the other work.
 
 ### Targets
 
@@ -24,4 +24,4 @@ This task makes the workflow match that sentence and changes nothing else.
 
 - `git grep -n -i "devscene-runtime" -- .github/workflows/supply-chain.yml` prints nothing. `git grep -n "working-directory: devscene-flow-host" -- .github/workflows/supply-chain.yml` prints one line.
 - `git diff HEAD -- .github/workflows/supply-chain.yml` changes the header comment and the one `working-directory` line, and nothing else.
-- The commit lands through the unit loop as usual. The refused push that follows is the expected park, not a failure of this task.
+- The commit lands through the unit loop as usual. The `pushed: failed` that follows is expected and is not a failure of this task. The park happens at Task 6, not here.

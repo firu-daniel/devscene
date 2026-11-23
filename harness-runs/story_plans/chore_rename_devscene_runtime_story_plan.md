@@ -8,16 +8,23 @@ This branch renames the Python package at `devscene-runtime/` to `devscene-flow-
 
 - **The lock.** `uv.lock` is re-made only by `bash scripts/python-service.sh --package devscene-flow-host lock`, never edited by hand (`.claude/context/devscene-runtime.md` → `## What it may depend on`). That sub-command *"reaches the network"*, and inside a run's sandbox it *"fail[s] closed (no network, the shared `uv` cache not writable)"* (`scripts/python-service.sh` header → `lock` and `WHO RUNS lock, sync AND provision`). Task 1 therefore moves `uv.lock` byte for byte, and its root entry `name = "devscene-runtime"` stays stale until the maintainer re-locks (manual step 1 below).
 - **The environment.** The run copy's environment was provisioned under `devscene-runtime/.venv` before Task 1 ran. A virtual environment is not relocatable, and a run never syncs its copy's environment. So from Task 1 onward, every `--package devscene-flow-host` leg in this run (the per-unit test runs, `commands.typecheck`'s `check`, and gate 13h–13j) exits `3` and is graded **`BLOCKED`, not passed** (`docs/development.md` → **Gate 13**). The Python edits are graded only by the static checks each task names, and then by the maintainer's provisioned run (manual step 3). Task 1 leaves the ignored `devscene-runtime/.venv`, `.ruff_cache` and `.mypy_cache` where they are. No tracked file sits beside them, and gate 6a skips them. For the same reason, Task 1 moves the eight tracked files one at a time and never `git mv`s the directory itself. A directory rename would carry the environment into `devscene-flow-host/.venv`, where its scripts' shebangs still point at the old path. Each leg would then *fail* rather than grade `BLOCKED`.
-- **The workflow push.** `.github/workflows/supply-chain.yml` names the package. `push-branch.sh` refuses any unattended push whose commits change a path under `.github/workflows/` (`cli/templates/scripts/push-branch.sh` → `NO UNATTENDED PUSH CHANGES A WORKFLOW FILE`). So Task 5 ships last: once its commit lands, the run's push is refused, the run parks and asks the maintainer to push, and it resumes once the maintainer answers that the push is done. No task tries to push it or works around the refusal.
+- **The workflow push.** `.github/workflows/supply-chain.yml` names the package. `push-branch.sh` refuses any unattended push whose commits change a path under `.github/workflows/` (`cli/templates/scripts/push-branch.sh` → `NO UNATTENDED PUSH CHANGES A WORKFLOW FILE`). That script prints `refusing to push:` and exits `0`, the commit call reports `pushed: failed`, and the flow treats that as best-effort and never escalates it (`plugin/instructions/plan_orchestration_instructions_autonomous.md` → `### <commit_call>` → **The push is best-effort inside the wrapper.**). **A refused push therefore parks nothing by itself.** The park is Task 6's job.
+  - Task 6 is a check-only unit that ships after Task 5. Its own text sets an ordering precondition: the maintainer's re-lock has landed and been pushed. It returns an `outcome` of `blocker` while that precondition does not hold (`plugin/agents/layer-implementer.md` → **Unsatisfiable-gate disposition.**: *"return an `outcome` of `blocker` if the item it names has not landed"*).
+  - `plugin/instructions/unit_loop_core.md` → `## The unit loop` step 3 turns that blocker into *"stop the whole loop and `<escalate>`"*. The autonomous fork binds `<escalate>` to *"The clarification reroute — park and yield"* (`plan_orchestration_instructions_autonomous.md` → `### <escalate> — the clarification reroute`). There, a headless run writes the blocker to `harness-runs/clarifications/chore_rename_devscene_runtime/question_<n>.md` and ends the session, and the watcher resumes the run once that file is answered.
+  - On resume, Task 6 is still the first `[ ]` entry, so it is dispatched again. It lands only when both checks pass, and it parks again if the maintainer answered without doing the steps.
+  - The ask-vs-assume policy that `<escalate>` consults first (`task_plan_writing_instructions_autonomous.md` → `## Ask-vs-assume policy`) offers no assumption to proceed on. The re-lock needs the network the run lacks, and the push is refused, so the park is the only route.
+  - No task tries to push the workflow commit or works around the refusal.
+  - After the maintainer's push, the workflow commit is no longer among the commits `push-branch.sh` sends (`rev-list refs/heads/<branch> --not refs/remotes/<remote>/<branch>`), so Task 6's own commit pushes normally.
 - **`.claude/**` and the `layers` row.** A run cannot write under `.claude/`, and the layer profile changes only through `devscene config set`. Every `.claude/` site that names the old package is recorded as `no-change` in the register below and is handed to the maintainer's after-merge steps. The two conventions documents are also reported as `stale-rule` entries.
 
-**Task cut, and why the order is not the configured layer order.** Five tasks:
+**Task cut, and why the order is not the configured layer order.** Six tasks:
 
 - **Task 1** moves and renames the package. It also updates the one script whose package table must name the new directory in the same commit: `scripts/python-service.sh` (`PACKAGES`, `package_row`). With the old row left in place, `commands.typecheck`'s `check` would run `--package devscene-runtime` legs against a directory with no `pyproject.toml`.
 - **Task 2** updates `cli/test/python-service.test.mjs`, which asserts that table.
 - **Task 3** points the two `treeGuards` entries at the new paths.
 - **Task 4** updates the gate legs and the documentation of record.
-- **Task 5** updates the workflow file and is the task that parks the run.
+- **Task 5** updates the workflow file.
+- **Task 6** edits no file. It checks that the maintainer's re-lock commit and the workflow commit are both on the branch's remote, and it parks the run through a `blocker` until they are.
 
 The configured order puts `cli` ahead of `general`. Here, though, the `cli` task tests a script the catch-all layer owns, so the producer (Task 1) must land first. `## The order files are created` in `.claude/context/conventions.md` says it directly: *"Contract before consumer, always"*. No task depends on a later one.
 
@@ -27,16 +34,16 @@ Task 1 is a catch-all (`general`) task, though half of what it touches sits unde
 
 **Wording constraint on every task** (`harness-runs/lessons.md` → `## Adopter-facing documentation`, the rename lesson): no live file this branch writes says that a name changed, or names the old name as a former one. Each site is rewritten to read as if the package had always been called `devscene-flow-host`.
 
-**Top risks:** First, a Python edit that breaks lint, type checking or the boundary test can pass unnoticed, because every `devscene-flow-host` leg grades `BLOCKED` in this run. Task 1 guards it with greps for leftover old names and a 100-column check on the lines it lengthens, and manual step 3 runs the real gate 13h–13j on a provisioned checkout before merge. Second, the stale root entry in the moved `uv.lock` makes every `uv sync --frozen` of the package fail once someone provisions it. Task 1 leaves the lock untouched rather than hand-editing it, and manual step 1 re-locks it at the park, before the push. Third, a site left naming the old directory, such as a gate leg or a workflow step, would fail only after merge. The scope register below lists every such site with its owning task, and each task's verification re-runs the grep over its own files.
+**Top risks:** First, a Python edit that breaks lint, type checking or the boundary test can pass unnoticed, because every `devscene-flow-host` leg grades `BLOCKED` in this run. Task 1 guards it with greps for leftover old names and a 100-column check on the lines it lengthens, and manual step 3 runs the real gate 13h–13j on a provisioned checkout before merge. Second, the stale root entry in the moved `uv.lock` makes every `uv sync --frozen` of the package fail once someone provisions it. Task 1 leaves the lock untouched rather than hand-editing it. Manual step 1 re-locks it at Task 6's park, before the push, and Task 6 cannot land until the root entry reads `devscene-flow-host`. Fourth, the run could reach Done without ever parking, because the refused push is never escalated. Task 6 guards this by turning the missing re-lock and push into a unit `blocker`, which is a route the flow does escalate. Third, a site left naming the old directory, such as a gate leg or a workflow step, would fail only after merge. The scope register below lists every such site with its owning task, and each task's verification re-runs the grep over its own files.
 
 **Manual setup required:**
 
-1. **At the park after Task 5, before pushing:** in the branch's checkout, from the repository root and outside any sandbox, re-make the lock (depends on Task 1). Then commit only `devscene-flow-host/uv.lock`:
+1. **At Task 6's park, before pushing:** work in **the checkout the run is executing in**, the one whose `harness-runs/clarifications/chore_rename_devscene_runtime/` holds the park's `question_<n>.md`. In a clone-per-run run that is the run copy, not the main checkout, because the branch's commits live only there until they are pushed, and a commit made anywhere else does not reach the run that resumes. From that checkout's root, in your own terminal outside any sandbox, re-make the lock (depends on Task 1). Then commit only `devscene-flow-host/uv.lock` on the branch there:
 
    ```
    bash scripts/python-service.sh --package devscene-flow-host lock
    ```
-2. **Still at that park:** push the branch yourself, since the run's push of the Task 5 workflow commit is refused (depends on Task 5). Then answer the park that the push is done.
+2. **Still at that park, in the same checkout:** push the branch yourself with a plain `git push` to the remote it tracks (depends on Tasks 5 and 6). The run's own push of the Task 5 workflow commit is refused. Pushing from that checkout updates its remote-tracking ref, which is what Task 6 re-checks. Then answer the park's `question_<n>.md` that the re-lock and the push are done. The run resumes at Task 6 and re-runs its checks.
 3. **Before merge, on a checkout of your own (never the run copy):** provision, then run gate 13h–13j, which this run could only grade `BLOCKED` (depends on Tasks 1 and 4):
 
    ```
@@ -68,7 +75,8 @@ Each entry resolves 1:1 to `harness-runs/task_plans/chore_rename_devscene_runtim
 2. [ ] **Task 2** — Point the Python-service test's third package row at `devscene-flow-host` _(layer: cli)_ _(points: 5)_
 3. [ ] **Task 3** — Point the two `devscene.config.json` tree guards at the renamed package paths _(layer: general)_ _(points: 5)_
 4. [ ] **Task 4** — Rename the package in gate legs 13h–13j, `docs/development.md` and `ROADMAP.md` _(layer: general)_ _(points: 15)_
-5. [ ] **Task 5** — Rename the package in the supply-chain workflow, then park for the maintainer's push _(layer: general)_ _(points: 5)_
+5. [ ] **Task 5** — Rename the package in the supply-chain workflow _(layer: general)_ _(points: 5)_
+6. [ ] **Task 6** — Check that the maintainer's re-lock and workflow push have landed, and park the run until they have _(layer: general)_ _(points: 5)_
 
 ## Scope register
 
