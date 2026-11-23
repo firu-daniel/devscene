@@ -1,0 +1,18 @@
+# Review plan meta-review — iteration 0
+
+## Must Fix
+1. **Finding 1's fix runs a test file the fix neither creates nor edits** — refers to review finding #1. Offending file: `harness-runs/code_reviews/fix_analyze_provenance_line_growth_code_review/finding_1.md`.
+   The fix edits only `plugin/agents/conventions-reviewer.md` (`## Invocation contract` and `## The corpus pass — what to verify`). The finding itself says that `cli/test/conventions-provenance-line.test.mjs` "reads only `## What to verify` from this file, so none of these edits affects it". Its closing paragraph then tells the implementer: "The only test this fix runs is that suite: `npm test --workspace cli -- test/conventions-provenance-line.test.mjs`". The fix does not create or edit that file. `plugin/instructions/unit_loop_core.md` → `## The test-run rule` point 4 says that no finding fix names "a test file the unit neither creates nor edits", and point 1 forbids running one. The file is not a `treeGuards` entry in `devscene.config.json`, so point 7's guard exception does not cover it either. Confirmed by reading the finding, the test-run rule and `devscene.config.json` → `treeGuards`.
+   **Class:** Wrong build
+   **Failure:** If the implementer applying Finding 1 follows its closing paragraph, then it runs `npm test --workspace cli -- test/conventions-provenance-line.test.mjs`, a test file its unit neither created nor edited, which `## The test-run rule` points 1 and 4 forbid.
+   **Fix:** In `finding_1.md`, replace the sentence "The only test this fix runs is that suite: `npm test --workspace cli -- test/conventions-provenance-line.test.mjs`, from the repository root, as one plain foreground command. The full suite runs later, in the Run gates phase." with a sentence saying that this fix creates and edits no test file, so it runs none, and that the full suite runs in the Run gates phase. Keep the preceding sentence, the one saying the suite reads only `## What to verify`.
+
+2. **Finding 3's fix runs a test file the fix neither creates nor edits** — refers to review finding #3. Offending file: `harness-runs/code_reviews/fix_analyze_provenance_line_growth_code_review/finding_3.md`.
+   The fix removes one clause from `plugin/agents/conventions-writer.md` → `## The document` and edits no test file. Its closing paragraph says: "The only test this fix runs is that suite: `npm test --workspace cli -- test/conventions-provenance-line.test.mjs`". The fix neither creates nor edits that suite, and the suite is not a `treeGuards` entry, so `unit_loop_core.md` → `## The test-run rule` points 1 and 4 forbid this run. Confirmed by reading the finding, the test-run rule and `devscene.config.json` → `treeGuards`.
+   **Class:** Wrong build
+   **Failure:** If the implementer applying Finding 3 follows its closing paragraph, then it runs `npm test --workspace cli -- test/conventions-provenance-line.test.mjs`, a test file its unit neither created nor edited, which `## The test-run rule` points 1 and 4 forbid.
+   **Fix:** In `finding_3.md`, replace the sentence "The only test this fix runs is that suite: `npm test --workspace cli -- test/conventions-provenance-line.test.mjs`, from the repository root, as one plain foreground command. The full suite runs later, in the Run gates phase." with a sentence saying that this fix creates and edits no test file, so it runs none, and that the full suite runs in the Run gates phase. The statement that the suite asserts on `'carries no earlier pass forward'` and not on the removed clause can stay, as information for the implementer.
+
+## Should Fix
+
+## Nice to Have

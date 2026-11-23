@@ -213,9 +213,12 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    proposal newly names is still `action: write` by the absence of a file, and outside an accepted proposal the
    ask keeps `merge` as its default.
 
-   Every write removes that document's `<!-- devscene:unfilled -->` line and replaces the footer with a
-   provenance line naming the mode and what the pass read — the writer's obligation on a `merge` dispatch as
-   much as on a `write`, graded by the reviewer's first check.
+   Every write removes that document's `<!-- devscene:unfilled -->` line and writes a provenance line
+   describing this pass only — on `write` it replaces the skeleton's footer, on `merge` it replaces the
+   previous provenance line — naming the mode and what the pass read at directory or area level, never a
+   per-file list, and carrying no earlier pass forward. That is the writer's obligation on a `merge` dispatch
+   as much as on a `write` (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` → `## The document`),
+   graded by the reviewer's first check.
 
    **Then send, in the order step 3 fixes.** First — **when this run writes it** — the shared cross-layer
    document's own write→review→fix chain, completed before anything else leaves, so its finished text is
@@ -250,6 +253,8 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    default and skip always available** — the same two answers (4a) offers, decided per section. Each filled
    section ends with its own one-line provenance note (the mode, and what the pass read), which replaces the
    prompt line as that section's classification signal for the next run.
+   On `merge` the note replaces that section's previous note. On `write` and `merge` alike it is bounded as
+   (4a)'s provenance line is (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` → `## The document`).
 
    **Both sections are written from step 2's `project`-target survey** — the paragraph from what that survey
    says the project is and who uses it, the table's rows from the name patterns it found, its third column from
@@ -271,8 +276,9 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    the reconciliation rule above instead. **Named, never restated.** **The one adaptation** — this target is two
    sections rather than a document, so the obligations presupposing a document contract (the skeleton banner,
    the `**What belongs here**` answers, the rule block to keep, the `<!-- devscene:unfilled -->` marker, the
-   `## Not determined` section, the one-whole-document write and the skeleton-footer replacement) do not apply
-   here — **and neither does `demand_set` coverage: this target has no `demand_set` scope of its own**
+   `## Not determined` section, the one-whole-document write and the document-level provenance line,
+   whose per-section counterpart is the provenance note above) do not apply here — **and neither does
+   `demand_set` coverage: this target has no `demand_set` scope of its own**
    (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-reviewer.md` → `## The corpus pass — what to verify`). What binds
    is the **content** half: a claim about intent the code can neither corroborate nor contradict is carried over
    **attributed to its source**, and a clause with no source in the repository is not written. **It does not
@@ -284,15 +290,16 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    either section, **`role: context`** when it wrote neither. The check subset that applies is the reviewer's
    own (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-reviewer.md` → `## The corpus pass — what to verify`). A
    corpus finding naming this `document_path` is, on **`fixable`**, **applied by this session and never
-   dispatched**: no writer may touch this file (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` →
-   `## Scope`). **It is applied only inside a section this run itself wrote or merged**; a finding landing in a
-   section this run classified **`skip`**, or anywhere else in the file — the generated routing table, the
-   ledger-path block, the agent-authoring section, the `## Where a change request runs` section — is **not
-   applied and is carried to step 6 as outstanding**, naming the finding and whether the line is the adopter's
-   own skip answer or `init`'s output. On **`context`** it is applied by nobody and carried to step 6 as
-   outstanding. **A corpus finding this session declines on the merits** — not one the fence above bars it from
-   applying — is reported as this target's **conflict line in step 6, from this session's own record**.
-   Recording it is a **duty, not a permission**, exactly as it is for the writer.
+   dispatched**, and adds nothing to that section's provenance note, as a writer's fix adds nothing to its line:
+   no writer may touch this file (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` → `## Scope`). **It is
+   applied only inside a section this run itself wrote or merged**; a finding landing in a section this run
+   classified **`skip`**, or anywhere else in the file — the generated routing table, the ledger-path block, the
+   agent-authoring section, the `## Where a change request runs` section — is **not applied and is carried to
+   step 6 as outstanding**, naming the finding and whether the line is the adopter's own skip answer or `init`'s
+   output. On **`context`** it is applied by nobody and carried to step 6 as outstanding. **A corpus finding this
+   session declines on the merits** — not one the fence above bars it from applying — is reported as this
+   target's **conflict line in step 6, from this session's own record**. Recording it is a **duty, not a
+   permission**, exactly as it is for the writer.
 
    The **setup-pending banner is not a classification input** — it records that setup offered the analysis,
    not which sections are filled. Its absence (an unforced `devscene init` re-run over a
