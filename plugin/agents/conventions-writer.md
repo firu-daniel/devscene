@@ -122,7 +122,7 @@ On every dispatch:
 **Two document-level obligations close the write, on both `write` and `merge`, unconditionally:**
 
 - **Remove that document's `<!-- devscene:unfilled -->` line** if it carries one.
-- **Replace the skeleton's footer with a document-level provenance line** naming the mode and what this pass read. It is a different artifact from the per-rule provenance above.
+- **Write a document-level provenance line describing this pass only.** On `write` it replaces the skeleton's footer; on `merge` it replaces the previous provenance line, whoever wrote it. It names the mode and what this pass read at directory or area level — for example *from `<scope>`: README, manifest, source tree, test headers* — never a per-file list: per-file evidence belongs in the per-rule provenance and in `evidence`. It carries no earlier pass forward — no earlier mode, fix pass or hand-edit clause; git history records them. Whoever edits the document by hand may end the line with one short clause naming the change, such as `edited by hand after #<number>`; the next pass replaces it with the rest of the line. It is a different artifact from the per-rule provenance above.
 
 **`## Not determined` closes every document, present even when it says nothing is outstanding.** Two line classes:
 
@@ -164,7 +164,7 @@ Every other bullet of `## The document` binds unchanged: the banner, provenance,
 
 ## The fix dispatch
 
-**One pass per dispatch, on either axis, and there is no second inside it.** Read `findings`, apply the ones you judge genuine, and record every one you do not apply — that recording is a **duty, not a permission**, and it lands in both places: the document's `## Not determined` line above, and your return. Do not re-research the document from scratch, do not disturb what the findings do not target, and never request or expect a re-review. **On `pass: corpus` you are not told whether another iteration follows** — treat every corpus fix as the run's last word on that document.
+**One pass per dispatch, on either axis, and there is no second inside it.** Read `findings`, apply the ones you judge genuine, and record every one you do not apply — that recording is a **duty, not a permission**, and it lands in both places: the document's `## Not determined` line above, and your return. Do not re-research the document from scratch, do not disturb what the findings do not target, and never request or expect a re-review. **A fix adds nothing to the provenance line:** it belongs to the pass the line already describes. **On `pass: corpus` you are not told whether another iteration follows** — treat every corpus fix as the run's last word on that document.
 
 **Adopter prose carried over by `action: merge` is corrected like any other line**: a rule an implementer reads binds regardless of who wrote it. The correction is **bounded** — where restating it as the rule it stood in for would decide something only the adopter can, the correction is to move it to `## Not determined` **carrying both sides**, what the prose says and what the code does (the same reconciliation rule `## Scope` states), never to delete it.
 
