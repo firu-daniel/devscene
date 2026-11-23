@@ -12,7 +12,7 @@
 
 This task restates those names and changes nothing under `devscene-flow-host/` or in `scripts/python-service.sh`.
 
-**Where this task stops.** `docs/development.md` → `## 8. The nightly supply-chain audit` describes the workflow that Task 5 edits. This task updates that section's prose, and Task 5 owns the workflow file itself. Nothing under `.claude/` is touched: those sites are the maintainer's after-merge step 5.
+**Where this task stops.** `docs/development.md` → `## 8. The nightly supply-chain audit` describes `.github/workflows/supply-chain.yml`. This task updates that section's prose and never edits the workflow file. No run-landed commit may change that file: the maintainer commits its edit at Task 5's park, to match the sentence this task writes (story index `## Context` → **The workflow edit, and why the run never commits it.**, manual step 1). Nothing under `.claude/` is touched: those sites are the maintainer's after-merge step 5.
 
 **Wording.** Write each site as if the package had always had this name. Never "renamed from", "formerly" or the old name in any form (`harness-runs/lessons.md` → `## Adopter-facing documentation`, the rename lesson). Every command stays in its own fenced block, one command per line (the first lesson under the same heading).
 

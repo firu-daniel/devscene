@@ -9,7 +9,7 @@
 - Task 2 updates the test that asserts the wrapper's table. Between this commit and Task 2's, that test is expected to disagree with the wrapper.
 - Task 3 moves the `treeGuards` entries.
 - Task 4 updates `scripts/run-gates.sh`, `docs/development.md` and `ROADMAP.md`.
-- Task 5 updates the workflow.
+- No task edits `.github/workflows/supply-chain.yml`. The maintainer commits that edit at Task 5's park (story index `## Context` → **The workflow edit, and why the run never commits it.**).
 
 It does not re-make `uv.lock` (see the uv.lock bullet below).
 
