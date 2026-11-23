@@ -69,6 +69,8 @@ It returns `HostStep`, the shape Task 8 and the compatibility command consume.
 
     `# TODO: @claude add a follow up task for this: keep a findings file given outside a round gate (a non-round reviewer's FAIL, or answered) as flow-walker.sh → next keeps revision_findings, so the writer's revision dispatch carries it as arg.findings_file — needs a host-side record of revision_findings for a non-round reviewer and for answered, cleared as bash clears it on start`
 
+  - **Deviations from plan:** Each marker's text is kept verbatim but wrapped over consecutive `#` lines at 100 columns, because `ruff`'s `E` rules (`devscene-flow-host/pyproject.toml` → `[tool.ruff]`, `line-length = 100`) flag the single-line form; the opening `# TODO: @claude add a follow up task for this:` stays on the first line.
+
   The docstring:
   - **"The rule:"** states the four rules and the lock order.
   - **"Deliberately not covered"** names three things: the held-gate departure (the host re-dispatches first), with its marker; the non-round findings departure (a findings file given at a non-gate call is required but not kept, and neither is one given with `answered`), with its marker; and rendering.
