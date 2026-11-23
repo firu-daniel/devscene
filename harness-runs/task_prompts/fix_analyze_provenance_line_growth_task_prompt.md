@@ -6,7 +6,7 @@ Every `/devscene:analyze` pass adds to the italic `_Written by /devscene:analyze
 
 - `plugin/agents/conventions-writer.md` → `## The document`: "Replace the skeleton's footer with a document-level provenance line naming the mode and what this pass read. It is a different artifact from the per-rule provenance above." `plugin/commands/analyze.md` (4a) says the same.
 - `plugin/agents/conventions-reviewer.md` → check 1 requires only that "a document-level provenance line is present".
-- Nothing reads the line: classification and `doctor`'s `setup-analysis` use the `<!-- devscene:unfilled -->` marker and the `**What belongs here**` block, and nothing in `cli/src` or `plugin/` parses the footer.
+- Nothing reads the line: classification and `doctor`'s `setup-analysis` use the `devscene:unfilled` HTML-comment marker and the `**What belongs here**` block, and nothing in `cli/src` or `plugin/` parses the footer.
 
 So the line is required, but neither its history nor a file-by-file list is. The wording says "*this* pass" and "replace", yet it doesn't say what happens to an earlier pass's line on a filled document, where there is no skeleton footer left to replace. Writers have filled that gap by adding to the line. The per-rule provenance already carries the file citations the reviewer checks, and git history already records earlier passes.
 
