@@ -21,3 +21,7 @@
 - `jq -r '.layers[] | select(.path == "devscene-runtime") | .name' devscene.config.json` still prints `devscene-runtime`. The layer row is untouched.
 - `jq empty devscene.config.json` exits `0`: the file still parses.
 - `git diff HEAD -- devscene.config.json` shows two changed lines and no others.
+
+**Deviations from plan:**
+
+- Evidence downgrade: `bash scripts/typecheck.sh` (`commands.typecheck`, run as written from the repository root) closed with `PASS: typecheck`, but two of its steps reported not run: `python-service: check: devscene-flow-host lint BLOCKED` and `python-service: check: devscene-flow-host typecheck BLOCKED`, both after `python-service: not provisioned: no synced environment at <repo_root>/devscene-flow-host/.venv`. This unit edits only two `covers` strings in `devscene.config.json`, which neither leg reads; the Run gates phase's whole-tree run, in a provisioned environment, verifies those legs. All four `**Verification:**` bullets were executed and met.

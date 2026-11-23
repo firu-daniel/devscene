@@ -142,11 +142,11 @@
     },
     {
       "test": "tests/test_boundary.py",
-      "covers": "devscene-runtime/src/devscene_runtime/**"
+      "covers": "devscene-flow-host/src/devscene_flow_host/**"
     },
     {
       "test": "tests/test_boundary.py",
-      "covers": "devscene-runtime/pyproject.toml"
+      "covers": "devscene-flow-host/pyproject.toml"
     }
   ],
   "execution": {
