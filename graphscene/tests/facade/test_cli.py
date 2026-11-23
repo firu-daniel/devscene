@@ -171,6 +171,41 @@ def test_a_walk_starts_refuses_an_unanswered_skip_and_steps_with_an_answer(
     assert sorted(path.name for path in tmp_path.iterdir()) == ["walk.json", "walk.json.lock"]
 
 
+def test_next_records_the_named_gate_with_its_detail(tmp_path: Path) -> None:
+    state = str(tmp_path / "walk.json")
+    assert _run("start", _GRAPH, state)[0] == 0
+    answered = _run("next", _GRAPH, state, "--outcome", "done", "--answer", "stage_disabled=false")
+    assert answered[0] == 0
+
+    status, out, _ = _run(
+        "next",
+        _GRAPH,
+        state,
+        "--node",
+        "edit_check",
+        "--outcome",
+        "rejected",
+        "--detail",
+        "findings/edit_0.md",
+    )
+    assert status == 0
+    document = _document(out)
+    assert isinstance(document, dict)
+    assert document["node"] == "draft"
+    assert document["closed_round"] == [
+        {"gate": "edit_check", "outcome": "rejected", "detail": "findings/edit_0.md"}
+    ]
+
+
+def test_next_naming_a_node_that_is_not_pending_is_refused(tmp_path: Path) -> None:
+    state = str(tmp_path / "walk.json")
+    assert _run("start", _GRAPH, state)[0] == 0
+
+    status, out, _ = _run("next", _GRAPH, state, "--node", "nope", "--outcome", "done")
+    assert status == 3
+    assert _document(out) == {"kind": "refused", "reason": "'nope' is not the pending node 'draft'"}
+
+
 # refusals and environment failures
 
 

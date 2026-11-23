@@ -49,3 +49,5 @@ Wrap the lines at `ruff`'s 100-column limit. Then run only that file, from the r
 ```
 bash scripts/python-service.sh --package graphscene test tests/facade/test_cli.py
 ```
+
+**Deviations from plan:** The second `next` call is bound to `answered` and asserted as `answered[0] == 0`, not the inline `assert _run(...)[0] == 0`, which exceeds the 100-column limit and which `ruff format` will not wrap inside it; what is asserted is unchanged.

@@ -30,7 +30,7 @@ In the `general` layer, the `ROADMAP.md` GraphScene row and the gate 13 paragrap
 
 1. [x] **Finding 3** — State `--help`'s exit `0` and non-JSON stdout in the command line's exit contract _(layer: graphscene)_
 2. [x] **Finding 1** — Fence the `provision` step in `## The command line` instead of giving it inline _(layer: graphscene)_
-3. [ ] **Finding 2** — Cover `next`'s `--node` and `--detail` flags in the command line's suite _(layer: graphscene)_
+3. [x] **Finding 2** — Cover `next`'s `--node` and `--detail` flags in the command line's suite _(layer: graphscene)_
 
 ---
 
