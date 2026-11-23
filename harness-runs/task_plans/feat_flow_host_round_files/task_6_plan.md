@@ -69,3 +69,4 @@ Convergence is never inferred from files.
 
 - `tests/test_resume.py` passes. Each mapping row of `start_round` has its own case with a literal `RoundResume`, never one computed by `round_resume`.
 - With every round file PASS, `round_resume` never returns a resume that carries records, so convergence is never inferred.
+  - **Deviations from plan:** `tests/test_resume.py` plants no `devscene.config.json`: `round_resume` reads no configuration (`state_dir` is a parameter, and skip predicates are answered by the in-test host table), so a planted config would be read by nothing.
