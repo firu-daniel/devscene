@@ -37,3 +37,8 @@
 - `commands.typecheck` exits zero.
 - `git status --porcelain --ignored` shows nothing new outside `tmp_path`: no state directory in the checkout, and the graph file unchanged.
 - If `load_graph_file(_GRAPH)` raises `GraphError`, stop and report the violations it names. The graph is the `cli` layer's file and is not edited here.
+
+**Deviations from plan:**
+
+- Plan specified `start()` → a `Dispatch` with prompt `initial`; the engine sets `Dispatch.prompt` only from an arriving edge's `prompt` (`graphscene/src/graphscene/engine/transitions.py` → `draft.prompts[edge.to] = edge.prompt`, read back by `prompt=draft.prompts.get(node.id)`), and `start` arrives by no edge, so the first `plan_writer` dispatch carries `prompt=None` (observed: `Dispatch(node='plan_writer', agent='task-plan-writer', prompt=None, …)`). Implemented as `None` in `tests/test_walking.py` → `_assert_plan_writer`, the reason in its docstring. Every other hand-written expectation held as planned.
+- The `git status --porcelain --ignored` check shows `harness-runs/.flow_walker_state` and `harness-runs/.dispatch_counter`: flat files the run's own bash walker wrote (18:30 / 18:39), not this suite's output, which writes only under `tmp_path`. The graph file is unchanged.
