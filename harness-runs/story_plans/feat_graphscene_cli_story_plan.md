@@ -41,7 +41,7 @@ This branch adds `graphscene`, a command line over the GraphScene library for ho
 
 Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_graphscene_cli/task_<K>_plan.md` file. Entries are ordered bottom-up by ship sequence, with the catch-all layer last.
 
-1. [ ] **Task 1** — Add the step document and the round-resume document to the walk codec _(layer: graphscene)_ _(points: 15)_
+1. [x] **Task 1** — Add the step document and the round-resume document to the walk codec _(layer: graphscene)_ _(points: 15)_
 2. [ ] **Task 2** — Add the check document's encoder in `adapters` _(layer: graphscene)_ _(points: 10)_
 3. [ ] **Task 3** — Add the `graphscene` command line in `facade` and declare its console script _(layer: graphscene)_ _(points: 20)_
 4. [ ] **Task 4** — Document the `graphscene` command line in `graphscene/README.md` _(layer: graphscene)_ _(points: 10)_

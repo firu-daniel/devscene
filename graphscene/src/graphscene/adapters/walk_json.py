@@ -1,13 +1,20 @@
-"""`state_to_json` and `state_from_json`, the JSON codec a file store persists a `WalkState` with
-(`graphscene.model.walk_state`, `graphscene.model.walk_actions`).
+"""The walk's JSON forms (`graphscene.model.walk_state`, `graphscene.model.walk_actions`): the
+walk-state document a file store persists a `WalkState` with (`state_to_json`,
+`state_from_json`), the step document a walk `Step` is reported as (`step_document`), and the
+round-resume document a `RoundResume` is read from (`resume_from_json`).
 
-The rule: the document's top level carries `"version": 1` beside the state's fields; every key is
-the attribute's own name, with no case mapping; each action and passage object carries its `kind`
-first; a `tuple` is a JSON array, an `End.reports` pair a 2-element array, a `Mapping` a JSON
-object in key order, and `None` a JSON `null` under a key that is always present. The codec reads
-only what it writes: a document of another version is refused. A change to the document's shape
-(a key added, removed or renamed, a `kind` added or removed, or a value encoded differently) raises
-`_VERSION`, and a document of an older version is refused, never migrated.
+The rule: the walk-state document's top level carries `"version": 1` beside the state's fields;
+every key is the attribute's own name, with no case mapping; each action and passage object
+carries its `kind` first; a `tuple` is a JSON array, an `End.reports` pair a 2-element array, a
+`Mapping` a JSON object in key order, and `None` a JSON `null` under a key that is always present.
+The codec reads only what it writes: a document of another version is refused. A change to the
+document's shape (a key added, removed or renamed, a `kind` added or removed, or a value encoded
+differently) raises `_VERSION`, and a document of an older version is refused, never migrated. The
+step document of an action is that action's encoding inside the state document, as `pending`; a
+refusal's is `{"kind": "refused", "reason": …}`. The round-resume document is
+`{"round", "number", "records"}`, each record the state document's record object; it carries no
+`version`, because it is read only and a `RoundResume` is never saved. Neither addition changes
+the state document's shape, so `_VERSION` stays 1.
 
 Decoding rebuilds the frozen types with `tuple`s and `MappingProxyType`s over fresh `dict`s, as
 `graphscene.adapters.builder` builds the graph. A malformed document raises
@@ -23,6 +30,9 @@ Deliberately not checked:
 - A mapping key containing "." makes its path ambiguous; it is decoded unchanged.
 - Whether the state is one a walk can reach: an `OpenRound.records` key differing from its
   record's `gate`, or a `pending` disagreeing with `awaiting`, decodes as written.
+- Whether a round-resume document fits a graph: a round the graph lacks, a negative `number`, a
+  record of a gate outside the round or a duplicate gate decodes as written, and `Walker.start`
+  refuses it.
 """
 
 import json
@@ -40,12 +50,14 @@ from graphscene.model.walk_actions import (
     Interrupt,
     LedgerPassage,
     Passage,
+    Refused,
     RoundPassage,
     SkipPassage,
+    Step,
     Stop,
     Wait,
 )
-from graphscene.model.walk_state import Awaiting, OpenRound, WalkState
+from graphscene.model.walk_state import Awaiting, OpenRound, RoundResume, WalkState
 
 _VERSION = 1
 
@@ -178,6 +190,13 @@ def state_to_json(state: WalkState) -> str:
         "skipped": dict(state.skipped),
     }
     return json.dumps(document, ensure_ascii=False, sort_keys=False, indent=1) + "\n"
+
+
+def step_document(step: Step) -> dict[str, object]:
+    """Return `step` as its JSON-ready step document."""
+    if isinstance(step, Refused):
+        return {"kind": step.kind, "reason": step.reason}
+    return _action_out(step)
 
 
 def _refuse(path: str, reason: str) -> ValueError:
@@ -458,4 +477,19 @@ def state_from_json(text: str) -> WalkState:
         prompts=_mapping(_str, fields["prompts"], "prompts"),
         reports=_mapping(_str, fields["reports"], "reports"),
         skipped=_mapping(_str, fields["skipped"], "skipped"),
+    )
+
+
+def resume_from_json(text: str) -> RoundResume:
+    """Read the `RoundResume` a round-resume document holds."""
+    try:
+        parsed: object = json.loads(text)
+    except json.JSONDecodeError as error:
+        reason = f"not valid JSON: {error.msg} (line {error.lineno}, column {error.colno})"
+        raise _refuse("", reason) from error
+    fields = _fields(parsed, "", ("round", "number", "records"))
+    return RoundResume(
+        round=_str(fields["round"], "round"),
+        number=_int(fields["number"], "number"),
+        records=_tuple(_record, fields["records"], "records"),
     )
