@@ -24,7 +24,7 @@ Out of scope, per the task prompt's `## Out of scope`: the oversized footers alr
 Each entry resolves 1:1 to `harness-runs/task_plans/fix_analyze_provenance_line_growth/task_<K>_plan.md`, in ship order.
 
 1. [x] **Task 1** — Bound the writer's provenance line to this pass in `conventions-writer.md` _(layer: plugin)_ _(points: 10)_
-2. [ ] **Task 2** — Have `conventions-reviewer.md` check (1) flag a provenance line carrying history _(layer: plugin)_ _(points: 10)_
+2. [x] **Task 2** — Have `conventions-reviewer.md` check (1) flag a provenance line carrying history _(layer: plugin)_ _(points: 10)_
 3. [ ] **Task 3** — Restate the bounded provenance line in `analyze.md` (4a) and its (4b) notes _(layer: plugin)_ _(points: 10)_
 4. [ ] **Task 4** — Add a static check holding the provenance-line wording aligned across the three files _(layer: cli)_ _(points: 10)_
 
