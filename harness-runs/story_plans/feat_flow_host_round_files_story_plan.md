@@ -46,7 +46,7 @@ Second, bash keeps a findings file given outside a round gate (a non-round revie
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_host_round_files/task_<K>_plan.md`. Ordered bottom-up by ship sequence, with the catch-all layer last.
 
-1. [ ] **Task 1** — Read a reviewer file: its verdict, the round-file check, the next free index and the FAIL count _(layer: devscene-flow-host)_ _(points: 20)_
+1. [x] **Task 1** — Read a reviewer file: its verdict, the round-file check, the next free index and the FAIL count _(layer: devscene-flow-host)_ _(points: 20)_
 2. [ ] **Task 2** — Read a round's evidence from its reviewer files, revision note and plan commits _(layer: devscene-flow-host)_ _(points: 20)_
 3. [ ] **Task 3** — Read a story index's escalation evidence _(layer: devscene-flow-host)_ _(points: 8)_
 4. [ ] **Task 4** — Render a graph path template and find a reviewer's round and next index _(layer: devscene-flow-host)_ _(points: 10)_
