@@ -23,6 +23,7 @@
   - **two branches, two walks.** Build one `WalkState` from `graphscene`'s public types, for example `awaiting="done"` with an `End` as `pending` and empty mappings, and `write` it through `walk_store(tmp_path, "state", "feat/a")`. Then `walk_store(tmp_path, "state", "feat/b").read()` is `None`, and the `feat/a` store's `read()` equals the written state
   - **what is written.** After that write and one `with store.lock():` block, every path under `tmp_path`, walked with `rglob`, is inside `tmp_path / "state" / ".flow_walker_state"`. The set of file names there is exactly `{"feat%2Fa.json", "feat%2Fa.json.lock"}`
   - **a flat file in the way.** With a file already at `tmp_path / "state" / ".flow_walker_state"`, `write` raises an `OSError`, and the file is unchanged byte for byte
+  - **Deviations from plan:** In **what is written**, `rglob` also yields `tmp_path / "state"`, the store directory's own ancestor, which cannot be inside it; the test exempts the store directory and its ancestors and asserts every other path is inside `tmp_path / "state" / ".flow_walker_state"`.
 
 **Verification:**
 
