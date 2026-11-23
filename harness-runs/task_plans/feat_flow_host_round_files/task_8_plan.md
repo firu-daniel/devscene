@@ -6,9 +6,17 @@
 - `current_step` re-reads the saved walk with every refused gate left out and the last step's `refused:` lines restored, as bash's `current` re-prints its saved `out=`.
 
 **Depends on:**
-- Task 5: `devscene_flow_host.host.refusals.RefusalStore(repo_root, state_dir, branch)`, with `read(round, number) -> RoundRefusals`, `read_announced() -> tuple[Refusal, ...]`, `clear()` and `lock()`. `RoundRefusals.gates` maps a gate to `GateRefusals(attempts, reason, redo)`.
+- Task 1, for the tests only: `devscene-flow-host/tests/round_fixtures.py`, imported and never edited. The cases use:
+  - `init_repo(root: Path) -> None`;
+  - `commit(root: Path, paths: Sequence[Path], message: str) -> None`;
+  - `plant_review(folder: Path, n: int, body: str) -> Path`, which creates the folder and writes `review_<n>.md`;
+  - `PASS_BODY` (`"verdict: PASS\n"`) and `FAIL_BODY` (a `verdict: FAIL` file with one Must Fix entry carrying `**Class:**` and `**Failure:**`, which passes the round-file check).
+- Task 5: `devscene_flow_host.host.refusals.RefusalStore(repo_root, state_dir, branch)`, with `read(round, number) -> RoundRefusals`, `read_announced() -> tuple[Refusal, ...]`, `clear()` and `lock()`. `RoundRefusals.gates` maps a gate to `GateRefusals(attempts, reason, redo)`. `Refusal(gate, attempt, reason)`.
 - Task 6: `devscene_flow_host.host.resume.round_resume(graph, host, repo_root, state_dir, branch, entry=None) -> RoundResume | None`.
-- Task 7: `devscene_flow_host.host.round_gates.HostStep(action: Step | RefusedWait, refusals: tuple[Refusal, ...] = ())`.
+- Task 7: `devscene_flow_host.host.round_gates`:
+  - `HostStep(action: Step | RefusedWait, refusals: tuple[Refusal, ...] = ())`;
+  - `RefusedWait(round: str, refusal: Refusal, pending: tuple[str, ...])`, the answer to a refused round file below the cap, where `pending` holds the due, unrecorded, unrefused gates in `gates` order;
+  - `record_outcome(walker: Walker, repo_root: Path, branch: str, outcome: str, *, node: str | None = None, findings: str | None = None) -> HostStep`. The refusal cases call it to record a gate's outcome with its findings file: a file that fails the round-file check (for example a `verdict: FAIL` body with no numbered entry) returns a `HostStep` whose action is a `RefusedWait` while a sibling gate is still out, and a re-dispatch `DispatchSet` of the refused gates, with their `Refusal`s on `refusals`, once none is.
 
 **Source:** `cli/templates/scripts/flow-walker.sh` (the `start` sub-command, `current`, and `render_set`'s skipping of a gate with `round.redo.<gate>`).
 
@@ -33,14 +41,14 @@
 - [ ] **The module docstring.**
   - **"The rule:"** says that `start` is the only call that clears the refusal record, that `current` changes nothing, and that a refused gate is never dispatched twice.
   - **"Deliberately not covered"**: the loop counter and prompt variants a lost walk loses; choosing the entry.
-- [ ] **`tests/test_re_entry.py`.** It opens with *"The rule this file exists to enforce"*. It loads the v4 graph, `cli/templates/scripts/flows/task_plan_writing.v4.graph.json`, from a path built off `__file__`, and plants config, ledger, review files and git history under `tmp_path` through `round_fixtures`. Its cases carry the `STATE` paragraph's resume rules in `flow-walker.sh` over to the host, with literal expectations:
+- [ ] **`tests/test_re_entry.py`.** It opens with *"The rule this file exists to enforce"*. It loads the v4 graph, `cli/templates/scripts/flows/task_plan_writing.v4.graph.json`, from a path built off `__file__`, and plants config, ledger, review files and git history under `tmp_path` through `round_fixtures` (`init_repo`, `commit`, `plant_review`, `PASS_BODY`, `FAIL_BODY`). Its cases carry the `STATE` paragraph's resume rules in `flow-walker.sh` over to the host, with literal expectations:
   - no round file → round 0's whole set;
   - the saved walk's file deleted with two of three round-3 files committed → only the third gate, at round 3 and counter 0;
   - a no-verdict file or a newer plan commit → the whole set at round 3;
   - all PASS → reviewed again; a FAIL with `task_plan_revision_4.md` → round 4's set;
   - a held `error` with two verdicts committed → only the errored gate.
-- [ ] **`tests/test_re_entry.py`, the refusal cases.** Using `record_outcome` from `round_gates`:
-  - `current_step` during a refusal wait leaves the refused gate out;
+- [ ] **`tests/test_re_entry.py`, the refusal cases.** Using `record_outcome` from `round_gates` with the signature restated under **Depends on**, and files planted with `plant_review`:
+  - `current_step` during a refusal wait, after `record_outcome` returned a `HostStep` whose action is a `RefusedWait(round, refusal, pending)`, leaves the refused gate out;
   - after the re-dispatch it carries the `refused:` refusal;
   - `start_walk` removes the refusal file.
 

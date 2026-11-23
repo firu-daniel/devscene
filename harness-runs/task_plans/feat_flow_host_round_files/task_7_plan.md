@@ -24,7 +24,9 @@ It returns `HostStep`, the shape Task 8 and the compatibility command consume.
 - `record_in_set`, `refuse_round_file`, `close_round`'s clearing of `round.refused.*`;
 - the `A REFUSED ROUND FILE` paragraph.
 
-**Where this layer stops.** `record_outcome` returns values and renders nothing. Two things belong to Task 8 (`devscene_flow_host/host/re_entry.py`): `start_walk`, and `current_step`, which filters refused gates out of a re-read. `record_outcome` never calls `Walker.start` and never clears the record on a `start`. Carrying a non-round reviewer's findings file to its writer's revision is not covered: GraphScene refuses a `detail` outside a round, so a non-round `FAIL`'s findings are required here and not passed on.
+**Where this layer stops.** `record_outcome` returns values and renders nothing. Two things belong to Task 8 (`devscene_flow_host/host/re_entry.py`): `start_walk`, and `current_step`, which filters refused gates out of a re-read. `record_outcome` never calls `Walker.start` and never clears the record on a `start`.
+
+**A second departure, deferred with a marker.** `flow-walker.sh` → `next` keeps a findings file given outside a round gate: its `dispatch)` arm runs `elif [ -n "$A_FINDINGS" ]; then st_set revision_findings "$A_FINDINGS"`, its `answer)` arm runs `[ -z "$A_FINDINGS" ] || st_set revision_findings "$A_FINDINGS"`, and `render_block` prints it as `arg.findings_file:` on the writer's revision (in the v4 graph, `ui_review` → `FAIL` → `ui_writer`, `"prompt": "revision"`). GraphScene refuses a `detail` outside a round, so this task sends a non-gate call to `walker.next(outcome, node, None)`. A non-round `FAIL`'s findings file is still required (rule 1), but it is not kept, and neither is one given with `answered`. This divergence is backed by the second entry-point marker in the Work list. It is not excluded by the task prompt: #465 takes the command and its rendering, not the host's record of the file.
 
 ### Targets
 
@@ -48,7 +50,7 @@ It returns `HostStep`, the shape Task 8 and the compatibility command consume.
      - `node` declares `outcome`;
      - the outcome's declaration carries a verdict.
 
-     Every other call goes straight to `walker.next(outcome, node, None)`, so GraphScene's own refusal texts stand.
+     Every other call goes straight to `walker.next(outcome, node, None)`, so GraphScene's own refusal texts stand. That non-gate branch is where the second departure marker goes (below).
   4. On the gate path, empty `findings` returns `Refused(f"outcome {outcome} at round gate '{node}' requires --findings with the reviewer's findings_file")`. Otherwise `round_file_problem(round_file_path(repo_root, findings))`:
      - `None` → `walker.next(outcome, node, findings)`.
      - A reason → `attempts + 1` with that reason. At `ROUND_FILE_ATTEMPTS`, clear the mark and call `walker.next(REFUSAL_HELD_OUTCOME, node, None)`. Below it, set `redo` and call nothing.
@@ -59,14 +61,18 @@ It returns `HostStep`, the shape Task 8 and the compatibility command consume.
   - Every other answer → the join. Spent gates' refusals ride on `refusals` and `announced`. With none spent, the record is cleared.
   - A recorded gate's own mark is cleared. `announced` is reset on every written answer but a re-dispatch or a spent join.
   - Outside a set, a written answer clears the record.
-- [ ] **The departure marker and the docstring.** At the re-dispatch branch, write this Python comment at the entry point:
+- [ ] **The two departure markers and the docstring.** Write each as a Python comment at its entry point.
+  - At the re-dispatch branch:
 
-  `# TODO: @claude add a follow up task for this: escalate a held gate at a join whose only gates out are refused ones, as flow-walker.sh → record_in_set does ("With none out: a held gate escalates") — needs a GraphScene way for a host to set a due gate aside in an open round`
+    `# TODO: @claude add a follow up task for this: escalate a held gate at a join whose only gates out are refused ones, as flow-walker.sh → record_in_set does ("With none out: a held gate escalates") — needs a GraphScene way for a host to set a due gate aside in an open round`
+  - At the non-gate branch of `record_outcome`, the `walker.next(outcome, node, None)` call:
+
+    `# TODO: @claude add a follow up task for this: keep a findings file given outside a round gate (a non-round reviewer's FAIL, or answered) as flow-walker.sh → next keeps revision_findings, so the writer's revision dispatch carries it as arg.findings_file — needs a host-side record of revision_findings for a non-round reviewer and for answered, cleared as bash clears it on start`
 
   The docstring:
   - **"The rule:"** states the four rules and the lock order.
-  - **"Deliberately not covered"** names three things: that departure (the host re-dispatches first); non-round findings carried to the writer; and rendering.
-- [ ] **`tests/test_round_gates.py`.** It opens with *"The rule this file exists to enforce"* and names the departure it pins. It uses `open_walker` on the v4 graph with config and ledger under `tmp_path`, plus `round_fixtures` (`plant_review`, `PASS_BODY`, `FAIL_BODY`), and starts with `walker.start()` then `returned`. Cases, with literal expectations written from `flow-walker.sh` → `A REFUSED ROUND FILE` and its `REPRO` block's refused-file walk:
+  - **"Deliberately not covered"** names three things: the held-gate departure (the host re-dispatches first), with its marker; the non-round findings departure (a findings file given at a non-gate call is required but not kept, and neither is one given with `answered`), with its marker; and rendering.
+- [ ] **`tests/test_round_gates.py`.** It opens with *"The rule this file exists to enforce"* and names the two departures it pins. It uses `open_walker` on the v4 graph with config and ledger under `tmp_path`, plus `round_fixtures` (`plant_review`, `PASS_BODY`, `FAIL_BODY`), and starts with `walker.start()` then `returned`. Cases, with literal expectations written from `flow-walker.sh` → `A REFUSED ROUND FILE` and its `REPRO` block's refused-file walk:
   - FAIL without findings;
   - PASS at a round gate without findings;
   - a valid file recorded as a `Wait`;
@@ -75,7 +81,8 @@ It returns `HostStep`, the shape Task 8 and the compatibility command consume.
   - three refusals escalating with `refused: … attempt 3 of 3` on `refusals`;
   - a PASS file carrying a Must Fix entry refused;
   - a held `error` plus a refused gate re-dispatching first;
-  - two threads recording two gates at once, with exactly one join.
+  - two threads recording two gates at once, with exactly one join;
+  - the non-round findings departure as it stands: walking to `ui_review` and calling `record_outcome(walker, tmp_path, "feat_x", "FAIL", node="ui_review", findings=<a planted file>)` returns `ui_writer`'s revision dispatch with no findings file on it, and the saved walk holds no record of the file. The case's docstring names the second marker.
 
 **Verification:**
 
