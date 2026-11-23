@@ -89,7 +89,7 @@ wheels = [
 ]
 
 [[package]]
-name = "devscene-runtime"
+name = "devscene-flow-host"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
