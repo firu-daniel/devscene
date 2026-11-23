@@ -12,7 +12,7 @@ Source: harness-runs/task_prompts/fix_analyze_provenance_line_growth_task_prompt
   - screened: harness-runs/clarifications/fix_analyze_provenance_line_growth/answer_1.md sha256=e98a91732384a9c6aab8e3efc98c65fff8c8805a11427154e628b64672d11082
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
