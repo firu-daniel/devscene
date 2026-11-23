@@ -8,7 +8,7 @@
 
 This repository has adopted its own harness; what that makes of a file at this root is [`context/conventions.md`](context/conventions.md) → `## Documents of record`.
 
-_Written by `/devscene:analyze` in `existing` mode, from `README.md`, `package.json`, `cli/package.json`, `cli/src/cli.ts`, `plugin/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `examples/notes-app/README.md` and the repository layout; the audience and self-adoption blocks reduced to pointers by the corpus pass; merged in `existing` mode with the Python-packages paragraph, read from `docs-retrieval-service/README.md`, `docs-retrieval-service/pyproject.toml`, `graphscene/README.md`, `graphscene/pyproject.toml`, `docs/retrieval.md` and `devscene.config.json` → `layers`; merged again in `existing` mode with the GraphScene-host sentence, its boundary clauses reduced to a pointer by the corpus pass; merged in `existing` mode after #457 renamed that package, the sentence re-read from `devscene-flow-host/README.md`, `devscene-flow-host/pyproject.toml` and `devscene-flow-host/src/devscene_flow_host/__init__.py`._
+_Written by `/devscene:analyze` in `existing` mode after #457 renamed `devscene-runtime/` to `devscene-flow-host/`, from `devscene-flow-host/`: README, pyproject and the package `__init__`._
 
 ---
 
@@ -31,7 +31,7 @@ _Written by `/devscene:analyze` in `existing` mode, from `README.md`, `package.j
 | Python source module | `<package>/src/<import_name>/<snake_case>.py`, where `<package>` is a Python layer's `layers[].path`; in a package with internal layers, `<package>/src/<import_name>/<internal_layer>/<snake_case>.py` | `docs-retrieval-service/src/devscene_docs_retrieval/refresh.py`, `devscene-flow-host/src/devscene_flow_host/records/config.py` |
 | Python test suite | `<package>/tests/test_<snake_case>.py`; the suite's Python support modules (`conftest.py`, fakes, bridges) sit beside them under their own `<snake_case>.py` names, and a bridge's Node half as `<snake_case>.mjs` | `graphscene/tests/test_boundary.py` |
 
-_Written by `/devscene:analyze` in `existing` mode, from the real file names under `cli/src`, `cli/test`, `cli/templates`, `plugin/agents`, `plugin/commands`, `plugin/instructions`, `plugin/hooks`, `plugin/samples`, `docs`, `schemas` and the repository root; merged in `existing` mode with the two Python rows, read from the tracked file names under `docs-retrieval-service/src`, `docs-retrieval-service/tests`, `graphscene/src` and `graphscene/tests`._
+_Written by `/devscene:analyze` in `existing` mode, from the tracked file names under `docs-retrieval-service/` and `graphscene/` `src/` and `tests/`; edited by hand in #469._
 
 ---
 
