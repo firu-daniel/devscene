@@ -11,3 +11,8 @@
 - **cost this run:** 3 node session(s)
 
 # Task run (Phase D)
+
+## A Phase A implementer's test-file run was refused when wrapped in a `cd` with a pipe
+- **category:** agent-contract
+- **evidence:** dispatch #5, `[A · Task 5 · devscene-flow-host · iter 0] → layer-implementer`, its return: "My first attempt was refused because I wrapped it in a `cd` with a pipe; the bare command ran" — the bare `bash scripts/python-service.sh --package devscene-flow-host test tests/test_store.py` then passed (commit 87d88ba2)
+- **cost this run:** 1 refused tool call, retried in the same dispatch
