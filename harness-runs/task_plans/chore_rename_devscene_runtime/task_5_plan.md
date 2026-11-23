@@ -56,3 +56,18 @@ That makes this a park-and-ask, and the task prompt has already decided it.
 
 - Every check under **Work:** was executed, not reasoned about, and its output is quoted in the detail file. These checks are this unit's required work, so a check the sandbox refused counts as a failed check. It takes the `blocker` return above and is never a pass.
 - On an `implemented` return, `git status --porcelain -- . ':!harness-runs'` prints nothing: this unit changed no file outside the run artifacts.
+
+**Check results (executed 2026-11-23, from the checkout root):**
+
+- Lock check:
+  - `grep -n -F 'name = "devscene-runtime"' devscene-flow-host/uv.lock` printed nothing.
+  - `grep -n -F 'name = "devscene-flow-host"' devscene-flow-host/uv.lock` printed `92:name = "devscene-flow-host"`.
+  - `git status --porcelain -- devscene-flow-host/uv.lock` printed nothing.
+- Workflow check:
+  - `git grep -n -i "devscene-runtime" -- .github/workflows/supply-chain.yml` printed nothing.
+  - `git grep -n "working-directory: devscene-flow-host" -- .github/workflows/supply-chain.yml` printed exactly one line: `.github/workflows/supply-chain.yml:80:      - working-directory: devscene-flow-host`.
+  - `git status --porcelain -- .github/workflows/supply-chain.yml` printed nothing.
+- Push check: `git rev-parse HEAD` printed `76da9980a83285d6227d269728858899b42c05c7`; `git branch -r --contains 76da9980a83285d6227d269728858899b42c05c7` printed `origin/chore_rename_devscene_runtime`.
+- `git status --porcelain -- . ':!harness-runs'` printed nothing.
+
+**Deviations from plan:** Evidence downgrade: `bash scripts/typecheck.sh` closed `PASS: typecheck`, but its output reports two steps as not run: `python-service: check: devscene-flow-host lint BLOCKED` and `python-service: check: devscene-flow-host typecheck BLOCKED` (`no synced environment at <root>/devscene-flow-host/.venv`). This unit changed no file, so neither step bears on it. The Run gates phase's whole-tree `commands.typecheck` run verifies them once the package is provisioned.
