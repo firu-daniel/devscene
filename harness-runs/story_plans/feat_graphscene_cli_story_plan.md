@@ -44,7 +44,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_graphs
 1. [x] **Task 1** — Add the step document and the round-resume document to the walk codec _(layer: graphscene)_ _(points: 15)_
 2. [x] **Task 2** — Add the check document's encoder in `adapters` _(layer: graphscene)_ _(points: 10)_
 3. [x] **Task 3** — Add the `graphscene` command line in `facade` and declare its console script _(layer: graphscene)_ _(points: 20)_
-4. [ ] **Task 4** — Document the `graphscene` command line in `graphscene/README.md` _(layer: graphscene)_ _(points: 10)_
+4. [x] **Task 4** — Document the `graphscene` command line in `graphscene/README.md` _(layer: graphscene)_ _(points: 10)_
 5. [ ] **Task 5** — Record the command line in `ROADMAP.md` and `docs/development.md` _(layer: general)_ _(points: 10)_
 
 ## Scope register

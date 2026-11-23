@@ -13,15 +13,15 @@ GraphScene is a generic flow-graph navigation library. Its `engine` layer holds 
 | `src/graphscene/schemas/flow-graph.schema.json` | The format-4 flow-graph schema, shipped as package data. |
 | `src/graphscene/model/` | `errors.py`: `Violation`, `Stage` and `GraphError`, the one error shape every loading stage rejects a graph with. `flow_graph.py`: `FlowGraph` and the typed objects it holds: `NodeKind`, `Primitive`, `Verdict`, `BindingDeclaration`, `Edge`, `Node`, `OutcomeDeclaration`, `InterruptBinding`, `StopBinding`, `EndBinding`, `PredicateDeclaration`, `Vocabulary`, `CounterDeclaration`, `OnCapEdge`, `RouteEdge`, `BindingEdge`, `SkipEntry`, `DispatchNode`, `RoundNode` and `TerminalNode`. `walk_actions.py`: the steps a walk returns and the passages it records: `Step`, `Action`, `Dispatch`, `DispatchSet`, `Wait`, `Interrupt`, `Stop`, `End`, `Refused`, `GateRecord`, `Passage`, `SkipPassage`, `RoundPassage` and `LedgerPassage`. `walk_state.py`: `WalkState`, `OpenRound`, `RoundResume` and `Awaiting`, where a walk stands and the round a host resumes it in, and the `StateStore` and `PredicateHost` protocols. |
 | `src/graphscene/engine/` | `vocabulary.py`: `vocabulary_violations`, the used-against-declared names check JSON Schema cannot express, reading the built `FlowGraph` and returning `Violation` values. `references.py`: `reference_violations`, that every node, counter, path, report-slot and prompt name the graph uses exists and `start` is listed in `entries`; not public. `static_check.py`: `static_violations`, the reference check, then the five graph checks (`reachable-from-start`, `reaches-terminal`, `fail-cycle-capped`, `gate-in-round`, `round-fan-out`), each reason opening with its check id; `gate-in-round` and `round-fan-out` hold round rules, run on every round, and review-loop rules, run only on a review loop. `review_loop.py`: whether a round is a review loop, and its writer's round number and its gates' convergence; not public. `transitions.py`: every move from one node to the next, including skips, binding edges and opening and closing a round; not public. `rounds.py`: recording a gate's outcome while its round's set is out, and the join once every gate is in, and entering a round with gates already recorded; not public. `walker.py`: `Walker`, whose `start`, `next` and `current` read the walk from its `StateStore`, step it and write it back; `start` takes an optional `RoundResume`, starting the walk at that round's number with the given gate outcomes recorded and every counter at 0, the host deciding which round and which records. |
-| `src/graphscene/adapters/` | `json_file.py`: `read_json_file`, reading a UTF-8 JSON file or raising a parse-stage `GraphError`. `schema.py`: `schema_violations`, validating against the shipped schema with `jsonschema` and the ECMA-262 pattern translator. `builder.py`: `build_flow_graph`, building the typed `FlowGraph` from a validated mapping. `walk_json.py`: `state_to_json` and `state_from_json`, a `WalkState`'s JSON form; not public. `state_file.py`: `FileStateStore`, the `StateStore` keeping a walk's state in one JSON file. |
-| `src/graphscene/facade/` | `loading.py`: `load_graph` and `load_graph_file`, which validate a graph against the schema, build it, then run the vocabulary check and the static checker, and return a `FlowGraph` or raise `GraphError`. `__init__.py`: the composed surface the package root re-exports. |
+| `src/graphscene/adapters/` | `json_file.py`: `read_json_file`, reading a UTF-8 JSON file or raising a parse-stage `GraphError`. `schema.py`: `schema_violations`, validating against the shipped schema with `jsonschema` and the ECMA-262 pattern translator. `builder.py`: `build_flow_graph`, building the typed `FlowGraph` from a validated mapping. `walk_json.py`: `state_to_json` and `state_from_json`, a `WalkState`'s JSON form; `step_document`, a walk step's JSON form; `resume_from_json`, reading the round-resume document into a `RoundResume`; not public. `check_json.py`: `check_document`, a `GraphError`'s JSON form, the check document the command line prints; not public. `state_file.py`: `FileStateStore`, the `StateStore` keeping a walk's state in one JSON file. |
+| `src/graphscene/facade/` | `loading.py`: `load_graph` and `load_graph_file`, which validate a graph against the schema, build it, then run the vocabulary check and the static checker, and return a `FlowGraph` or raise `GraphError`. `cli.py`: `main`, the `graphscene` command line (`check`, `start`, `next`, `current`); not public. `__init__.py`: the composed surface the package root re-exports. |
 | `tests/` | The `pytest` suite. Its tests mirror the layers, in `tests/model/`, `tests/engine/`, `tests/adapters/` and `tests/facade/`; package-wide tests (`test_boundary.py`, `test_layers.py`, `test_public_surface.py`, `test_flow_graph_schema.py`) stay at `tests/`. A new module lands with its own suite, `tests/<layer>/test_<module>.py`. |
 
 ## The layers
 
 | Layer | Path | Holds | May import |
 |---|---|---|---|
-| `facade` | `src/graphscene/facade/` | Loading a graph, which composes the adapters and the engine, and the composed surface the package root re-exports. | `adapters`, `engine`, `model` and the standard library. |
+| `facade` | `src/graphscene/facade/` | Loading a graph, which composes the adapters and the engine, the composed surface the package root re-exports, and the `graphscene` command line, the one module that writes output. | `adapters`, `engine`, `model` and the standard library. |
 | `engine` | `src/graphscene/engine/` | Checks and walks over the built model: the vocabulary check, the static checker, the walk with its rounds, and the review-loop pattern. | `model` and the standard library. |
 | `adapters` | `src/graphscene/adapters/` | Reading a JSON file, validating against the schema with `jsonschema` and the ECMA-262 pattern translator, building the typed model, keeping a walk's state in a file. | `model`, `jsonschema` and the standard library. |
 | `model` | `src/graphscene/model/` | The typed `FlowGraph` and its objects, `Violation`, `Stage` and `GraphError`, the walk state and its actions, and the protocols the engine drives. | The standard library only. |
@@ -47,6 +47,54 @@ bash scripts/python-service.sh --package graphscene test tests/test_layers.py
 - **A new runtime dependency is a decision raised to the maintainer, never one an implementing run makes.** Adding a development tool to the `dev` dependency group is not restricted this way.
 
 `tests/test_boundary.py` enforces the boundary and `tests/test_layers.py` the layer direction, so both rules travel with the library when it is extracted.
+
+## The command line
+
+`graphscene` is for a host not written in Python, or a shell script: it loads a graph and walks it one step at a time over a state file the caller names. It reads no configuration.
+
+| Command | Arguments |
+|---|---|
+| `check` | `<graph>` |
+| `start` | `<graph> <state> [--entry <node>] [--resume <file>] [--answer <predicate>=true\|false …]` |
+| `next` | `<graph> <state> --outcome <outcome> [--node <node>] [--detail <text>] [--answer <predicate>=true\|false …]` |
+| `current` | `<graph> <state>` |
+
+`--resume` names a round-resume document, `{"round", "number", "records"}`, each record the walk-state document's `{"gate", "outcome", "detail"}`.
+
+Every command loads the graph first and prints one JSON document on stdout as one ASCII-only line. Both documents are encoded in `adapters`, never by the command module:
+
+- **The check document** (`adapters/check_json.py`), printed by `check` and by any command whose graph is rejected: `{"stage", "violations": [{"path", "check", "reason"}]}`. A graph that loaded is `{"stage": null, "violations": []}`. `path` is the dotted path, `""` for the root. `check` is set only for stage `static`, from the check id the reason opens with, and `reason` is then the text after it; otherwise `check` is `null` and `reason` is verbatim.
+- **The step document** (`adapters/walk_json.py`), printed by `start`, `next` and `current`: the action as the walk-state document encodes `pending`, or `{"kind": "refused", "reason"}`.
+
+**Predicate answers come only through repeated `--answer <predicate>=true|false`**, one per predicate. A predicate left unanswered is refused by the walk, never guessed.
+
+| Exit | Meaning |
+|---|---|
+| `0` | The graph loaded (`check`), or the walk returned an action. |
+| `1` | The graph was rejected; stdout holds the check document. |
+| `2` | Usage; the usage text is on stderr. |
+| `3` | The walk refused; stdout holds the step document with `"kind": "refused"`. |
+| `4` | An input could not be read or used — an unreadable file, a malformed state or resume file, a state lock not acquired: one `graphscene: <message>` line on stderr and nothing on stdout. |
+
+`bash scripts/python-service.sh provision` installs the console script into the package environment. Once it has, run the command from the repository root:
+
+```
+uv run --frozen --no-sync --project graphscene graphscene check graphscene/tests/fixtures/flow_graph/valid_generic.json
+```
+
+A walk over the same graph, its state in `walk.json`. `start` prints the `draft` dispatch:
+
+```
+uv run --frozen --no-sync --project graphscene graphscene start graphscene/tests/fixtures/flow_graph/valid_generic.json walk.json
+```
+
+Recording `draft`'s outcome enters `review_round`, whose gate `edit_check` asks the predicate `stage_disabled`; without its answer the walk refuses, exit `3`. With it, `next` prints the round's dispatch set:
+
+```
+uv run --frozen --no-sync --project graphscene graphscene next graphscene/tests/fixtures/flow_graph/valid_generic.json walk.json --outcome done --answer stage_disabled=false
+```
+
+`bash scripts/python-service.sh run` is not a route to the command: its `graphscene` row names no console script, and its exit mapping would collapse `1`–`4` into `1`.
 
 ## Running the toolchain
 
