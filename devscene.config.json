@@ -20,8 +20,8 @@
     "commandFamily": "npm",
     "review": {
       "verdict": "applied",
-      "rationale": "Read docs-retrieval-service/pyproject.toml, graphscene/pyproject.toml, graphscene/README.md and scripts/python-service.sh PACKAGES; the two Python packages (ruff/mypy/pytest via scripts/python-service.sh) fell to the general catch-all and no conventions document covered them, so each was given its own layer and conventions document beside cli, plugin and the retained general catch-all at path .",
-      "at": "2026-11-19"
+      "rationale": "Read devscene-runtime/pyproject.toml, devscene-runtime/README.md and scripts/python-service.sh PACKAGES; the devscene-runtime Python package added in #454 fell to the general catch-all with no conventions document, so it was given its own layer and conventions document beside cli, plugin, docs-retrieval, graphscene and the retained general catch-all at path .",
+      "at": "2026-11-23"
     }
   },
   "layers": [
@@ -44,6 +44,11 @@
       "name": "graphscene",
       "path": "graphscene",
       "conventions": ".claude/context/graphscene.md"
+    },
+    {
+      "name": "devscene-runtime",
+      "path": "devscene-runtime",
+      "conventions": ".claude/context/devscene-runtime.md"
     },
     {
       "name": "general",
