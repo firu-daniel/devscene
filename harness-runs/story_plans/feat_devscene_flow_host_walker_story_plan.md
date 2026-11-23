@@ -36,7 +36,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_devsce
 
 1. [x] **Task 1** — Set the package's `records`, `host` and `commands` layers and hold them with `import-linter` contracts run from `tests/test_layers.py` _(layer: devscene-flow-host)_ _(points: 20)_
 2. [x] **Task 2** — Read `devscene.config.json` into `HarnessConfig` in `records`, with `RecordError` _(layer: devscene-flow-host)_ _(points: 15)_
-3. [ ] **Task 3** — Read the run mode from the flow-progress ledger, or the skipped ids given, in `records` _(layer: devscene-flow-host)_ _(points: 15)_
+3. [x] **Task 3** — Read the run mode from the flow-progress ledger, or the skipped ids given, in `records` _(layer: devscene-flow-host)_ _(points: 15)_
 4. [ ] **Task 4** — Answer the harness graph's phase and run-mode predicates with `HarnessPredicateHost` _(layer: devscene-flow-host)_ _(points: 15)_
 5. [ ] **Task 5** — Keep each branch's walk in its own `FileStateStore` under `<stateDir>/.flow_walker_state/` _(layer: devscene-flow-host)_ _(points: 10)_
 6. [ ] **Task 6** — Compose the walker with `open_walker` and walk the harness's format-4 graph end to end _(layer: devscene-flow-host)_ _(points: 20)_
