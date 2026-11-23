@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/feat_devscene_flow_host_walker_task_prompt.md 
   - screened: harness-runs/task_prompts/feat_devscene_flow_host_walker_task_prompt.md sha256=0c291c4e55be87f4d279e0d084bbae26bebb9e40d23804ff17388deb63057e16
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
