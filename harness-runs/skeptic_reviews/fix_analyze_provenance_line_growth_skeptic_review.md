@@ -17,7 +17,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Bound the (4b) provenance note on `write` as well as on `merge` _(layer: plugin)_
+1. [x] **Finding 1** — Bound the (4b) provenance note on `write` as well as on `merge` _(layer: plugin)_
 
 ---
 

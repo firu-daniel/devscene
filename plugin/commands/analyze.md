@@ -253,8 +253,8 @@ docs/analyze.md — at that repository's root, outside the plugin — and are no
    default and skip always available** — the same two answers (4a) offers, decided per section. Each filled
    section ends with its own one-line provenance note (the mode, and what the pass read), which replaces the
    prompt line as that section's classification signal for the next run.
-   On `merge` the note replaces that section's previous note, and it is bounded as (4a)'s provenance line is
-   (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` → `## The document`).
+   On `merge` the note replaces that section's previous note. On `write` and `merge` alike it is bounded as
+   (4a)'s provenance line is (`${CLAUDE_PLUGIN_ROOT}/agents/conventions-writer.md` → `## The document`).
 
    **Both sections are written from step 2's `project`-target survey** — the paragraph from what that survey
    says the project is and who uses it, the table's rows from the name patterns it found, its third column from
