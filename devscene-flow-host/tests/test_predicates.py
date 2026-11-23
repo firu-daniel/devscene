@@ -22,7 +22,8 @@ _RUN_MODE_PREDICATES = ("run_mode_skips_parity", "run_mode_skips_architecture", 
 
 def _plant_config(root: Path, phases: object) -> None:
     (root / "devscene.config.json").write_text(
-        json.dumps({"stateDir": "state/", "phases": phases}), encoding="utf-8"
+        json.dumps({"defaultBranch": "main", "stateDir": "state/", "phases": phases}),
+        encoding="utf-8",
     )
 
 

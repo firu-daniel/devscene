@@ -47,7 +47,8 @@ _UNANSWERED_LEDGER_REASON = (
 
 def _plant(root: Path, phases: dict[str, bool], ledger: str | None = None) -> None:
     (root / "devscene.config.json").write_text(
-        json.dumps({"stateDir": "state", "phases": phases}), encoding="utf-8"
+        json.dumps({"defaultBranch": "main", "stateDir": "state", "phases": phases}),
+        encoding="utf-8",
     )
     if ledger is not None:
         path = root / "state" / "flow_progress" / f"{_BRANCH}_progress.md"

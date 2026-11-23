@@ -28,7 +28,7 @@
 ## Phase 2 Readiness — Ordered Fix List
 
 1. [x] **Finding 1** — Read a JSON `null` phase, a non-object `phases` and a `null` `stateDir` as unset in `read_config`, as `hr_config_load` does _(layer: devscene-flow-host)_
-2. [ ] **Finding 2** — Refuse a configuration with no `defaultBranch` in `read_config` with a `RecordError`, as `hr_config_load` does _(layer: devscene-flow-host)_
+2. [x] **Finding 2** — Refuse a configuration with no `defaultBranch` in `read_config` with a `RecordError`, as `hr_config_load` does _(layer: devscene-flow-host)_
 
 ---
 

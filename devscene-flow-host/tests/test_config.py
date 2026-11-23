@@ -42,40 +42,50 @@ def test_a_full_configuration_is_read(tmp_path: Path) -> None:
 
 
 def test_an_absent_state_dir_takes_the_default(tmp_path: Path) -> None:
-    assert read_config(_plant(tmp_path, "{}")).state_dir == "devscene"
+    assert read_config(_plant(tmp_path, '{"defaultBranch": "main"}')).state_dir == "devscene"
 
 
 def test_a_state_dir_of_only_slashes_takes_the_default(tmp_path: Path) -> None:
-    assert read_config(_plant(tmp_path, '{"stateDir": "/"}')).state_dir == "devscene"
+    root = _plant(tmp_path, '{"defaultBranch": "main", "stateDir": "/"}')
+    assert read_config(root).state_dir == "devscene"
 
 
 def test_every_trailing_slash_is_stripped(tmp_path: Path) -> None:
-    assert read_config(_plant(tmp_path, '{"stateDir": "a//"}')).state_dir == "a"
+    root = _plant(tmp_path, '{"defaultBranch": "main", "stateDir": "a//"}')
+    assert read_config(root).state_dir == "a"
 
 
 def test_absent_phases_are_all_off(tmp_path: Path) -> None:
-    config = read_config(_plant(tmp_path, "{}"))
+    config = read_config(_plant(tmp_path, '{"defaultBranch": "main"}'))
     assert dict(config.phases) == {"parity": False, "qa": False, "docs": False}
 
 
 def test_a_non_boolean_phase_is_unresolvable(tmp_path: Path) -> None:
-    config = read_config(_plant(tmp_path, '{"phases": {"qa": "yes"}}'))
+    config = read_config(_plant(tmp_path, '{"defaultBranch": "main", "phases": {"qa": "yes"}}'))
     assert dict(config.phases) == {"parity": False, "qa": None, "docs": False}
 
 
-@pytest.mark.parametrize("text", ['{"phases": []}', '{"phases": null}', '{"phases": "x"}'])
+@pytest.mark.parametrize(
+    "text",
+    [
+        '{"defaultBranch": "main", "phases": []}',
+        '{"defaultBranch": "main", "phases": null}',
+        '{"defaultBranch": "main", "phases": "x"}',
+    ],
+)
 def test_phases_that_are_not_an_object_are_all_off(tmp_path: Path, text: str) -> None:
     config = read_config(_plant(tmp_path, text))
     assert dict(config.phases) == {"parity": False, "qa": False, "docs": False}
 
 
 def test_a_null_phase_is_off(tmp_path: Path) -> None:
-    config = read_config(_plant(tmp_path, '{"phases": {"qa": null}}'))
+    config = read_config(_plant(tmp_path, '{"defaultBranch": "main", "phases": {"qa": null}}'))
     assert dict(config.phases) == {"parity": False, "qa": False, "docs": False}
 
 
 def test_a_null_state_dir_takes_the_default(tmp_path: Path) -> None:
-    assert read_config(_plant(tmp_path, '{"stateDir": null}')).state_dir == "devscene"
+    root = _plant(tmp_path, '{"defaultBranch": "main", "stateDir": null}')
+    assert read_config(root).state_dir == "devscene"
 
 
 def test_a_missing_file_is_a_record_error(tmp_path: Path) -> None:
@@ -105,15 +115,23 @@ def test_a_top_level_that_is_not_an_object_is_a_record_error(tmp_path: Path) -> 
     assert str(error.value) == f"{tmp_path / 'devscene.config.json'}: not a JSON object"
 
 
+@pytest.mark.parametrize("text", ["{}", '{"defaultBranch": ""}', '{"defaultBranch": null}'])
+def test_a_missing_default_branch_is_a_record_error(tmp_path: Path, text: str) -> None:
+    root = _plant(tmp_path, text)
+    with pytest.raises(RecordError) as error:
+        read_config(root)
+    assert str(error.value) == f"{tmp_path / 'devscene.config.json'}: no defaultBranch"
+
+
 def test_a_state_dir_that_is_not_a_string_is_a_record_error(tmp_path: Path) -> None:
-    root = _plant(tmp_path, '{"stateDir": 3}')
+    root = _plant(tmp_path, '{"defaultBranch": "main", "stateDir": 3}')
     with pytest.raises(RecordError) as error:
         read_config(root)
     assert str(error.value) == f"{tmp_path / 'devscene.config.json'}: stateDir is not a string"
 
 
 def test_the_config_is_frozen_and_its_phases_cannot_be_assigned(tmp_path: Path) -> None:
-    config: HarnessConfig = read_config(_plant(tmp_path, "{}"))
+    config: HarnessConfig = read_config(_plant(tmp_path, '{"defaultBranch": "main"}'))
     with pytest.raises(dataclasses.FrozenInstanceError):
         config.phases = {}  # type: ignore[misc]
     with pytest.raises(TypeError):

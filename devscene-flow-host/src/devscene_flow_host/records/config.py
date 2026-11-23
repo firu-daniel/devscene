@@ -1,13 +1,13 @@
 """Reads `devscene.config.json` into a `HarnessConfig`.
 
-The rule: `read_config` reads two keys, `stateDir` and `phases`, and nothing else, each as the
-bash walker's reader reads it in `cli/templates/scripts/lib/harness-run-lib.sh`: `stateDir` as
-`hr_config_dir` / `hr_state_dir`, `phases` as `hr_phase_enabled`. It reads values and decides
-nothing about what they mean to the walk.
+The rule: `read_config` reads two keys, `stateDir` and `phases`, and refuses a configuration with
+no `defaultBranch`, as `hr_config_load` does; each key is read as the bash walker's reader reads
+it in `cli/templates/scripts/lib/harness-run-lib.sh`: `stateDir` as `hr_config_dir` /
+`hr_state_dir`, `phases` as `hr_phase_enabled`. It reads values and decides nothing about what
+they mean to the walk.
 
 Deliberately not checked:
-- Every other key, including `defaultBranch`, which `hr_config_load` requires and this reader
-  never reads.
+- Every other key.
 - Whether `stateDir` is a safe repo-relative path, which is the schema's.
 """
 
@@ -48,6 +48,9 @@ def read_config(repo_root: Path) -> HarnessConfig:
         raise RecordError(f"{path}: not valid JSON") from None
     if not isinstance(document, dict):
         raise RecordError(f"{path}: not a JSON object")
+    # The shapes `hr_config_load` does not emit; any other value passes through its `tostring`.
+    if document.get("defaultBranch") in (None, "", "null"):
+        raise RecordError(f"{path}: no defaultBranch")
     return HarnessConfig(
         state_dir=_state_dir(document, path),
         phases=_phases(document),
