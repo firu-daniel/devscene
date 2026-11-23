@@ -147,6 +147,14 @@
     {
       "test": "tests/test_boundary.py",
       "covers": "devscene-flow-host/pyproject.toml"
+    },
+    {
+      "test": "tests/test_layers.py",
+      "covers": "devscene-flow-host/src/devscene_flow_host/**"
+    },
+    {
+      "test": "tests/test_layers.py",
+      "covers": "devscene-flow-host/pyproject.toml"
     }
   ],
   "execution": {

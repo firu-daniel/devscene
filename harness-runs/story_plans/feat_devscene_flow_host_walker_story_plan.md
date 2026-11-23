@@ -41,7 +41,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_devsce
 5. [x] **Task 5** — Keep each branch's walk in its own `FileStateStore` under `<stateDir>/.flow_walker_state/` _(layer: devscene-flow-host)_ _(points: 10)_
 6. [x] **Task 6** — Compose the walker with `open_walker` and walk the harness's format-4 graph end to end _(layer: devscene-flow-host)_ _(points: 20)_
 7. [x] **Task 7** — Document the layers, the records, the predicates and the walk store in `devscene-flow-host/README.md` _(layer: devscene-flow-host)_ _(points: 10)_
-8. [ ] **Task 8** — Register `tests/test_layers.py` as a tree guard and update gate 13j and the roadmap row _(layer: general)_ _(points: 10)_
+8. [x] **Task 8** — Register `tests/test_layers.py` as a tree guard and update gate 13j and the roadmap row _(layer: general)_ _(points: 10)_
 
 ## Scope register
 
