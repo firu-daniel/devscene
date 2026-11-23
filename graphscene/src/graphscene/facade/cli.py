@@ -2,7 +2,8 @@
 loading a graph and walking it one step at a time over a state file the caller names.
 
 The rule: every command prints one ASCII-only JSON document on stdout, followed by a newline, and
-exits by this contract:
+exits by this contract; `--help`, on the command line or on a command, is the one exception: it
+prints argparse's help text on stdout and exits `0`.
 
 - `0`: the graph loaded (`check`), or the walk returned an action.
 - `1`: the graph was rejected; every command loads the graph first and prints the check document.

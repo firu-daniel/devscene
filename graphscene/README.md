@@ -76,6 +76,8 @@ Every command loads the graph first and prints one JSON document on stdout as on
 | `3` | The walk refused; stdout holds the step document with `"kind": "refused"`. |
 | `4` | An input could not be read or used — an unreadable file, a malformed state or resume file, a state lock not acquired: one `graphscene: <message>` line on stderr and nothing on stdout. |
 
+`--help`, on `graphscene` or on any command, is the one exception to the one-JSON-document rule: it prints the help text on stdout and exits `0`.
+
 `bash scripts/python-service.sh provision` installs the console script into the package environment. Once it has, run the command from the repository root:
 
 ```
