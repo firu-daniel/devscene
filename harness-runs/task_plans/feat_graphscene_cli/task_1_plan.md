@@ -7,12 +7,14 @@
 
 Both reuse the codec's existing encoders and readers, so each wire shape has exactly one owner.
 
-**Where this layer stops.** This task adds two functions to an `adapters` module and their cases. It prints nothing, parses no argv and chooses no exit status: the command line is **Task 2's**. Task 2 calls exactly these two signatures:
+**Where this layer stops.** This task adds two functions to an `adapters` module and their cases. It prints nothing, parses no argv and chooses no exit status: the command line is **Task 3's**. Task 3 calls exactly these two signatures:
 
 - `step_document(step: Step) -> dict[str, object]`
 - `resume_from_json(text: str) -> RoundResume`
 
-`graphscene/README.md`'s `src/graphscene/adapters/` row, which names this module's functions, is **Task 3's** to update. This task does not edit the README. Neither function joins the public surface (`__all__`), just as `state_to_json` and `state_from_json` stay out of it (`graphscene/tests/test_public_surface.py` → `_EXPECTED`).
+The command line's third wire form, the **check document** (`{"stage", "violations": [{"path", "check", "reason"}]}`, encoded from a `GraphError`), is **not** a walk form and is **not** this task's: **Task 2** gives it its own `adapters` owner, `graphscene/src/graphscene/adapters/check_json.py`. This task adds nothing about `GraphError` to `walk_json.py`.
+
+`graphscene/README.md`'s `src/graphscene/adapters/` row, which names this module's functions, is **Task 4's** to update. This task does not edit the README. Neither function joins the public surface (`__all__`), just as `state_to_json` and `state_from_json` stay out of it (`graphscene/tests/test_public_surface.py` → `_EXPECTED`).
 
 ### Targets
 

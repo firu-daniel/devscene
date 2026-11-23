@@ -1,95 +1,40 @@
-### Task 2 — Add the `graphscene` command line in `facade` and declare its console script
+### Task 2 — Add the check document's encoder in `adapters`
 
-**Goal:** Add `graphscene/src/graphscene/facade/cli.py`, the thin command line over the library: `check`, `start`, `next` and `current`, with the JSON output and the exit contract the story index's `## Context` states. Declare it as the console script `graphscene` in `graphscene/pyproject.toml`.
+**Goal:** Add `graphscene/src/graphscene/adapters/check_json.py`, the one owner of the **check document**, the JSON form the command line prints for the result of loading a graph. Its single function maps a `GraphError` (or its absence) to `{"stage", "violations": [{"path", "check", "reason"}]}`, including the split of a static reason into its check id and its text. A format goes in `adapters` (`.claude/context/graphscene.md` → `## The internal layers`, *"A store, an executor or another format goes in `adapters`"*; `graphscene/src/graphscene/adapters/__init__.py` → *"what touches a format or the outside world"*), so the command module re-encodes nothing.
 
-**Depends on:** Task 1, which adds two functions to `graphscene/src/graphscene/adapters/walk_json.py`. This task calls them exactly as follows and re-encodes nothing:
+**Where this layer stops.** This task adds one module and its suite. It loads no graph, prints nothing, parses no argv and chooses no exit status: the command line, which calls the encoder and writes its result, is **Task 3's**. Task 3 calls exactly this signature:
 
-- `step_document(step: Step) -> dict[str, object]` returns the step document. For an action, that is the action's encoding inside the walk-state document. For a refusal, it is `{"kind": "refused", "reason": <text>}`.
-- `resume_from_json(text: str) -> RoundResume` decodes `{"round": str, "number": int, "records": [{"gate", "outcome", "detail"}]}` and raises `ValueError("<path>: <reason>")` on a malformed document.
+- `check_document(error: GraphError | None) -> dict[str, object]`
 
-`graphscene/README.md` is **Task 3's**: this task adds the module's opening docstring but not its README row or the README's command-line section.
-
-**Where this module may reach.** `facade` may import `adapters`, `engine`, `model` and the standard library (`graphscene/README.md` → `## The layers`). Import each name from its defining module, never from the package root (`graphscene/src/graphscene/__init__.py` → *"no module inside the package imports from the package root"*):
-
-- `load_graph_file` from `graphscene.facade.loading`;
-- `Walker` from `graphscene.engine.walker`;
-- `FileStateStore`, `step_document` and `resume_from_json` from `graphscene.adapters.*`;
-- `GraphError` from `graphscene.model.errors`.
-
-Use only the standard library besides (`argparse`, `json`, `pathlib`, `sys`, `typing`). Never name a `devscene`-prefixed module or the harness's configuration file (`graphscene/tests/test_boundary.py` → `scan`). `main` stays out of `__all__`, and the README marks it *"not public"* (Task 3).
+It is not a walk form, so it does not go in `graphscene/src/graphscene/adapters/walk_json.py` (Task 1's). `graphscene/README.md`'s `src/graphscene/adapters/` row entry for this module is **Task 4's** to write. The function does not join the public surface (`__all__`), just as `state_to_json` stays out of it (`graphscene/tests/test_public_surface.py` → `_EXPECTED`).
 
 ### Targets
 
-- `graphscene/src/graphscene/facade/cli.py` (new): the command line.
-- `graphscene/pyproject.toml`: a `[project.scripts]` table, `graphscene = "graphscene.facade.cli:main"`.
-- `graphscene/tests/facade/test_cli.py` (new): the module's own suite.
+- `graphscene/src/graphscene/adapters/check_json.py` (new): `check_document` and its opening docstring.
+- `graphscene/tests/adapters/test_check_json.py` (new): the module's own suite.
 
 **Work:**
 
-- [ ] `cli.py`: the opening docstring, `main`, and the `check` command.
-  - **Docstring.** It opens with what the module owns, then *"The rule:"*: every command prints one ASCII-only JSON document on stdout, and the exit contract is 0 / 1 / 2 / 3 / 4 as the story index's `## Context` states. It ends with *"Deliberately not covered:"*:
-    - `RoundResume` validity, which is `Walker.start`'s;
-    - configuration, which the CLI reads none of;
-    - platforms without `fcntl`, which `FileStateStore` does not cover;
-    - DevScene's `key: value` wire, which is #418's.
-  - **`main`.** `main(argv: Sequence[str] | None = None, *, stdout: TextIO | None = None, stderr: TextIO | None = None) -> int`. `None` streams resolve to `sys.stdout` / `sys.stderr` at call time.
-    - Use an `argparse.ArgumentParser` subclass whose `_print_message` writes to the injected streams and whose `exit` / `error` raise a module-private exception instead of `SystemExit`. `main` turns usage into return value `2` with argparse's usage text on the injected stderr. `--help` goes to the injected stdout and returns `0`.
-    - End the module with `if __name__ == "__main__": raise SystemExit(main())`.
-  - **`check <graph>`.** Call `load_graph_file(Path(graph))` and print `{"stage": null, "violations": []}` with exit `0`, or on `GraphError` print `{"stage": error.stage, "violations": [...]}` with exit `1`.
-    - Each violation is `{"path": v.path, "check": …, "reason": …}`.
-    - Only for `error.stage == "static"`, split `v.reason` at its first `": "` into `check` and `reason`. Every static reason opens with its check id (`graphscene/src/graphscene/engine/static_check.py` → *"Every reason opens with its check id"*; `graphscene/src/graphscene/engine/references.py` → `node-known`, `start-in-entries`, and the rest).
-    - For every other stage, `check` is `null` and `reason` is `v.reason` verbatim.
-    - `path` stays the library's own path (`""` for the root), never `(root)`.
-- [ ] `cli.py`: the walk commands. Each loads `<graph>` exactly as `check` does, and on a `GraphError` prints the check document with exit `1` before touching `<state>`. Then it builds `Walker(graph, FileStateStore(Path(state)), host)`.
-  - **`start <graph> <state> [--entry <node>] [--resume <file>] [--answer …]`** calls `walker.start(entry, resume=…)`. `--resume` is read as UTF-8 and decoded with `resume_from_json`.
-  - **`next <graph> <state> --outcome <outcome> [--node <node>] [--detail <text>] [--answer …]`** calls `walker.next(outcome, node, detail)`.
-  - **`current <graph> <state>`** calls `walker.current()` with a host that answers every predicate `None`. `current` arrives nowhere, so it never asks.
-  - **`--answer <predicate>=true|false`** may repeat. The host is a small module-private class satisfying `PredicateHost` structurally (`graphscene/src/graphscene/model/walk_state.py` → `PredicateHost`). It answers by predicate name for every node, as `graphscene/tests/facade/test_walking.py` → `DictHost` does, and returns `None` for a predicate no flag names.
-    - The value is exactly `true` or `false`.
-    - Any other value, a missing `=`, an empty predicate name, or the same predicate given twice is a usage error, exit `2`.
-  - **Output.** Print `step_document(step)`. Exit `3` when the step is a `Refused`, otherwise `0`.
-- [ ] `cli.py`: output and environment failures.
-  - Every document is written as `json.dumps(document)` with the default `ensure_ascii=True`, followed by `"\n"`, so a lone surrogate (argv bytes Python decoded with `surrogateescape`) or a non-ASCII name never raises on write.
-  - Catch exactly `OSError`, `ValueError` and `TimeoutError` around reading the resume file and around the walker call. `GraphError` is a `ValueError`, so catch it first, at the load. Turn each into one stderr line `graphscene: <message>` with exit `4` and nothing on stdout. These are:
-    - a missing graph, state directory or resume file;
-    - `FileStateStore.read`'s *"`<state>`: …"* malformed-state `ValueError`;
-    - `resume_from_json`'s `ValueError`;
-    - `FileStateStore.lock`'s `TimeoutError`.
-  - Anything else propagates with its traceback: it is a defect, not an anticipated failure. That mirrors the shape `.claude/context/conventions.md` → `## Output, logging and errors` gives the Python backend.
-- [ ] `graphscene/pyproject.toml`: add `[project.scripts]` with `graphscene = "graphscene.facade.cli:main"`, placed after `[project]`'s `dependencies`. `[project] dependencies` is untouched, so neither `graphscene/uv.lock` nor `devscene-flow-host`'s lock moves (`.claude/context/conventions.md` → `## The layers`, the lock bullet). Do not re-lock.
-- [ ] `graphscene/tests/facade/test_cli.py`.
-  - **Header.** Open with *"The rule this file exists to enforce"* (`.claude/context/conventions.md` → `## The testing bar`). Say why this facade suite names `graphscene.facade.cli` rather than importing from `graphscene`: the command's Python entry is deliberately not public, and its real caller is a process. State that every expected value is hand-written from reading `valid_generic.json`, the `static_negative_*.json` / `schema_negative_*.json` fixtures and the library's refusal texts, never taken from the command's output.
-  - **Calling convention.** Cases call `main([...], stdout=io.StringIO(), stderr=io.StringIO())` and plant state files under `tmp_path`.
-  - **`check`.**
-    - `valid_generic.json` → exit 0, `{"stage": null, "violations": []}`.
-    - One `static_negative_*.json` → exit 1, `stage` `"static"`, its one violation with `check` split off.
-    - One `schema_negative_*.json` → exit 1, `check` `null`.
-    - A file planted under `tmp_path` that is not JSON → stage `"parse"`, path `""`.
-    - A missing file → exit 4, the `graphscene: ` stderr line and empty stdout.
-  - **A walk.**
-    - `start` on `valid_generic.json` → exit 0 and the `draft` dispatch.
-    - `next --outcome done` without `--answer` → exit 3 and `{"kind": "refused", "reason": "the host cannot answer predicate 'stage_disabled' for node 'edit_check'"}` (`graphscene/src/graphscene/engine/transitions.py`, the `cannot answer predicate` refusal).
-    - The same `next` with `--answer stage_disabled=false` → exit 0 and the round's dispatch set.
-    - `current` re-prints the saved pending action.
-    - After the walk, `tmp_path` holds only the state file and its `.lock` sibling.
-  - **Refusals and environment failures.**
-    - `--entry` of a non-entry → exit 3 with the walker's exact refusal.
-    - `current` before any `start` → exit 3, `"no walk has started"`.
-    - A malformed state file → exit 4.
-    - A malformed `--resume` file → exit 4 naming its path.
-    - A valid `--resume` into `review_round` → exit 0.
-  - **Usage.**
-    - `--answer stage_disabled=maybe` → exit 2.
-    - A duplicate `--answer` → exit 2.
-    - No sub-command → exit 2.
-    - `--help` → exit 0 on stdout.
-  - **ASCII output.** `start --entry` given `"\udcff"` → exit 3, and the stdout text is ASCII and carries `\\udcff`.
-  - **Declaration.** Read `graphscene/pyproject.toml` (built off `__file__`) with `tomllib` and assert `[project.scripts]["graphscene"] == "graphscene.facade.cli:main"`. It reads one fixed file, so it is not a tree-reading test and owes no `treeGuards` entry.
-  - **Subprocess.** Run `[sys.executable, "-m", "graphscene.facade.cli", "check", <valid_generic.json>]` with `cwd=tmp_path`. Assert exit 0 and the exact stdout line, proving the module writes to the real stdout as a process.
+- [ ] `check_json.py` → `check_document(error: GraphError | None) -> dict[str, object]`.
+  - `None` (the graph loaded) returns `{"stage": None, "violations": []}`.
+  - A `GraphError` returns `{"stage": error.stage, "violations": [...]}`, one object per entry of `error.violations`, in that order. Each object is `{"path": v.path, "check": …, "reason": …}`, keys in that order.
+  - `path` is `Violation.path` verbatim: `""` for the root, never the `(root)` that `Violation.__str__` renders (`graphscene/src/graphscene/model/errors.py`).
+  - **Only for `error.stage == "static"`**, split `v.reason` at its first `": "` with `str.partition`: `check` is the text before it and `reason` the text after it. Every static reason opens with its check id (`graphscene/src/graphscene/engine/static_check.py` → *"Every reason opens with its check id"*; `graphscene/src/graphscene/engine/references.py` → `node-known: '…' is not a node`). A static reason with no `": "` (a `GraphError` built in code, not by `static_violations`) keeps `check` `None` and `reason` verbatim, so the encoder is total.
+  - For every other stage (`parse`, `schema`, `vocabulary`), `check` is `None` and `reason` is `v.reason` verbatim — a vocabulary reason such as `binding 'x' is not declared …` carries no check id even where it contains `": "`.
+  - Import `GraphError` from `graphscene.model.errors`: a `model` import, which `adapters` may make (`graphscene/pyproject.toml` → contract `graphscene-layers`). Import nothing from `engine` (`graphscene/src/graphscene/adapters/__init__.py` → *"never imports `graphscene.engine`"*).
+- [ ] `check_json.py` opening docstring, in the shape `walk_json.py`'s has (`.claude/context/graphscene.md` → `## Naming and layout`): what the module owns, then *"The rule:"* — the document's exact shape and key order, `check` set only for stage `static` from the id before the reason's first `": "`, and `path` the library's own path with `""` for the root. Then *"Deliberately not covered:"*: serializing to text (the caller's, with `json.dumps`), and validating that a static check id is one `static_check` defines.
+- [ ] `graphscene/tests/adapters/test_check_json.py`. Open with *"The rule this file exists to enforce"* (`.claude/context/conventions.md` → `## The testing bar`), stating that every expected document is hand-written from reading the planted `GraphError` and never taken from the encoder's output. Cases, each comparing `check_document(...)` with a hand-written `dict` and asserting its key order:
+  - **The clean document:** `check_document(None) == {"stage": None, "violations": []}`.
+  - **A static violation split:** `GraphError("static", [Violation("nodes.a.to", "node-known: 'b' is not a node")])` → `check` `"node-known"`, `reason` `"'b' is not a node"`.
+  - **Two static violations keep their order**, each split.
+  - **A schema violation:** `check` `None`, `reason` verbatim.
+  - **A vocabulary violation whose reason contains `": "`** is not split.
+  - **A parse-stage violation at the root:** `path` `""`, `check` `None`.
+  - **A static reason with no `": "`:** `check` `None`, `reason` verbatim.
 
 **Verification:**
 
-- `bash scripts/python-service.sh --package graphscene test tests/facade/test_cli.py` passes.
-- `cli.py` contains no `print(` without an explicit `file=` naming an injected stream, and no direct `sys.stdout` / `sys.stderr` write outside the `None`-default resolution in `main`.
-- `cli.py`'s imports are the standard library plus the defining modules named in this file's "Where this module may reach", and it re-implements no action encoding. Its only use of the walk JSON forms is calling `step_document` and `resume_from_json`.
-- `graphscene/uv.lock` is unchanged in the diff.
+- `bash scripts/python-service.sh --package graphscene test tests/adapters/test_check_json.py` passes.
+- Every expected value in the suite is a hand-written literal, never taken from the function's output (`.claude/context/graphscene.md` → `## Tests`).
+- `check_json.py` imports only `graphscene.model.errors` and the standard library; it prints nothing and calls no `json.dumps`.
+- `check_document` is not in `graphscene/src/graphscene/__init__.py` or `graphscene/src/graphscene/facade/__init__.py`.
