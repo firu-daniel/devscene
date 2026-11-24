@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/feat_flow_walker_uv_shipping_task_prompt.md â†
   - screened: harness-runs/task_prompts/feat_flow_walker_uv_shipping_task_prompt.md sha256=3eafc95563243e96689e52e949cda8afcf2c74370150da0363f62427c72cde52
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) â€” or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
