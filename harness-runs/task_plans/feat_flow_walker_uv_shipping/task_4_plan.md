@@ -46,3 +46,8 @@ So the one helper is where the fix goes. The stub must survive a suite that hand
 - `npm test --workspace cli -- test/setup-worktree-flow-host.test.mjs` passes.
 - The header's `REPRO` block still reproduces every exit it lists.
 - Read-only check of `cli/test/helpers/watcher.mjs`: `watcherEnv`'s returned object assigns `PATH` after `...env`, and its first entry is the directory holding the stub `uv`. For each call into `"$CREATE_WORKTREE"` or `setup-worktree.sh` without `--no-bootstrap` that the grep in **Work:** lists, the suites reaching it must be ⊆ the `createWatcherFixture` suites that get their environment from `watcherEnv`, plus the script-only fixtures named in `### Targets` that reach the `no flow host` skip.
+
+**Deviations from plan:**
+
+- The `REPRO` verification bullet rests on reading, not execution: the fixture there commits no `<scriptsDir>/python/devscene-flow-host`, so step 6 takes its `no flow host` `SKIPPED` arm (return 0) — or its `no uv` arm — and every listed exit is unchanged; the same arm is executed by `cli/test/setup-worktree-flow-host.test.mjs` case (d).
+- The `watcher.mjs` read-only check rests on `git grep` and reading: the calls without `--no-bootstrap` are the watcher's three `"$CREATE_WORKTREE"` arms and the script-only fixtures of `create-worktree.test.mjs`, `setup-worktree-clone-target.test.mjs` and `setup-worktree-checkout-sparse.test.mjs`; every inbox-dropping watcher suite reaches a pass through `tick` or `w.watcherEnv(...)`. The 30 `createWatcherFixture` suites were not run here — deferred to the Run gates phase.

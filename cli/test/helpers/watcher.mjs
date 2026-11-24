@@ -10,7 +10,7 @@
  *
  * `node --test test` loads this file as a test file of its own, so nothing here runs at import time.
  *
- * ## Eight non-obvious choices
+ * ## Nine non-obvious choices
  *
  * 1. **The stub sleeps before its body runs.** Not for the registry: its writes are serialized, so
  *    the pass's post-spawn `pid` write and the session's exit classification both survive whichever
@@ -63,6 +63,12 @@
  * 8. **The fixture's `sandbox.passEnv` lists {@link RECORDER_PASS_ENV}.** A local launch removes
  *    every exported name outside `autonomous-watcher.sh` → `SESSION_ENV_BASE` and that key, so a
  *    stub reading `$CLAR`, `$REC`, `$REGISTRY` or `$PLANT` would otherwise see nothing.
+ * 9. **A stub `uv` that exits 0 leads every pass's `PATH`.** `init` writes the flow host into every
+ *    fixture, so a bootstrap the watcher's cut runs reaches `setup-worktree.sh` step 6. The stub
+ *    keeps that step off the network and out of the shared `uv` cache
+ *    (`.claude/context/cli.md` → `## What "done" means here`), and inside the gate sandbox it keeps
+ *    a real `uv sync` from exiting 2 and losing the copy. `watcherEnv` composes `PATH` after the
+ *    caller's `env`, so a suite passing its own `PATH` keeps the stub ahead of it.
  */
 
 import assert from 'node:assert/strict';
@@ -314,6 +320,12 @@ export async function createWatcherFixture(t, { branch = 'feat_x', runAnalytics 
   await chmod(stubPath, 0o755);
   await writeFile(stubBodyPath, ':\n', 'utf8');
 
+  // Choice 9.
+  const uvBin = join(recorderDir, 'bin');
+  await mkdir(uvBin, { recursive: true });
+  await writeFile(join(uvBin, 'uv'), '#!/usr/bin/env bash\nexit 0\n', 'utf8');
+  await chmod(join(uvBin, 'uv'), 0o755);
+
   const notifyPath = join(dir, NOTIFY_PATH);
   await writeFile(
     notifyPath,
@@ -338,6 +350,7 @@ export async function createWatcherFixture(t, { branch = 'feat_x', runAnalytics 
     XDG_CONFIG_HOME: join(dir, 'home', '.config'),
     XDG_STATE_HOME: join(dir, 'home', '.local', 'state'),
     ...env,
+    PATH: `${uvBin}${delimiter}${env.PATH ?? process.env.PATH ?? ''}`,
   });
 
   return {
