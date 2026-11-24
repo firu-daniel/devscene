@@ -4,28 +4,28 @@
 
 | Measure | Value |
 |---|---|
-| Sessions | 13 (0 incomplete) |
-| Engine / planning node sessions | 4 / 9 |
-| Span | 3h43m |
-| Wall | 3h31m |
-| Session wall, summed over sessions | 3h38m |
-| Active | 3h04m |
+| Sessions | 14 (0 incomplete) |
+| Engine / planning node sessions | 5 / 9 |
+| Span | 5h29m |
+| Wall | 5h13m |
+| Session wall, summed over sessions | 5h21m |
+| Active | 4h47m |
 | Host-suspended | 0.0s |
 | Idle | 26m 36s |
-| Cost | $89.82 |
-| Input tokens (uncached) | 2972 |
-| Total input tokens (incl. cache) | 198881645 |
-| Output tokens | 841940 |
-| Thinking tokens (main thread) | 166511 |
-| Cache read tokens | 193429792 |
-| Cache write tokens | 5448881 |
-| Cache write tokens, main thread (5m / 1h) | 0 / 2346029 |
-| Cache hit ratio | 0.9726 |
-| Requests | 1445 |
-| Request latency p50 / p90 / p99 / max | 2.0s / 8.2s / 30.1s / 1m 30s |
+| Cost | $101.14 |
+| Input tokens (uncached) | 3346 |
+| Total input tokens (incl. cache) | 231925615 |
+| Output tokens | 902339 |
+| Thinking tokens (main thread) | 171374 |
+| Cache read tokens | 225920820 |
+| Cache write tokens | 6001449 |
+| Cache write tokens, main thread (5m / 1h) | 0 / 2629362 |
+| Cache hit ratio | 0.9741 |
+| Requests | 1628 |
+| Request latency p50 / p90 / p99 / max | 1.9s / 7.3s / 28.8s / 1m 30s |
 | Requests over the idle threshold | 0 |
 | API retries | 0 |
-| Permission denials | 48 |
+| Permission denials | 51 |
 | Sub-agents failed / killed | 0 / 0 |
 | Slowest sub-agent | devscene:layer-implementer — Test-fix Item 2 (cli) — 8m 17s (session 12) |
 | Rate-limit peak | seven_day 0.07 |
@@ -48,7 +48,7 @@ Wall, Active, Host-suspended and Idle are the run's own: overlapping sessions' t
 
 ## Network refusals
 
-13 of 13 sessions scanned.
+14 of 14 sessions scanned.
 
 | Session | Context | Tool | Command | Host | Port | Refusal line |
 |---|---|---|---|---|---|---|
@@ -56,6 +56,7 @@ Wall, Active, Host-suspended and Idle are the run's own: overlapping sessions' t
 | 12 | devscene:layer-implementer | Bash | npm test --workspace cli -- test/watcher-stall-reset-payloads.test.mjs | registry.npmjs.org | 443 | <sandbox_violations> |
 | 12 | devscene:layer-implementer | Bash | npm test --workspace cli -- test/watcher-stall-reset-payloads.test.mjs | registry.npmjs.org | 443 | <sandbox_violations> |
 | 12 | devscene:layer-implementer | Bash | npm test --workspace cli -- test/watcher-stall-reset-payloads.test.mjs | registry.npmjs.org | 443 | <sandbox_violations> |
+| 14 | devscene:layer-implementer | Bash | npm test --workspace cli -- test/python-packages-staged.test.mjs | registry.npmjs.org | 443 | <sandbox_violations> |
 
 ## Possible network attempts in gate logs (best effort)
 
@@ -66,7 +67,7 @@ Lines in finished Run gates logs that carry a proxy refusal string or a plain co
 - on macOS, Seatbelt's own violation records go to the system log, not to the test output;
 - a test whose name or output quotes one of these strings is listed too.
 
-No possible network attempt in 1 round logs.
+No possible network attempt in 3 round logs.
 
 ## Gate rounds
 
@@ -136,6 +137,150 @@ A phase's test-file total sums each file's own seconds, so it exceeds the gate's
 | test/remote-control.test.mjs | pass | 615.7 | 83 | 0 |
 | test/remote-control-review.test.mjs | pass | 554.6 | 33 | 0 |
 | test/watcher-run-profile.test.mjs | pass | 487.8 | 21 | 0 |
+
+### Round task_round_2 — fail
+
+| Measure | Value |
+|---|---|
+| Wait (every run of task_round_2) | 49m 05s |
+| Gate rows | 38 (complete) |
+| Test files — focused | 3 files, 680.3 s summed |
+| Test files — full | 233 files, 20599.7 s summed |
+
+| Phase | Gate | Status | Seconds |
+|---|---|---|---|
+| focused | 4 | ok | 412 s |
+| focused | 6a | ok | 2 s |
+| full | 1 | ok | 0 s |
+| full | 2a | ok | 4 s |
+| full | 2b | ok | 0 s |
+| full | 2c | ok | 0 s |
+| full | 2d | ok | 0 s |
+| full | 2e | ok | 0 s |
+| full | 3a | ok | 1 s |
+| full | 3b | ok | 1 s |
+| full | 3c | ok | 2 s |
+| full | 3d | ok | 1 s |
+| full | 3e | ok | 1 s |
+| full | 3f | ok | 1 s |
+| full | 3g | ok | 1 s |
+| full | 3h | ok | 2 s |
+| full | 3i | ok | 0 s |
+| full | 4 | FAIL | 2563 s |
+| full | 6b | ok | 1 s |
+| full | 6c | ok | 1 s |
+| full | 6d | ok | 4 s |
+| full | 6e | ok | 0 s |
+| full | 6f | ok | 1 s |
+| full | 11 | ok | 15 s |
+| full | 13a | ok | 1 s |
+| full | 13b | ok | 1 s |
+| full | 13c | ok | 15 s |
+| full | 13d | SKIPPED | 0 s |
+| full | 13e | ok | 0 s |
+| full | 13f | ok | 1 s |
+| full | 13g | ok | 6 s |
+| full | 13h | ok | 0 s |
+| full | 13i | ok | 0 s |
+| full | 13j | ok | 14 s |
+| full | 14a | ok | 2 s |
+| full | 14c | ok | 2 s |
+| full | 14d | SKIPPED | 0 s |
+| full | 16 | ok | 2 s |
+
+#### Slowest test files — focused (3 of 3)
+
+| File | Status | Seconds | Tests | Failed |
+|---|---|---|---|---|
+| test/watcher-stall-reset-payloads.test.mjs | pass | 407.3 | 18 | 0 |
+| test/doctor.test.mjs | pass | 267.7 | 1 | 0 |
+| test/python-packages-staged.test.mjs | pass | 5.3 | 4 | 0 |
+
+#### Slowest test files — full (10 of 233)
+
+| File | Status | Seconds | Tests | Failed |
+|---|---|---|---|---|
+| test/planning-driver-control.test.mjs | pass | 1250.0 | 17 | 0 |
+| test/watcher-review-drop-payloads.test.mjs | pass | 840.1 | 21 | 0 |
+| test/remote-run.test.mjs | pass | 736.0 | 130 | 0 |
+| test/doctor.test.mjs | pass | 718.6 | 1 | 0 |
+| test/watcher-remote-job.test.mjs | pass | 685.8 | 29 | 0 |
+| test/watcher-placeholder-host.test.mjs | pass | 672.8 | 27 | 0 |
+| test/remote-control.test.mjs | pass | 655.6 | 83 | 0 |
+| test/watcher-remote-dispatch.test.mjs | pass | 645.0 | 17 | 0 |
+| test/remote-control-review.test.mjs | pass | 591.6 | 33 | 0 |
+| test/watcher-run-profile.test.mjs | pass | 509.7 | 21 | 0 |
+
+### Round task_round_3 — pass
+
+| Measure | Value |
+|---|---|
+| Wait (every run of task_round_3) | 42m 49s |
+| Gate rows | 38 (complete) |
+| Test files — focused | 1 files, 0.2 s summed |
+| Test files — full | 233 files, 20747.7 s summed |
+
+| Phase | Gate | Status | Seconds |
+|---|---|---|---|
+| focused | 4 | ok | 4 s |
+| full | 1 | ok | 0 s |
+| full | 2a | ok | 4 s |
+| full | 2b | ok | 0 s |
+| full | 2c | ok | 0 s |
+| full | 2d | ok | 0 s |
+| full | 2e | ok | 0 s |
+| full | 3a | ok | 1 s |
+| full | 3b | ok | 2 s |
+| full | 3c | ok | 3 s |
+| full | 3d | ok | 1 s |
+| full | 3e | ok | 0 s |
+| full | 3f | ok | 1 s |
+| full | 3g | ok | 0 s |
+| full | 3h | ok | 2 s |
+| full | 3i | ok | 0 s |
+| full | 4 | ok | 2583 s |
+| full | 6a | ok | 2 s |
+| full | 6b | ok | 0 s |
+| full | 6c | ok | 1 s |
+| full | 6d | ok | 4 s |
+| full | 6e | ok | 0 s |
+| full | 6f | ok | 1 s |
+| full | 11 | ok | 16 s |
+| full | 13a | ok | 1 s |
+| full | 13b | ok | 0 s |
+| full | 13c | ok | 16 s |
+| full | 13d | SKIPPED | 0 s |
+| full | 13e | ok | 0 s |
+| full | 13f | ok | 1 s |
+| full | 13g | ok | 6 s |
+| full | 13h | ok | 0 s |
+| full | 13i | ok | 0 s |
+| full | 13j | ok | 14 s |
+| full | 14a | ok | 1 s |
+| full | 14c | ok | 2 s |
+| full | 14d | SKIPPED | 0 s |
+| full | 16 | ok | 2 s |
+
+#### Slowest test files — focused (1 of 1)
+
+| File | Status | Seconds | Tests | Failed |
+|---|---|---|---|---|
+| test/main-anchor-isolation.test.mjs | pass | 0.2 | 2 | 0 |
+
+#### Slowest test files — full (10 of 233)
+
+| File | Status | Seconds | Tests | Failed |
+|---|---|---|---|---|
+| test/planning-driver-control.test.mjs | pass | 1229.5 | 17 | 0 |
+| test/watcher-review-drop-payloads.test.mjs | pass | 861.4 | 21 | 0 |
+| test/remote-run.test.mjs | pass | 737.8 | 130 | 0 |
+| test/doctor.test.mjs | pass | 714.4 | 1 | 0 |
+| test/watcher-remote-job.test.mjs | pass | 703.1 | 29 | 0 |
+| test/watcher-placeholder-host.test.mjs | pass | 683.2 | 27 | 0 |
+| test/watcher-remote-dispatch.test.mjs | pass | 657.1 | 17 | 0 |
+| test/remote-control.test.mjs | pass | 652.3 | 83 | 0 |
+| test/remote-control-review.test.mjs | pass | 588.8 | 33 | 0 |
+| test/watcher-run-profile.test.mjs | pass | 528.5 | 21 | 0 |
 
 ## Session 1 — 2026-11-24T15:22:40.768Z → 2026-11-24T15:23:55.744Z
 
@@ -1470,4 +1615,127 @@ Remainder: tokens the session total holds that neither the orchestrator's reques
 | stop_reason | end_turn |
 | Turns | 31 |
 | Time to first token | 1.0s |
+| Rate-limit peak | seven_day 0.07 |
+
+## Session 14 — 2026-11-24T19:09:22.838Z → 2026-11-24T20:52:09.728Z
+
+Session id: `e301327a-69a5-485e-a330-82424b318f70`
+
+### Time
+
+| Wall | duration_ms | duration_api_ms | Host-suspended | Idle | Active | Sub-agents (union) | Suspend source |
+|---|---|---|---|---|---|---|---|
+| 1h42m | 1h42m | 9m 35s | 0.0s | 0.0s | 1h42m | 2m 46s | none |
+
+### Idle gaps (over 120 s)
+
+None.
+
+### Request latency
+
+| Context | Requests | p50 | p90 | p99 | Max | Over threshold |
+|---|---|---|---|---|---|---|
+| all | 183 | 1.7s | 2.6s | 13.5s | 17.3s | 0 |
+| devscene:architecture-reviewer | 9 | 1.4s | 3.4s | 3.4s | 3.4s | 0 |
+| devscene:layer-implementer | 9 | 1.6s | 2.6s | 2.6s | 2.6s | 0 |
+| devscene:statistics-plan-writer | 5 | 2.1s | 17.3s | 17.3s | 17.3s | 0 |
+| devscene:test-fix-plan-writer | 11 | 1.8s | 2.3s | 11.6s | 11.6s | 0 |
+| orchestrator | 149 | 1.7s | 2.3s | 11.1s | 13.5s | 0 |
+
+### Tool time
+
+| Tool | Context | Calls | Total | Max |
+|---|---|---|---|---|
+| Agent — sub-agent wall time | orchestrator | 4 | 2m 46s | 50.3s |
+| Bash | devscene:architecture-reviewer | 6 | 0.9s | 0.2s |
+| Bash | devscene:layer-implementer | 8 | 27.7s | 9.2s |
+| Bash | devscene:statistics-plan-writer | 7 | 1.0s | 0.1s |
+| Bash | devscene:test-fix-plan-writer | 10 | 1.4s | 0.1s |
+| Bash | orchestrator | 241 | 1h33m | 1m 04s |
+| Edit | devscene:layer-implementer | 2 | 0.1s | 0.0s |
+| Edit | orchestrator | 4 | 0.1s | 0.0s |
+| Read | devscene:architecture-reviewer | 16 | 0.9s | 0.5s |
+| Read | devscene:layer-implementer | 4 | 0.0s | 0.0s |
+| Read | devscene:statistics-plan-writer | 2 | 0.0s | 0.0s |
+| Read | devscene:test-fix-plan-writer | 5 | 0.4s | 0.4s |
+| Read | orchestrator | 20 | 2.1s | 0.3s |
+| Skill | orchestrator | 1 | 0.0s | 0.0s |
+| Write | devscene:statistics-plan-writer | 1 | 0.0s | 0.0s |
+| Write | devscene:test-fix-plan-writer | 2 | 0.0s | 0.0s |
+| Write | orchestrator | 1 | 0.0s | 0.0s |
+
+`Agent` / `Task` rows are sub-agent wall time: each row sums every dispatch's own wall time, which `### Sub-agents` breaks down per dispatch, so dispatches sent together count once each and the sum can exceed the time the orchestrator waited, which is `### Time`'s `Sub-agents (union)`. They are not time spent in a tool.
+
+#### Slowest calls (sub-agent dispatches excluded)
+
+| Tool | Context | Started | Duration | Result bytes | Error | Permission denied |
+|---|---|---|---|---|---|---|
+| Bash | orchestrator | 2026-11-24T20:07:46.968Z | 1m 04s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T19:22:00.251Z | 1m 03s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T20:09:59.254Z | 1m 03s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T19:20:54.263Z | 1m 03s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T19:19:48.553Z | 1m 02s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T20:30:16.428Z | 1m 02s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T20:15:23.542Z | 1m 02s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T19:25:14.026Z | 1m 02s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T19:26:19.098Z | 1m 02s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T20:13:13.225Z | 1m 02s | 19 | true | false |
+
+#### Polling loops
+
+| Context | Command | Count | Total |
+|---|---|---|---|
+| orchestrator | bash scripts/run-test-suite.sh --wait task_round_2 | 49 | 49m 05s |
+| orchestrator | bash scripts/run-test-suite.sh --wait task_round_3 | 42 | 42m 49s |
+| orchestrator | cat harness-runs/.dispatch_counter 2>/dev/null \|\| echo 0 | 4 | 0.7s |
+| orchestrator | ls harness-runs/STOP harness-runs/PAUSE 2>&1 | 96 | 1m 05s |
+
+### Sub-agents
+
+| Type | Description | Duration | Requests | Output tokens | Input tokens (uncached) | Total input tokens (incl. cache) | Cache read tokens | Cache write tokens | Wall share |
+|---|---|---|---|---|---|---|---|---|---|
+| devscene:test-fix-plan-writer | Write round 2 test fix plan | 50.3s | 11 | 5747 | 24 | 631515 | 564670 | 66821 | 0.0082 |
+| devscene:architecture-reviewer | Architecture gate on test fix plan | 41.0s | 9 | 4593 | 20 | 714151 | 589519 | 124612 | 0.0067 |
+| devscene:layer-implementer | Implement test fix Finding 1 | 41.3s | 9 | 2847 | 20 | 335942 | 297790 | 38132 | 0.0067 |
+| devscene:statistics-plan-writer | Write branch statistics | 33.7s | 5 | 4442 | 12 | 197387 | 157705 | 39670 | 0.0055 |
+
+Wall share is each dispatch's own duration over the session's wall, so overlapping dispatches' wall shares can sum past 1.
+
+### Cost and tokens
+
+| Measure | Value |
+|---|---|
+| Cost | $11.32 |
+| Cost — claude-opus-5-5 | $11.32 |
+| Input tokens (uncached) | 374 |
+| Total input tokens (incl. cache) | 33043970 |
+| Output tokens | 60399 |
+| Thinking tokens (main thread) | 4863 |
+| Cache read tokens | 32491028 |
+| Cache write tokens | 552568 |
+| Cache write tokens, main thread (5m / 1h) | 0 / 283333 |
+| Cache hit ratio | 0.9833 |
+| Token source | result.modelUsage |
+
+#### Token attribution
+
+| Context | Input tokens (uncached) | Total input tokens (incl. cache) | Output tokens | Cache read tokens | Cache write tokens |
+|---|---|---|---|---|---|
+| orchestrator | 298 | 31164975 | 2887 | 30881344 | 283333 |
+| sub-agents | 76 | 1878995 | 17629 | 1609684 | 269235 |
+| remainder | 0 | 0 | 39883 | 0 | 0 |
+
+Remainder: tokens the session total holds that neither the orchestrator's requests nor the dispatches' transcripts account for.
+
+### Reliability
+
+| Measure | Value |
+|---|---|
+| API retries | 0 |
+| Permission denials | 3 |
+| Sub-agents spawned / failed / killed | 4 / 0 / 0 |
+| terminal_reason | completed |
+| stop_reason | end_turn |
+| Turns | 273 |
+| Time to first token | 1.2s |
 | Rate-limit peak | seven_day 0.07 |
