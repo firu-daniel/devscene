@@ -2559,10 +2559,6 @@ async function run(ctx: CommandContext): Promise<number> {
     notes.push(
       `the shipped Python packages were not written into ${flowHostDir(effective)}/: this is the harness's own repository, where they live at the root and that directory links to them`,
     );
-  } else if (flowHostPackages.written.length > 0) {
-    notes.push(
-      `${flowHostPackages.written.length} files of the shipped Python packages were written into ${flowHostDir(effective)}/, copied verbatim from this CLI: a re-run leaves an edited copy as it is, --force replaces it after copying the current file to <name>.bak, and init --upgrade brings each file to this CLI's bytes after a backup`,
-    );
   }
 
   // After the scripts, which the workflows run, and before the permission profile. Enqueues nothing
@@ -2674,6 +2670,22 @@ async function run(ctx: CommandContext): Promise<number> {
   const hiddenBackups = hiddenBackupsNote({ repoRoot, stateDir: state.stateDir, applied, dryRun: ctx.flags.dryRun });
   if (hiddenBackups !== undefined) notes.push(hiddenBackups);
 
+  // Counted from what the plan did, not from what the generator enqueued: the generator enqueues every
+  // shipped file on every run, and a re-run under `create-if-absent` keeps them all.
+  const flowHostTargets = new Set(
+    (flowHostPackages?.written ?? []).map((file) => resolve(join(repoRoot, ...file.split('/')))),
+  );
+  const flowHostChanged = applied.filter(
+    (result) =>
+      flowHostTargets.has(resolve(result.path)) &&
+      (result.effect === 'created' || result.effect === 'backed-up-and-replaced'),
+  ).length;
+  if (flowHostChanged > 0) {
+    notes.push(
+      `${flowHostChanged} files of the shipped Python packages ${ctx.flags.dryRun ? 'would be' : 'were'} written into ${flowHostDir(effective)}/, copied verbatim from this CLI: a re-run leaves an edited copy as it is, --force replaces it after copying the current file to <name>.bak, and init --upgrade brings each file to this CLI's bytes after a backup`,
+    );
+  }
+
   // After the plan, deliberately: this is the one git-configuration write, and pointing
   // `core.hooksPath` at a directory whose hook has not landed yet would enable nothing.
   const hooksPath = pointHooksPath({ repoRoot, githooksDir: hooks.githooksDir, dryRun: ctx.flags.dryRun });
@@ -2699,9 +2711,13 @@ async function run(ctx: CommandContext): Promise<number> {
     const provisioned = provisionFlowHost({ repoRoot, config: effective, dryRun: ctx.flags.dryRun });
     warnings.push(...provisioned.warnings);
     notes.push(...provisioned.notes);
-  } else if (!flowHostProvisioned(repoRoot, effective) || (flowHostPackages?.written.length ?? 0) > 0) {
+  } else if (!flowHostProvisioned(repoRoot, effective)) {
     notes.push(
       `the Python environment the flow walker runs in is not built: run ${flowHostProvisionInvocation(effective)} outside the sandbox to build it with uv, or pass ${PROVISION_PYTHON_FLAG} to init`,
+    );
+  } else if (flowHostChanged > 0) {
+    notes.push(
+      `the Python environment the flow walker runs in was built from the previous packages: rebuild it by running ${flowHostProvisionInvocation(effective)} outside the sandbox, or pass ${PROVISION_PYTHON_FLAG} to init`,
     );
   }
 

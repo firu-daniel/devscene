@@ -3,7 +3,8 @@
  * rebuild, through the compiled CLI against throwaway fixture repositories.
  *
  * **The rule this suite enforces: only `--provision-python` (or a yes on a terminal) runs
- * `flow-host-provision.sh`, and never under `--dry-run`; a run without it names the command; a failed
+ * `flow-host-provision.sh`, and never under `--dry-run`; a run without it names the command only where
+ * the environment is not built, and counts only the package files the plan wrote; a failed
  * or skipped build is a warning and `init` still exits 0; and an upgrade that changed a shipped Python file
  * names the rebuild command.** The command and the argv are spelled out here rather than read from
  * `dist/`, so a change to the producer is a change this suite sees.
@@ -17,7 +18,7 @@
 
 import assert from 'node:assert/strict';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
-import { chmod, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import test from 'node:test';
@@ -92,6 +93,23 @@ test('without the flag and with stdin piped, uv never runs and the note names th
   assert.equal(result.status, 0, output(result));
   assert.deepEqual(repo.uvCalls(), []);
   assert.match(output(result), new RegExp(`is not built: run ${COMMAND} outside the sandbox`));
+});
+
+test('a re-run over a built environment and unchanged packages notes neither a missing build nor written files', async (t) => {
+  const repo = await repository(t);
+  const first = await repo.run(['init']);
+  assert.equal(first.status, 0, output(first));
+  assert.match(output(first), /files of the shipped Python packages were written/);
+  const env = join(repo.dir, INIT_SCRIPTS_DIR, 'python', '.venv');
+  await mkdir(env, { recursive: true });
+  await writeFile(join(env, 'pyvenv.cfg'), 'home = /usr/bin\n');
+
+  const second = await repo.run(['init']);
+  assert.equal(second.status, 0, output(second));
+  assert.doesNotMatch(output(second), /is not built/);
+  assert.doesNotMatch(output(second), /files of the shipped Python packages were written/);
+  assert.doesNotMatch(output(second), /was built from the previous packages/);
+  assert.deepEqual(repo.uvCalls(), []);
 });
 
 test('--dry-run --provision-python runs nothing', async (t) => {
