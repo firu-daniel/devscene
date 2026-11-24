@@ -21,7 +21,7 @@ The SKIPPED legs (13d, 14d) and the `gates this script cannot run` list are not 
 5. [x] **Finding 5** — Stall-reset (S2) committed settings.json case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 6. [x] **Finding 6** — Stall-reset (S3) nested core.fsmonitor case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 7. [x] **Finding 7** — Stall-reset (S5) symlinked PAUSE_PROGRESS.md case: EEXIST on `watcher-test/bin`. _(layer: cli)_
-8. [ ] **Finding 8** — Stall-reset (S6) forged base case: EEXIST on `watcher-test/bin`. _(layer: cli)_
+8. [x] **Finding 8** — Stall-reset (S6) forged base case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 9. [ ] **Finding 9** — Stall-reset (S7) skip-worktree settings.json case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 10. [ ] **Finding 10** — Stall-reset (S8) replace-ref case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 11. [ ] **Finding 11** — Stall-reset (S9) info/grafts case: EEXIST on `watcher-test/bin`. _(layer: cli)_
