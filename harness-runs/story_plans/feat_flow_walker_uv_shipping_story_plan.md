@@ -75,7 +75,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_walker_uv_shipping
 
 1. [x] **Task 1** — Stage `graphscene/` and `devscene-flow-host/` into the npm tarball under `dist/python/`, with the layout module that names them _(layer: cli)_ _(points: 20)_
 2. [x] **Task 2** — Write the staged packages under `<scriptsDir>/python/` on `init` and replace them on `init --upgrade` _(layer: cli)_ _(points: 20)_
-3. [ ] **Task 3** — Ship `flow-host-provision.sh` and the library function `hr_flow_host_provision` _(layer: cli)_ _(points: 20)_
+3. [x] **Task 3** — Ship `flow-host-provision.sh` and the library function `hr_flow_host_provision` _(layer: cli)_ _(points: 20)_
 4. [ ] **Task 4** — Provision the walker's environment as `setup-worktree.sh`'s bootstrap step 6 _(layer: cli)_ _(points: 15)_
 5. [ ] **Task 5** — Write-protect the main checkout's `<scriptsDir>/python/` in the unattended profile _(layer: cli)_ _(points: 15)_
 6. [ ] **Task 6** — Ignore the walker's environment `<scriptsDir>/python/.venv/` in the managed `.gitignore` block _(layer: cli)_ _(points: 10)_

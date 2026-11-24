@@ -30,7 +30,8 @@
 # `launch-sandboxed-gates.sh` and `run-analytics.sh` — its layout
 # (`hr_test_run_lane_dir`), label
 # pattern and staleness bound (`HR_TEST_RUN_*`) and heartbeat reader
-# (`hr_heartbeat_age`) — places a dropped
+# (`hr_heartbeat_age`) — syncs the flow walker's Python environment
+# (`hr_flow_host_provision`), places a dropped
 # artifact in a working copy and commits and pushes it, and derives the
 # anchors (main checkout, work root, worktree directory, repo slug,
 # state-dir paths) the scripts would otherwise each re-derive slightly
@@ -242,6 +243,11 @@
 #      replaces (removed by its writer on a failed step). Nothing else there is
 #      ever removed. Written only by `hr_push_refusal_record` and
 #      `hr_push_refusal_handled`.
+#   8. THE FLOW HOST'S ENVIRONMENT has `uv` sync one environment. Fence: in a
+#      repository, only `<env_scripts_dir>/python/.venv`, the
+#      `UV_PROJECT_ENVIRONMENT` the call names; outside every repository,
+#      whatever `uv` writes to its own cache. Written only by
+#      `hr_flow_host_provision`.
 #
 # MIRRORS OF `cli/src/remote/githubActions.ts`, which owns these names; a
 # rename there is an edit here, byte for byte:
@@ -293,6 +299,10 @@
 # All three are held equal to their owners by
 # `cli/test/sandbox-prerequisites-shell-mirror.test.mjs`.
 #
+# MIRROR OF `cli/src/flowHost/layout.ts` → `FLOW_HOST_DIRNAME`,
+# `FLOW_HOST_PROJECT` and `FLOW_HOST_ENV_DIRNAME`; `hr_flow_host_provision`
+# spells all three, listed in the section THE FLOW HOST'S ENVIRONMENT.
+#
 # MIRROR OF `cli/src/config/model.ts` → `SANDBOX_PASS_ENV_PATTERN`;
 # `hr_session_pass_env`'s element filter (`^[A-Za-z_][A-Za-z0-9_]*$`) is its
 # shell mirror, so a change to the owner is an edit here.
@@ -307,7 +317,7 @@
 # `hr_run_trusted_base_var`, `hr_run_surface_check_var` (through it), `hr_run_main_git`,
 # `hr_run_copy_git`, `hr_copy_git_at`, `hr_copy_sync_in_var`, `hr_copy_sync_out_var`,
 # `hr_copy_ref_swap_var`, `hr_registry_drop`, `hr_registry_restore`, `hr_clone_create_var`,
-# `hr_push_refusal_record`, `hr_push_refusal_handled` or
+# `hr_push_refusal_record`, `hr_push_refusal_handled`, `hr_flow_host_provision` or
 # `hr_clone_remove_var` function
 # still gets a library that only reads. The
 # lane's ceilings are the only environment values here that carry policy, because
@@ -317,8 +327,9 @@
 # `RUNNER_TEMP` are also read, as location anchors only, and `PATH` is read by
 # `hr_path_with_fallbacks` alone — as that function's input, which it prints back
 # transformed and never assigns — beside the `command -v` of
-# `hr_sandbox_prereq_probe_var`, `hr_keep_awake_probe_var` and
-# `hr_keep_awake_hold_var`, which resolves against it and never assigns it.
+# `hr_sandbox_prereq_probe_var`, `hr_keep_awake_probe_var`,
+# `hr_keep_awake_hold_var` and `hr_flow_host_provision`, which resolves against
+# it and never assigns it.
 # `GITHUB_ACTIONS` is read by `hr_keep_awake_mode_var` alone, to take no hold on
 # a runner, and `HR_POWER_SUPPLY_DIR` by `hr_on_mains_power` alone, as a test
 # seam no shipped script sets. `GITHUB_RUN_ID`, `GITHUB_SERVER_URL`,
@@ -429,6 +440,8 @@
 # log is the only place the skip can be seen. `hr_run_fast_forward_var` and
 # `hr_run_reset_var` leave the stderr of their writing git calls (`read-tree`,
 # `update-ref`) to the caller too, and so does `hr_commit_paths_var`.
+# `hr_flow_host_provision` prints its one outcome line and passes `uv`'s output
+# to stderr, because its callers relay both to a person.
 # That silence is why the lane reports a lock it BROKE through a
 # variable instead of a log line — the caller owns the log.
 #
@@ -6888,6 +6901,65 @@ EOF
   fi
   rm -f "$tmp"
   return 1
+}
+
+# ---------------------------------------------------------------------------
+# THE FLOW HOST'S ENVIRONMENT — the one route that syncs the walker's Python
+# environment, for `flow-host-provision.sh` and `setup-worktree.sh` alike.
+#
+# MIRRORS `cli/src/flowHost/layout.ts`, which owns these three literals; a
+# rename there is an edit here, byte for byte, and
+# `cli/test/flow-host-provision.test.mjs` holds them equal:
+#   flow_dir      'python'              mirrors  FLOW_HOST_DIRNAME
+#   flow_project  'devscene-flow-host'  mirrors  FLOW_HOST_PROJECT
+#   flow_env      '.venv'               mirrors  FLOW_HOST_ENV_DIRNAME
+# ---------------------------------------------------------------------------
+
+# hr_flow_host_provision <source_scripts_dir> <env_scripts_dir> — sync the
+# project `<source_scripts_dir>/python/devscene-flow-host` into the environment
+# `<env_scripts_dir>/python/.venv`. Both arguments are absolute `scriptsDir`
+# paths; they differ only when a run copy's environment is built from the main
+# checkout's packages.
+#
+# `UV_PROJECT_ENVIRONMENT` is set on the `uv` command alone, never assigned
+# here. `uv`'s own stdout goes to stderr, so stdout carries only the success line.
+#
+#   no `uv` on PATH   stderr `flow-host: provision: SKIPPED — uv is not on PATH;
+#                     install uv, then run bash <env_scripts_dir>/flow-host-provision.sh
+#                     outside the sandbox`, return 0
+#   no pyproject      stderr `flow-host: provision: SKIPPED — no flow host at
+#                     <project>; run npx devscene init --upgrade`, return 0
+#   synced            stdout `flow-host: provisioned <environment>`, return 0
+#   `uv` failed       stderr `flow-host: provision: failed (exit <n>)`, return 1
+#   an empty argument stderr `flow-host: provision: failed — needs two scripts
+#                     directories`, return 1
+hr_flow_host_provision() {
+  local src="${1-}" env_root="${2-}" flow_dir='python' flow_project='devscene-flow-host' flow_env='.venv'
+  local project environment status
+  if [ -z "$src" ] || [ -z "$env_root" ]; then
+    printf '%s\n' 'flow-host: provision: failed — needs two scripts directories' >&2
+    return 1
+  fi
+  while [ "$src" != / ] && [ "${src%/}" != "$src" ]; do src=${src%/}; done
+  while [ "$env_root" != / ] && [ "${env_root%/}" != "$env_root" ]; do env_root=${env_root%/}; done
+  project="$src/$flow_dir/$flow_project"
+  environment="$env_root/$flow_dir/$flow_env"
+  if ! command -v uv >/dev/null 2>&1; then
+    printf 'flow-host: provision: SKIPPED — uv is not on PATH; install uv, then run bash %s/flow-host-provision.sh outside the sandbox\n' "$env_root" >&2
+    return 0
+  fi
+  if [ ! -f "$project/pyproject.toml" ]; then
+    printf 'flow-host: provision: SKIPPED — no flow host at %s; run npx devscene init --upgrade\n' "$project" >&2
+    return 0
+  fi
+  status=0
+  UV_PROJECT_ENVIRONMENT="$environment" uv sync --frozen --no-dev --no-editable --project "$project" >&2 || status=$?
+  if [ "$status" -ne 0 ]; then
+    printf 'flow-host: provision: failed (exit %s)\n' "$status" >&2
+    return 1
+  fi
+  printf 'flow-host: provisioned %s\n' "$environment"
+  return 0
 }
 
 # ---------------------------------------------------------------------------

@@ -7,6 +7,11 @@
  * project, its environment directory or the shipped-file set; each reads the export here, so the
  * staging step, the writer that copies the tree into an adopting repository and the step that syncs
  * its environment cannot disagree about a path.
+ *
+ * MIRRORS. `hr_flow_host_provision` in `cli/templates/scripts/lib/harness-run-lib.sh` spells
+ * {@link FLOW_HOST_DIRNAME}, {@link FLOW_HOST_PROJECT} and {@link FLOW_HOST_ENV_DIRNAME} as shell
+ * literals, because a shipped script cannot import this module; a rename here is an edit there,
+ * and `cli/test/flow-host-provision.test.mjs` holds the two equal.
  */
 
 import { join, posix } from 'node:path';
