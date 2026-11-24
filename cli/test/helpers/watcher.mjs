@@ -63,12 +63,17 @@
  * 8. **The fixture's `sandbox.passEnv` lists {@link RECORDER_PASS_ENV}.** A local launch removes
  *    every exported name outside `autonomous-watcher.sh` → `SESSION_ENV_BASE` and that key, so a
  *    stub reading `$CLAR`, `$REC`, `$REGISTRY` or `$PLANT` would otherwise see nothing.
- * 9. **A stub `uv` that exits 0 leads every pass's `PATH`.** `init` writes the flow host into every
- *    fixture, so a bootstrap the watcher's cut runs reaches `setup-worktree.sh` step 6. The stub
- *    keeps that step off the network and out of the shared `uv` cache
+ * 9. **A stub `uv` leads every pass's `PATH`.** `init` writes the flow host into every fixture, so
+ *    a bootstrap the watcher's cut runs reaches `setup-worktree.sh` step 6. The stub exits 0 there,
+ *    which keeps that step off the network and out of the shared `uv` cache
  *    (`.claude/context/cli.md` → `## What "done" means here`), and inside the gate sandbox it keeps
- *    a real `uv sync` from exiting 2 and losing the copy. `watcherEnv` composes `PATH` after the
- *    caller's `env`, so a suite passing its own `PATH` keeps the stub ahead of it.
+ *    a real `uv sync` from exiting 2 and losing the copy. A first argument of `run` is the
+ *    `flow-walker.sh` hand-off, which builds nothing, so the stub `exec`s the real `uv` resolved on
+ *    the host's `PATH` when the fixture was built — or exits 0 too where the host has none, and the
+ *    suites gated on `walkerUnavailable()` skip. The main checkout carries `linkWalkerEnv`'s
+ *    environment link, so a walker run from it has an environment to hand off to.
+ *    `watcherEnv` composes `PATH` after the caller's `env`, so a suite passing its own `PATH` keeps
+ *    the stub ahead of it.
  */
 
 import assert from 'node:assert/strict';
@@ -78,6 +83,7 @@ import { delimiter, join } from 'node:path';
 
 import { createFixture, INIT_SCRIPTS_DIR, runBash, runCli } from './fixture.mjs';
 import { scaleBound } from './timing.mjs';
+import { linkWalkerEnv } from './walker.mjs';
 
 const STATE_DIR = 'devscene';
 const WATCHER_PATH = `${INIT_SCRIPTS_DIR}/autonomous-watcher.sh`;
@@ -235,17 +241,22 @@ function nodeProjectFiles() {
   };
 }
 
-function onPath(name) {
+/** The first executable `name` on this process's `PATH`, or `null`. */
+function resolveOnPath(name) {
   for (const entry of (process.env.PATH ?? '').split(delimiter)) {
     if (entry === '') continue;
     try {
       accessSync(join(entry, name), fsConstants.X_OK);
-      return true;
+      return join(entry, name);
     } catch {
       // Not here; keep looking.
     }
   }
-  return false;
+  return null;
+}
+
+function onPath(name) {
+  return resolveOnPath(name) !== null;
 }
 
 /** A shell single-quoted literal, so a fixture path is one word whatever it contains. */
@@ -321,9 +332,12 @@ export async function createWatcherFixture(t, { branch = 'feat_x', runAnalytics 
   await writeFile(stubBodyPath, ':\n', 'utf8');
 
   // Choice 9.
+  linkWalkerEnv(dir);
   const uvBin = join(recorderDir, 'bin');
   await mkdir(uvBin, { recursive: true });
-  await writeFile(join(uvBin, 'uv'), '#!/usr/bin/env bash\nexit 0\n', 'utf8');
+  const realUv = resolveOnPath('uv');
+  const uvRun = realUv === null ? [] : [`if [ "\${1-}" = run ]; then exec ${shellQuote(realUv)} "$@"; fi`];
+  await writeFile(join(uvBin, 'uv'), ['#!/usr/bin/env bash', ...uvRun, 'exit 0', ''].join('\n'), 'utf8');
   await chmod(join(uvBin, 'uv'), 0o755);
 
   const notifyPath = join(dir, NOTIFY_PATH);

@@ -7,6 +7,13 @@
  * the fixture, never the template in this checkout.** A case that ran the template would pass on a
  * walker `init` had failed to write, or had written somewhere else.
  *
+ * That copy hands off to the Python command `devscene-flow-walker`, which runs the sources `init`
+ * copied into the fixture's `<scriptsDir>/python/` from this build's `dist/python/` — staged from
+ * this checkout's `devscene-flow-host/` and `graphscene/` — so a case tests this branch's Python,
+ * not main's. The one thing a fixture borrows is the environment: {@link linkWalkerEnv} makes the
+ * fixture's environment directory a symbolic link to this checkout's provisioned one, and
+ * {@link walkerUnavailable} skips a case on a host where that environment was never built.
+ *
  * `node --test test` loads this file as a test file of its own, so nothing here runs at import time.
  *
  * Every round gate's findings file — its `PASS` as well as its `FAIL` — is planted **before** the
@@ -20,17 +27,25 @@
  */
 
 import assert from 'node:assert/strict';
-import { accessSync, constants as fsConstants, readFileSync } from 'node:fs';
+import { accessSync, constants as fsConstants, existsSync, lstatSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 
-import { createFixture, INIT_SCRIPTS_DIR, runBash, runCli } from './fixture.mjs';
+import { flowHostEnvDir } from '../../dist/flowHost/layout.js';
+import { ENV_MARKER_FILE, flowHostProvisionInvocation } from '../../dist/flowHost/provision.js';
+import { createFixture, INIT_SCRIPTS_DIR, runBash, runCli, WORKSPACE_ROOT } from './fixture.mjs';
 
 const WALKER_PATH = `${INIT_SCRIPTS_DIR}/flow-walker.sh`;
 const FLOW = 'task_plan_writing';
 
-/** The fixture's own copy of the graph — the one a mutation check edits, never the template. */
-export const WALKER_GRAPH_PATH = `${INIT_SCRIPTS_DIR}/flows/${FLOW}.graph.json`;
+/**
+ * The fixture's own copy of the format-4 graph the walker loads — the one a mutation check edits,
+ * never the template.
+ */
+export const WALKER_GRAPH_PATH = `${INIT_SCRIPTS_DIR}/flows/${FLOW}.v4.graph.json`;
+
+/** The command the hand-off runs, under the environment's `bin/`. */
+const WALKER_COMMAND = 'devscene-flow-walker';
 
 const CONFIG_PATH = 'devscene.config.json';
 
@@ -62,13 +77,44 @@ function onPath(name) {
 
 /**
  * The reason a walker case cannot run on this host, or `false`: the walker faults without `bash`
- * or `jq`, which is a statement about the host rather than about the walker.
+ * or `jq`, and the hand-off refuses without `uv` or this checkout's provisioned environment, which
+ * {@link linkWalkerEnv} lends every fixture. Each is a statement about the host, not the walker.
  */
 export function walkerUnavailable() {
-  for (const tool of ['bash', 'jq']) {
+  for (const tool of ['bash', 'jq', 'uv']) {
     if (!onPath(tool)) return `${tool} does not resolve on this process's PATH, so ${WALKER_PATH} cannot be driven here`;
   }
+  const config = readConfig(WORKSPACE_ROOT);
+  const env = join(WORKSPACE_ROOT, flowHostEnvDir(config));
+  const remedy = `run \`${flowHostProvisionInvocation(config)}\` from ${WORKSPACE_ROOT}, outside the sandbox`;
+  const marker = join(env, ENV_MARKER_FILE);
+  if (!existsSync(marker)) return `${marker} is absent, so ${WALKER_PATH} has no environment to hand off to: ${remedy}`;
+  const command = join(env, 'bin', WALKER_COMMAND);
+  try {
+    accessSync(command, fsConstants.X_OK);
+  } catch {
+    return `${command} is not executable, so ${WALKER_PATH} has no command to hand off to: ${remedy}`;
+  }
   return false;
+}
+
+/**
+ * Make `<dir>/<flowHostEnvDir>` a symbolic link to this checkout's provisioned environment, each
+ * path built from its own repository's configuration. Creates the parent when `init` left none,
+ * and replaces nothing already there.
+ *
+ * @param {string} dir
+ */
+export function linkWalkerEnv(dir) {
+  const link = join(dir, flowHostEnvDir(readConfig(dir)));
+  try {
+    lstatSync(link);
+    return;
+  } catch {
+    // Nothing there; link it.
+  }
+  mkdirSync(dirname(link), { recursive: true });
+  symlinkSync(join(WORKSPACE_ROOT, flowHostEnvDir(readConfig(WORKSPACE_ROOT))), link);
 }
 
 function readConfig(dir) {
@@ -96,6 +142,7 @@ export async function walkerFixture({ parity, qa, branch = 'feat_x' }) {
   const config = readConfig(dir);
   config.phases = { ...(config.phases ?? {}), parity, qa };
   await writeFile(join(dir, CONFIG_PATH), `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  linkWalkerEnv(dir);
   return { dir, branch, cleanup };
 }
 
@@ -144,7 +191,7 @@ async function writeReview(dir, folder, n, verdict, section) {
 /**
  * Write the round file `review_<n>.md` a reviewer leaves behind, in the shape
  * `plugin/instructions/plan_review_rounds.md` → `## The round file` fixes. A `FAIL` carries a valid
- * `## Must Fix` entry, because the gate library reads a `FAIL` without one as `unreadable`.
+ * `## Must Fix` entry, because the walker's round-file check refuses a `FAIL` without one.
  *
  * @param {string} dir
  * @param {string} folder the findings folder under `stateDir`, branch segment included.
@@ -281,9 +328,28 @@ export function blocksOf(action) {
   return blocks;
 }
 
-/** The pending node's state file, for a refusal asserted on the bytes on disk. */
-export function walkerStatePath(dir) {
-  return join(dir, stateDirOf(dir), '.flow_walker_state');
+/**
+ * The encoding `urllib.parse.quote(branch, safe="")` produces: `A-Za-z0-9_.-~` kept, every other
+ * UTF-8 byte as uppercase `%XX`.
+ */
+function encodeBranch(branch) {
+  let out = '';
+  for (const byte of Buffer.from(branch, 'utf8')) {
+    const ch = String.fromCharCode(byte);
+    out += /[A-Za-z0-9_.~-]/.test(ch) ? ch : `%${byte.toString(16).toUpperCase().padStart(2, '0')}`;
+  }
+  return out;
+}
+
+/**
+ * One branch's walk-state file, for a refusal asserted on the bytes on disk
+ * (`devscene-flow-host/src/devscene_flow_host/host/store.py` → `walk_state_path`).
+ *
+ * @param {string} dir
+ * @param {string} [branch]
+ */
+export function walkerStatePath(dir, branch = 'feat_x') {
+  return join(dir, stateDirOf(dir), '.flow_walker_state', `${encodeBranch(branch)}.json`);
 }
 
 export { FLOW as WALKER_FLOW };
