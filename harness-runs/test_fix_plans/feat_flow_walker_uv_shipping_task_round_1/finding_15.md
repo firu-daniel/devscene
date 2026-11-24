@@ -30,3 +30,11 @@
 
 - [ ] Make sure `createStallFixture` creates `bin` with `await mkdir(bin, { recursive: true });`, the change Finding 3 makes. If that change has already landed, this test needs no edit of its own.
 - [ ] If the test still fails once that change is in place, its failure is a new one past fixture setup. Diagnose it at the call site the new error names, in this test's body or in `createStallFixture` after the `mkdir`, and fix it there. Do not weaken or skip the case.
+
+## Already passing
+
+**Cause:** already passing after an earlier fix: Finding 3's `mkdir(bin, { recursive: true })` in `createStallFixture` (commit 8df6dde6) cleared the EEXIST; the whole-file run recorded under Findings 4–6 passes every case in the file, this one included
+
+- (a) Named test `(J1) job mode with HARNESS_GITHUB_DEFAULT_BRANCH unset gives up without calling npx`; file run: `cli/test/watcher-stall-reset-payloads.test.mjs`.
+- (b) `npm test --workspace cli -- test/watcher-stall-reset-payloads.test.mjs` from the repository root, run by the Finding 4–6 dispatches after commit 8df6dde6: file totals `# tests 18`, `# pass 18`, `# fail 0`. Recorded by the operator during a pause rather than re-run per finding, since every case in the file shares Finding 3's cause.
+- (c) No code file was edited; this record is the only write.
