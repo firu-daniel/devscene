@@ -48,6 +48,23 @@ You install two things: a Claude Code plugin and a Node CLI.
 
 - **Contributors.** From a clone, the plugin installs as a directory source, and the built CLI is `node cli/dist/cli.js`. Both routes, and the scratch repository step 3 then needs, are [`docs/development.md`](docs/development.md) §1 and §5.
 - **The `.claude/` write wall.** Step 3 writes under `.claude/`, which no permission entry opens to an unattended run. There it exits `0` having written nothing, so run it supervised and check that the conventions documents changed. See [`docs/analyze.md`](docs/analyze.md) §3.
+- **`uv`.** DevScene requires [`uv`](https://docs.astral.sh/uv/) on every machine that runs it, for its Python flow walker. Step 2 copies the walker's packages under `<scriptsDir>/python/`, and `uv` builds their environment beside them, outside the sandbox, because it reaches the network. Nothing runs the walker yet, so without `uv` the `doctor` checks `uv` and `flow-host` only warn. Once `uv` is installed, this command prints its version:
+
+  ```bash
+  uv --version
+  ```
+
+  On a terminal step 2 offers to build the environment. To build it without being asked, run step 2 as:
+
+  ```bash
+  npx devscene init --provision-python
+  ```
+
+  Or build it later, from the repository root, with the default `scriptsDir` ([`docs/cli.md`](docs/cli.md) §2):
+
+  ```bash
+  bash devscene-scripts/flow-host-provision.sh
+  ```
 
 ```mermaid
 flowchart TB

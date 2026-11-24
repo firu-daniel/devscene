@@ -85,7 +85,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_walker_uv_shipping
 10. [x] **Task 10** — Document the shipped packages and the provisioning script in the `cli` package's READMEs _(layer: cli)_ _(points: 10)_
 11. [x] **Task 11** — State in the flow host's README that it ships in the npm package and where it lands _(layer: devscene-flow-host)_ _(points: 5)_
 12. [x] **Task 12** — Carry the change into this self-adopted repository and register Task 1's tree guard _(layer: general)_ _(points: 15)_
-13. [ ] **Task 13** — Document the `uv` requirement, the new `init` flag, the re-run row and the two `doctor` checks _(layer: general)_ _(points: 20)_
+13. [x] **Task 13** — Document the `uv` requirement, the new `init` flag, the re-run row and the two `doctor` checks _(layer: general)_ _(points: 20)_
 
 ## Scope register
 
