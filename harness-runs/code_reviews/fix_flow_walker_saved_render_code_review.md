@@ -28,7 +28,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 2** — Pin a walk refusal inside `record_outcome`'s lock leaving the printed reads byte-identical _(layer: devscene-flow-host)_
+1. [x] **Finding 2** — Pin a walk refusal inside `record_outcome`'s lock leaving the printed reads byte-identical _(layer: devscene-flow-host)_
 2. [ ] **Finding 1** — Clear the printed-reads record when `read_printed` raises after the walk is saved _(layer: devscene-flow-host)_
 
 ---

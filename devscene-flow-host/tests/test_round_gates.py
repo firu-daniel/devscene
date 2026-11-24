@@ -10,7 +10,8 @@ or `answered` — is kept as `flow-walker.sh` → `next` keeps `revision_finding
 round clears it as `close_round` overwrites that key, and that a held outcome at a gate of an
 open set keeps nothing, and that the returned step's printed reads are kept in
 `PrintedReadsStore` — a non-round reviewer's next index, `PrintedReads()` for a `wait` — and left
-byte-identical by a `Refused` result.
+byte-identical by a `Refused` result, whether refused before the lock or by the walk inside
+it.
 
 It pins the host's held-gate order, chosen over bash's in #472: a held gate whose only siblings
 out are refused ones waits while they are re-dispatched in the same round, and escalates at the
@@ -503,6 +504,18 @@ def test_a_refused_result_leaves_the_printed_reads_unchanged(tmp_path: Path) -> 
     assert step == HostStep(
         Refused("outcome FAIL requires --findings with the reviewer's findings_file")
     )
+    assert printed_reads_path(tmp_path, "state", _BRANCH).read_bytes() == before
+
+
+def test_a_walk_refusal_inside_the_lock_leaves_the_printed_reads_unchanged(
+    tmp_path: Path,
+) -> None:
+    walker = _walker(tmp_path)
+    _at_ui_review(walker, tmp_path)
+    before = printed_reads_path(tmp_path, "state", _BRANCH).read_bytes()
+
+    step = _record(walker, tmp_path, "undeclared_outcome")
+    assert isinstance(step.action, Refused), step
     assert printed_reads_path(tmp_path, "state", _BRANCH).read_bytes() == before
 
 
