@@ -9,9 +9,11 @@
  * after a real run is a warning, and is complete without the notes.
  */
 
+import { sep } from 'node:path';
+
 import { nameList } from '../core/nameList.js';
 import type { WriteEffect, WriteResult } from '../core/writer.js';
-import { RESTART_WATCHER_SCRIPT_NAME } from '../generators/outerLoopScripts.js';
+import { FLOW_HOST_PROVISION_SCRIPT_NAME, RESTART_WATCHER_SCRIPT_NAME } from '../generators/outerLoopScripts.js';
 import { namesBrowserTool, namesMcpServerWithoutTool, namesUnstartedMcpServer } from '../generators/permissionProfile.js';
 import { PROFILE_LOCAL_PATH, PROFILE_PATH } from '../generators/profileEntries.js';
 import { LOCAL_ADDITION_LISTS } from '../generators/profileLocal.js';
@@ -25,6 +27,8 @@ export interface UpgradeReportInput {
   readonly daemonLoadedPaths: ReadonlySet<string>;
   /** The `outerLoopScriptsDir(config)` value. */
   readonly scriptsDir: string;
+  /** The absolute `<repoRoot>/<flowHostDir(config)>`: the shipped Python packages' directory. */
+  readonly flowHostDir: string;
   readonly applied: readonly WriteResult[];
   readonly delta: readonly ProfileEntryDelta[];
   /** The `ProfileUpgradePlan.settingChanges` value. */
@@ -189,6 +193,16 @@ export function upgradeReport(input: UpgradeReportInput): UpgradeReport {
       notes.push(`Would change the watcher or its libraries: restart the daemon afterwards with ${restart}`);
     } else {
       warnings.push(`A running daemon keeps the code it already loaded: restart it with ${restart}`);
+    }
+  }
+
+  // `uv sync --no-editable` copies the packages into the environment, which keeps the old code until rebuilt.
+  if (contentChanged.some(({ path }) => path.startsWith(`${input.flowHostDir}${sep}`))) {
+    const provision = scriptInvocation(scriptsDir, FLOW_HOST_PROVISION_SCRIPT_NAME);
+    if (dryRun) {
+      notes.push(`Would change the shipped Python packages: rebuild the Python environment the flow walker runs in afterwards with ${provision}, run outside the sandbox`);
+    } else {
+      warnings.push(`The Python environment the flow walker runs in keeps the code it was built from: rebuild it with uv by running ${provision} outside the sandbox`);
     }
   }
 

@@ -302,6 +302,7 @@ const OUTER_LOOP_SCRIPT_FILES = [
   'scratch-run.sh',
   'create-worktree.sh',
   'setup-worktree.sh',
+  'flow-host-provision.sh',
   'cleanup-merged-worktrees.sh',
   'autonomous-format-stream.sh',
   'autonomous-notify.sh',

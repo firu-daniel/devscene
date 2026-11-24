@@ -1,0 +1,59 @@
+# Task plan review — round 0
+
+verdict: FAIL
+review_mode: full
+
+## Must Fix
+1. **Task 9 breaks an existing workflow test it does not edit** — `task_9_plan.md`.
+   The plan puts `Set up uv` "immediately before `Preflight with doctor`". In the `run` job of `cli/templates/github/workflows/devscene-run.yml`, the step directly before `Preflight with doctor` today is `Install the sandbox prerequisites`. `cli/test/workflow-sandbox-install.test.mjs` → `test('(a) the step sits directly before the preflight in the run job', …)` asserts `names[names.indexOf(STEP) + 1] === PREFLIGHT`, with `STEP = 'Install the sandbox prerequisites'`. Inserting the new step between the two fails that assertion. The test file is not among Task 9's `### Targets`, and the test-run rule stops the unit from running it, so the break first shows at Run gates.
+   **Raised against:** "Add a step `Set up uv` to the `run` job, immediately before `Preflight with doctor`"
+   **Must hold:** Task 9's placement of `Set up uv` leaves every existing assertion about the `run` job's step order true, or the task lists the suite whose assertion it moves among its targets and its `**Work:**`.
+   **Class:** Wrong build
+   **Failure:** If the Task 9 implementer inserts `Set up uv` immediately before `Preflight with doctor` as written, then `cli/test/workflow-sandbox-install.test.mjs` case (a) fails at Run gates, because `Install the sandbox prerequisites` is no longer followed directly by `Preflight with doctor`.
+   **Fix:** In `task_9_plan.md`, place the step where no existing order assertion breaks. For example, put it after the job-surfaces refusal and before `Install the sandbox prerequisites`, and update the test's own placement bullet and the `docs/remote-execution.md` sentence Task 13 adds to match. Otherwise, add `cli/test/workflow-sandbox-install.test.mjs` to `### Targets` with a `**Work:**` bullet changing case (a) to the new order.
+
+2. **Task 3's new outer-loop row breaks `cli/test/init.test.mjs`, which the task does not target** — `task_3_plan.md`.
+   `cli/test/init.test.mjs` → `writtenWrappers` lists every `.sh` file directly under the fixture's `scriptsDir`. It subtracts only the hand-written `OUTER_LOOP_SCRIPT_FILES` list, which is spelled out on purpose rather than imported from the table. Once `flow-host-provision.sh` is written there, it counts as a wrapper:
+   - `assert.deepEqual(await writtenWrappers(dir), [])` fails, in the cases that expect no wrapper.
+   - `assertWrapperPairing` requires two `Bash(bash <scriptsDir>/flow-host-provision.sh:*)` allow entries. An `agentInvocable: false` row never gets them.
+
+   Task 3's `### Targets` omit the file. Its Verification bullet ("Existing suites that enumerate `OUTER_LOOP_SCRIPTS` rows … Update only the expectations this row moves") names no suite. The unit cannot run `init.test.mjs` under the test-run rule, so it cannot discover the break either.
+   **Raised against:** "`OUTER_LOOP_SCRIPTS`: add the row `{ file: 'flow-host-provision.sh', mode: 0o755, agentInvocable: false }` after `setup-worktree.sh`"
+   **Must hold:** Every existing suite that enumerates the outer-loop file set literally is named in Task 3's `### Targets`, with a `**Work:**` bullet adding the new file. At minimum that is `cli/test/init.test.mjs` → `OUTER_LOOP_SCRIPT_FILES`.
+   **Class:** Wrong build
+   **Failure:** If the Task 3 implementer adds the `flow-host-provision.sh` row and template as written, then `cli/test/init.test.mjs` fails at Run gates: `writtenWrappers` returns `['flow-host-provision.sh']` where `[]` is asserted, and `assertWrapperPairing` finds no allow entry for it.
+   **Fix:** In `task_3_plan.md`, add `cli/test/init.test.mjs` (its `OUTER_LOOP_SCRIPT_FILES` constant) to `### Targets`, with a `**Work:**` bullet adding `'flow-host-provision.sh'`. Grep `cli/test/` for the other literal outer-loop lists (`'setup-worktree.sh'`, `'review-sweep.sh'`) and name each one whose assertion the new row moves.
+
+3. **The tree-guard entries Task 12 registers cannot run in the layers their `covers` globs select** — `task_12_plan.md` (and `task_1_plan.md`, which names them).
+   Point 7 of the test-run rule runs a selected guard "through `<test_file_cmd>` with the entry's `test` value as its argument, verbatim". `<test_file_cmd>` comes from the conventions document of the layer the unit was dispatched to. The six new entries pair `"test": "test/python-packages-staged.test.mjs"`, a `cli` suite, with `covers` globs that only `graphscene` and `devscene-flow-host` units match: `graphscene/src/**`, `graphscene/pyproject.toml`, `graphscene/uv.lock`, `devscene-flow-host/src/**`, `devscene-flow-host/pyproject.toml` and `devscene-flow-host/uv.lock`. Those layers' commands are `bash scripts/python-service.sh --package graphscene test tests/<path>.py` (`.claude/context/graphscene.md` → `## Tests`) and the `devscene-flow-host` equivalent (`.claude/context/devscene-flow-host.md` → `## Tests — what "done" means here`).
+
+   So every unit that changes those files runs pytest on a `.mjs` path. The run fails, and the guard never runs where it is registered to. The existing entries keep runner and coverage in one layer: `tests/test_layers.py` covers only Python paths.
+   **Raised against:** "`devscene.config.json` → `treeGuards`: append six entries, each with `"test": "test/python-packages-staged.test.mjs"`, covering in turn: `graphscene/src/**` …"
+   **Must hold:** Every `treeGuards` entry the plan adds names a `test` value that the `<test_file_cmd>` of each layer its `covers` glob matches can run. Any coverage that cannot meet this is reported, not registered.
+   **Class:** Wrong action from operative text
+   **Failure:** If a `graphscene`-layer implementer later changes `graphscene/src/graphscene/…`, then point 7 selects this entry and runs `bash scripts/python-service.sh --package graphscene test test/python-packages-staged.test.mjs`, which pytest fails as a missing file, and the staged-tree guard is never run.
+   **Fix:** In `task_12_plan.md` and the registering bullet of `task_1_plan.md`, choose entries whose runner matches their coverage. Possible routes:
+   - Narrow `covers` to paths a `cli`-runner unit changes. State in the test's header and in Task 1 that a change under the Python packages reaches the guard at Run gates.
+   - Move the tree half of the assertion into a pytest suite that the Python layers' command runs.
+
+   Whichever route is taken, Task 12's `jq` count check must match the new entry set.
+
+## Should Fix
+1. **Scope register: sites no derivation entry reaches (disposition ii)** — story index. Running entries 1–3 and walking entry 4 confirms every listed row, but these sites are reached by none:
+   - `docs/cli.md` → `### The interaction rule`, the numbered list *"The questions this contract governs, in the order `init` puts them"*. Task 7 adds a sixth question, `--provision-python`.
+   - `docs/cli.md` → `## 2. \`init\``, *"The fourth of the five questions `init` puts"*.
+   - `docs/remote-execution.md`, *"**The job's setup**, in the order `devscene-run.yml` runs it"*. This is the passage Task 13 edits by grep, but it has no row.
+   - `docs/remote-execution.md` → **The step.**, the `jobSurfacePaths` enumeration *"the outer-loop scripts and `<scriptsDir>/lib`, `<githooksDir>`, …"*. Task 5 widens that set with `<scriptsDir>/python`.
+   - The conventions sites the Context itself lists as falsified, `.claude/context/devscene-flow-host.md` (*"the decided but unbuilt route"*) and `.claude/context/cli.md` → its *Owns* list. These are `no-change` rows.
+
+   Corrected entries: widen entry 4's traversal to take `### The interaction rule`'s list after the flag table. Add a command entry, read-only and re-run from the checkout root: `git grep -nE 'outer-loop scripts and \`<scriptsDir>/lib\`|The job.s setup\*\*|of the five questions|The questions this contract governs' -- 'docs/*.md' README.md`. Each of these sites describes the tool and gives no failing step, so none is Must Fix.
+2. **`docs/remote-execution.md` → *"Install the prerequisites beside it"*** (row 9, Task 13). It says every action the workflows pin "runs on Node 24 and names that minimum in its release notes". Once Task 9 adds `astral-sh/setup-uv`, that claim is unverified, and the story index marks the lookup as owed. Task 13 should qualify the sentence the same way Task 9 rewords the `ACTION PINS` block.
+3. **Task 4 treats the run copy's environment directory as trusted** (`task_4_plan.md`). Under `--target`, step 6 runs `uv sync` outside the sandbox with `UV_PROJECT_ENVIRONMENT=<clone>/<scriptsDir>/python/.venv`. That path is in the run-written tree, which `copySurfacePaths` leaves unprotected (Task 5). A branch that force-adds `.venv/` content, or a planted symlink there, decides what uv inspects or replaces. Unverified: whether uv executes an existing environment's interpreter, or removes a symlinked target, here. Either way, the header sentence the task adds — step 6 is "outside that residual for `--target`" — overstates what is closed. Refuse a pre-existing env directory that is a symlink, or that step 6 did not create, or record it as part of the residual.
+4. **Task 4 fails the bootstrap on a sync failure before anything uses the walker** (`task_4_plan.md`). A non-zero return sets `status=1`, and create-worktree.sh "removes a working copy whose dependencies did not install … with its branch". A host with `uv` but no network, or a transient registry error, would lose every run's copy for a walker that #419 has not wired yet. The story Context's stance is that a host loses nothing before #419. Consider making a sync failure a warning until #419 makes the walker needed, as Task 8 does for `doctor`.
+5. **Write protection in this self-adopted repository does not reach the link targets** (`task_5_plan.md`, `task_12_plan.md`). `scripts/python/graphscene` and `scripts/python/devscene-flow-host` are symlinks, so the `denyWrite` entry and the `jobSurfacePaths` entry for `scripts/python` cover the links, not `graphscene/` and `devscene-flow-host/`. A branch changing `devscene-flow-host/src/**` is not refused by the job-surfaces step. The residual is largely pre-existing here, because `commands.depInstall` already runs `python-service.sh provision` on the checkout. Still, Task 12 should state it rather than imply the protection holds in this repository.
+6. **This repository's own permission profile is a manual step** (story index → `Manual setup required:`). Tasks 3 and 5 change `protectedPaths`. This repository's gitignored `.claude/settings.autonomous.json` gains the new entries only when a maintainer re-runs the self-adopted `init --upgrade`. Name that step.
+7. **Task 7 may need an input `upgradeReport` does not receive** (`task_7_plan.md`). `UpgradeReportInput` carries `scriptsDir` (repo-relative) and `applied` (absolute paths), not `repoRoot`. Deciding "a file under `<scriptsDir>/python/` was replaced" may need a new input from `cli/src/upgrade/initUpgrade.ts`, which is Task 2's target and not Task 7's. Name the input, or add the file.
+8. **Self-cancelling update clauses** (`task_2_plan.md`, `task_5_plan.md`, `task_7_plan.md`, `task_8_plan.md`). "Update only that expectation, and only in suites this task edits" forbids repairing a pinned expectation in any suite outside the task's targets. No such break was verified this round, but the clause should name the suites or be dropped.
+
+## Nice to Have
+1. `task_6_plan.md` lists `cli/src/doctor/checks.ts` → `IGNORE_RULES_CHECK` as a conditional target. That check holds no expected-rule list (it reads `clarificationsIgnoreRules` and asks git), so the condition never fires and the target can go. Task 12's reason for the `.gitignore` line ("so that `doctor`'s `ignore-rules` reads this block as `init` would write it") does not match what that check reads.

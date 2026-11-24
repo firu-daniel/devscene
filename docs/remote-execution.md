@@ -840,7 +840,9 @@ A failed install, disable or load, or a runner with neither root nor non-interac
 
 **The step ran on GitHub once, in its earlier form.** It ran in Gate 12 round 13 (2026-11-05) on `ubuntu-latest`, by then Ubuntu 26.04, where the stock `bwrap-userns-restrict` profile defeated it: the step completed, `doctor --remote-job` reported `PASS sandbox-prerequisites`, and every sandboxed command in the session then failed ([`sandbox-verification.md`](sandbox-verification.md) §9, the *Round 13* block). **The fixed step has run on GitHub since 0.6.9.** Its passing arm ran in Gate 12 rounds 14 and 15 on Ubuntu 26.04 and round 16 on Ubuntu 24.04, where the stock profile is absent; its failing arm, with the nested check forced to fail, ran in round 17 (2026-11-07) with and without `sandbox.optOut` ([`sandbox-verification.md`](sandbox-verification.md) §9, IS1–IS4 and the *Taken* block; §10 FR2).
 
-**On a self-hosted runner**, install the two packages for the user the service runs as, or let the step install them, which it can only where the runner allows non-interactive `sudo`. On Ubuntu or Debian:
+**`Set up uv` runs directly before `Install the sandbox prerequisites`**, and after `Refuse a branch that changed the job's own files` and `Generate the job's permission profile`: `astral-sh/setup-uv`, pinned to a commit sha like every action the job uses, with its cache off, because a cache restored from another branch's run would feed an unsandboxed install. It puts `uv` on `PATH` for `Bootstrap the checkout`, whose `setup-worktree.sh` builds the flow walker's environment in the job checkout.
+
+**On a self-hosted runner**, install the two packages for the user the service runs as, or let `Install the sandbox prerequisites` install them, which it can only where the runner allows non-interactive `sudo`. On Ubuntu or Debian:
 
 ```
 sudo apt-get install bubblewrap socat
@@ -874,7 +876,7 @@ sudo ./svc.sh install
 sudo ./svc.sh start
 ```
 
-**Install the prerequisites beside it**, for the user the service runs as: `git`, `jq` 1.5 or newer, `gh`, Node, the `claude` CLI, and whatever toolchain your own `commands.*` lines need, since the job bootstraps the checkout and runs your verification commands there. The runner application itself must be version 2.327.1 or newer: every action the two workflows pin (each header's `# ACTION PINS.` block) runs on Node 24 and names that minimum in its release notes, so leave the runner's automatic update on, or update it by hand before re-rendering the workflows. The job stops before launch, naming what is missing, when `jq` or `gh` is absent. It runs `actions/setup-node` for Node, and installs the `claude` CLI with npm when it does not resolve — which needs write access to npm's global prefix — so installing it yourself avoids that:
+**Install the prerequisites beside it**, for the user the service runs as: `git`, `jq` 1.5 or newer, `gh`, Node, the `claude` CLI, [`uv`](https://docs.astral.sh/uv/), and whatever toolchain your own `commands.*` lines need, since the job bootstraps the checkout and runs your verification commands there. The runner application itself must be version 2.327.1 or newer: every action the two workflows pin (each header's `# ACTION PINS.` block) runs on Node 24, and each `actions/*` one names that minimum in its release notes (the `astral-sh/setup-uv` pin names none of its own), so leave the runner's automatic update on, or update it by hand before re-rendering the workflows. The job stops before launch, naming what is missing, when `jq` or `gh` is absent. It runs `actions/setup-node` for Node, and installs the `claude` CLI with npm when it does not resolve — which needs write access to npm's global prefix — so installing it yourself avoids that:
 
 ```
 npm install -g @anthropic-ai/claude-code

@@ -6,7 +6,7 @@
 
 `devscene-flow-host` is the harness's GraphScene host, imported as `devscene_flow_host`. It holds only the code that feeds GraphScene the harness's configuration, records, predicates, executor configuration and hooks, and the commands over it. It reads the harness's configuration, flow-progress ledger and round and reviewer files, answers the planning graph's phase and run-mode predicates, applies the reviewer-file rules when a gate's outcome is recorded, resumes a round from the files on disk, and keeps each branch's walk, for GraphScene's `Walker`. Its one command line is `devscene-flow-walker`, `flow-walker.sh`'s compatibility command (`## The command line`). Any other DevScene Python integration gets its own `devscene`-prefixed package rather than a place here. Anything useful without DevScene goes in GraphScene (`graphscene/`), not here.
 
-It stays in this repository: it is not part of the npm package (`cli/package.json` → `files`), and adopters never import it.
+Its source stays in this repository. The npm package carries it, with `graphscene/`, under `dist/python/` (`cli/src/flowHost/layout.ts` → `stagedPythonDir`), and `init` copies both under an adopter's `<scriptsDir>/python/` (`flowHostDir`). Adopters still never import it: they reach it only through the scripts `init` writes.
 
 ## What it may depend on
 
@@ -104,7 +104,15 @@ uv run --frozen --no-sync --project devscene-flow-host devscene-flow-walker chec
 
 Every non-zero exit writes exactly one `flow-walker: <cause>` line on stderr, a newline in the cause flattened, and nothing on stdout. Only `KeyboardInterrupt` and `SystemExit` escape `main`.
 
-`bash scripts/python-service.sh run` is not a route to the command: its `devscene-flow-host` row names no console script. How an adopter launches it is #419's.
+`bash scripts/python-service.sh run` is not a route to the command: its `devscene-flow-host` row names no console script.
+
+In an adopting repository the project is `<scriptsDir>/python/devscene-flow-host`, and its environment is built by:
+
+```
+bash <scriptsDir>/flow-host-provision.sh
+```
+
+That environment is `<scriptsDir>/python/.venv`, set through `UV_PROJECT_ENVIRONMENT` (`cli/templates/scripts/lib/harness-run-lib.sh` → `hr_flow_host_provision`), and is not this repository's `scripts/python-service.sh` environment. How an adopter launches it is #419's.
 
 ## Differences from flow-walker.sh
 

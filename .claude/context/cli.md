@@ -6,7 +6,7 @@
 
 ## What this layer owns, and what it is not
 
-- **Owns:** `cli/src/` (this tool's behaviour), `cli/templates/` (the files `init` writes into an adopting repository), `cli/scripts/` (the daemon unit templates the CLI renders into the operator's home), `cli/test/`, and the package's own manifest and licence files.
+- **Owns:** `cli/src/` (this tool's behaviour), `cli/templates/` (the files `init` writes into an adopting repository), `cli/scripts/` (the daemon unit templates the CLI renders into the operator's home), `cli/test/`, and the package's own manifest and licence files. It also owns the staging of `graphscene/` and `devscene-flow-host/` into `dist/python/` and their placement in an adopting repository (`cli/src/flowHost/`), but not their source, which stays their own layers'.
 - **Is not:** the process assets. Agent, command, instruction and hook contracts are the `plugin` layer's. A task that has drifted into writing prose an agent reads, or into changing a dispatch contract, has left this layer.
 - **Is not:** the configuration contract's first home. A new `devscene.config.json` shape starts in `schemas/`, which belongs to `general`; the model, the check and the generator here are downstream of it (`.claude/context/conventions.md` → `### The order files are created…`).
 
