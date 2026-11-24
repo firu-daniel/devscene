@@ -20,3 +20,7 @@
 
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_predicates.py` passes, run as one foreground command from the repository root.
 - `refusal_reason`'s existing cases pass unchanged: the new attribute adds a reading, it changes no answer.
+
+**Deviations from plan:**
+- Plan planted "a config with no `phases.qa`" for the unresolvable-phase case; `records/config.py` → `_phase` reads an absent phase as off (`False`), which answers `True`, not `None`. Implemented with `phases.qa` set to the non-boolean `"on"`, the shape `_phase` returns `None` for.
+- Plan said `start` returns a `Refused` on the real graph with no ledger; `start` dispatches `plan_writer`, which carries no skip predicate (`cli/templates/scripts/flows/task_plan_writing.v4.graph.json` → `nodes.plan_writer`). The refusal comes at `next("returned")`, at `business_parity_review`'s `run_mode_skips_parity`; the test asserts `start` is a `Dispatch` and `next("returned")` a `Refused`.

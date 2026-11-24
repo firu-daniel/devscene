@@ -1,7 +1,7 @@
 """The rule this file exists to enforce: `HarnessPredicateHost` answers `phase_<p>_off` from
 `phases.<p>` and `run_mode_skips_<id>` from the run mode, re-reading both records on every call;
-whatever it cannot answer is `None` with one exact `refusal_reason`, and a `RecordError`
-propagates.
+whatever it cannot answer is `None` with one exact `refusal_reason`, which `last_refusal` holds
+until the next boolean answer, and a `RecordError` propagates.
 
 Every record is planted under `tmp_path`; every expected value is a literal written from the
 rules in the task plan.
@@ -11,11 +11,20 @@ import json
 from pathlib import Path
 
 import pytest
-from graphscene import PredicateHost
+from graphscene import Dispatch, PredicateHost, Refused, load_graph_file
 
 from devscene_flow_host.host.predicates import HarnessPredicateHost
+from devscene_flow_host.host.walking import open_walker
 from devscene_flow_host.records.errors import RecordError
 
+_GRAPH = (
+    Path(__file__).resolve().parents[2]
+    / "cli"
+    / "templates"
+    / "scripts"
+    / "flows"
+    / "task_plan_writing.v4.graph.json"
+)
 _BRANCH = "feat_x"
 _RUN_MODE_PREDICATES = ("run_mode_skips_parity", "run_mode_skips_architecture", "run_mode_skips_qa")
 
@@ -105,6 +114,36 @@ def test_the_records_are_re_read_on_every_call(tmp_path: Path) -> None:
     assert host.answer("run_mode_skips_qa", "ui_writer") is False
     _plant_ledger(tmp_path, "qa")
     assert host.answer("run_mode_skips_qa", "ui_writer") is True
+
+
+def test_a_fresh_host_has_no_last_refusal(tmp_path: Path) -> None:
+    assert HarnessPredicateHost(tmp_path, _BRANCH).last_refusal is None
+
+
+def test_last_refusal_holds_the_unanswered_reason_until_an_answer_resets_it(
+    tmp_path: Path,
+) -> None:
+    _plant_config(tmp_path, {"parity": False, "qa": "on"})
+    host = HarnessPredicateHost(tmp_path, _BRANCH)
+    assert host.answer("phase_qa_off", "ui_writer") is None
+    assert host.last_refusal == f"cannot resolve phases.qa in {tmp_path}/devscene.config.json"
+    assert host.answer("phase_parity_off", "parity_review") is True
+    assert host.last_refusal is None
+    assert host.answer("run_mode_skips_qa", "ui_writer") is None
+    assert host.last_refusal == (
+        "no run-mode record: no flow-progress ledger for 'feat_x' and no skipped ids given"
+    )
+
+
+def test_a_refused_walk_leaves_the_run_mode_reason_on_the_host(tmp_path: Path) -> None:
+    _plant_config(tmp_path, {"parity": True, "qa": True})
+    walker = open_walker(tmp_path, _BRANCH, load_graph_file(_GRAPH), skipped=None)
+    assert isinstance(walker.start(), Dispatch)
+    assert isinstance(walker.next("returned"), Refused)
+    assert isinstance(walker.host, HarnessPredicateHost)
+    assert walker.host.last_refusal == (
+        "no run-mode record: no flow-progress ledger for 'feat_x' and no skipped ids given"
+    )
 
 
 def test_a_missing_config_raises_a_record_error(tmp_path: Path) -> None:
