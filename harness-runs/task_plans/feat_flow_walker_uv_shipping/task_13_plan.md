@@ -10,7 +10,7 @@
 - **Task 5:** the main checkout's `<scriptsDir>/python/` is write-protected and is a job surface.
 - **Task 7:** `--provision-python`; without it, a TTY is asked and a non-interactive run skips with a note. `init --upgrade` names the command after replacing a package file.
 - **Task 8:** `doctor`'s `uv` and `flow-host` checks, both warnings, never failures.
-- **Task 9:** the `Set up uv` step, before `Preflight with doctor`.
+- **Task 9:** the `Set up uv` step, directly after `Generate the job's permission profile` and directly before `Install the sandbox prerequisites`, so before `Preflight with doctor`.
 
 ### Targets
 
@@ -26,7 +26,7 @@
   - `### Generator order, and why it is load-bearing` places the packages beside the outer-loop scripts and states the self-adoption skip.
   - `### Updating an adopted repository`'s *"It changes the outer-loop scripts and the profile and nothing else."* names the Python packages too, and gives the provisioning command, in its own fenced block, to run after an upgrade.
 - [ ] `docs/cli.md` → `## 3. The re-run contract`: a row for `<scriptsDir>/python/` with its two policies and why, matching `cli/src/core/writer.ts`'s header row word for word in substance. `## 7. \`doctor\``: two check-table rows, `uv` and `flow-host`, with the titles `cli/src/doctor/checks.ts` gives them. Then one per-check bullet each, in the `jq` bullet's shape, stating why each is a warning before #419 and what each remedy runs.
-- [ ] `docs/remote-execution.md`, *"**Install the prerequisites beside it**"*: add `uv` to a self-hosted runner's list. Next to the passage that describes the run job's steps before `Bootstrap the checkout`, add one sentence on `Set up uv`: pinned, cache off, after the job-surfaces refusal. Locate that passage with `grep -n "Bootstrap the checkout\|Preflight with doctor" docs/remote-execution.md`.
+- [ ] `docs/remote-execution.md`, *"**Install the prerequisites beside it**"*: add `uv` to a self-hosted runner's list. Next to the passage that describes the run job's steps before `Bootstrap the checkout`, add one sentence on `Set up uv`: pinned, cache off, after the job-surfaces refusal and the permission profile, before the sandbox prerequisites are installed. Locate that passage with `grep -n "Bootstrap the checkout\|Preflight with doctor" docs/remote-execution.md`.
 
 **Verification:**
 

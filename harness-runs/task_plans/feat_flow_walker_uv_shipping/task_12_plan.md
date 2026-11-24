@@ -31,17 +31,15 @@
 - [ ] Create `scripts/python/graphscene` → `../../graphscene` and `scripts/python/devscene-flow-host` → `../../devscene-flow-host` as relative symlinks. Relative targets name no location on the machine, which gate 6a's self-containment rule requires.
 - [ ] `.gitignore`, the managed block: add the line Task 6's template renders for `scriptsDir` `scripts`, with its comment, in the block's order. The existing `.venv/` rule already covers it. The line is there so that `doctor`'s `ignore-rules` reads this block as `init` would write it.
 - [ ] `examples/notes-app/.gitignore`: add the same line, because that file is an `init`-rendered fixture kept live (`examples/notes-app/README.md` → *"The capture is frozen; the fixture is live"*), and its `scriptsDir` is `scripts`.
-- [ ] `devscene.config.json` → `treeGuards`: append six entries, each with `"test": "test/python-packages-staged.test.mjs"`, covering in turn:
-  - `graphscene/src/**`
-  - `graphscene/pyproject.toml`
-  - `graphscene/uv.lock`
-  - `devscene-flow-host/src/**`
-  - `devscene-flow-host/pyproject.toml`
-  - `devscene-flow-host/uv.lock`
+- [ ] `devscene.config.json` → `treeGuards`: append two entries, each with `"test": "test/python-packages-staged.test.mjs"`, covering in turn:
+  - `cli/src/flowHost/**`
+  - `cli/package.json`
+
+  Both globs select only `cli`-layer units, whose `<test_file_cmd>` runs a `cli/test/*.mjs` suite. No entry covers `graphscene/**` or `devscene-flow-host/**`: a unit of those layers runs a guard through `bash scripts/python-service.sh --package <name> test …` (`.claude/context/graphscene.md` → `## Tests`, `.claude/context/devscene-flow-host.md` → `## Tests — what "done" means here`), which cannot run a `.mjs` suite. A change under either Python package reaches this suite at Run gates instead, as Task 1's test header states.
 
 **Verification:**
 
 - `git diff --no-index --stat cli/templates/scripts/flow-host-provision.sh scripts/flow-host-provision.sh` prints nothing. The same holds for `lib/harness-run-lib.sh` and `setup-worktree.sh`.
 - `git ls-files -s scripts/python` shows both entries with mode `120000`, and `readlink scripts/python/devscene-flow-host` prints `../../devscene-flow-host`.
-- `jq -e '.treeGuards | map(select(.test == "test/python-packages-staged.test.mjs")) | length == 6' devscene.config.json` prints `true`.
+- `jq -e '[.treeGuards[] | select(.test == "test/python-packages-staged.test.mjs") | .covers] | sort == ["cli/package.json", "cli/src/flowHost/**"]' devscene.config.json` prints `true`: the entries for this suite are exactly those two globs.
 - `git check-ignore -v scripts/python/.venv/pyvenv.cfg` reports an ignore rule.

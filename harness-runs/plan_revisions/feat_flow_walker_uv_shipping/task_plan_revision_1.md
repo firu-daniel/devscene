@@ -1,0 +1,8 @@
+# Revision note — round 1
+- architecture 1 (harness-runs/architecture_reviews/feat_flow_walker_uv_shipping/review_0.md) — files: harness-runs/task_plans/feat_flow_walker_uv_shipping/task_7_plan.md, harness-runs/story_plans/feat_flow_walker_uv_shipping_story_plan.md — resolved
+- architecture 2 (harness-runs/architecture_reviews/feat_flow_walker_uv_shipping/review_0.md) — files: harness-runs/task_plans/feat_flow_walker_uv_shipping/task_1_plan.md, harness-runs/story_plans/feat_flow_walker_uv_shipping_story_plan.md — resolved
+- architecture 3 (harness-runs/architecture_reviews/feat_flow_walker_uv_shipping/review_0.md) — files: harness-runs/task_plans/feat_flow_walker_uv_shipping/task_1_plan.md — resolved
+- task-plan 1 (harness-runs/task_plan_reviews/feat_flow_walker_uv_shipping/review_0.md) — files: harness-runs/task_plans/feat_flow_walker_uv_shipping/task_9_plan.md, harness-runs/task_plans/feat_flow_walker_uv_shipping/task_13_plan.md — resolved
+- task-plan 2 (harness-runs/task_plan_reviews/feat_flow_walker_uv_shipping/review_0.md) — files: harness-runs/task_plans/feat_flow_walker_uv_shipping/task_3_plan.md — resolved
+- task-plan 3 (harness-runs/task_plan_reviews/feat_flow_walker_uv_shipping/review_0.md) — files: harness-runs/task_plans/feat_flow_walker_uv_shipping/task_12_plan.md, harness-runs/task_plans/feat_flow_walker_uv_shipping/task_1_plan.md — resolved
+Unrequested changes: none. The target set gained `cli/src/core/errors.ts`, `cli/src/core/writer.ts` and `cli/test/init.test.mjs`, so the scope register's derivation entries 1–3 were re-run and entry 4 re-walked. Every site they reach is already a row, and the new targets are source and test files, so the register is unchanged.

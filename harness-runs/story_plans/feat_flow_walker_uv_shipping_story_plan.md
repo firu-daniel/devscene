@@ -43,6 +43,8 @@ This branch delivers `graphscene/` and `devscene-flow-host/` to every adopting r
 **Conventions documents.** Several conventions documents state things this branch falsifies. They are recorded as `stale-rule` entries for a supervised `/devscene:analyze` re-run, never planned as tasks:
 
 - `.claude/context/conventions.md`: *"kept in this repository and out of the npm package"*, and *"the route by which it reaches an adopter is not built yet"*.
+- `.claude/context/conventions.md` → `### Where a new responsibility goes`, *"`cli/src/cli.ts` is the only place a thrown value becomes an exit code"*. Task 1 adds `cli/src/flowHost/stage.ts`, a build-time entry point whose throw ends the build, and names it as the one exception in `cli/src/core/errors.ts`'s header rule 1.
+- `.claude/context/conventions.md` → `### Where a new responsibility goes`, *"`cli/src/core/writer.ts` is the only module that writes into an adopting repository, with two exceptions its header names"*. Task 7's `init --provision-python` makes `uv` write `<scriptsDir>/python/.venv` outside the engine, and Task 7 names that write in `writer.ts`'s header, produced by `cli/src/flowHost/provision.ts`.
 - `.claude/context/devscene-flow-host.md`: *"the decided but unbuilt route"*.
 - `.claude/context/cli.md`: its *Owns* list.
 - `.claude/CLAUDE.md`'s opening paragraph.

@@ -28,6 +28,7 @@
 - `cli/src/generators/outerLoopScripts.ts`: `OUTER_LOOP_SCRIPTS`.
 - `cli/src/flowHost/layout.ts`: its header's `MIRRORS` paragraph only.
 - `cli/test/flow-host-provision.test.mjs` (new).
+- `cli/test/init.test.mjs`: its `OUTER_LOOP_SCRIPT_FILES` constant only.
 
 **Work:**
 
@@ -37,6 +38,7 @@
   - It changes nothing outside `<scriptsDir>/python/.venv`.
   - This is why it needs no `DENY_SCRIPT_BASENAMES` entry, the same argument `scripts/python-service.sh` → `WHO RUNS lock, sync AND provision` makes.
 - [ ] `OUTER_LOOP_SCRIPTS`: add the row `{ file: 'flow-host-provision.sh', mode: 0o755, agentInvocable: false }` after `setup-worktree.sh`, with a comment saying who runs it: `init`, a person and `doctor`'s remedy. `false` is a calling convention, so it owes no `DENY_SCRIPT_BASENAMES` entry. Leave `runsUnsandboxed` unset: `writeProtection.ts` → `protectedPaths` then protects the main checkout's copy as a script *"the run watcher, the remote job or a person runs … outside the sandbox"*.
+  - `cli/test/init.test.mjs` → `OUTER_LOOP_SCRIPT_FILES`: add `'flow-host-provision.sh'`. That list is spelled out by hand rather than imported from the table, and `writtenWrappers` subtracts only it. Without the entry, the new script counts as a wrapper: `assert.deepEqual(await writtenWrappers(dir), [])` fails, and `assertWrapperPairing` demands two allow entries an `agentInvocable: false` row never gets. The other suites under `cli/test/` that spell outer-loop script names literally (`script-root-callers.test.mjs` → `SCRIPTS`, `setup-worktree-checkout-sparse.test.mjs` → `SCRIPTS`, `create-worktree.test.mjs`'s fixture copy list) each read a fixed subset of named scripts and assert nothing about the whole set, so the new row moves none of them.
 - [ ] `layout.ts` header: the `MIRRORS` paragraph naming `hr_flow_host_provision` and the suite that holds it equal.
 - [ ] `flow-host-provision.test.mjs`, its header stating the rule. It builds a throwaway fixture repository with the script and `lib/` copied in, and puts a stub `uv` on `PATH` that records its argv and `UV_PROJECT_ENVIRONMENT`. That is the stub-binary pattern `cli/test/job-layout-root.test.mjs` uses, not a mocking framework. It asserts:
   - The exact argv `sync --frozen --no-dev --no-editable --project <root>/<scriptsDir>/python/devscene-flow-host`, with the environment `<root>/<scriptsDir>/python/.venv`.
@@ -49,4 +51,4 @@
 
 - `npm test --workspace cli -- test/flow-host-provision.test.mjs` passes.
 - Running the header's `REPRO` block by hand reproduces each exit status it lists.
-- Existing suites that enumerate `OUTER_LOOP_SCRIPTS` rows or the permission profile's protected set may move by one row. Update only the expectations this row moves.
+- `grep -n "'flow-host-provision.sh'" cli/test/init.test.mjs` finds the new entry inside `OUTER_LOOP_SCRIPT_FILES`, and `npm test --workspace cli -- test/init.test.mjs`, a suite this task edits, passes.
