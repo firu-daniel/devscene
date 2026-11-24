@@ -5,6 +5,10 @@ findings record (`revision_findings`, which bash's `start` clears), while `curre
 the saved walk with every refused gate left out, the last step's `refused:` lines restored and
 the kept findings record unchanged, as its `current` re-prints `out=` built by `render_set`.
 
+It also enforces that `start_walk` keeps a started step's printed reads in `PrintedReadsStore`
+and a refused start leaves them byte-identical, and that `current_step` returns the kept record
+rather than re-reading the folder, reading it only when no record exists.
+
 The graph is the harness's own format-4 graph,
 `cli/templates/scripts/flows/task_plan_writing.v4.graph.json`. Config, review files and git
 history are planted under `tmp_path` through `round_fixtures`. Every expected set's gates and
@@ -21,6 +25,11 @@ from typing import Final
 import pytest
 from graphscene import Dispatch, DispatchSet, Refused, Stop, Walker, load_graph_file
 
+from devscene_flow_host.host.printed_reads import (
+    PrintedReads,
+    PrintedReadsStore,
+    printed_reads_path,
+)
 from devscene_flow_host.host.re_entry import current_step, start_walk
 from devscene_flow_host.host.refusals import Refusal, refusals_path
 from devscene_flow_host.host.revision_findings import RevisionFindingsStore, revision_findings_path
@@ -41,6 +50,7 @@ _BRANCH: Final = "feat_x"
 _PARITY: Final = "state/business_parity_reviews/feat_x"
 _ARCH: Final = "state/architecture_reviews/feat_x"
 _PLAN: Final = "state/task_plan_reviews/feat_x"
+_UI: Final = "state/ui_test_plan_reviews/feat_x"
 _STORY_INDEX: Final = "state/story_plans/feat_x_story_plan.md"
 _TASK_FILE: Final = "state/task_plans/feat_x/task_1_plan.md"
 _NOTE_4: Final = "state/plan_revisions/feat_x/task_plan_revision_4.md"
@@ -273,3 +283,66 @@ def test_current_returns_the_kept_findings_file_unchanged(tmp_path: Path) -> Non
         revision_findings=("state/answers.md",),
     )
     assert kept.read_bytes() == before
+
+
+def _printed(root: Path) -> PrintedReadsStore:
+    return PrintedReadsStore(root, "state", _BRANCH)
+
+
+def test_start_writes_the_printed_reads_and_a_refused_start_keeps_them(tmp_path: Path) -> None:
+    walker = _plant(tmp_path, 0, {})
+    _printed(tmp_path).write(PrintedReads(review_iterations=(("ui_review", 0),)))
+    path = printed_reads_path(tmp_path, "state", _BRANCH)
+    before = path.read_bytes()
+
+    assert _start(walker, tmp_path, "plan_review") == HostStep(
+        Refused("'plan_review' is not an entry of flow 'task_plan_writing'")
+    )
+    assert path.read_bytes() == before
+
+    # A round set's gates have no next index of their own: `fw_next_review_index` is per reviewer.
+    assert _start(walker, tmp_path) == HostStep(
+        DispatchSet("plan_round", 0, (_parity(0), _arch(0), _plan(0)), ())
+    )
+    assert _printed(tmp_path).read() == PrintedReads()
+
+
+def _at_ui_review(walker: Walker, root: Path) -> None:
+    _start(walker, root)
+    for gate, folder in (
+        ("business_parity_review", _PARITY),
+        ("architecture_review", _ARCH),
+        ("plan_review", _PLAN),
+    ):
+        plant_review(root / folder, 0, PASS_BODY)
+        record_outcome(walker, root, _BRANCH, "PASS", node=gate, findings=f"{folder}/review_0.md")
+    step = record_outcome(walker, root, _BRANCH, "returned")
+    assert isinstance(step.action, Dispatch), step
+    assert step.action.node == "ui_review"
+
+
+def test_current_returns_the_kept_printed_reads_unchanged(tmp_path: Path) -> None:
+    walker = _plant(tmp_path, 0, {})
+    _at_ui_review(walker, tmp_path)
+    _printed(tmp_path).write(PrintedReads(review_iterations=(("ui_review", 0),)))
+    path = printed_reads_path(tmp_path, "state", _BRANCH)
+    before = path.read_bytes()
+    plant_review(tmp_path / _UI, 0, FAIL_BODY)
+
+    assert current_step(walker, tmp_path, _BRANCH).printed == PrintedReads(
+        review_iterations=(("ui_review", 0),)
+    )
+    assert path.read_bytes() == before
+
+
+def test_current_with_no_printed_reads_record_reads_the_folder(tmp_path: Path) -> None:
+    walker = _plant(tmp_path, 0, {})
+    _at_ui_review(walker, tmp_path)
+    path = printed_reads_path(tmp_path, "state", _BRANCH)
+    path.unlink()
+    plant_review(tmp_path / _UI, 0, FAIL_BODY)
+
+    assert current_step(walker, tmp_path, _BRANCH).printed == PrintedReads(
+        review_iterations=(("ui_review", 1),)
+    )
+    assert not path.exists()
