@@ -21,9 +21,11 @@
 #
 # Exit map:
 #
-#   0  provisioned, or skipped with a `flow-host: provision: SKIPPED — …` line
-#      on stderr (no `uv` on PATH, or no flow host under `<scriptsDir>/python/`)
-#   1  the library or the configuration could not be read, or the sync failed
+#   0  provisioned
+#   1  the library or the configuration could not be read, no `uv` on PATH, no
+#      flow host under `<scriptsDir>/python/`, or the sync failed. The first
+#      two print this script's `… refusing to provision` line on stderr, the
+#      other three a `flow-host: provision: failed …` line
 #   2  an argument was given (usage)
 #
 # REPRO — reproduce each exit by hand, against a throwaway fixture:
@@ -43,9 +45,11 @@
 #   usage           bash "$d/scripts/flow-host-provision.sh" x; echo $?     -> 2
 #   sync failed     printf '#!/usr/bin/env bash\nexit 3\n' > "$w/bin/uv"; re-run
 #                   -> exit 1, `flow-host: provision: failed (exit 3)`
-#   no flow host    rm -r "$d/scripts/python"; re-run with the stub -> exit 0, SKIPPED
+#   no flow host    rm -r "$d/scripts/python"; re-run with the stub -> exit 1,
+#                   `flow-host: provision: failed — no flow host at …`
 #   no uv           a PATH with no `uv` on it (links to bash, git, jq, dirname
-#                   only); re-run -> exit 0, SKIPPED naming this script
+#                   only); re-run -> exit 1, `flow-host: provision: failed — uv
+#                   is not on PATH; …` naming this script
 #   unresolvable    printf 'x' > "$d/devscene.config.json"; re-run -> exit 1
 
 set -uo pipefail

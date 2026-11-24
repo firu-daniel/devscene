@@ -94,8 +94,9 @@
 #   6. The flow walker's environment (`hr_flow_host_provision`): the project
 #      `<scriptsDir>/python/devscene-flow-host` synced into
 #      `<scriptsDir>/python/.venv`. It runs whatever step 5 answered. No `uv` on
-#      PATH, or no project there, prints one `SKIPPED` line and passes; a failed
-#      sync fails the bootstrap. Under `--target` the project is the main
+#      PATH, no project there, or a failed sync prints one
+#      `flow-host: provision: failed …` line and fails the bootstrap, because
+#      the flow walker cannot run without the environment. Under `--target` the project is the main
 #      checkout's and only the environment is <dir>'s, so a copy's environment
 #      is never built from packages its run wrote.
 #
@@ -411,13 +412,13 @@ if [ -z "$scripts_rel" ]; then
   status=1
 else
   if [ "$scripts_rel" = "." ]; then
-    flow_src="$cfg_root"
-    flow_env="$top"
+    flow_src_scripts="$cfg_root"
+    flow_env_scripts="$top"
   else
-    flow_src="$cfg_root/$scripts_rel"
-    flow_env="$top/$scripts_rel"
+    flow_src_scripts="$cfg_root/$scripts_rel"
+    flow_env_scripts="$top/$scripts_rel"
   fi
-  if ! hr_flow_host_provision "$flow_src" "$flow_env"; then
+  if ! hr_flow_host_provision "$flow_src_scripts" "$flow_env_scripts"; then
     echo "setup-worktree.sh: step 6 (flow-host provision) failed" >&2
     status=1
   fi
