@@ -78,6 +78,7 @@ import { join } from 'node:path';
 
 import { browserWiringApplies, CONFIG_FILENAME, DEFAULTS, retrievalApplies, type HarnessConfig } from '../config/model.js';
 import { internal } from '../core/errors.js';
+import { flowHostEnvDir } from '../flowHost/layout.js';
 import { isJsonObject, type JsonObject, type JsonValue } from '../core/json.js';
 import { readTemplate } from '../core/paths.js';
 import { normalizeRepoDir } from '../core/repoPaths.js';
@@ -635,6 +636,8 @@ export function writeRepoRootFiles({ repoRoot, config, plan }: RepoRootOptions):
     // One token carrying seven rules: the names are declared once, above, and the template holds one
     // comment for the group rather than seven near-identical ones.
     runControlArtifacts: RUN_CONTROL_ARTIFACTS.map((name) => `${stateDir}/${name}`).join('\n'),
+    // A directory rule: the environment carries no committed contract file to except.
+    flowHostEnvPath: `${flowHostEnvDir(config)}/`,
     clarificationsGlob: clarifications.contents,
     clarificationsReadmeException: clarifications.readmeException,
     inboxGlob: inbox.contents,

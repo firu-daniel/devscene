@@ -29,7 +29,7 @@ export const FLOW_HOST_PACKAGES: readonly string[] = ['graphscene', 'devscene-fl
 /** The package whose project the environment is synced from. */
 export const FLOW_HOST_PROJECT = 'devscene-flow-host';
 
-/** The environment directory, inside {@link FLOW_HOST_PROJECT}'s directory. */
+/** The environment directory, inside {@link FLOW_HOST_DIRNAME} beside the packages, not inside either. */
 export const FLOW_HOST_ENV_DIRNAME = '.venv';
 
 /** The staged tree inside this package: `<packageRoot>/dist/python`. */
@@ -47,9 +47,9 @@ export function flowHostProjectDir(config: HarnessConfig): string {
   return posix.join(flowHostDir(config), FLOW_HOST_PROJECT);
 }
 
-/** The repo-relative environment directory: `<scriptsDir>/python/devscene-flow-host/.venv`. */
+/** The repo-relative environment directory: `<scriptsDir>/python/.venv`. */
 export function flowHostEnvDir(config: HarnessConfig): string {
-  return posix.join(flowHostProjectDir(config), FLOW_HOST_ENV_DIRNAME);
+  return posix.join(flowHostDir(config), FLOW_HOST_ENV_DIRNAME);
 }
 
 /**
