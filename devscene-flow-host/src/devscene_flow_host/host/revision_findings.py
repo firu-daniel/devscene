@@ -5,10 +5,13 @@ Plays the part of `flow-walker.sh`'s `revision_findings` state key. Branch `b`'s
 module stores and reads; when the record is written or cleared is the caller's.
 
 The rule:
-- The record is one key with four writers, and the last one wins, as in bash: `next`'s `dispatch`
-  branch keeps `--findings` for an outcome that is not a round gate's verdict, `next`'s `answer`
-  branch keeps it with `answered`, `close_round` replaces it with the closed round's files, and
-  `start` clears it. A held outcome recorded in an open set (`record_in_set`) never touches it.
+- The record plays bash's one `revision_findings` key, whose last writer wins: `next`'s
+  `dispatch` branch keeps `--findings` for an outcome that is not a round gate's verdict, and
+  `next`'s `answer` branch keeps it with `answered`; a round's close and `start` clear it. Bash's
+  `close_round` writes the closed round's files into the key; here the record is cleared instead,
+  and those files are the closed round's `GateRecord` details, which the `commands` layer prints
+  when the record is empty. A held outcome recorded in an open set (`record_in_set`) never
+  touches it.
 - Every write and clear happens while the caller holds `RefusalStore`'s lock; this module takes
   no lock of its own. `read` takes none, because `write` replaces the file whole.
 - The store writes only its file and its temporary files, all inside `revision_findings/`.

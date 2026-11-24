@@ -33,7 +33,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Correct `RevisionFindingsStore`'s module rule: a round's close clears the record rather than writing the closed round's files _(layer: devscene-flow-host)_
+1. [x] **Finding 1** — Correct `RevisionFindingsStore`'s module rule: a round's close clears the record rather than writing the closed round's files _(layer: devscene-flow-host)_
 
 ---
 
