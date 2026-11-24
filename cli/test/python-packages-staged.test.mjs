@@ -21,6 +21,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 
+import { MAIN_REPO_ANCHOR_VARIABLE } from '../dist/core/mainRepoAnchor.js';
 import { FLOW_HOST_PACKAGES, isShippedPythonFile, stagedPythonDir } from '../dist/flowHost/layout.js';
 import { stagePythonPackages } from '../dist/flowHost/stage.js';
 
@@ -116,7 +117,7 @@ test('npm pack lists the staged Python files', () => {
     const output = execFileSync('npm', ['pack', '--dry-run', '--json'], {
       cwd: CLI_ROOT,
       encoding: 'utf8',
-      env: { ...process.env, npm_config_cache: cache },
+      env: { ...process.env, [MAIN_REPO_ANCHOR_VARIABLE]: '', npm_config_cache: cache },
     });
     const [pack] = JSON.parse(output);
     const paths = new Set(pack.files.map((file) => file.path));

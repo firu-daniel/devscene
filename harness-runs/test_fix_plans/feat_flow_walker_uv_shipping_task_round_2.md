@@ -10,7 +10,7 @@
 
 This list is the **single source of truth** for the fix loop. `[ ]` markers anywhere else in this plan or its per-finding files are informational only.
 
-1. [ ] **Finding 1** — Blank the main-checkout anchor in the npm pack test's environment. _(layer: cli)_
+1. [x] **Finding 1** — Blank the main-checkout anchor in the npm pack test's environment. _(layer: cli)_
 
 ## Must Fix
 
