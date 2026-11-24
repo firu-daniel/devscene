@@ -22,7 +22,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_flow_w
 2. [x] **Task 2** — Expose the predicate host's last refusal reason as `HarnessPredicateHost.last_refusal` _(layer: devscene-flow-host)_ _(points: 8)_
 3. [x] **Task 3** — Render a `HostStep` as `flow-walker.sh`'s `key: value` output in `commands/render.py` _(layer: devscene-flow-host)_ _(points: 20)_
 4. [x] **Task 4** — Parse `flow-walker.sh`'s verbs and flags in `commands/arguments.py` _(layer: devscene-flow-host)_ _(points: 10)_
-5. [ ] **Task 5** — Add the `devscene-flow-walker` command in `commands/flow_walker.py` with its exit codes _(layer: devscene-flow-host)_ _(points: 20)_
+5. [x] **Task 5** — Add the `devscene-flow-walker` command in `commands/flow_walker.py` with its exit codes _(layer: devscene-flow-host)_ _(points: 20)_
 6. [ ] **Task 6** — Pin the command's concurrency in `tests/test_flow_walker_concurrency.py` _(layer: devscene-flow-host)_ _(points: 10)_
 7. [ ] **Task 7** — Document the command and its differences from `flow-walker.sh` in the package README _(layer: devscene-flow-host)_ _(points: 15)_
 8. [ ] **Task 8** — Record the compatibility command in `ROADMAP.md`'s GraphScene row _(layer: general)_ _(points: 5)_

@@ -41,3 +41,9 @@ Every non-zero exit writes **exactly one line** to stderr (a message carrying a 
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_flow_walker.py` passes, run as one foreground command from the repository root.
 - The `REPRO` walk's outputs line up with `cli/templates/scripts/flow-walker.sh`'s header `REPRO` block, line by line, wherever that block states one.
 - `git grep -n -e 'Walker(' -e '\.start(' -e '\.next(' -e '\.current(' -- devscene-flow-host/src/devscene_flow_host/commands/` returns no hit that constructs a `Walker` or calls one of its methods: every walk goes through `open_walker`, `start_walk`, `record_outcome` or `current_step`.
+
+**Deviations from plan:**
+
+- `main` carries a second `except` clause, ahead of the one `except Exception`: it catches the module's private `_Exit`, the exit `main` itself decided on (a `UsageError`, a `Refused`, no saved walk, an unknown flow, not inside a repository, a graph load fault, a foreign `flow`, an invalid round file), so those refusals are written by `main` and never reach `failure`, as the plan requires. Every other exception still reaches `failure` through the one `except Exception`.
+- The graph-load `GraphError` is caught where the graph is loaded, so its cause can name the file (`cannot load <file>: <first violation>`); the first violation is still taken through `failure`.
+- The module docstring's *"Deliberately not covered"* adds one item the plan did not list: a rendering fault after `start` or `next` has saved the walk leaves the walk saved, where bash renders before writing. The exit-2 line and empty stdout still hold.
