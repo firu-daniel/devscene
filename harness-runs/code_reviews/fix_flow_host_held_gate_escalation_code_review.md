@@ -26,7 +26,7 @@ One wording finding is left.
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Cite the held-gate rule by file in the test header instead of "rule above" _(layer: devscene-flow-host)_
+1. [x] **Finding 1** — Cite the held-gate rule by file in the test header instead of "rule above" _(layer: devscene-flow-host)_
 
 ---
 

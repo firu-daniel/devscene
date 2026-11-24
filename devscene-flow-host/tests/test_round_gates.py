@@ -16,10 +16,11 @@ round's next join.
 
 Records and review files are planted under `tmp_path`. Every expected value is a literal written
 from `flow-walker.sh` → `A REFUSED ROUND FILE`, its `REPRO` block's refused-file walk and its
-`revision_findings` writers, and, for the held-gate cases, from `round_gates`' rule above and
-`flow-walker.sh` → `OUTPUT`'s `<escalate>` grammar ("node: and agent: are the first held gate's
-in `gates` order, reason: its outcome, then held: <gate> <outcome> per held gate, one refused:
-line per gate held by refusal"), never taken from the output of the code under test.
+`revision_findings` writers, and, for the held-gate cases, from `host/round_gates.py` →
+*"The rule:"* and `flow-walker.sh` → `OUTPUT`'s `<escalate>` grammar ("node: and agent: are the
+first held gate's in `gates` order, reason: its outcome, then held: <gate> <outcome> per held
+gate, one refused: line per gate held by refusal"), never taken from the output of the code under
+test.
 """
 
 import json
