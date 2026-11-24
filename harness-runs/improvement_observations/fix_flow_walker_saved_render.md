@@ -16,3 +16,8 @@
 - **cost this run:** 3 node session(s)
 
 # Task run (Phase D)
+
+## statistics-plan-writer's disposition-check grep and a mkdir were refused
+- **category:** tooling-gap
+- **evidence:** the `[D · statistics] → statistics-plan-writer  (#14)` return reports "my one-line grep for it was refused, along with a `mkdir`" while checking the 24 commit messages since `origin/dev` for `record disposition of `; it fell back to reading them by eye. The statistics file still landed (`harness-runs/branch_statistics/fix_flow_walker_saved_render/statistics.md`, commit 73de6641).
+- **cost this run:** 2 refused tool calls; the disposition count for the statistics rested on a manual read instead of a grep
