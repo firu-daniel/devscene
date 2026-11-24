@@ -843,6 +843,32 @@ const REMOTE = {
   log: `${STATE_DIR}/autonomous_logs/${REMOTE_BRANCH}.log`,
 };
 
+/** `REMOTE_BRANCH` as `urllib.parse.quote(branch, safe="")` encodes it, plus `.json`. */
+const REMOTE_WALK = 'feat%2Fx.json';
+
+/**
+ * The run's walk and one record per host subdirectory, relative to `REMOTE.walker`: each travels to
+ * `flow_walker_state/<same path>` in the bundle.
+ */
+const WALKER_STATE = {
+  [REMOTE_WALK]: 'step=3\n',
+  [`printed_reads/${REMOTE_WALK}`]: 'printed\n',
+  [`revision_findings/${REMOTE_WALK}`]: 'revision\n',
+  [`round_refusals/${REMOTE_WALK}`]: 'refusals\n',
+};
+
+/** Files under `REMOTE.walker` that never travel: a lock and another branch's walk and record. */
+const WALKER_STAY = {
+  [`${REMOTE_WALK}.lock`]: '',
+  'feat%2Fy.json': 'other walk\n',
+  'revision_findings/feat%2Fy.json': 'other revision\n',
+};
+
+/** Plant every file of `files` under `<dir>/<under>`. */
+function plantAll(dir, under, files) {
+  for (const [relative, content] of Object.entries(files)) plant(dir, `${under}/${relative}`, content);
+}
+
 /** Plant `relativePath` under `dir` with `content`, creating its parents. */
 function plant(dir, relativePath, content) {
   mkdirSync(join(dir, relativePath, '..'), { recursive: true });
@@ -862,7 +888,7 @@ test('the remote state bundle carries a run through a job restore and a mirror r
   plant(source, `${REMOTE.clarify}/answer_1.md`, 'a1\n');
   plant(source, `${REMOTE.clarify}/answered/question_0.md`, 'q0\n');
   plant(source, REMOTE.pause, 'pause note\n');
-  plant(source, REMOTE.walker, 'step=3\n');
+  plantAll(source, REMOTE.walker, { ...WALKER_STATE, ...WALKER_STAY });
   plant(source, REMOTE.log, 'run log\n');
 
   const provenance = {
@@ -921,11 +947,21 @@ test('the remote state bundle carries a run through a job restore and a mirror r
       'clarifications/feat/x/answered/question_0.md',
       'clarifications/feat/x/question_1.md',
       'flow_walker_state',
+      'flow_walker_state/feat%2Fx.json',
+      'flow_walker_state/printed_reads',
+      'flow_walker_state/printed_reads/feat%2Fx.json',
+      'flow_walker_state/revision_findings',
+      'flow_walker_state/revision_findings/feat%2Fx.json',
+      'flow_walker_state/round_refusals',
+      'flow_walker_state/round_refusals/feat%2Fx.json',
       'run.log',
       'status.json',
     ],
     'the bundle does not hold exactly the format of record',
   );
+  for (const [relative, content] of Object.entries(WALKER_STATE)) {
+    assert.equal(readFileSync(join(bundle, 'flow_walker_state', relative), 'utf8'), content, `the bundle did not carry ${relative}'s bytes`);
+  }
   assert.equal(readFileSync(join(bundle, 'status.json'), 'utf8'), text(source, REMOTE.status), 'the bundle did not carry the job\'s own status');
 
   const job = await fixtureFor(t, { files: nodeProjectFiles() });
@@ -935,9 +971,16 @@ test('the remote state bundle carries a run through a job restore and a mirror r
   assert.equal(text(job, `${REMOTE.clarify}/answer_1.md`), 'a1\n');
   assert.equal(text(job, `${REMOTE.clarify}/answered/question_0.md`), 'q0\n');
   assert.equal(text(job, REMOTE.pause), 'pause note\n');
-  assert.equal(text(job, REMOTE.walker), 'step=3\n', 'the job restore did not put the walker state back under its dotted name');
+  for (const [relative, content] of Object.entries(WALKER_STATE)) {
+    assert.equal(text(job, `${REMOTE.walker}/${relative}`), content, `the job restore did not put ${relative} back under the dotted directory`);
+  }
   assert.equal(text(job, REMOTE.status), text(source, REMOTE.status), 'the job restore did not place status.json');
   const jobTree = Object.keys(await snapshotTree(job));
+  assert.deepEqual(
+    jobTree.filter((key) => key.startsWith(`${REMOTE.walker}/`) && statSync(join(job, key)).isFile()),
+    Object.keys(WALKER_STATE).map((relative) => `${REMOTE.walker}/${relative}`).sort(),
+    'the job restore did not place exactly the run\'s walk and records',
+  );
   assert.deepEqual(jobTree.filter((key) => key.endsWith('.log')), [], 'the job restore placed the run log');
 
   const mirror = await fixtureFor(t, { files: nodeProjectFiles() });
@@ -954,7 +997,7 @@ test('the remote state bundle carries a run through a job restore and a mirror r
     1,
     'the stale answer was not moved aside under remote_superseded/',
   );
-  assert.ok(!mirrorTree.includes(REMOTE.walker), 'the mirror restore placed the walker state');
+  assert.ok(!mirrorTree.some((key) => key.startsWith(REMOTE.walker)), 'the mirror restore placed the walker state');
   assert.ok(!mirrorTree.includes(REMOTE.status), 'the mirror restore placed status.json');
   assert.deepEqual(mirrorTree.filter((key) => key.endsWith('.log')), [], 'the mirror restore placed the run log');
 });
@@ -1050,7 +1093,7 @@ test('the remote state bundle carries the planning drafts, and a job restore pla
   }
 
   // Once the checkout tracks the story index, the committed round is the whole task-plan state.
-  plant(source, 'bundle-out/flow_walker_state', 'step=3\n');
+  plant(source, `bundle-out/flow_walker_state/${REMOTE_WALK}`, 'step=3\n');
   const trackedCall = 'hr_remote_bundle_restore "$@" || exit $?; printf "%s %s %s %s\\n" "$HR_REMOTE_PLANNING_PLACED" "$HR_REMOTE_PLANNING_KEPT" "$HR_REMOTE_PLANNING_WITHHELD" "$HR_REMOTE_WALKER_WITHHELD"';
   const commitPlanted = async (dir, files) => {
     for (const [path, content] of Object.entries(files)) plant(dir, `${STATE_DIR}/${path}`, content);
@@ -1081,7 +1124,7 @@ test('the remote state bundle carries the planning drafts, and a job restore pla
   const intoIdentical = await libCall(identical, trackedCall, [bundle, identical, REMOTE_BRANCH, 'job']);
   assert.equal(intoIdentical.status, 0, `the identical job restore exited ${intoIdentical.status}: ${intoIdentical.stderr}`);
   assert.equal(intoIdentical.stdout, '0 0 4 0\n', 'an identical committed round withheld the walk');
-  assert.equal(text(identical, REMOTE.walker), 'step=3\n', 'the walk was not placed over an identical committed round');
+  assert.equal(text(identical, `${REMOTE.walker}/${REMOTE_WALK}`), 'step=3\n', 'the walk was not placed over an identical committed round');
 
   // A `..` segment cannot be created as a file name, so the escape is attempted through a symlink instead.
   plant(source, `bundle-out/planning/story_plans/other_story_plan.md`, 'outside the set\n');
@@ -1108,7 +1151,7 @@ test('a bundle whose status.json carries an unrecognised schema restores nothing
     files: {
       'status.json': { schema: '9', branch: REMOTE_BRANCH },
       'PAUSE_PROGRESS.md': 'pause note\n',
-      'flow_walker_state': 'step=3\n',
+      [`flow_walker_state/${REMOTE_WALK}`]: 'step=3\n',
       [`clarifications/${REMOTE_BRANCH}/answer_1.md`]: 'a1\n',
     },
   });
@@ -1120,6 +1163,23 @@ test('a bundle whose status.json carries an unrecognised schema restores nothing
   const restored = await libCall(target, 'hr_remote_bundle_restore "$@"', [bundle, target, REMOTE_BRANCH, 'job']);
   assert.equal(restored.status, 2, `the restore exited ${restored.status} for an unrecognised schema: ${restored.stderr}`);
   assert.deepEqual(await snapshotTree(target), before, 'a restore of an unrecognised bundle changed the tree');
+});
+
+test('a pre-cutover bundle whose flow_walker_state is a regular file restores no walker state', async (t) => {
+  const bundle = await fixtureFor(t, {
+    git: false,
+    files: {
+      'status.json': { schema: '1', branch: REMOTE_BRANCH },
+      'flow_walker_state': 'flow=task_plan_writing\nstep=3\n',
+    },
+  });
+  const target = await fixtureFor(t, { files: nodeProjectFiles() });
+  await initOk(target);
+
+  const restored = await libCall(target, 'hr_remote_bundle_restore "$@"', [bundle, target, REMOTE_BRANCH, 'job']);
+  assert.equal(restored.status, 0, `the restore exited ${restored.status}: ${restored.stderr}`);
+  assert.ok(!existsSync(join(target, REMOTE.walker)), 'a regular-file flow_walker_state was restored');
+  assert.equal(text(target, REMOTE.status), readFileSync(join(bundle, 'status.json'), 'utf8'), 'the rest of the bundle was not restored');
 });
 
 test('a second init leaves an edited outer-loop script exactly as the adopter left it', async (t) => {
@@ -1197,17 +1257,16 @@ test('the scratch runner is written directly in scriptsDir, executable, and a re
 });
 
 /**
- * The flow walker and the two files it reads from its own directory, as paths under `scriptsDir`
- * with the mode each must land with: the walker is run, the gate library is sourced and the graph
- * is data.
+ * The flow walker and the two graphs beside it, as paths under `scriptsDir` with the mode each must
+ * land with: the walker is run and both graphs are data.
  */
 const WALKER_FILES = [
   ['flow-walker.sh', 0o755],
-  ['lib/flow-walker-gates.sh', 0o644],
+  ['flows/task_plan_writing.v4.graph.json', 0o644],
   ['flows/task_plan_writing.graph.json', 0o644],
 ];
 
-test('the flow walker, its gate library and its graph land verbatim under scriptsDir, and a re-run keeps them', async (t) => {
+test('the flow walker and its two graphs land verbatim under scriptsDir, and a re-run keeps them', async (t) => {
   for (const [name, scriptsDir, config] of [
     ["a generated config's scriptsDir", SCRIPTS_DIR, undefined],
     ['a relocated scriptsDir', RELOCATED_SCRIPTS_DIR, seededConfig({ scriptsDir: RELOCATED_SCRIPTS_DIR })],

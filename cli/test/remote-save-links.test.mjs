@@ -25,8 +25,8 @@
  * M4's second half: to `remote-run.sh`), the file run, the failure observed, the mutation reverted:
  * - (M1) `hr_remote_bundle_source_ok` run only for a directory source (`[ -d … ] || return 0`
  *   ahead of its `hr_remote_link_free_var`) → (F) fails on each of its four sources, `the
- *   sentinel's bytes are in the bundle: PAUSE_PROGRESS.md` (`flow_walker_state`, `run.log`,
- *   `status.json`), and (P)'s file half on `planning/story_plans/feat_x_story_plan.md`. (D), (N),
+ *   sentinel's bytes are in the bundle: PAUSE_PROGRESS.md` (`flow_walker_state/feat_x.json`,
+ *   `run.log`, `status.json`), and (P)'s file half on `planning/story_plans/feat_x_story_plan.md`. (D), (N),
  *   (P)'s directory half, (U), (R), (T) and (TR) stay green.
  * - (M2) `cp -R … 2>/dev/null` restored in place of both `hr_remote_copy_tree` calls, the link
  *   test intact → (N) fails, `a link is in the bundle: clarifications/feat_x/question_2.md`. Every
@@ -81,7 +81,8 @@ require('node:fs').appendFileSync(process.env.STUB_LOG, JSON.stringify(process.a
 const COPIED = Object.freeze({
   'clarifications/feat_x/question_1.md': 'clarifications/feat_x/question_1.md',
   'PAUSE_PROGRESS.md': 'PAUSE_PROGRESS.md',
-  '.flow_walker_state': 'flow_walker_state',
+  '.flow_walker_state/feat_x.json': 'flow_walker_state/feat_x.json',
+  '.flow_walker_state/revision_findings/feat_x.json': 'flow_walker_state/revision_findings/feat_x.json',
   'autonomous_logs/feat_x.log': 'run.log',
   'story_plans/feat_x_story_plan.md': 'planning/story_plans/feat_x_story_plan.md',
   'task_plans/feat_x/task_1_plan.md': 'planning/task_plans/feat_x/task_1_plan.md',
@@ -221,7 +222,7 @@ test('an honest state directory is saved with its exact layout and bytes', async
 
 test('(F) a linked file source is skipped, and every other source is saved', async (t) => {
   for (const [rel, at] of Object.entries(COPIED)) {
-    if (!['PAUSE_PROGRESS.md', '.flow_walker_state', 'autonomous_logs/feat_x.log'].includes(rel)) continue;
+    if (!['PAUSE_PROGRESS.md', '.flow_walker_state/feat_x.json', 'autonomous_logs/feat_x.log'].includes(rel)) continue;
     await t.test(rel, async (st) => {
       const fx = await saveFixture(st);
       const expected = without(fx.honest(), at);
