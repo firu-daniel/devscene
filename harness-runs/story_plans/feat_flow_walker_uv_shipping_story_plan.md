@@ -77,7 +77,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_walker_uv_shipping
 2. [x] **Task 2** — Write the staged packages under `<scriptsDir>/python/` on `init` and replace them on `init --upgrade` _(layer: cli)_ _(points: 20)_
 3. [x] **Task 3** — Ship `flow-host-provision.sh` and the library function `hr_flow_host_provision` _(layer: cli)_ _(points: 20)_
 4. [x] **Task 4** — Provision the walker's environment as `setup-worktree.sh`'s bootstrap step 6 _(layer: cli)_ _(points: 15)_
-5. [ ] **Task 5** — Write-protect the main checkout's `<scriptsDir>/python/` in the unattended profile _(layer: cli)_ _(points: 15)_
+5. [x] **Task 5** — Write-protect the main checkout's `<scriptsDir>/python/` in the unattended profile _(layer: cli)_ _(points: 15)_
 6. [ ] **Task 6** — Ignore the walker's environment `<scriptsDir>/python/.venv/` in the managed `.gitignore` block _(layer: cli)_ _(points: 10)_
 7. [ ] **Task 7** — Offer provisioning once after `init`'s plan, behind `--provision-python`, and name the command after `init --upgrade` _(layer: cli)_ _(points: 20)_
 8. [ ] **Task 8** — Add `doctor`'s `uv` and `flow-host` checks _(layer: cli)_ _(points: 20)_
