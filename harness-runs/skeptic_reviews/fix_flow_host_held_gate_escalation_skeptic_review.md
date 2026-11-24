@@ -18,7 +18,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Correct the bash resume mechanism and suite case in the README's held-gate **Chosen** entry _(layer: devscene-flow-host)_
+1. [x] **Finding 1** — Correct the bash resume mechanism and suite case in the README's held-gate **Chosen** entry _(layer: devscene-flow-host)_
 
 ---
 
