@@ -1,0 +1,7 @@
+# Architecture review — round 2
+
+verdict: PASS
+review_mode: converging
+
+## Should Fix
+- **`task_7_plan.md` — the replacement "no lock held" check reads the `current` call as lock-gated, and it is not.** The new sub-step says to put a comment beside the case (1) `walk(dir, ['current', …])` call stating "it is the no-lock-held check, since a held lock would block it until the command's lock timeout and fail it". The conventions say otherwise. `.claude/context/devscene-flow-host.md` → `## Records, and which one is the truth` says "`start_walk` and `record_outcome` take `RefusalStore`'s lock, then the walk store's; `current_step` takes neither". `.claude/context/graphscene.md` → `## The walk` says "`current` takes no lock". So the call passes whether or not a lock is held, and the comment would state a guarantee the code does not give. `.claude/context/conventions.md` → `## The testing bar` asks a test to "Assert against the contract stated literally". This is outside the architecture lens (test adequacy), and the defect is a comment, so it is not a Must Fix. Suggested change: make the post-run probe a lock-taking call, such as a further `next` or `start` on a throwaway branch or gate, or a direct non-blocking `flock` probe of the `.lock` file. Or drop the "no-lock-held" claim and state in the header that `devscene-flow-host/tests/test_flow_walker_concurrency.py` covers lock release.

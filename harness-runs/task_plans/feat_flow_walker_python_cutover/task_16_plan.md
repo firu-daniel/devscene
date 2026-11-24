@@ -51,4 +51,4 @@ The other hits name the script without running it, or run a stub in its place (`
 
 - Run `commands.typecheck`; it must exit 0.
 - Run each of this task's four edited test files through `npm test --workspace cli -- test/<name>.test.mjs`: `flow-host-provision`, `setup-worktree-flow-host`, `setup-worktree-clone-target` and `setup-worktree-checkout-sparse`.
-- `git grep -n -e 'provision: SKIPPED' -e 'SKIPPED line' -- cli/test` prints nothing.
+- `git grep -n -e 'provision: SKIPPED' -e 'SKIPPED line' -- cli/test/flow-host-provision.test.mjs cli/test/setup-worktree-flow-host.test.mjs cli/test/setup-worktree-clone-target.test.mjs cli/test/setup-worktree-checkout-sparse.test.mjs` prints nothing. The grep is held to this task's four targets on purpose: `cli/test/python-service.test.mjs` keeps its own `SKIPPED` case, which tests `scripts/python-service.sh provision`, a different script this branch does not change, and `cli/test/init-provision-python.test.mjs` is Task 4's.
