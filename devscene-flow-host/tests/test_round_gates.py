@@ -10,12 +10,16 @@ or `answered` — is kept as `flow-walker.sh` → `next` keeps `revision_finding
 round clears it as `close_round` overwrites that key, and that a held outcome at a gate of an
 open set keeps nothing.
 
-It pins the one departure from bash as it stands: a held gate beside a refused one is
-re-dispatched before it escalates (the `TODO` at `round_gates._redispatch`).
+It pins the host's held-gate order, chosen over bash's in #472: a held gate whose only siblings
+out are refused ones waits while they are re-dispatched in the same round, and escalates at the
+round's next join.
 
 Records and review files are planted under `tmp_path`. Every expected value is a literal written
 from `flow-walker.sh` → `A REFUSED ROUND FILE`, its `REPRO` block's refused-file walk and its
-`revision_findings` writers, never taken from the output of the code under test.
+`revision_findings` writers, and, for the held-gate cases, from `round_gates`' rule above and
+`flow-walker.sh` → `OUTPUT`'s `<escalate>` grammar ("node: and agent: are the first held gate's
+in `gates` order, reason: its outcome, then held: <gate> <outcome> per held gate, one refused:
+line per gate held by refusal"), never taken from the output of the code under test.
 """
 
 import json
@@ -267,8 +271,8 @@ def test_a_pass_file_carrying_a_must_fix_entry_is_refused(tmp_path: Path) -> Non
 
 
 def test_a_held_error_beside_a_refused_gate_re_dispatches_first(tmp_path: Path) -> None:
-    """The held-gate departure, marked by the `TODO` at `round_gates._redispatch`: bash would
-    escalate `architecture_review` at once."""
+    """The held `architecture_review` waits while the refused `plan_review` is re-dispatched,
+    and escalates at the round's next join. Bash would escalate it at once."""
     walker = _walker(tmp_path)
     bad = _file(tmp_path, _PLAN, _NO_CLASS_BODY)
     _record(walker, tmp_path, "FAIL", "plan_review", bad)
@@ -294,6 +298,40 @@ def test_a_held_error_beside_a_refused_gate_re_dispatches_first(tmp_path: Path) 
         )
     )
     assert not _refusal_file(tmp_path).exists()
+
+
+def test_a_held_error_waits_while_its_refused_sibling_is_refused_again(tmp_path: Path) -> None:
+    walker = _walker(tmp_path)
+    bad = _file(tmp_path, _PLAN, _NO_CLASS_BODY)
+    _record(walker, tmp_path, "FAIL", "plan_review", bad)
+    _record(walker, tmp_path, "PASS", "business_parity_review", _file(tmp_path, _PARITY, PASS_BODY))
+
+    assert _record(walker, tmp_path, "error", "architecture_review") == HostStep(
+        DispatchSet("plan_round", 0, (_PLAN_DISPATCH,), ()),
+        (Refusal("plan_review", 1, _NO_CLASS),),
+    )
+    assert _record(walker, tmp_path, "FAIL", "plan_review", bad) == HostStep(
+        DispatchSet("plan_round", 0, (_PLAN_DISPATCH,), ()),
+        (Refusal("plan_review", 2, _NO_CLASS),),
+    )
+    assert _record(walker, tmp_path, "FAIL", "plan_review", bad) == HostStep(
+        Stop(
+            binding="<escalate>",
+            node="architecture_review",
+            agent="architecture-reviewer",
+            reason="error",
+            summary=None,
+            evidence=None,
+            round_counts=(),
+            held=(
+                GateRecord("architecture_review", "error", None),
+                GateRecord("plan_review", "error", None),
+            ),
+            closed_round=(),
+            passed=(),
+        ),
+        (Refusal("plan_review", 3, _NO_CLASS),),
+    )
 
 
 def test_two_threads_recording_two_gates_join_exactly_once(tmp_path: Path) -> None:
