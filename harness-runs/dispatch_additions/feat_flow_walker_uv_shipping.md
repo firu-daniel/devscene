@@ -1,0 +1,4 @@
+## [A · Task 12 · general · iter 0] → layer-implementer  (#1)
+- **added:** `context_notes:`
+- **verbatim:** `context_notes: The clarification answer to this task's earlier blocker states the person performed option 1 in this run copy — scripts/flow-host-provision.sh copied at mode 0755, scripts/lib/harness-run-lib.sh and scripts/setup-worktree.sh copied, and the relative symlinks scripts/python/graphscene and scripts/python/devscene-flow-host created, all left uncommitted (source: harness-runs/clarifications/feat_flow_walker_uv_shipping/answer_1.md, answering question_1.md).`
+- **why the agent could not derive it:** the park's answer lives only in the machine-local `harness-runs/clarifications/feat_flow_walker_uv_shipping/answer_1.md`, outside the implementer's read set; its detail file's `**Deviations from plan:**` note still recorded the operations as refused
