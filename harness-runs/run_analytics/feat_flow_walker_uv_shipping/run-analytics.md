@@ -4,28 +4,28 @@
 
 | Measure | Value |
 |---|---|
-| Sessions | 12 (0 incomplete) |
-| Engine / planning node sessions | 3 / 9 |
-| Span | 3h37m |
-| Wall | 3h26m |
-| Session wall, summed over sessions | 3h34m |
-| Active | 3h00m |
+| Sessions | 13 (0 incomplete) |
+| Engine / planning node sessions | 4 / 9 |
+| Span | 3h43m |
+| Wall | 3h31m |
+| Session wall, summed over sessions | 3h38m |
+| Active | 3h04m |
 | Host-suspended | 0.0s |
 | Idle | 26m 36s |
-| Cost | $87.78 |
-| Input tokens (uncached) | 2918 |
-| Total input tokens (incl. cache) | 195707538 |
-| Output tokens | 835349 |
-| Thinking tokens (main thread) | 165531 |
-| Cache read tokens | 190418427 |
-| Cache write tokens | 5286193 |
-| Cache write tokens, main thread (5m / 1h) | 0 / 2183341 |
-| Cache hit ratio | 0.973 |
-| Requests | 1419 |
-| Request latency p50 / p90 / p99 / max | 2.0s / 8.3s / 30.1s / 1m 30s |
+| Cost | $89.82 |
+| Input tokens (uncached) | 2972 |
+| Total input tokens (incl. cache) | 198881645 |
+| Output tokens | 841940 |
+| Thinking tokens (main thread) | 166511 |
+| Cache read tokens | 193429792 |
+| Cache write tokens | 5448881 |
+| Cache write tokens, main thread (5m / 1h) | 0 / 2346029 |
+| Cache hit ratio | 0.9726 |
+| Requests | 1445 |
+| Request latency p50 / p90 / p99 / max | 2.0s / 8.2s / 30.1s / 1m 30s |
 | Requests over the idle threshold | 0 |
 | API retries | 0 |
-| Permission denials | 47 |
+| Permission denials | 48 |
 | Sub-agents failed / killed | 0 / 0 |
 | Slowest sub-agent | devscene:layer-implementer — Test-fix Item 2 (cli) — 8m 17s (session 12) |
 | Rate-limit peak | seven_day 0.07 |
@@ -48,7 +48,7 @@ Wall, Active, Host-suspended and Idle are the run's own: overlapping sessions' t
 
 ## Network refusals
 
-12 of 12 sessions scanned.
+13 of 13 sessions scanned.
 
 | Session | Context | Tool | Command | Host | Port | Refusal line |
 |---|---|---|---|---|---|---|
@@ -1376,4 +1376,98 @@ Remainder: tokens the session total holds that neither the orchestrator's reques
 | stop_reason | end_turn |
 | Turns | 232 |
 | Time to first token | 1.1s |
+| Rate-limit peak | seven_day 0.07 |
+
+## Session 13 — 2026-11-24T19:02:02.878Z → 2026-11-24T19:06:14.714Z
+
+Session id: `416408c2-8061-4885-b6bc-063ab85cc9b4`
+
+### Time
+
+| Wall | duration_ms | duration_api_ms | Host-suspended | Idle | Active | Sub-agents (union) | Suspend source |
+|---|---|---|---|---|---|---|---|
+| 4m 11s | 4m 12s | 1m 03s | 0.0s | 0.0s | 4m 11s | — | none |
+
+### Idle gaps (over 120 s)
+
+None.
+
+### Request latency
+
+| Context | Requests | p50 | p90 | p99 | Max | Over threshold |
+|---|---|---|---|---|---|---|
+| all | 26 | 1.3s | 2.9s | 6.7s | 6.7s | 0 |
+| orchestrator | 26 | 1.3s | 2.9s | 6.7s | 6.7s | 0 |
+
+### Tool time
+
+| Tool | Context | Calls | Total | Max |
+|---|---|---|---|---|
+| Bash | orchestrator | 17 | 3m 08s | 1m 01s |
+| Edit | orchestrator | 1 | 0.0s | 0.0s |
+| Grep | orchestrator | 1 | 0.0s | 0.0s |
+| Read | orchestrator | 8 | 1.5s | 0.3s |
+| Skill | orchestrator | 1 | 0.0s | 0.0s |
+| Write | orchestrator | 1 | 0.0s | 0.0s |
+
+#### Slowest calls (sub-agent dispatches excluded)
+
+| Tool | Context | Started | Duration | Result bytes | Error | Permission denied |
+|---|---|---|---|---|---|---|
+| Bash | orchestrator | 2026-11-24T19:03:48.364Z | 1m 01s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T19:04:51.677Z | 1m 00s | 38 | true | false |
+| Bash | orchestrator | 2026-11-24T19:02:45.935Z | 1m 00s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T19:02:43.182Z | 1.4s | 19 | true | false |
+| Bash | orchestrator | 2026-11-24T19:05:59.189Z | 0.6s | 31 | false | false |
+| Bash | orchestrator | 2026-11-24T19:02:05.433Z | 0.5s | 2734 | false | false |
+| Bash | orchestrator | 2026-11-24T19:05:55.120Z | 0.3s | 1064 | false | false |
+| Bash | orchestrator | 2026-11-24T19:05:59.695Z | 0.3s | 20 | false | false |
+| Read | orchestrator | 2026-11-24T19:02:14.061Z | 0.3s | 59813 | false | false |
+| Bash | orchestrator | 2026-11-24T19:02:35.181Z | 0.3s | 13791 | false | false |
+
+#### Polling loops
+
+None.
+
+### Sub-agents
+
+None.
+
+### Cost and tokens
+
+| Measure | Value |
+|---|---|
+| Cost | $2.04 |
+| Cost — claude-opus-5-5 | $2.04 |
+| Input tokens (uncached) | 54 |
+| Total input tokens (incl. cache) | 3174107 |
+| Output tokens | 6591 |
+| Thinking tokens (main thread) | 980 |
+| Cache read tokens | 3011365 |
+| Cache write tokens | 162688 |
+| Cache write tokens, main thread (5m / 1h) | 0 / 162688 |
+| Cache hit ratio | 0.9487 |
+| Token source | result.modelUsage |
+
+#### Token attribution
+
+| Context | Input tokens (uncached) | Total input tokens (incl. cache) | Output tokens | Cache read tokens | Cache write tokens |
+|---|---|---|---|---|---|
+| orchestrator | 54 | 3174107 | 1133 | 3011365 | 162688 |
+| sub-agents | 0 | 0 | 0 | 0 | 0 |
+| remainder | 0 | 0 | 5458 | 0 | 0 |
+
+Remainder: tokens the session total holds that neither the orchestrator's requests nor the dispatches' transcripts account for.
+
+### Reliability
+
+| Measure | Value |
+|---|---|
+| API retries | 0 |
+| Permission denials | 1 |
+| Sub-agents spawned / failed / killed | 0 / 0 / 0 |
+| terminal_reason | completed |
+| stop_reason | end_turn |
+| Turns | 31 |
+| Time to first token | 1.0s |
 | Rate-limit peak | seven_day 0.07 |
