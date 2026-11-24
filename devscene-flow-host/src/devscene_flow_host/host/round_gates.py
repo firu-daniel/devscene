@@ -9,16 +9,19 @@ The rule: `record_outcome` reads as `flow-walker.sh`'s `next` (*"outcome FAIL re
 - A refused file records nothing in the walk: its gate is left out of a `wait`'s pending list,
   and once no other gate is out, every refused gate is re-dispatched as one set in the same round.
 - The third refusal of one gate in a round records the held outcome `error`.
+- A findings file given outside an open set (a non-round reviewer's `FAIL`, or `answered`) is
+  kept in `RevisionFindingsStore`, as `next` keeps `revision_findings`; a held outcome at a gate
+  of an open set keeps nothing; a result whose `passed` carries a `RoundPassage` clears the
+  record, as `close_round` overwrites the key. `HostStep.revision_findings` is the record as it
+  stands after the call.
 Every call that records takes the `RefusalStore` lock before the walk's lock and releases it
-after. The refusal record is written only when the returned action is not `Refused`.
+after. The refusal and kept-findings records are written only when the returned action is not
+`Refused`.
 
 Deliberately not covered:
 - A held gate at a join whose only gates out are refused ones: bash escalates it at once, this
   host re-dispatches the refused gates first and escalates at the join that follows. Marked by
   the `TODO` at `_redispatch`.
-- A findings file given outside a round gate (a non-round reviewer's `FAIL`, or `answered`): it
-  is required as above but not kept, so the writer's revision does not carry it. Marked by the
-  `TODO` at `record_outcome`'s non-gate branch.
 - Rendering a step or a `refused:` line: the `commands` layer's. `start`, and filtering refused
   gates out of `current`: `devscene_flow_host.host.re_entry`'s.
 """
@@ -35,6 +38,7 @@ from graphscene import (
     OpenRound,
     Refused,
     RoundNode,
+    RoundPassage,
     Step,
     Wait,
     Walker,
@@ -49,6 +53,7 @@ from devscene_flow_host.host.refusals import (
     RoundRefusals,
 )
 from devscene_flow_host.host.reviewers import round_of_gate
+from devscene_flow_host.host.revision_findings import RevisionFindingsStore
 from devscene_flow_host.records.config import read_config
 from devscene_flow_host.records.round_files import round_file_path, round_file_problem
 
@@ -67,10 +72,13 @@ class RefusedWait:
 @dataclass(frozen=True)
 class HostStep:
     """`refusals` holds the `refused:` lines `action` carries: one per gate of a re-dispatched
-    set, or one per gate whose attempts reached `ROUND_FILE_ATTEMPTS` at an escalating join."""
+    set, or one per gate whose attempts reached `ROUND_FILE_ATTEMPTS` at an escalating join.
+    `revision_findings` holds the kept findings files (`RevisionFindingsStore`) as they stand
+    after the call; it is `()` on a `Refused` action."""
 
     action: Step | RefusedWait
     refusals: tuple[Refusal, ...] = ()
+    revision_findings: tuple[str, ...] = ()
 
 
 def record_outcome(
@@ -88,57 +96,79 @@ def record_outcome(
         return HostStep(
             Refused(f"outcome {outcome} requires --findings with the reviewer's findings_file")
         )
-    store = RefusalStore(repo_root, read_config(repo_root).state_dir, branch)
+    state_dir = read_config(repo_root).state_dir
+    store = RefusalStore(repo_root, state_dir, branch)
+    kept = RevisionFindingsStore(repo_root, state_dir, branch)
     with store.lock():
-        state = walker.store.read()
-        opened = _open_set(graph, state)
-        round_node = None if node is None else _verdict_gate(graph, opened, node, outcome)
-        if opened is None or round_node is None or node is None:
-            # TODO: @claude add a follow up task for this: keep a findings file given outside a
-            # round gate (a non-round reviewer's FAIL, or answered) as flow-walker.sh → next
-            # keeps revision_findings, so the writer's revision dispatch carries it as
-            # arg.findings_file — needs a host-side record of revision_findings for a non-round
-            # reviewer and for answered, cleared as bash clears it on start
-            step = walker.next(outcome, node, None)
-            if isinstance(step, Refused):
-                return HostStep(step)
-            if opened is None:
-                store.clear()
-                return HostStep(step)
-            in_round = graph.nodes[opened.round]
-            assert isinstance(in_round, RoundNode)
-            return _settle(
-                walker, store, in_round, store.read(opened.round, opened.number), node, step, None
-            )
-        if not findings:
-            return HostStep(
-                Refused(
-                    f"outcome {outcome} at round gate '{node}' requires --findings with the "
-                    "reviewer's findings_file"
-                )
-            )
-        refusals = store.read(opened.round, opened.number)
-        reason = round_file_problem(round_file_path(repo_root, findings))
-        if reason is None:
-            step = walker.next(outcome, node, findings)
-            return _settle(walker, store, round_node, refusals, node, step, None)
-        prior = refusals.gates.get(node)
-        attempts = (0 if prior is None else prior.attempts) + 1
-        refusal = Refusal(gate=node, attempt=attempts, reason=reason)
-        if attempts >= ROUND_FILE_ATTEMPTS:
-            refusals = _with_gate(refusals, node, GateRefusals(attempts, reason, redo=False))
-            step = walker.next(REFUSAL_HELD_OUTCOME, node, None)
-            return _settle(walker, store, round_node, refusals, node, step, refusal)
-        refusals = _with_gate(refusals, node, GateRefusals(attempts, reason, redo=True))
-        out = tuple(
-            gate
-            for gate in round_node.gates
-            if gate in opened.due and gate not in opened.records and not _marked(refusals, gate)
+        opened = _open_set(graph, walker.store.read())
+        result = _record(walker, store, repo_root, outcome, node, findings, opened)
+        if isinstance(result.action, Refused):
+            return result
+        if opened is None and findings:
+            kept.write((findings,))
+        if _closed_a_round(result.action):
+            kept.clear()
+        return dataclasses.replace(result, revision_findings=kept.read())
+
+
+def _record(
+    walker: Walker,
+    store: RefusalStore,
+    repo_root: Path,
+    outcome: str,
+    node: str | None,
+    findings: str | None,
+    opened: OpenRound | None,
+) -> HostStep:
+    graph = walker.graph
+    round_node = None if node is None else _verdict_gate(graph, opened, node, outcome)
+    if opened is None or round_node is None or node is None:
+        step = walker.next(outcome, node, None)
+        if isinstance(step, Refused):
+            return HostStep(step)
+        if opened is None:
+            store.clear()
+            return HostStep(step)
+        in_round = graph.nodes[opened.round]
+        assert isinstance(in_round, RoundNode)
+        return _settle(
+            walker, store, in_round, store.read(opened.round, opened.number), node, step, None
         )
-        if out:
-            store.write(dataclasses.replace(refusals, announced=()))
-            return HostStep(RefusedWait(opened.round, refusal, out))
-        return _redispatch(walker, store, round_node, refusals)
+    if not findings:
+        return HostStep(
+            Refused(
+                f"outcome {outcome} at round gate '{node}' requires --findings with the "
+                "reviewer's findings_file"
+            )
+        )
+    refusals = store.read(opened.round, opened.number)
+    reason = round_file_problem(round_file_path(repo_root, findings))
+    if reason is None:
+        step = walker.next(outcome, node, findings)
+        return _settle(walker, store, round_node, refusals, node, step, None)
+    prior = refusals.gates.get(node)
+    attempts = (0 if prior is None else prior.attempts) + 1
+    refusal = Refusal(gate=node, attempt=attempts, reason=reason)
+    if attempts >= ROUND_FILE_ATTEMPTS:
+        refusals = _with_gate(refusals, node, GateRefusals(attempts, reason, redo=False))
+        step = walker.next(REFUSAL_HELD_OUTCOME, node, None)
+        return _settle(walker, store, round_node, refusals, node, step, refusal)
+    refusals = _with_gate(refusals, node, GateRefusals(attempts, reason, redo=True))
+    out = tuple(
+        gate
+        for gate in round_node.gates
+        if gate in opened.due and gate not in opened.records and not _marked(refusals, gate)
+    )
+    if out:
+        store.write(dataclasses.replace(refusals, announced=()))
+        return HostStep(RefusedWait(opened.round, refusal, out))
+    return _redispatch(walker, store, round_node, refusals)
+
+
+def _closed_a_round(action: Step | RefusedWait) -> bool:
+    if isinstance(action, (Wait, RefusedWait, Refused)):
+        return False
+    return any(isinstance(passage, RoundPassage) for passage in action.passed)
 
 
 def _open_set(graph: FlowGraph, state: WalkState | None) -> OpenRound | None:

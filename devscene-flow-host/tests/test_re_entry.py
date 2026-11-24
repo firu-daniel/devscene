@@ -1,8 +1,9 @@
 """The rule this file exists to enforce: `start_walk` places a walk from the round files as
 `flow-walker.sh`'s `start` does — its `STATE` paragraph's resume rules, with the counter at 0
-and the round number carried on from the files — and clears the refusal record, while
-`current_step` re-reads the saved walk with every refused gate left out and the last step's
-`refused:` lines restored, as its `current` re-prints `out=` built by `render_set`.
+and the round number carried on from the files — and clears the refusal record and the kept
+findings record (`revision_findings`, which bash's `start` clears), while `current_step` re-reads
+the saved walk with every refused gate left out, the last step's `refused:` lines restored and
+the kept findings record unchanged, as its `current` re-prints `out=` built by `render_set`.
 
 The graph is the harness's own format-4 graph,
 `cli/templates/scripts/flows/task_plan_writing.v4.graph.json`. Config, review files and git
@@ -22,6 +23,7 @@ from graphscene import Dispatch, DispatchSet, Refused, Stop, Walker, load_graph_
 
 from devscene_flow_host.host.re_entry import current_step, start_walk
 from devscene_flow_host.host.refusals import Refusal, refusals_path
+from devscene_flow_host.host.revision_findings import RevisionFindingsStore, revision_findings_path
 from devscene_flow_host.host.round_gates import HostStep, RefusedWait, record_outcome
 from devscene_flow_host.host.store import walk_state_path
 from devscene_flow_host.host.walking import open_walker
@@ -236,3 +238,38 @@ def test_start_removes_the_refusal_file_and_a_refused_start_keeps_it(tmp_path: P
         DispatchSet("plan_round", 0, (_parity(0), _arch(0), _plan(0)), ())
     )
     assert not refusals.exists()
+
+
+def _keep(root: Path) -> Path:
+    RevisionFindingsStore(root, "state", _BRANCH).write(("state/answers.md",))
+    return revision_findings_path(root, "state", _BRANCH)
+
+
+def test_start_removes_the_kept_findings_file_and_a_refused_start_keeps_it(
+    tmp_path: Path,
+) -> None:
+    walker = _plant(tmp_path, 0, {})
+    kept = _keep(tmp_path)
+
+    assert _start(walker, tmp_path, "plan_review") == HostStep(
+        Refused("'plan_review' is not an entry of flow 'task_plan_writing'")
+    )
+    assert kept.exists()
+
+    assert _start(walker, tmp_path) == HostStep(
+        DispatchSet("plan_round", 0, (_parity(0), _arch(0), _plan(0)), ())
+    )
+    assert not kept.exists()
+
+
+def test_current_returns_the_kept_findings_file_unchanged(tmp_path: Path) -> None:
+    walker = _plant(tmp_path, 0, {})
+    _start(walker, tmp_path)
+    kept = _keep(tmp_path)
+    before = kept.read_bytes()
+
+    assert current_step(walker, tmp_path, _BRANCH) == HostStep(
+        DispatchSet("plan_round", 0, (_parity(0), _arch(0), _plan(0)), ()),
+        revision_findings=("state/answers.md",),
+    )
+    assert kept.read_bytes() == before
