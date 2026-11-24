@@ -16,7 +16,9 @@ Deliberately not covered:
 - When the record is written or read: the caller's.
 - Rendering the values: the `commands` layer's.
 - Removing a finished branch's file.
-- A crash between the walk's write and this one, which leaves the previous step's reads.
+- A crash between the walk's write and this one, which leaves the previous step's reads; an
+  exception from `read_printed` after the walk's write clears the record instead (`clear`), so
+  `current_step` reads the files.
 """
 
 import json
@@ -161,6 +163,9 @@ class PrintedReadsStore:
         except BaseException:
             temporary.unlink(missing_ok=True)
             raise
+
+    def clear(self) -> None:
+        self._path.unlink(missing_ok=True)
 
 
 def _decode(raw: bytes) -> PrintedReads:

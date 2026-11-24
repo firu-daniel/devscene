@@ -271,17 +271,8 @@ def _to_the_plan_cap(root: Path) -> str:
     raise AssertionError("the plan round never reached its cap")
 
 
-def test_current_reprints_the_plan_rounds_cap_after_a_fail_and_an_index_edit(
-    tmp_path: Path,
-) -> None:
-    root = _repo(tmp_path)
-    index = root / _STORY_INDEX
-    index.parent.mkdir(parents=True)
-    index.write_text(_STORY_INDEX_BODY, encoding="utf-8")
-    architecture = root / "devscene" / "architecture_reviews" / _BRANCH
-    plant_review(architecture, 0, FAIL_BODY)
-    plant_review(architecture, 1, FAIL_BODY)
-    cap = _text(
+def _plan_cap(root: Path) -> str:
+    return _text(
         "action: binding",
         "binding: <escalate>",
         "node: plan_round",
@@ -301,6 +292,19 @@ def test_current_reprints_the_plan_rounds_cap_after_a_fail_and_an_index_edit(
         # the fifth FAIL closes round 6.
         "round: 6 FAIL",
     )
+
+
+def test_current_reprints_the_plan_rounds_cap_after_a_fail_and_an_index_edit(
+    tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    index = root / _STORY_INDEX
+    index.parent.mkdir(parents=True)
+    index.write_text(_STORY_INDEX_BODY, encoding="utf-8")
+    architecture = root / "devscene" / "architecture_reviews" / _BRANCH
+    plant_review(architecture, 0, FAIL_BODY)
+    plant_review(architecture, 1, FAIL_BODY)
+    cap = _plan_cap(root)
     assert _to_the_plan_cap(root) == cap
     plant_review(architecture, 2, FAIL_BODY)
     index.write_text(
@@ -310,6 +314,20 @@ def test_current_reprints_the_plan_rounds_cap_after_a_fail_and_an_index_edit(
         encoding="utf-8",
     )
     assert _ok(root, "current", *_WALK) == cap
+
+
+def test_a_read_fault_at_the_cap_leaves_current_reading_the_files(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    index = root / _STORY_INDEX
+    index.parent.mkdir(parents=True)
+    index.write_bytes(b"## Rejected findings\n- \xff\n")
+    architecture = root / "devscene" / "architecture_reviews" / _BRANCH
+    plant_review(architecture, 0, FAIL_BODY)
+    plant_review(architecture, 1, FAIL_BODY)
+    with pytest.raises(AssertionError, match="not UTF-8 text"):
+        _to_the_plan_cap(root)
+    index.write_text(_STORY_INDEX_BODY, encoding="utf-8")
+    assert _ok(root, "current", *_WALK) == _plan_cap(root)
 
 
 @pytest.mark.parametrize("verb", ["next", "current"])

@@ -117,12 +117,17 @@ def record_outcome(
             kept.write((findings,))
         if _closed_a_round(result.action):
             kept.clear()
-        printed = (
-            PrintedReads()
-            if isinstance(result.action, RefusedWait)
-            else read_printed(graph, repo_root, state_dir, branch, result.action)
-        )
-        PrintedReadsStore(repo_root, state_dir, branch).write(printed)
+        printed_store = PrintedReadsStore(repo_root, state_dir, branch)
+        try:
+            printed = (
+                PrintedReads()
+                if isinstance(result.action, RefusedWait)
+                else read_printed(graph, repo_root, state_dir, branch, result.action)
+            )
+        except BaseException:
+            printed_store.clear()
+            raise
+        printed_store.write(printed)
         return dataclasses.replace(result, revision_findings=kept.read(), printed=printed)
 
 

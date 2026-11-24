@@ -45,8 +45,13 @@ def start_walk(walker: Walker, repo_root: Path, branch: str, entry: str | None =
         if not isinstance(step, Refused):
             store.clear()
             RevisionFindingsStore(repo_root, state_dir, branch).clear()
-            printed = read_printed(walker.graph, repo_root, state_dir, branch, step)
-            PrintedReadsStore(repo_root, state_dir, branch).write(printed)
+            printed_store = PrintedReadsStore(repo_root, state_dir, branch)
+            try:
+                printed = read_printed(walker.graph, repo_root, state_dir, branch, step)
+            except BaseException:
+                printed_store.clear()
+                raise
+            printed_store.write(printed)
             return HostStep(step, printed=printed)
     return HostStep(step)
 
