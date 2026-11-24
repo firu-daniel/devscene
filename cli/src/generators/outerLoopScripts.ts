@@ -1,7 +1,7 @@
 /**
  * Generator: the outer-loop scripts — the run watcher, the git wrappers, the worktree tooling, the
  * flow host's environment provisioner, the
- * flow walker with its gate library and flow graph, the planning driver's three libraries, the
+ * flow walker's hand-off with its two flow graphs, the planning driver's three libraries, the
  * test-suite runner, the gate launcher, the
  * prompt-injection screen, the run-analytics script with its two `jq` programs, the change-request fence's opt-out check, the
  * review sweep, and the shared library
@@ -219,9 +219,11 @@ export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze(
   // regenerated, which is the whole point of shipping it as a script rather than as an interpreter
   // allow entry.
   Object.freeze({ file: 'scratch-run.sh', mode: 0o755, agentInvocable: true }),
-  // Sourced and read by `flow-walker.sh` from its own directory, never run.
-  Object.freeze({ file: 'flow-walker-gates.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
+  // The format-3 graph: no walker reads it, but `lib/planning-node-lib.sh` and
+  // `lib/planning-driver-lib.sh` read its node list. Its retirement is #459's.
   Object.freeze({ file: 'task_plan_writing.graph.json', subdir: 'flows', mode: 0o644, agentInvocable: false }),
+  // The graph `devscene-flow-walker` walks: `flow-walker.sh` passes this directory as `--flows`.
+  Object.freeze({ file: 'task_plan_writing.v4.graph.json', subdir: 'flows', mode: 0o644, agentInvocable: false }),
   // Run by the orchestrating session; no `DENY_SCRIPT_BASENAMES` entry, because it must be reachable.
   Object.freeze({ file: 'flow-walker.sh', mode: 0o755, agentInvocable: true }),
   // Run by the orchestrating session in the Run gates phase; no `DENY_SCRIPT_BASENAMES` entry,
