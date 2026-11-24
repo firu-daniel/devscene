@@ -83,6 +83,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
 import { MAIN_REPO_ANCHOR_VARIABLE } from '../../dist/core/mainRepoAnchor.js';
 import { KEEP_AWAKE_LOCK_PROBE_ENV, NESTED_USERNS_PROBE_ENV } from '../../dist/doctor/checks.js';
+import { FLOW_HOST_PROVISION_PROBE_ENV } from '../../dist/flowHost/provision.js';
 
 /**
  * The directory a fresh `init` writes its scripts into. A suite addressing scripts that an `init`
@@ -188,6 +189,11 @@ function oversizedArgString(args, env) {
  * {@link NESTED_USERNS_PROBE_ENV} is set to `off` because `doctor`'s `sandbox-prerequisites` check
  * otherwise spawns a real `bwrap` on a Linux host, and no test spawns one unasked; no shipped path ever
  * sets it, and a case whose subject is the nested check passes `{ [NESTED_USERNS_PROBE_ENV]: '' }` explicitly.
+ *
+ * {@link FLOW_HOST_PROVISION_PROBE_ENV} is set to `off` because `init` otherwise builds the walker's
+ * environment with `uv` after every plan, which reaches the network, and no test reaches it unasked; no
+ * shipped path ever sets it, and a case whose subject is the build passes
+ * `{ [FLOW_HOST_PROVISION_PROBE_ENV]: '' }` explicitly.
  */
 const ISOLATED_ENV = Object.freeze({
   GIT_CONFIG_GLOBAL: ISOLATED_GITCONFIG,
@@ -198,6 +204,7 @@ const ISOLATED_ENV = Object.freeze({
   [MAIN_REPO_ANCHOR_VARIABLE]: '',
   [KEEP_AWAKE_LOCK_PROBE_ENV]: 'off',
   [NESTED_USERNS_PROBE_ENV]: 'off',
+  [FLOW_HOST_PROVISION_PROBE_ENV]: 'off',
 });
 
 /**

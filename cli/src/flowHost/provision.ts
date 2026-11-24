@@ -8,16 +8,13 @@
  * written into the adopting repository by `uv`, in that child, outside `cli/src/core/writer.ts`'s
  * engine; that header records the exception.
  *
- * - **It never fails `init`.** A skip, a failed sync or a child that could not run is a warning naming
- *   the command to re-run outside the sandbox; the packages the plan wrote stay valid.
+ * - **It never fails `init`.** A failed sync — `uv` missing and no flow host included — or a child that
+ *   could not run is a warning carrying the child's last stderr line and naming the command to re-run
+ *   outside the sandbox; the packages the plan wrote stay valid.
  * - **`--dry-run` spawns nothing** and says what would run.
  * - **`spawnSync` rather than `execFileSync`**, for the reason `cli/src/commands/doctor.ts` →
- *   `runNotifier` gives: the script reports a skip on stderr with exit `0`, which `execFileSync`
- *   would discard.
- *
- * MIRROR. {@link SKIPPED_MARKER} is the prefix `hr_flow_host_provision` in
- * `cli/templates/scripts/lib/harness-run-lib.sh` opens each skip line with; a reword there is an
- * edit here, and `cli/test/init-provision-python.test.mjs` holds the two equal.
+ *   `runNotifier` gives: the warning quotes the child's stderr, which `execFileSync` would fold into
+ *   its thrown error.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -32,11 +29,22 @@ import { flowHostEnvDir } from './layout.js';
 /** A cold `uv` cache downloads every dependency, which may take minutes. */
 const PROVISION_TIMEOUT_MS = 900000;
 
-/** The marker `hr_flow_host_provision` opens a skip line with. */
-const SKIPPED_MARKER = 'flow-host: provision: SKIPPED';
+/**
+ * The file `uv` writes into every environment it creates: present means already provisioned.
+ *
+ * MIRRORS. `cli/templates/scripts/lib/harness-run-lib.sh` → `HR_FLOW_HOST_ENV_MARKER` spells it for
+ * the shell; `cli/test/flow-host-provision.test.mjs` holds the two equal.
+ */
+export const ENV_MARKER_FILE = 'pyvenv.cfg';
 
-/** The file `uv` writes into every environment it creates: present means already provisioned. */
-const ENV_MARKER_FILE = 'pyvenv.cfg';
+/**
+ * The environment variable that turns `init`'s default build of the walker's environment off; this
+ * constant is its only spelling in `cli/src`, and it is read through this constant alone. It exists
+ * for the test suite alone, so no fixture `init` reaches the network unasked
+ * (`.claude/context/cli.md` → `## What "done" means here`). **No shipped path ever sets it.** `off`
+ * makes `init` skip the build exactly as `--no-provision-python` does.
+ */
+export const FLOW_HOST_PROVISION_PROBE_ENV = 'DEVSCENE_FLOW_HOST_PROVISION_PROBE';
 
 /** What {@link provisionFlowHost} takes. */
 export interface ProvisionFlowHostOptions {
@@ -105,10 +113,6 @@ export function provisionFlowHost({ repoRoot, config, dryRun }: ProvisionFlowHos
   }
 
   if (result.status === 0) {
-    const skipped = stderr.find((line) => line.startsWith(SKIPPED_MARKER));
-    if (skipped !== undefined) {
-      return { notes: [], warnings: [`the Python environment the flow walker runs in was not built: ${skipped}`] };
-    }
     return { notes: [`built the Python environment the flow walker runs in at ${environment}/ with uv`], warnings: [] };
   }
 

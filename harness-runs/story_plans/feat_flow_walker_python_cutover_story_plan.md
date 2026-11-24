@@ -42,7 +42,7 @@ Manual setup required:
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_walker_python_cutover/task_<K>_plan.md`. The entries are ordered bottom-up by ship sequence in the configured layer order, with the catch-all layer last. A task's number `K` is its identifier, not its position: the list's order is the ship order, and every `**Depends on:**` names a task listed above it.
 
 1. [x] **Task 3** — Declare the flow host's layout names once in the gate library, carry one branch's walk files in the remote bundle, and fail provisioning without `uv` or a project _(layer: cli)_ _(points: 20)_
-2. [ ] **Task 4** — Make `init` build the walker's environment by default, with `--no-provision-python` to opt out _(layer: cli)_ _(points: 20)_
+2. [x] **Task 4** — Make `init` build the walker's environment by default, with `--no-provision-python` to opt out _(layer: cli)_ _(points: 20)_
 3. [ ] **Task 1** — Hand `flow-walker.sh` to `devscene-flow-walker`, ship the format-4 graph and retire the gate library _(layer: cli)_ _(points: 20)_
 4. [ ] **Task 2** — Point the walker-driving test helpers at the Python walker over the branch's own sources _(layer: cli)_ _(points: 15)_
 5. [ ] **Task 16** — Bring the provisioning and bootstrap suites to failing provisioning, and hold the new layout mirror equal _(layer: cli)_ _(points: 20)_
