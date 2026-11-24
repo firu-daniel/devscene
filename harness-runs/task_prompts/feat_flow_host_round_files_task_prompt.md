@@ -1,0 +1,28 @@
+`feat_flow_host_round_files` gives `devscene-flow-host` the harness's round and reviewer files: reading a reviewer's verdict, the rules a reviewer file must meet, and resuming a round from the files on disk. Part of #376.
+
+_Split out of #418 on 2026-11-23, so that each of #418's three parts is planned on its own: #418 keeps the host, this branch takes the round and reviewer files, and #465 takes the `flow-walker.sh` compatibility command._
+
+## Why
+
+The bash walker reads the planning round's files itself (`cli/templates/scripts/lib/flow-walker-gates.sh`). GraphScene never reads harness files, so these rules move into DevScene's host before the compatibility command (#465) can answer `next` and `check-round-file` as `flow-walker.sh` does.
+
+## Decided (2026-11-22, with #418)
+
+- **Resuming a round from its files uses #450's generic entry.** `devscene-flow-host` reads the round files and the revision note (`fw_round_evidence`) and hands GraphScene the round, its number and the recorded gates.
+
+## Leads
+
+_The leads below are starting points from #376, #418 and the discussion that split it, not requirements. The planning session decides what holds when this branch is planned._
+
+- **The reviewer-file rules** (moved from #418): `FAIL` requires `--findings`, and so do `PASS` and `FAIL` at a round gate; `check-round-file`; a refused file re-dispatched in the same round, held as `error` on the third refusal; the next free index in a findings folder for a reviewer outside a round (`fw_round_file_check`, `fw_next_review_index` in `cli/templates/scripts/lib/flow-walker-gates.sh`). The same file also holds `fw_review_verdict`, `fw_fail_count` and `fw_index_evidence`.
+- **The resume rules are stated in `flow-walker.sh`'s `STATE` header:** no round file opens round 0's whole set; a round with files missing whose evidence is consistent records the present gates and opens the set with only the missing ones; a FAIL with the next revision note on disk opens the next round's whole set; a complete all-PASS round is reviewed again, because convergence is never inferred from files. `cli/test/flow-walker-resume.test.mjs` pins them.
+- **The refusal count needs a home.** The bash walker keeps a refused round file's count, last reason and re-dispatch mark in its state file (`round.refused.<gate>`, `round.refusal.<gate>`, `round.redo.<gate>`, cleared when the round closes). GraphScene's `WalkState` has no such field. Where it lives instead, in the host's own state beside the walk's store or elsewhere, is this branch's to decide.
+- **`DispatchNode.findings_folder`** _From #417 as merged (#448, 2026-11-22)._ is an opaque model field that the engine never reads. The folder-index rule reads it here. Check 6 (`findings-folder-in-core`) reads it too, but porting that check is #459's.
+- The code lands in the layers #418 sets: the files are read in the readers' part and the rules applied in the host's part.
+- **The layers #418 set are `records`, `host` and `commands`** _From #418 as merged (#467, 2026-11-23)._ The rules are in `.claude/context/devscene-flow-host.md` → `## The internal layers` and `devscene-flow-host/README.md` → `## The layers`. `records` may import only the standard library and never `graphscene`. So a round-file or reviewer-file reader returns plain values, and building the `RoundResume` from them is `host`'s. A file that is absent or unreadable as the harness writes it is a `RecordError` (`records/errors.py`). The ledger's path is already `records/ledger.py` → `ledger_path` / `LEDGER_DIRECTORY`. The resume reaches GraphScene through `Walker.start(entry, resume=RoundResume)`. `host/walking.py` → `open_walker` composes the `Walker` and needs no resume parameter for it.
+- **Where the refusal count can live, given the store #418 shipped** _From #418 as merged (#467, 2026-11-23)._ The walk's store is keyed by branch. Each branch's walk is its own `FileStateStore` at `<stateDir>/.flow_walker_state/<quote(branch, safe="")>.json`, so `.flow_walker_state` is now a directory (`host/store.py`). Its ignore rule already covers everything under it. `WalkState`'s codec refuses an extra key, so the count cannot ride in the walk's file. A file of the host's own beside it, in the same directory, is the natural candidate. #418 rejected a companion file for the walk's *branch*, because a crash between the two writes could pair one branch's walk with another branch's marker. For the refusal count that risk is cheap: a lost or stale count costs at most two extra re-dispatches, as the lead on a lost state file below says. The planning session decides.
+- **A lost state file is the case this branch makes work** _Raised 2026-11-23._ The state file is a position, never a record: the flow-progress ledger and the round files are the record (`flow-walker.sh` → `STATE`). The recovery around it already exists and stays as it is. On every re-entry the orchestrator runs `current`, and its exit 1 (*"no saved walk"*) is an answer, not a blocker. The orchestrator then picks an entry from the ledger and the files on disk, and calls `start` (`plugin/instructions/task_plan_writing_instructions_core.md` → `## Setup` step 7, **Continuing a saved walk.**). This branch's part is that `start` rebuilds the round position from the files, as `cli/test/flow-walker-resume.test.mjs` cases (7)–(12) pin. What is lost stays lost, as in bash: the loop counter (`start` resets it, giving a fresh five-round budget), the prompt variants, and the refusal count, which costs at most two extra re-dispatches (`docs/flow-graph-walker.md` → *What `start` reads, and what it never carries*). Nothing here needs a database.
+
+## Depends on
+
+#418

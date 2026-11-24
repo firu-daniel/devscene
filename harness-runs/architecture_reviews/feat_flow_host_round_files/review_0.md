@@ -1,0 +1,32 @@
+# Architecture review — round 0
+
+verdict: FAIL
+review_mode: full
+
+## Must Fix
+1. **`task_4_plan.md` retypes `ROUND_PLACEHOLDER` in `host/paths.py` when Task 2 already defines it in `records/round_evidence.py`** — rule source: `.claude/context/devscene-flow-host.md` → `## Shared code and constants` (*"fixed in-record literals are module-level `Final` constants in the module that reads or writes them, and another module imports them from there"*) and `.claude/context/conventions.md` → `### Where a new responsibility goes` (*"A responsibility that already has a home does not get a second one"*, *"Before adding a copy of anything, grep for it"*) and `## Configuration is the source of truth…` (*"a value is imported from its owner rather than retyped"*).
+   Task 2 tells its implementer to add `ROUND_PLACEHOLDER: Final = "{round}"` to `devscene-flow-host/src/devscene_flow_host/records/round_evidence.py`. Task 4 then tells its implementer to add a second `Final` constant with the same name and literal to `devscene-flow-host/src/devscene_flow_host/host/paths.py`. The dependency rule allows `host` to import from `records` (`.claude/context/devscene-flow-host.md` → `## The internal layers`), so the `host` module can take the constant from the `records` owner. Retyping it gives one literal two owners, which the layer forbids.
+   **Raised against:** "`paths.py`. Add `Final` constants `STATE_DIR_PLACEHOLDER = "{state_dir}"`, `BRANCH_PLACEHOLDER = "{branch}"` and `ROUND_PLACEHOLDER = "{round}"`."
+   **Must hold:** The `{round}` placeholder literal has exactly one `Final` definition in the package. Any other module that needs it imports it from that owner, and the import points down (`host` imports from `records`, never the other way).
+   **Class:** Broken contract
+   **Failure:** If the Task 4 implementer follows the `paths.py` Work bullet as written, then `devscene-flow-host/src/devscene_flow_host/` ends up with two `ROUND_PLACEHOLDER = "{round}"` definitions, one in `records/round_evidence.py` and one in `host/paths.py`. `git grep -n 'ROUND_PLACEHOLDER: Final'` shows both, which breaks the layer's single-owner constant rule.
+   **Fix:** In `task_4_plan.md`, change the `paths.py` bullet so that it defines only `STATE_DIR_PLACEHOLDER` and `BRANCH_PLACEHOLDER`, and imports `ROUND_PLACEHOLDER` from `devscene_flow_host.records.round_evidence`. Add Task 2 (`devscene_flow_host.records.round_evidence.ROUND_PLACEHOLDER`) to Task 4's **Depends on:**. The readiness order already puts Task 2 before Task 4.
+
+2. **`task_4_plan.md` gives `host/paths.py` no *"Deliberately not covered"* list in its docstring** — rule source: `.claude/context/devscene-flow-host.md` → `## What accompanies a new unit here` (a module under `devscene-flow-host/src/devscene_flow_host/` lands with *"a docstring stating its rule and what it deliberately leaves out"*) and `## Shared code and constants` (*"lists what it deliberately leaves out under "Deliberately not covered""*).
+   Task 4's `paths.py` bullet asks for the docstring's **"The rule:"** paragraph only. The plan never asks for the *"Deliberately not covered"* list that every new module in this layer must carry. All the other new source modules in the plan (Tasks 1–3 and 5–8) ask for both parts.
+   **Raised against:** "Its docstring's **"The rule:"** cites `render_path` in `flow-walker.sh`."
+   **Must hold:** Task 4 tells its implementer to give `host/paths.py` a module docstring with both a **"The rule:"** paragraph and a **"Deliberately not covered"** list.
+   **Class:** Broken contract
+   **Failure:** If the Task 4 implementer writes `paths.py`'s docstring as the Work bullet specifies, then the new module ships with no *"Deliberately not covered"* list. That required item from `## What accompanies a new unit here` is then missing from the diff.
+   **Fix:** In `task_4_plan.md`'s `paths.py` bullet, add a **"Deliberately not covered"** item and name its contents. For example: the module does not resolve a rendered path against the repository root (the caller's job), and it does not substitute any placeholder other than the three it names.
+
+3. **`task_4_plan.md` gives `host/reviewers.py` no *"The rule:"* paragraph in its docstring** — rule source: `.claude/context/devscene-flow-host.md` → `## What accompanies a new unit here` (*"a docstring stating its rule and what it deliberately leaves out"*) and `## Shared code and constants` (*"A module states the rule it holds in its docstring, under "The rule:""*).
+   Task 4's `reviewers.py` bullets ask for the docstring's **"Deliberately not covered"** list only. The plan never asks for the **"The rule:"** paragraph that every new module in this layer must carry.
+   **Raised against:** "The docstring's **"Deliberately not covered"** names a round gate's iteration, which is GraphScene's round number."
+   **Must hold:** Task 4 tells its implementer to give `host/reviewers.py` a module docstring with both a **"The rule:"** paragraph and a **"Deliberately not covered"** list.
+   **Class:** Broken contract
+   **Failure:** If the Task 4 implementer writes `reviewers.py`'s docstring as the Work bullets specify, then the new module ships with no **"The rule:"** paragraph. That required item from `## What accompanies a new unit here` is then missing from the diff.
+   **Fix:** In `task_4_plan.md`'s `reviewers.py` bullets, add a **"The rule:"** item that names the rule the module holds and the bash functions it reads as (`round_of_gate`, `round_of_writer` and `render_block`'s `findingsFolder` branch in `flow-walker.sh`). For example: a round is found by the first node in `graph.nodes` order that lists the node, and the index outside a round is read only from `DispatchNode.findings_folder`.
+
+## Should Fix
+1. **`task_2_plan.md` — `records/round_evidence.py` substitutes `{round}` into a graph path template.** `.claude/context/graphscene.md` → `## What this layer owns, and what it is not` assigns *"rendering path templates"* to the host, and Task 2's own text says the module *"renders no graph path"*. Yet `read_round_evidence` replaces the first `{round}` in `note_template` with `R + 1`. Mirroring `fw_round_evidence` justifies this. Even so, the plan could keep `records` free of template rendering: the caller would pass a function from the round number to the note path, or the module docstring's **"Deliberately not covered"** would argue the exception. Grade: no layer document makes substitution inside `records` a stated violation, so this is not a Must Fix.
