@@ -28,6 +28,13 @@
 # when the escalated gate left no findings file, re-dispatches only that gate.
 # The orchestrated path makes no such commit.
 #
+# THE WALKER IS THE MAIN CHECKOUT'S `flow-walker.sh`, run with <worktree> as
+# its working directory: this driver runs outside the sandbox, and
+# `cli/src/generators/writeProtection.ts`'s rule is that anything that runs
+# outside the sandbox must not be writable from inside it — the run copy's
+# walker and `<scriptsDir>/python/` are. The graph's node list (`PNL_GRAPH`),
+# the ledger and the round files are data, and are read from <worktree>.
+#
 # OUTSIDE `PNL_TMP` IT WRITES ONE FILE, `<state_dir>/.dispatch_counter`. Every commit,
 # flip, park, pause and observation is `lib/planning-record-lib.sh`'s; every
 # prompt, launch and verdict is `lib/planning-node-lib.sh`'s; every route is
@@ -66,7 +73,8 @@
 #
 #   Build `lib/planning-record-lib.sh`'s REPRO fixture in "$r", copy
 #   `flow-walker.sh`, `flows/` and the five libraries under "$r/m/s/" before the
-#   worktree is added, commit a task-engine ledger at
+#   worktree is added — the walker that runs is "$r/m"'s, over "$r/m"'s
+#   provisioned `s/python/.venv` — commit a task-engine ledger at
 #   "$r/w/devscene/flow_progress/feat_x_progress.md" and a task prompt, and fill
 #   a plugin directory "$p" with `.claude-plugin/plugin.json`, the six planning
 #   agents, their `schemas/<agent>.return.json` files and the planning core.
@@ -153,11 +161,12 @@ pd_finish() {
 }
 
 pd_main() {
-  local gstop rc recovers=0
+  local gstop rc recovers=0 main_sd
   PD_STATE_DIR="$PNL_STATE_DIR"
   PD_STATE="$PD_WORKTREE/$PD_STATE_DIR"
   PD_LEDGER="$PD_STATE/flow_progress/${PD_BRANCH}_progress.md"
-  PD_WALKER="$PD_WORKTREE/$PNL_SCRIPTS_DIR/flow-walker.sh"
+  main_sd=$(hr_scripts_dir "$PD_MAIN_REPO") || { pd_fail "scriptsDir does not resolve in '$PD_MAIN_REPO/devscene.config.json'"; return 2; }
+  PD_WALKER="$PD_MAIN_REPO/$main_sd/flow-walker.sh"
   PD_ROUND_GATES=" $(jq -r '[.nodes[] | select(.kind == "round") | (.gates // [])[]] | join(" ")' "$PNL_GRAPH" 2>/dev/null) "
   pd_log "pd_drive $PD_BRANCH in $PD_WORKTREE"
 
