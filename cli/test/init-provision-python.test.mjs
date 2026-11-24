@@ -4,21 +4,25 @@
  *
  * **The rule this suite enforces: only `--provision-python` (or a yes on a terminal) runs
  * `flow-host-provision.sh`, and never under `--dry-run`; a run without it names the command; a failed
- * build is a warning and `init` still exits 0; and an upgrade that changed a shipped Python file
+ * or skipped build is a warning and `init` still exits 0; and an upgrade that changed a shipped Python file
  * names the rebuild command.** The command and the argv are spelled out here rather than read from
  * `dist/`, so a change to the producer is a change this suite sees.
  *
  * `uv` is a stub first on `PATH` appending its argv to a log, so no case reaches the network or the
- * shared `uv` cache. `runCli` pipes stdin, so no case is a terminal and none is prompted.
+ * shared `uv` cache. The `no uv` case instead runs with a `PATH` holding links to only `bash`,
+ * `dirname`, `git`, `jq` and the running `node`, and is skipped where `jq` does not resolve; its
+ * assertion on the script's own skip wording is what holds `provision.ts` → `SKIPPED_MARKER` equal to
+ * it. `runCli` pipes stdin, so no case is a terminal and none is prompted.
  */
 
 import assert from 'node:assert/strict';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
-import { chmod, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import test from 'node:test';
 
-import { createFixture, INIT_SCRIPTS_DIR, runCli } from './helpers/fixture.mjs';
+import { createFixture, INIT_SCRIPTS_DIR, PACKAGE_ROOT, runBash, runCli } from './helpers/fixture.mjs';
 
 const CLAUDE_HOME_VARIABLE = 'CLAUDE_CONFIG_DIR';
 const COMMAND = `bash ${INIT_SCRIPTS_DIR}/flow-host-provision.sh`;
@@ -31,6 +35,16 @@ exit "\${UV_STUB_EXIT:-0}"
 `;
 
 const output = (result) => `${result.stdout}\n${result.stderr}`;
+
+/** The binaries `init` and the script reach before the script's `uv` check; the running `node` is linked beside them. */
+const SKIP_BINARIES = ['bash', 'dirname', 'git', 'jq'];
+
+/** `command -v <name>`'s answer, or `undefined`. */
+const whichOf = async (name) => {
+  const result = await runBash(PACKAGE_ROOT, ['-c', 'command -v "$1"', '_', name]);
+  return result.status === 0 ? result.stdout.trim() : undefined;
+};
+const NO_JQ = (await whichOf('jq')) === undefined ? 'jq does not resolve on this process\'s PATH' : false;
 
 /** A fixture whose detection resolves every command, with its own agent-runner home and a stub `uv`. */
 async function repository(t) {
@@ -94,6 +108,23 @@ test('a failing uv leaves init exiting 0 with a warning naming the command', asy
   assert.equal(result.status, 0, output(result));
   assert.equal(repo.uvCalls().length, 1);
   assert.match(result.stderr, new RegExp(`was not built: ${COMMAND} ended with exit status 1: .*run ${COMMAND} outside the sandbox`));
+});
+
+test('no uv on PATH is a warning carrying the script\'s SKIPPED line, never a built note', { skip: NO_JQ }, async (t) => {
+  const repo = await repository(t);
+  const bare = await mkdtemp(join(tmpdir(), 'provision-bare-bin-'));
+  t.after(() => rm(bare, { recursive: true, force: true }));
+  for (const name of SKIP_BINARIES) {
+    const target = await whichOf(name);
+    assert.ok(target, `${name} does not resolve`);
+    await symlink(target, join(bare, name));
+  }
+  await symlink(process.execPath, join(bare, 'node'));
+  const result = await repo.run(['init', '--provision-python'], { PATH: bare });
+  assert.equal(result.status, 0, output(result));
+  assert.match(result.stderr, /was not built: flow-host: provision: SKIPPED — uv is not on PATH/);
+  assert.doesNotMatch(output(result), /built the Python environment the flow walker runs in at/);
+  assert.deepEqual(repo.uvCalls(), []);
 });
 
 test('--upgrade refuses --provision-python and writes nothing', async (t) => {

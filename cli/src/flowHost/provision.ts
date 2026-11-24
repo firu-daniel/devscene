@@ -14,6 +14,10 @@
  * - **`spawnSync` rather than `execFileSync`**, for the reason `cli/src/commands/doctor.ts` →
  *   `runNotifier` gives: the script reports a skip on stderr with exit `0`, which `execFileSync`
  *   would discard.
+ *
+ * MIRROR. {@link SKIPPED_MARKER} is the prefix `hr_flow_host_provision` in
+ * `cli/templates/scripts/lib/harness-run-lib.sh` opens each skip line with; a reword there is an
+ * edit here, and `cli/test/init-provision-python.test.mjs` holds the two equal.
  */
 
 import { spawnSync } from 'node:child_process';

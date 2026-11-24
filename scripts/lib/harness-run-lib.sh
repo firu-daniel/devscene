@@ -6913,6 +6913,7 @@ EOF
 #   flow_dir      'python'              mirrors  FLOW_HOST_DIRNAME
 #   flow_project  'devscene-flow-host'  mirrors  FLOW_HOST_PROJECT
 #   flow_env      '.venv'               mirrors  FLOW_HOST_ENV_DIRNAME
+#   skip prefix   'flow-host: provision: SKIPPED'  mirrored by  cli/src/flowHost/provision.ts → SKIPPED_MARKER
 # ---------------------------------------------------------------------------
 
 # hr_flow_host_provision <source_scripts_dir> <env_scripts_dir> — sync the
