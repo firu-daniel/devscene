@@ -37,6 +37,10 @@ devscene/PAUSE
 devscene/RESUME
 devscene/PAUSE_ACK
 devscene/PAUSE_PROGRESS.md
+# The flow walker's Python environment. It is per checkout - flow-host-provision.sh builds it in the
+# main checkout and each bootstrap builds one in the working copy it sets up - and it records this
+# machine's absolute paths, so it is never committed.
+scripts/python/.venv/
 # The questions a parked run asks and the answers it is given are machine-local, while the
 # directory's README is the committed contract for the exchange - so the contents are ignored and
 # that one file is excepted, exactly as for the log directory above. A question sits one level
