@@ -41,3 +41,7 @@ This task adds cases only and changes no source.
 
 - `tests/test_flow_walker.py` passes, run as `bash scripts/python-service.sh --package devscene-flow-host test tests/test_flow_walker.py` from the repository root, the existing cases included.
 - In both new cases the expected text is written out as literals, never captured from a first call and compared with a second.
+
+**Deviations from plan:**
+- The plan names `tests/test_render.py` → `_STORY_INDEX_BODY` as the story index's body. That constant is in `tests/test_printed_reads.py`, not `tests/test_render.py`. Its text, REPRO's `i.md`, is restated as a literal in `test_flow_walker.py`. Test modules do not import from one another.
+- The plan's list for the cap's literal leaves out the closing round's passage line. `render` prints `_passed(action.passed)` after the cap lines, and `close_round` appends the `RoundPassage`. The two `FAIL_BODY` files planted before `start` make `round_resume` (writer entry, `r + 1`) open the walk at round 2, so the fifth FAIL, which hits the cap of 5, closes round 6. The literal therefore ends with `round: 6 FAIL`.

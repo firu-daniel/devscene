@@ -7,7 +7,8 @@ Each case drives `main` with `io.StringIO` streams and `cwd` at a git repository
 `tmp_path` through `round_fixtures`, with `--flows` naming the checkout's own
 `cli/templates/scripts/flows` directory, read-only. Every expected text is a literal written from
 `flow-walker.sh`'s `REPRO`, `OUTPUT` and `EXIT CODES` blocks, never taken from the output of the
-code under test.
+code under test. `current` prints the values the step read from disk as they were when it was
+printed.
 """
 
 import io
@@ -35,6 +36,19 @@ _NONE: Final = ("--skipped", "none")
 # `flow-walker.sh` → REPRO's `bad.md`.
 _NO_CLASS_BODY: Final = "verdict: FAIL\n## Must Fix\n1. **f**\n   **Failure:** x\n"
 _UI_FINDINGS: Final = "devscene/ui_test_plan_reviews/feat_x/review_0.md"
+_STORY_INDEX: Final = "devscene/story_plans/feat_x_story_plan.md"
+# `flow-walker-gates.sh` → REPRO's `i.md`.
+_STORY_INDEX_BODY: Final = (
+    "## Rejected findings\n"
+    "- **3** (rejected round 1; rebutted round 2 — call stands) — r\n"
+    "- **5** (rejected round 2) — r\n"
+    "## Scope register\n"
+)
+_VERDICTS: Final = {
+    "business_parity_review": ("PASS", "b0.md"),
+    "architecture_review": ("FAIL", "f0.md"),
+    "plan_review": ("PASS", "p0.md"),
+}
 _TERMINAL: Final = (
     "action: binding",
     "binding: <terminal_handoff>",
@@ -226,6 +240,76 @@ def test_a_ui_review_fail_reaches_the_ui_writers_revision_and_current_reprints_i
     )
     assert _next(root, "FAIL", "--findings", _UI_FINDINGS) == revision
     assert _ok(root, "current", *_WALK) == revision
+
+
+def test_current_reprints_a_ui_reviewers_index_after_its_file_is_written(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    _at_ui_review(root)
+    plant_review(root / "devscene" / "ui_test_plan_reviews" / _BRANCH, 0, FAIL_BODY)
+    assert _ok(root, "current", *_WALK) == _text(
+        "action: dispatch",
+        "node: ui_review",
+        "agent: ui-tests-plan-reviewer",
+        "arg.iteration: 0",
+        "heartbeat: [ui-test-write · iter 0] → ui-tests-plan-reviewer  (#<total_dispatches>)",
+    )
+
+
+def _to_the_plan_cap(root: Path) -> str:
+    """Writer `returned`, then each printed gate's verdict, until the first binding."""
+    _ok(root, "start", *_WALK, *_NONE)
+    for _round in range(6):
+        printed = _next(root, "returned")
+        gates = [
+            line[len("node: ") :] for line in printed.splitlines() if line.startswith("node: ")
+        ]
+        for gate in gates:
+            outcome, findings = _VERDICTS[gate]
+            last = _next(root, outcome, "--node", gate, "--findings", findings)
+            if last.startswith("action: binding"):
+                return last
+    raise AssertionError("the plan round never reached its cap")
+
+
+def test_current_reprints_the_plan_rounds_cap_after_a_fail_and_an_index_edit(
+    tmp_path: Path,
+) -> None:
+    root = _repo(tmp_path)
+    index = root / _STORY_INDEX
+    index.parent.mkdir(parents=True)
+    index.write_text(_STORY_INDEX_BODY, encoding="utf-8")
+    architecture = root / "devscene" / "architecture_reviews" / _BRANCH
+    plant_review(architecture, 0, FAIL_BODY)
+    plant_review(architecture, 1, FAIL_BODY)
+    cap = _text(
+        "action: binding",
+        "binding: <escalate>",
+        "node: plan_round",
+        "reason: cap",
+        "findings_file: b0.md",
+        "findings_file: f0.md",
+        "findings_file: p0.md",
+        "rounds: business_parity_review 0",
+        "rounds: architecture_review 2",
+        "rounds: plan_review 0",
+        f"evidence: {root}/{_STORY_INDEX} ## Rejected findings",
+        "evidence.open: - **5** (rejected round 2) — r",
+        f"evidence: {root}/{_STORY_INDEX} ## Scope register",
+        "summary: the plan loop reached its 5-revision cap; the gates open when it fired: "
+        "architecture_review",
+        # `start` resumes at round 2 from the two planted files (`round_resume`, writer entry), so
+        # the fifth FAIL closes round 6.
+        "round: 6 FAIL",
+    )
+    assert _to_the_plan_cap(root) == cap
+    plant_review(architecture, 2, FAIL_BODY)
+    index.write_text(
+        _STORY_INDEX_BODY.replace(
+            "## Scope register\n", "- **9** (rejected round 5) — r\n## Scope register\n"
+        ),
+        encoding="utf-8",
+    )
+    assert _ok(root, "current", *_WALK) == cap
 
 
 @pytest.mark.parametrize("verb", ["next", "current"])
