@@ -30,3 +30,11 @@
 
 - [ ] Make sure `createStallFixture` creates `bin` with `await mkdir(bin, { recursive: true });`, the change Finding 3 makes. If that change has already landed, this test needs no edit of its own.
 - [ ] If the test still fails once that change is in place, its failure is a new one past fixture setup. Diagnose it at the call site the new error names, in this test's body or in `createStallFixture` after the `mkdir`, and fix it there. Do not weaken or skip the case.
+
+## Already passing
+
+**Cause:** already passing after an earlier fix: Finding 3's recursive mkdir in createStallFixture landed, and the single-file run passes the named test
+
+- (a) Named test: `(S2) a .claude/settings.json committed with a hook is refused, and the working-tree file is not installed`; file run: `cli/test/watcher-stall-reset-payloads.test.mjs`. The fix site `createStallFixture` already reads `await mkdir(bin, { recursive: true });` (landed by Finding 3's commit, `8df6dde6`).
+- (b) Command: `npm test --workspace cli -- test/watcher-stall-reset-payloads.test.mjs`, from the repository root. Result: `ok 3 - (S2) a .claude/settings.json committed with a hook is refused, and the working-tree file is not installed`; file totals `# tests 18`, `# pass 18`, `# fail 0`.
+- (c) No code file was edited; this record is the only write.

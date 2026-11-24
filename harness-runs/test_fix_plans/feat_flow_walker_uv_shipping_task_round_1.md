@@ -18,7 +18,7 @@ The SKIPPED legs (13d, 14d) and the `gates this script cannot run` list are not 
 2. [x] **Finding 2** — Add the branch's `uv` and `flow-host` check ids to the doctor test's frozen pre-branch id list. _(layer: cli)_
 3. [x] **Finding 3** — Make `createStallFixture`'s `watcher-test/bin` mkdir tolerate the directory the shared watcher fixture now creates. _(layer: cli)_
 4. [x] **Finding 4** — Stall-reset (S1) reference-transaction case: EEXIST on `watcher-test/bin`. _(layer: cli)_
-5. [ ] **Finding 5** — Stall-reset (S2) committed settings.json case: EEXIST on `watcher-test/bin`. _(layer: cli)_
+5. [x] **Finding 5** — Stall-reset (S2) committed settings.json case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 6. [ ] **Finding 6** — Stall-reset (S3) nested core.fsmonitor case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 7. [ ] **Finding 7** — Stall-reset (S5) symlinked PAUSE_PROGRESS.md case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 8. [ ] **Finding 8** — Stall-reset (S6) forged base case: EEXIST on `watcher-test/bin`. _(layer: cli)_
