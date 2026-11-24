@@ -36,6 +36,7 @@ Three kinds of statement:
    - Selling starts with option C under `## Delivery options`: support, onboarding and setup for teams adopting DevScene.
    - The team features are developed now, as a module inside the DevScene repository rather than a separate repository.
    - The module's source is public. It is unlocked by an offline licence key.
+   - The module is under a Langfuse/GitLab-style EE licence (decided the same day; see `### How option A sits in the repository`). That makes it source-available, not open source: the repository stays public and its core stays Apache-2.0, but the `ee/` folder needs a key for production use. Describe it as "open core", never as "open source".
    - Keys are given to companies free of charge at first.
    - It is accepted that a clone can patch out the key check. The licence, not the code, is what forbids that.
 
@@ -261,12 +262,15 @@ All three options share the same setup:
 
 These are leads for the branch that builds it, not decisions:
 
-- **Licence of the module.** The team folder must not be Apache-2.0. Apache-2.0 lets anyone modify the code, so removing the key check from an Apache-licensed folder would be legal, and the key would carry no weight. Candidates:
-  - a Langfuse-style EE licence;
-  - PolyForm (for example PolyForm Internal Use or Shield);
-  - FSL, which converts to Apache-2.0 after two years and so keeps an "eventually open" promise.
-
-  Whichever is chosen, the npm package's `license` field becomes a compound expression (for example `Apache-2.0 AND LicenseRef-DevScene-Team`), and `LICENSE`/`NOTICE` say which paths each licence covers.
+- **Licence of the module: decided, a Langfuse/GitLab-style EE licence (maintainer, 2026-11-24).**
+  - **Why not Apache-2.0.** Apache-2.0 lets anyone modify the code. Removing the key check from an Apache-licensed folder would therefore be legal, and the key would carry no weight.
+  - **What an EE licence allows.** Read, modify and test the code. Production use requires a valid key or subscription.
+  - **What that makes the module.** Source-available, not open source under the OSI definition. The model is Langfuse (MIT plus `ee/`, [docs](https://langfuse.com/self-hosting/license-key)) and GitLab (MIT core plus an `ee/` folder under the GitLab EE licence; background knowledge, not re-checked here).
+  - **What has to be written.** The licence text itself. The GitLab and Langfuse EE texts are short models to adapt. It is the legal basis of what is sold, so have a lawyer review the adapted text once before the first paying customer.
+  - **Rejected: FSL.** FSL converts each release to Apache-2.0 two years after that release ships. Old versions would then become free to clone and patch legally, while newer versions stayed protected until their own two years passed. A converted version cannot be taken back, because the Apache grant for it is permanent. FSL also forbids competing products, not team use, so it did not fit.
+  - **Rejected: PolyForm.**
+  - **No expiry.** An EE licence does not convert. The folder stays EE until the maintainer decides otherwise. The maintainer, as sole copyright holder, may relicense future versions at any time; no licence lets a grant already made for a past version be retracted.
+  - **Packaging.** The npm package's `license` field becomes a compound expression (for example `Apache-2.0 AND LicenseRef-DevScene-EE`). `LICENSE` and `NOTICE` say which paths each licence covers.
 - **One-way dependency.** The team module may import the core. The core never imports the team module; it discovers it at a plug-in point. With the module absent, or without a key, the core behaves exactly as it does today. Enforce this with a boundary check like `graphscene/tests/test_boundary.py`.
 - **Where team features reach.** Some features live in the CLI and the plugin, for example policy at run start and budget checks in the watcher's usage gate. Others are templates written into the adopting repository, for example an approval step in `devscene-run.yml`. Checks in the customer's repository are shell scripts the customer can edit. That is the accepted weak point.
 - **The key.**
@@ -277,7 +281,12 @@ These are leads for the branch that builds it, not decisions:
   - **No phone-home:** nothing calls home.
 - **Seat counting.** Count the distinct GitHub users who start runs in the organisation, from data the harness already reads (Actions run actors, the run registry).
 - **Contributions.** Outside contributions to the team folder need a contributor licence agreement, so the code can still be licensed and sold.
-- **Studio.** Studio is a separate, fully open-source repository (SignPath). It shows team data that the module writes, and contains no team code.
+- **Studio offers the team features but contains no EE code.**
+  - **The constraint.** SignPath Foundation's free Windows signing requires every component of the signed app to be under an open-source licence, with no proprietary part and no commercial dual licensing (Studio 09 F8). An EE-licensed file bundled into Studio would break that.
+  - **The existing pattern.** Studio already drives the harness only through the CLI's JSON contract (`devscene runs … --json`) and holds none of its run logic. Team features follow the same pattern.
+  - **Studio's side.** Studio's team screens (approval queue, combined analytics, budgets) are ordinary Apache-2.0 code. They call team verbs on the DevScene CLI, for example `devscene team approve …` or `devscene team analytics --json`.
+  - **The key.** Only the CLI's EE module checks the key. Studio never reads, stores or references it.
+  - **What Studio shows.** The CLI's answer, or "team features need a key" when the CLI reports that. A `devscene team status --json` verb gives Studio the licence state.
 
 ### What would need to change
 
@@ -293,7 +302,7 @@ These are leads for later branches, not decisions:
    - a policy hook at run start (who may start, whether approval is needed);
    - a budget hook in the watcher's usage gate;
    - a stable, documented schema for `run_analytics`, so the combined view reads a contract rather than internals.
-4. **Studio.** The app must stay fully open source (SignPath). Combined views either read a data file the paid package writes, or stay free. Check what SignPath accepts before choosing.
+4. **Studio.** The app must stay fully open source (SignPath). It gets team screens that call the CLI's `devscene team …` verbs, and holds no EE code and no key (see `### How option A sits in the repository`). This needs `team` verbs in the harness's JSON contract, alongside the `runs` verbs Studio item 7 already requires.
 5. **GraphScene.** Add an event callback over the passage records, and a Windows-compatible state store. Both are free, and both feed TraceScene.
 
 ---
@@ -301,9 +310,9 @@ These are leads for later branches, not decisions:
 ## Open questions
 
 1. **What Anthropic says.** Studio's drafted email, items (a) and (d), covers subscription tokens shared by a team. Its answer shapes which credential options the team layer supports.
-2. **Studio and SignPath.** Can a Studio that only displays a file written by a paid package keep its SignPath eligibility?
+2. **Studio and SignPath.** Does a Studio whose team screens call an EE-licensed CLI module, but bundle none of its code, keep its SignPath eligibility? **Inference:** probably yes, much like an open-source IDE calling a proprietary compiler. Still, ask SignPath before the first Studio release that ships team screens.
 3. **Pricing.** Per seat or per organisation, and at what level. There is no evidence yet. One data point: OpenHands' self-hosted Teams plan, $500 a month per organisation with 10 users included.
-4. **The team module's licence.** Choose a Langfuse-style EE licence, PolyForm or FSL (see `### How option A sits in the repository`).
+4. **The EE licence text.** The type is decided: Langfuse/GitLab-style EE. The text still has to be adapted from those models and reviewed once by a lawyer.
 5. **Demand.** Early revenue is more likely to be support and setup work for adopting teams than licence fees. The team layer is what makes that offer concrete.
 
 ---
