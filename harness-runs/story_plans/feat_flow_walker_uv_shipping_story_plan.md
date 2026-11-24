@@ -80,7 +80,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_walker_uv_shipping
 5. [x] **Task 5** — Write-protect the main checkout's `<scriptsDir>/python/` in the unattended profile _(layer: cli)_ _(points: 15)_
 6. [x] **Task 6** — Ignore the walker's environment `<scriptsDir>/python/.venv/` in the managed `.gitignore` block _(layer: cli)_ _(points: 10)_
 7. [x] **Task 7** — Offer provisioning once after `init`'s plan, behind `--provision-python`, and name the command after `init --upgrade` _(layer: cli)_ _(points: 20)_
-8. [ ] **Task 8** — Add `doctor`'s `uv` and `flow-host` checks _(layer: cli)_ _(points: 20)_
+8. [x] **Task 8** — Add `doctor`'s `uv` and `flow-host` checks _(layer: cli)_ _(points: 20)_
 9. [ ] **Task 9** — Add a pinned `setup-uv` step to the shipped `devscene-run.yml` _(layer: cli)_ _(points: 10)_
 10. [ ] **Task 10** — Document the shipped packages and the provisioning script in the `cli` package's READMEs _(layer: cli)_ _(points: 10)_
 11. [ ] **Task 11** — State in the flow host's README that it ships in the npm package and where it lands _(layer: devscene-flow-host)_ _(points: 5)_

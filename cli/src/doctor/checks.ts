@@ -169,6 +169,8 @@ import { detectBackend, resolveWatcherPath, watcherMissingMessage } from '../dae
 import { renderUnit, repoSlug, unitEnvValue } from '../daemon/units.js';
 import { LAYERLESS_BY_DESIGN_PRESETS, SHARED_CONVENTIONS_PATH, TESTS_LAYER_NAME } from '../detect/presets.js';
 import { FORCED_SIGNAL_ID } from '../detect/signals.js';
+import { flowHostDir, flowHostEnvDir } from '../flowHost/layout.js';
+import { flowHostProvisioned, flowHostProvisionInvocation } from '../flowHost/provision.js';
 import {
   CLAUDE_MD_PATH,
   isUntouchedSkeletonText,
@@ -180,6 +182,7 @@ import {
   TASK_OFFER_PATH,
   UNFILLED_STUB_MARKER,
 } from '../generators/claudeContext.js';
+import { flowHostPackageDrift } from '../generators/flowHostPackages.js';
 import {
   caseLabelMatches,
   isGlobPattern,
@@ -631,6 +634,12 @@ const JQ_MIN_MINOR = 5;
  * graded rather than parsed anyway; see {@link JQ_CHECK}.
  */
 const JQ_VERSION_PATTERN = /(\d+)\.(\d+)/;
+
+/** How long `uv --version` may take before it is treated as no answer, as {@link JQ_PROBE_TIMEOUT_MS} is for `jq`. */
+const UV_PROBE_TIMEOUT_MS = 5_000;
+
+/** The version `uv --version` prints after its own name: `uv 0.9.0`, with or without a build suffix. */
+const UV_VERSION_PATTERN = /^uv (\d+\.\d+(?:\.\d+)?)/;
 
 /**
  * The oldest git `refresh-branch.sh` runs on: it builds its merge with `git merge-tree
@@ -1729,6 +1738,54 @@ const JQ_CHECK: Check = {
 
     return pass(
       `jq ${version} is on PATH (\`jq --version\` printed ${JSON.stringify(printed)}), at or above the ${JQ_MIN_MAJOR}.${JQ_MIN_MINOR} floor the plugin's guards and the generated outer-loop scripts both need to resolve devscene.config.json`,
+    );
+  },
+};
+
+/**
+ * Is `uv`, which builds the flow walker's Python environment, on this machine?
+ *
+ * **Every finding is a `warn` until #419 makes the walker needed**, when an absent `uv` becomes a
+ * `fail`: nothing runs the walker yet, so a host without it can still run the flow as configured.
+ *
+ * {@link JQ_CHECK}'s probe discipline and its two-finding split: existence through
+ * {@link resolvesOnPath}, then `uv --version` with a fixed argument vector and a bounded timeout.
+ * It reads no configuration, so its remedy cannot name the provisioning command; `flow-host` does.
+ */
+const UV_CHECK: Check = {
+  id: 'uv',
+  title: "uv is on PATH, so the flow walker's Python environment can be provisioned",
+  run: () => {
+    if (!resolvesOnPath('uv')) {
+      return warn(
+        "uv does not resolve on PATH: DevScene requires uv to run its flow walker — install uv (https://docs.astral.sh/uv/), then provision the walker's environment with the command the flow-host check names. A warning rather than a failure because nothing runs the walker yet",
+      );
+    }
+
+    let output: string;
+    try {
+      output = execFileSync('uv', ['--version'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: UV_PROBE_TIMEOUT_MS,
+        windowsHide: true,
+      });
+    } catch (error) {
+      return warn(
+        `uv resolves on PATH but \`uv --version\` did not answer (${messageOf(error)}), so whether it can provision the flow walker's environment is unknown — run \`uv --version\` yourself`,
+      );
+    }
+
+    const printed = firstLine(output);
+    const parsed = UV_VERSION_PATTERN.exec(printed);
+    if (parsed === null) {
+      return warn(
+        `uv resolves on PATH and \`uv --version\` printed ${JSON.stringify(printed)}, which carries no version this check recognises — confirm that it is uv by running \`uv --version\` yourself`,
+      );
+    }
+
+    return pass(
+      `uv ${parsed[1]} is on PATH (\`uv --version\` printed ${JSON.stringify(printed)}), so the flow walker's Python environment can be provisioned`,
     );
   },
 };
@@ -5535,6 +5592,46 @@ const OUTER_LOOP_SCRIPTS_CHECK: Check = {
   },
 };
 
+/**
+ * Are the flow walker's Python packages the ones this CLI ships, and is their environment built?
+ *
+ * Graded at {@link CheckContext.profileRoot}, as {@link OUTER_LOOP_SCRIPTS_CHECK} is: the main
+ * checkout, whose packages a run copy's environment is built from. Package drift is
+ * {@link flowHostPackageDrift}'s answer and is reported first, because an environment built from
+ * drifted packages is rebuilt after `init --upgrade` anyway. Every finding warns, for {@link UV_CHECK}'s
+ * reason.
+ */
+const FLOW_HOST_CHECK: Check = {
+  id: 'flow-host',
+  title: "the flow walker's Python packages are the ones this CLI ships, and their environment is provisioned",
+  run: (ctx) => {
+    if (ctx.repoRoot === undefined || ctx.profileRoot === undefined) return unevaluated('the repository root did not resolve (see the git check)');
+    if (ctx.config === undefined) return unevaluated(`${CONFIG_FILENAME} could not be read (see the config check)`);
+
+    const { missing, changed } = flowHostPackageDrift(ctx.profileRoot, ctx.config);
+    if (missing.length > 0 || changed.length > 0) {
+      const findings = [
+        ...(missing.length > 0 ? [`missing: ${missing.join(', ')}`] : []),
+        ...(changed.length > 0 ? [`changed from what this CLI ships: ${changed.join(', ')}`] : []),
+      ];
+      return warn(
+        `the flow walker's Python packages differ from this CLI's — ${findings.join('; ')}. Run \`${INIT_UPGRADE_COMMAND}\`, which writes this CLI's copies after a backup, then rebuild the environment as it says`,
+      );
+    }
+
+    const environment = flowHostEnvDir(ctx.config);
+    if (!flowHostProvisioned(ctx.profileRoot, ctx.config)) {
+      const command = flowHostProvisionInvocation(ctx.config);
+      const prerequisite = resolvesOnPath('uv') ? '' : 'install uv first (see the uv check), then ';
+      return warn(
+        `the flow walker's Python environment at ${environment}/ has not been provisioned: ${prerequisite}run \`${command}\` from the repository root, outside the sandbox, since it reaches the network. A warning rather than a failure because nothing runs the walker yet`,
+      );
+    }
+
+    return pass(`every shipped Python package file under ${flowHostDir(ctx.config)} is the one this CLI ships, and the environment at ${environment}/ is provisioned`);
+  },
+};
+
 /** How the sandbox-prerequisites pass names each host kind it can pass on. */
 const SANDBOX_HOST_LABELS: Readonly<Record<SandboxHostKind, string>> = {
   macos: 'macOS, sandboxed by Seatbelt',
@@ -6586,6 +6683,9 @@ const RETRIEVAL_PYTHON_INDEX_CHECK: Check = {
  * `profile-tracked` sits under `profile-paths` because the two name the same file carried somewhere it
  * does not belong, and a committed profile is the usual reason a job's `profile-paths` fails.
  *
+ * `uv` sits under `jq` because both are host binaries the shipped scripts need. `flow-host` sits under
+ * `outer-loop-scripts` because both grade a shipped set against this CLI's copy at the same root.
+ *
  * `sandbox-prerequisites` sits under `profile-write-protection` because the two profile checks above it
  * grade the sandbox a run asks for, and this one whether the host can start it. `keep-awake` follows
  * it because it is the second host question, asked right after whether the host can start the sandbox.
@@ -6609,6 +6709,7 @@ export const CHECKS: readonly Check[] = Object.freeze([
   PRE_PUSH_GUARD_CHECK,
   PROTECTED_SET_CHECK,
   JQ_CHECK,
+  UV_CHECK,
   WORKTREE_CHECK,
   DAEMON_BACKEND_CHECK,
   WATCHER_CHECK,
@@ -6644,6 +6745,7 @@ export const CHECKS: readonly Check[] = Object.freeze([
   PROFILE_WRITE_PROTECTION_CHECK,
   PROFILE_DRIFT_CHECK,
   OUTER_LOOP_SCRIPTS_CHECK,
+  FLOW_HOST_CHECK,
   SANDBOX_PREREQUISITES_CHECK,
   KEEP_AWAKE_CHECK,
   PLUGIN_PERMISSIONS_CHECK,
