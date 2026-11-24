@@ -20,9 +20,11 @@ The rule: `record_outcome` reads as `flow-walker.sh`'s `next` (*"outcome FAIL re
   of an open set keeps nothing; a result whose `passed` carries a `RoundPassage` clears the
   record, as `close_round` overwrites the key. `HostStep.revision_findings` is the record as it
   stands after the call.
+- The returned step's printed reads (`read_printed`; `PrintedReads()` for a `RefusedWait`) are
+  kept in `PrintedReadsStore`, as bash's `next` saves `out=`. `HostStep.printed` is that record.
 Every call that records takes the `RefusalStore` lock before the walk's lock and releases it
-after. The refusal and kept-findings records are written only when the returned action is not
-`Refused`.
+after. The refusal, kept-findings and printed-reads records are written under that lock, and
+only when the returned action is not `Refused`.
 
 Deliberately not covered:
 - Rendering a step or a `refused:` line: the `commands` layer's. `start`, and filtering refused
@@ -48,6 +50,7 @@ from graphscene import (
     WalkState,
 )
 
+from devscene_flow_host.host.printed_reads import PrintedReads, PrintedReadsStore, read_printed
 from devscene_flow_host.host.refusals import (
     ROUND_FILE_ATTEMPTS,
     GateRefusals,
@@ -77,11 +80,14 @@ class HostStep:
     """`refusals` holds the `refused:` lines `action` carries: one per gate of a re-dispatched
     set, or one per gate whose attempts reached `ROUND_FILE_ATTEMPTS` at an escalating join.
     `revision_findings` holds the kept findings files (`RevisionFindingsStore`) as they stand
-    after the call; it is `()` on a `Refused` action."""
+    after the call; it is `()` on a `Refused` action. `printed` holds the values the step read
+    from disk when `start` or `next` returned it, as kept in `PrintedReadsStore`; it is
+    `PrintedReads()` on a `Refused` action."""
 
     action: Step | RefusedWait
     refusals: tuple[Refusal, ...] = ()
     revision_findings: tuple[str, ...] = ()
+    printed: PrintedReads = PrintedReads()
 
 
 def record_outcome(
@@ -111,7 +117,13 @@ def record_outcome(
             kept.write((findings,))
         if _closed_a_round(result.action):
             kept.clear()
-        return dataclasses.replace(result, revision_findings=kept.read())
+        printed = (
+            PrintedReads()
+            if isinstance(result.action, RefusedWait)
+            else read_printed(graph, repo_root, state_dir, branch, result.action)
+        )
+        PrintedReadsStore(repo_root, state_dir, branch).write(printed)
+        return dataclasses.replace(result, revision_findings=kept.read(), printed=printed)
 
 
 def _record(

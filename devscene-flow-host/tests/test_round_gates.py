@@ -8,7 +8,9 @@ is re-dispatched in the same round once no other gate is out, and the third refu
 It also enforces that a findings file given outside an open set — a non-round reviewer's `FAIL`,
 or `answered` — is kept as `flow-walker.sh` → `next` keeps `revision_findings`, that a closing
 round clears it as `close_round` overwrites that key, and that a held outcome at a gate of an
-open set keeps nothing.
+open set keeps nothing, and that the returned step's printed reads are kept in
+`PrintedReadsStore` — a non-round reviewer's next index, `PrintedReads()` for a `wait` — and left
+byte-identical by a `Refused` result.
 
 It pins the host's held-gate order, chosen over bash's in #472: a held gate whose only siblings
 out are refused ones waits while they are re-dispatched in the same round, and escalates at the
@@ -42,6 +44,11 @@ from graphscene import (
     load_graph_file,
 )
 
+from devscene_flow_host.host.printed_reads import (
+    PrintedReads,
+    PrintedReadsStore,
+    printed_reads_path,
+)
 from devscene_flow_host.host.refusals import Refusal, refusals_path
 from devscene_flow_host.host.revision_findings import revision_findings_path
 from devscene_flow_host.host.round_gates import HostStep, RefusedWait, record_outcome
@@ -385,7 +392,7 @@ def _kept_file(root: Path) -> Path:
     return revision_findings_path(root, "state", _BRANCH)
 
 
-def _at_ui_review(walker: Walker, root: Path) -> None:
+def _at_ui_review(walker: Walker, root: Path) -> HostStep:
     for gate, folder in (
         ("business_parity_review", _PARITY),
         ("architecture_review", _ARCH),
@@ -395,6 +402,7 @@ def _at_ui_review(walker: Walker, root: Path) -> None:
     ui_review = _record(walker, root, "returned")
     assert isinstance(ui_review.action, Dispatch), ui_review
     assert ui_review.action.node == "ui_review"
+    return ui_review
 
 
 def test_a_non_round_reviewers_findings_file_is_kept_for_the_revision(tmp_path: Path) -> None:
@@ -472,3 +480,38 @@ def test_a_held_outcome_at_a_gate_of_an_open_set_keeps_nothing(tmp_path: Path) -
         )
     )
     assert not _kept_file(tmp_path).exists()
+
+
+def _printed(root: Path) -> PrintedReadsStore:
+    return PrintedReadsStore(root, "state", _BRANCH)
+
+
+def test_reaching_a_non_round_reviewer_keeps_its_next_index(tmp_path: Path) -> None:
+    walker = _walker(tmp_path)
+    step = _at_ui_review(walker, tmp_path)
+
+    assert step.printed == PrintedReads(review_iterations=(("ui_review", 0),))
+    assert _printed(tmp_path).read() == PrintedReads(review_iterations=(("ui_review", 0),))
+
+
+def test_a_refused_result_leaves_the_printed_reads_unchanged(tmp_path: Path) -> None:
+    walker = _walker(tmp_path)
+    _at_ui_review(walker, tmp_path)
+    before = printed_reads_path(tmp_path, "state", _BRANCH).read_bytes()
+
+    step = _record(walker, tmp_path, "FAIL", "ui_review")
+    assert step == HostStep(
+        Refused("outcome FAIL requires --findings with the reviewer's findings_file")
+    )
+    assert printed_reads_path(tmp_path, "state", _BRANCH).read_bytes() == before
+
+
+def test_a_wait_writes_empty_printed_reads(tmp_path: Path) -> None:
+    walker = _walker(tmp_path)
+    assert _printed(tmp_path).read() is None
+    plan = _file(tmp_path, _PLAN, PASS_BODY)
+
+    step = _record(walker, tmp_path, "PASS", "plan_review", plan)
+    assert isinstance(step.action, Wait), step
+    assert step.printed == PrintedReads()
+    assert _printed(tmp_path).read() == PrintedReads()
