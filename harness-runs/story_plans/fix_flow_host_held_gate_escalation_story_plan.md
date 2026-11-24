@@ -24,7 +24,7 @@ The work is two tasks in the `devscene-flow-host` layer, in ship order:
 Each entry resolves 1:1 to `harness-runs/task_plans/fix_flow_host_held_gate_escalation/task_<K>_plan.md`. Both tasks are in the `devscene-flow-host` layer, and code comes before the document that cites it.
 
 1. [x] **Task 1** — State the host's held-gate order in `round_gates.py` and pin it in `test_round_gates.py` _(layer: devscene-flow-host)_ _(points: 10)_
-2. [ ] **Task 2** — Record the held-gate order as the host's rule and move it to **Chosen** in the package README _(layer: devscene-flow-host)_ _(points: 10)_
+2. [x] **Task 2** — Record the held-gate order as the host's rule and move it to **Chosen** in the package README _(layer: devscene-flow-host)_ _(points: 10)_
 
 ## Scope register
 
