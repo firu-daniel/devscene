@@ -7,6 +7,9 @@ dependencies = [
     "graphscene",
 ]
 
+[project.scripts]
+devscene-flow-walker = "devscene_flow_host.commands.flow_walker:main"
+
 [tool.uv.sources]
 graphscene = { path = "../graphscene", editable = true }
 

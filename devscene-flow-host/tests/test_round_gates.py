@@ -5,14 +5,17 @@ a round gate's file must pass the round-file check, a refused file records nothi
 is re-dispatched in the same round once no other gate is out, and the third refusal holds it as
 `error` — and that a refusal below the cap never reaches GraphScene's saved walk.
 
-It pins the two departures from bash as they stand: a held gate beside a refused one is
-re-dispatched before it escalates (the `TODO` at `round_gates._redispatch`), and a non-round
-reviewer's findings file is required but not kept (the `TODO` at `record_outcome`'s non-gate
-branch).
+It also enforces that a findings file given outside an open set — a non-round reviewer's `FAIL`,
+or `answered` — is kept as `flow-walker.sh` → `next` keeps `revision_findings`, that a closing
+round clears it as `close_round` overwrites that key, and that a held outcome at a gate of an
+open set keeps nothing.
+
+It pins the one departure from bash as it stands: a held gate beside a refused one is
+re-dispatched before it escalates (the `TODO` at `round_gates._redispatch`).
 
 Records and review files are planted under `tmp_path`. Every expected value is a literal written
-from `flow-walker.sh` → `A REFUSED ROUND FILE` and its `REPRO` block's refused-file walk, never
-taken from the output of the code under test.
+from `flow-walker.sh` → `A REFUSED ROUND FILE`, its `REPRO` block's refused-file walk and its
+`revision_findings` writers, never taken from the output of the code under test.
 """
 
 import json
@@ -24,6 +27,7 @@ from graphscene import (
     Dispatch,
     DispatchSet,
     GateRecord,
+    Interrupt,
     LedgerPassage,
     Refused,
     RoundPassage,
@@ -34,6 +38,7 @@ from graphscene import (
 )
 
 from devscene_flow_host.host.refusals import Refusal, refusals_path
+from devscene_flow_host.host.revision_findings import revision_findings_path
 from devscene_flow_host.host.round_gates import HostStep, RefusedWait, record_outcome
 from devscene_flow_host.host.store import walk_state_path
 from devscene_flow_host.host.walking import open_walker
@@ -79,8 +84,8 @@ _ARCH_DISPATCH: Final = _gate_dispatch("architecture_review", "architecture-revi
 _PLAN_DISPATCH: Final = _gate_dispatch("plan_review", "task-plan-reviewer")
 
 
-def _walker(root: Path) -> Walker:
-    """A walk of `feat_x` with every phase on, `start`ed and `returned` into round 0's set."""
+def _started(root: Path) -> Walker:
+    """A walk of `feat_x` with every phase on, `start`ed at `plan_writer`."""
     (root / "devscene.config.json").write_text(
         json.dumps(
             {"defaultBranch": "main", "stateDir": "state", "phases": {"parity": True, "qa": True}}
@@ -89,6 +94,12 @@ def _walker(root: Path) -> Walker:
     )
     walker = open_walker(root, _BRANCH, load_graph_file(_GRAPH), skipped="none")
     walker.start()
+    return walker
+
+
+def _walker(root: Path) -> Walker:
+    """A walk of `feat_x` with every phase on, `start`ed and `returned` into round 0's set."""
+    walker = _started(root)
     assert walker.next("returned") == DispatchSet(
         "plan_round", 0, (_PARITY_DISPATCH, _ARCH_DISPATCH, _PLAN_DISPATCH), ()
     )
@@ -331,24 +342,30 @@ def test_two_threads_recording_two_gates_join_exactly_once(tmp_path: Path) -> No
     assert not _refusal_file(tmp_path).exists()
 
 
-def test_a_non_round_reviewers_findings_file_is_required_but_not_kept(tmp_path: Path) -> None:
-    """The non-round findings departure, marked by the `TODO` at `record_outcome`'s non-gate
-    branch: bash keeps the file as `revision_findings` and prints it on `ui_writer`'s revision as
-    `arg.findings_file:`."""
-    walker = _walker(tmp_path)
+def _kept_file(root: Path) -> Path:
+    return revision_findings_path(root, "state", _BRANCH)
+
+
+def _at_ui_review(walker: Walker, root: Path) -> None:
     for gate, folder in (
         ("business_parity_review", _PARITY),
         ("architecture_review", _ARCH),
         ("plan_review", _PLAN),
     ):
-        _record(walker, tmp_path, "PASS", gate, _file(tmp_path, folder, PASS_BODY))
-    ui_review = _record(walker, tmp_path, "returned")
+        _record(walker, root, "PASS", gate, _file(root, folder, PASS_BODY))
+    ui_review = _record(walker, root, "returned")
     assert isinstance(ui_review.action, Dispatch), ui_review
     assert ui_review.action.node == "ui_review"
+
+
+def test_a_non_round_reviewers_findings_file_is_kept_for_the_revision(tmp_path: Path) -> None:
+    walker = _walker(tmp_path)
+    _at_ui_review(walker, tmp_path)
 
     assert _record(walker, tmp_path, "FAIL", "ui_review") == HostStep(
         Refused("outcome FAIL requires --findings with the reviewer's findings_file")
     )
+    assert not _kept_file(tmp_path).exists()
     findings = _file(tmp_path, _UI, FAIL_BODY)
     assert _record(walker, tmp_path, "FAIL", "ui_review", findings) == HostStep(
         Dispatch(
@@ -360,8 +377,59 @@ def test_a_non_round_reviewers_findings_file_is_required_but_not_kept(tmp_path: 
             converging=None,
             closed_round=(),
             passed=(),
+        ),
+        revision_findings=("state/ui_test_plan_reviews/feat_x/review_0.md",),
+    )
+    # An outcome given no findings file leaves the record as it was.
+    step = _record(walker, tmp_path, "returned")
+    assert isinstance(step.action, Dispatch), step
+    assert step.action.node == "ui_review"
+    assert step.revision_findings == ("state/ui_test_plan_reviews/feat_x/review_0.md",)
+    assert not _refusal_file(tmp_path).exists()
+
+
+def test_a_findings_file_given_with_answered_is_kept(tmp_path: Path) -> None:
+    walker = _started(tmp_path)
+    asked = _record(walker, tmp_path, "questions")
+    assert isinstance(asked.action, Interrupt), asked
+    assert asked.revision_findings == ()
+
+    step = _record(walker, tmp_path, "answered", findings="state/answers.md")
+    assert isinstance(step.action, Dispatch), step
+    assert step.action.node == "plan_writer"
+    assert step.revision_findings == ("state/answers.md",)
+
+
+def test_a_closing_round_clears_an_earlier_kept_file(tmp_path: Path) -> None:
+    walker = _started(tmp_path)
+    _record(walker, tmp_path, "questions")
+    _record(walker, tmp_path, "answered", findings="state/answers.md")
+    assert _record(walker, tmp_path, "returned") == HostStep(
+        DispatchSet("plan_round", 0, (_PARITY_DISPATCH, _ARCH_DISPATCH, _PLAN_DISPATCH), ()),
+        revision_findings=("state/answers.md",),
+    )
+
+    for gate, folder in (("business_parity_review", _PARITY), ("architecture_review", _ARCH)):
+        waited = _record(walker, tmp_path, "FAIL", gate, _file(tmp_path, folder, FAIL_BODY))
+        assert isinstance(waited.action, Wait), waited
+        assert waited.revision_findings == ("state/answers.md",)
+    step = _record(walker, tmp_path, "FAIL", "plan_review", _file(tmp_path, _PLAN, FAIL_BODY))
+    assert isinstance(step.action, Dispatch), step
+    assert (step.action.node, step.action.prompt) == ("plan_writer", "revision")
+    assert step.action.passed == (RoundPassage("plan_round", 0, "fail"),)
+    assert step.revision_findings == ()
+    assert not _kept_file(tmp_path).exists()
+
+
+def test_a_held_outcome_at_a_gate_of_an_open_set_keeps_nothing(tmp_path: Path) -> None:
+    walker = _walker(tmp_path)
+    assert _record(
+        walker, tmp_path, "error", "plan_review", "state/task_plan_reviews/feat_x/review_0.md"
+    ) == HostStep(
+        Wait(
+            "plan_round",
+            GateRecord("plan_review", "error", None),
+            ("business_parity_review", "architecture_review"),
         )
     )
-    walk = walk_state_path(tmp_path, "state", _BRANCH).read_text(encoding="utf-8")
-    assert "state/ui_test_plan_reviews/feat_x/review_0.md" not in walk
-    assert not _refusal_file(tmp_path).exists()
+    assert not _kept_file(tmp_path).exists()
