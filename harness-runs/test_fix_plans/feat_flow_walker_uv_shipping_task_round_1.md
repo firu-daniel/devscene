@@ -33,7 +33,7 @@ The SKIPPED legs (13d, 14d) and the `gates this script cannot run` list are not 
 17. [x] **Finding 17** — Stall-reset (J3) honest job branch case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 18. [x] **Finding 18** — Stall-reset (J4) session-written .npmrc case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 19. [x] **Finding 19** — Stall-reset (J5) session-written node_modules case: EEXIST on `watcher-test/bin`. _(layer: cli)_
-20. [ ] **Finding 20** — Stall-reset (J6) forged base in job checkout case: EEXIST on `watcher-test/bin`. _(layer: cli)_
+20. [x] **Finding 20** — Stall-reset (J6) forged base in job checkout case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 
 ---
 
