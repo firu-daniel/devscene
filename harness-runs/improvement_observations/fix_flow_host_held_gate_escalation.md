@@ -21,3 +21,8 @@
 - **cost this run:** 3 node session(s)
 
 # Task run (Phase D)
+
+## A layer-implementer prefixed its own test-file run with `cd` and was refused
+- **category:** agent-contract
+- **evidence:** Phase C, code-review Finding 1 (`[C · Item 1 · devscene-flow-host · iter 0]`, dispatch #6): the `layer-implementer` return states "My first try ran it prefixed with a `cd`, and that was refused; the bare command went through" — the command was `bash scripts/python-service.sh --package devscene-flow-host test tests/test_round_gates.py`, whose bare form then passed (14 passed). The unit's commit is `f575ee91`.
+- **cost this run:** 1 refused tool call in one implementer dispatch; no rework, the unit landed.
