@@ -4,9 +4,11 @@ section, the entries there still open, and whether it has a `## Scope register` 
 The rule: `read_index_evidence` reads as the bash walker's `fw_index_evidence` does
 (`cli/templates/scripts/lib/flow-walker-gates.sh`). A heading is compared with trailing spaces,
 tabs and `\\r` removed; under `## Rejected findings`, every `- ` line not containing
-`call stands` is open and kept as read, `\\r` included, as `awk` prints `$0`. An absent index is
-`None`; text that is not UTF-8 is a `RecordError`. It returns the evidence and decides nothing
-with it.
+`call stands` is open and kept as read, `\\r` included, as `awk` prints `$0`. A repeated
+`## Rejected findings` heading adds no entry of its own, and its open entries join the rest in
+file order, as `fw_index_evidence` prints one `evidence:` line for any number of such headings.
+An absent index is `None`; text that is not UTF-8 is a `RecordError`. It returns the evidence
+and decides nothing with it.
 
 Deliberately not covered:
 - Which `## Scope register` rows are in dispute: that is judgement and stays with the

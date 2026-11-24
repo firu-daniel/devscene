@@ -7,12 +7,13 @@ output reads this unchanged. The findings files a step carries are `HostStep.rev
 when non-empty, otherwise the `detail` of each `GateRecord` of the action's `closed_round` that
 has one, in that tuple's order. An action or passage type not named here raises `ValueError`
 naming it, never a block guessed from its fields; so does a fault bash reports as exit 2.
+The values a step read from disk — a non-round reviewer's `arg.iteration`, a cap's `rounds:`
+counts and its `evidence:` / `evidence.open:` lines — are `HostStep.printed`, read by the host
+when the step was first printed, so a `current` prints what `start` or `next` printed and
+`render` reads no file.
 
 Deliberately not covered:
 - A `Refused` and every exit status: `commands/flow_walker.py`'s.
-- Re-reading what bash re-prints from saved bytes: a `current` re-renders, so a non-round
-  reviewer's `arg.iteration` and a cap's `rounds:` counts and evidence lines are read from disk
-  again rather than re-printed.
 """
 
 from pathlib import Path
@@ -35,14 +36,12 @@ from graphscene import (
 
 from devscene_flow_host.host.paths import render_path
 from devscene_flow_host.host.refusals import ROUND_FILE_ATTEMPTS, Refusal
-from devscene_flow_host.host.reviewers import review_iteration, round_of_gate, round_of_writer
+from devscene_flow_host.host.reviewers import round_of_gate, round_of_writer
 from devscene_flow_host.host.round_gates import HostStep, RefusedWait
 from devscene_flow_host.records.index_evidence import (
     REJECTED_FINDINGS_HEADING,
     SCOPE_REGISTER_HEADING,
-    read_index_evidence,
 )
-from devscene_flow_host.records.round_files import fail_count
 
 
 def render(
@@ -56,9 +55,6 @@ def render(
             _passed(action.passed) + _refused(step.refusals),
             step=step,
             graph=graph,
-            repo_root=repo_root,
-            state_dir=state_dir,
-            branch=branch,
         )
     elif isinstance(action, DispatchSet):
         lines = []
@@ -69,9 +65,6 @@ def render(
                 carried,
                 step=step,
                 graph=graph,
-                repo_root=repo_root,
-                state_dir=state_dir,
-                branch=branch,
             )
             carried = []
     elif isinstance(action, Wait):
@@ -115,9 +108,6 @@ def _block(
     *,
     step: HostStep,
     graph: FlowGraph,
-    repo_root: Path,
-    state_dir: str,
-    branch: str,
 ) -> list[str]:
     node = graph.nodes.get(dispatch.node)
     if not isinstance(node, DispatchNode):
@@ -146,10 +136,7 @@ def _block(
             mode = "converging" if dispatch.converging else "full"
             lines.append(f"arg.review_mode: {mode}")
     else:
-        # TODO: @claude add a follow up task for this: re-print a non-round reviewer's saved
-        # arg.iteration on a current rather than re-reading its findings folder — flow-walker.sh
-        # render_block
-        index = review_iteration(graph, repo_root, state_dir, branch, dispatch.node)
+        index = dict(step.printed.review_iterations).get(dispatch.node)
         if index is not None:
             lines.append(f"arg.iteration: {index}")
     lines += carried
@@ -182,26 +169,19 @@ def _cap_lines(
     branch: str,
 ) -> list[str]:
     lines = [f"findings_file: {path}" for path in _findings_files(step, stop.closed_round)]
-    # TODO: @claude add a follow up task for this: re-print a cap's saved rounds: counts and
-    # evidence lines on a current rather than re-reading them from disk — flow-walker.sh
-    # take_binding
+    counts = dict(step.printed.round_counts)
     for counted in stop.round_counts:
-        node = graph.nodes.get(counted)
-        if not isinstance(node, DispatchNode) or node.findings_folder is None:
-            raise ValueError(f"graph has no 'nodes.{counted}.findingsFolder'")
-        folder = repo_root / render_path(node.findings_folder, state_dir, branch)
-        lines.append(f"rounds: {counted} {fail_count(folder)}")
+        if counted not in counts:
+            raise ValueError(f"the printed reads carry no count for '{counted}'")
+        lines.append(f"rounds: {counted} {counts[counted]}")
     if stop.evidence is not None:
         template = graph.paths.get(stop.evidence)
         if template is None:
             raise ValueError(f"graph has no 'paths.{stop.evidence}'")
         rendered = render_path(template, state_dir, branch)
-        evidence = read_index_evidence(repo_root / rendered)
+        evidence = step.printed.index_evidence
         index = f"{repo_root}/{rendered}"
         if evidence is not None:
-            # TODO: @claude add a follow up task for this: interleave evidence.open: lines
-            # under each ## Rejected findings heading rather than after the first —
-            # flow-walker.sh fw_index_evidence
             if evidence.rejected_findings:
                 lines.append(f"evidence: {index} {REJECTED_FINDINGS_HEADING}")
             lines += [f"evidence.open: {entry}" for entry in evidence.open_rejections]

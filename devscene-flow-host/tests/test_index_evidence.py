@@ -67,6 +67,20 @@ def test_a_repeated_heading_keeps_collecting(tmp_path: Path) -> None:
     assert read_index_evidence(_plant(tmp_path, body)) == IndexEvidence(True, ("- a", "- c"), False)
 
 
+def test_a_repeated_rejected_findings_heading_after_the_scope_register(tmp_path: Path) -> None:
+    body = (
+        "## Rejected findings\n"
+        "- **5** (rejected round 2) — r\n"
+        "## Scope register\n"
+        "## Rejected findings\n"
+        "- **7** (rejected round 3) — r\n"
+        "- **3** (rejected round 1; rebutted round 2 — call stands) — r\n"
+    )
+    assert read_index_evidence(_plant(tmp_path, body.encode("utf-8"))) == IndexEvidence(
+        True, ("- **5** (rejected round 2) — r", "- **7** (rejected round 3) — r"), True
+    )
+
+
 def test_an_index_that_is_not_utf8_is_a_record_error(tmp_path: Path) -> None:
     path = _plant(tmp_path, b"## Rejected findings\n- \xff\n")
     with pytest.raises(RecordError) as caught:

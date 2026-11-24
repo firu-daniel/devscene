@@ -23,7 +23,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/fix_flow_wa
 
 1. [x] **Task 1** — Add the host's printed-reads record, `read_printed` and `PrintedReadsStore` _(layer: devscene-flow-host)_ _(points: 15)_
 2. [x] **Task 2** — Write the printed reads on `start` and `next`, and return them unchanged on `current` _(layer: devscene-flow-host)_ _(points: 15)_
-3. [ ] **Task 3** — Render from `HostStep.printed`, remove the three `TODO` markers, pin the repeated heading _(layer: devscene-flow-host)_ _(points: 15)_
+3. [x] **Task 3** — Render from `HostStep.printed`, remove the three `TODO` markers, pin the repeated heading _(layer: devscene-flow-host)_ _(points: 15)_
 4. [ ] **Task 4** — Pin `current` against a file written after the step in `test_flow_walker.py` _(layer: devscene-flow-host)_ _(points: 15)_
 5. [ ] **Task 5** — Record the printed reads and close the three Still open entries in the README _(layer: devscene-flow-host)_ _(points: 10)_
 

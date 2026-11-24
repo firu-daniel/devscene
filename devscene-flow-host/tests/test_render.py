@@ -4,8 +4,9 @@ files taken from `revision_findings` when non-empty and otherwise from the close
 records, and raises `ValueError` for the faults bash reports as exit 2.
 
 Each `HostStep` is built by hand from `graphscene`'s public dataclasses over the harness's own
-format-4 graph, `cli/templates/scripts/flows/task_plan_writing.v4.graph.json`, read-only. Review
-folders and the story index are planted under `tmp_path`. Every expected text is a literal
+format-4 graph, `cli/templates/scripts/flows/task_plan_writing.v4.graph.json`, read-only. The
+values a step read from disk are given as `HostStep.printed`; the one review folder planted under
+`tmp_path` disagrees with them, to show `render` reads none. Every expected text is a literal
 written from `flow-walker.sh`'s `OUTPUT` grammar and `REPRO` block, never taken from the output
 of the code under test.
 """
@@ -31,9 +32,11 @@ from graphscene import (
 )
 
 from devscene_flow_host.commands.render import render
+from devscene_flow_host.host.printed_reads import PrintedReads
 from devscene_flow_host.host.refusals import Refusal
 from devscene_flow_host.host.round_gates import HostStep, RefusedWait
-from round_fixtures import FAIL_BODY, PASS_BODY, plant_review
+from devscene_flow_host.records.index_evidence import IndexEvidence
+from round_fixtures import FAIL_BODY, plant_review
 
 _GRAPH: Final = (
     Path(__file__).resolve().parents[2]
@@ -57,13 +60,9 @@ _CLOSED_FAIL_ROUND: Final = (
     GateRecord("architecture_review", "FAIL", "f0.md"),
     GateRecord("plan_review", "PASS", "p0.md"),
 )
-# `flow-walker-gates.sh` → REPRO's `i.md`.
-_STORY_INDEX_BODY: Final = (
-    "## Rejected findings\n"
-    "- **3** (rejected round 1; rebutted round 2 — call stands) — r\n"
-    "- **5** (rejected round 2) — r\n"
-    "## Scope register\n"
-)
+# `flow-walker-gates.sh` → REPRO's `i.md`, as `fw_index_evidence` reads it.
+_REPRO_EVIDENCE: Final = IndexEvidence(True, ("- **5** (rejected round 2) — r",), True)
+_SHOWN_INDEX: Final = "state/story_plans/feat_x_story_plan.md"
 
 
 def _graph() -> FlowGraph:
@@ -296,26 +295,36 @@ def test_a_ui_writer_revision_carries_the_kept_findings_file(tmp_path: Path) -> 
     )
 
 
-def test_a_non_round_reviewer_gets_its_folders_next_free_index(tmp_path: Path) -> None:
+_UI_REVIEW: Final = Dispatch(
+    node="ui_review",
+    agent="ui-tests-plan-reviewer",
+    prompt=None,
+    counters={"iteration": 1},
+    round_number=None,
+    converging=None,
+    closed_round=(),
+    passed=(),
+)
+_UI_REVIEW_TEXT: Final = (
+    "action: dispatch",
+    "node: ui_review",
+    "agent: ui-tests-plan-reviewer",
+    "arg.iteration: 1",
+    "heartbeat: [ui-test-write · iter 1] → ui-tests-plan-reviewer  (#<total_dispatches>)",
+)
+
+
+def test_a_non_round_reviewer_prints_its_printed_iteration(tmp_path: Path) -> None:
+    step = HostStep(_UI_REVIEW, printed=PrintedReads(review_iterations=(("ui_review", 1),)))
+    assert _render(step, tmp_path) == _text(*_UI_REVIEW_TEXT)
+
+
+def test_a_folder_that_disagrees_with_the_printed_iteration_is_not_read(tmp_path: Path) -> None:
     folder = tmp_path / _STATE_DIR / "ui_test_plan_reviews" / _BRANCH
-    plant_review(folder, 0, FAIL_BODY)
-    dispatch = Dispatch(
-        node="ui_review",
-        agent="ui-tests-plan-reviewer",
-        prompt=None,
-        counters={"iteration": 1},
-        round_number=None,
-        converging=None,
-        closed_round=(),
-        passed=(),
-    )
-    assert _render(HostStep(dispatch), tmp_path) == _text(
-        "action: dispatch",
-        "node: ui_review",
-        "agent: ui-tests-plan-reviewer",
-        "arg.iteration: 1",
-        "heartbeat: [ui-test-write · iter 1] → ui-tests-plan-reviewer  (#<total_dispatches>)",
-    )
+    for n in range(3):
+        plant_review(folder, n, FAIL_BODY)
+    step = HostStep(_UI_REVIEW, printed=PrintedReads(review_iterations=(("ui_review", 1),)))
+    assert _render(step, tmp_path) == _text(*_UI_REVIEW_TEXT)
 
 
 def test_the_ask_interrupt_names_where_it_resumes(tmp_path: Path) -> None:
@@ -358,33 +367,44 @@ def test_a_join_held_by_refusal_escalates_with_its_held_and_refused_lines(
     )
 
 
-def test_the_plan_round_cap_carries_files_counts_evidence_and_summary(tmp_path: Path) -> None:
-    reviews = tmp_path / _STATE_DIR
-    for n in range(5):
-        plant_review(reviews / "architecture_reviews" / _BRANCH, n, FAIL_BODY)
-        plant_review(reviews / "task_plan_reviews" / _BRANCH, n, FAIL_BODY if n == 0 else PASS_BODY)
-    index = tmp_path / _STATE_DIR / "story_plans" / "feat_x_story_plan.md"
-    index.parent.mkdir(parents=True)
-    index.write_text(_STORY_INDEX_BODY, encoding="utf-8")
-    summary = "the plan loop reached its 5-revision cap; the gates open when it fired: arch"
-    stop = Stop(
+def _cap(
+    round_counts: tuple[str, ...], summary: str | None, closed_round: tuple[GateRecord, ...]
+) -> Stop:
+    return Stop(
         binding="<escalate>",
         node="plan_round",
         agent=None,
         reason="cap",
         summary=summary,
         evidence="story_index",
-        round_counts=("business_parity_review", "architecture_review", "plan_review"),
+        round_counts=round_counts,
         held=(),
-        closed_round=(
+        closed_round=closed_round,
+        passed=(),
+    )
+
+
+def test_the_plan_round_cap_carries_files_counts_evidence_and_summary(tmp_path: Path) -> None:
+    summary = "the plan loop reached its 5-revision cap; the gates open when it fired: arch"
+    stop = _cap(
+        ("business_parity_review", "architecture_review", "plan_review"),
+        summary,
+        (
             GateRecord("business_parity_review", "PASS", "b4.md"),
             GateRecord("architecture_review", "FAIL", "f4.md"),
             GateRecord("plan_review", "PASS", "p4.md"),
         ),
-        passed=(),
     )
-    shown = f"{tmp_path}/state/story_plans/feat_x_story_plan.md"
-    assert _render(HostStep(stop), tmp_path) == _text(
+    printed = PrintedReads(
+        round_counts=(
+            ("business_parity_review", 0),
+            ("architecture_review", 5),
+            ("plan_review", 1),
+        ),
+        index_evidence=_REPRO_EVIDENCE,
+    )
+    shown = f"{tmp_path}/{_SHOWN_INDEX}"
+    assert _render(HostStep(stop, printed=printed), tmp_path) == _text(
         "action: binding",
         "binding: <escalate>",
         "node: plan_round",
@@ -399,6 +419,33 @@ def test_the_plan_round_cap_carries_files_counts_evidence_and_summary(tmp_path: 
         "evidence.open: - **5** (rejected round 2) — r",
         f"evidence: {shown} ## Scope register",
         f"summary: {summary}",
+    )
+
+
+def test_a_cap_count_missing_from_the_printed_reads_is_a_fault(tmp_path: Path) -> None:
+    stop = _cap(("architecture_review",), None, ())
+    with pytest.raises(ValueError) as raised:
+        _render(HostStep(stop), tmp_path)
+    assert str(raised.value) == "the printed reads carry no count for 'architecture_review'"
+
+
+def test_a_repeated_rejected_findings_heading_prints_one_evidence_line(tmp_path: Path) -> None:
+    # `flow-walker-gates.sh` → `fw_index_evidence` prints the heading's `evidence:` line only
+    # `if (!rj)`, at the first heading, and every open entry under any such heading after it.
+    evidence = IndexEvidence(
+        True, ("- **5** (rejected round 2) — r", "- **7** (rejected round 3) — r"), True
+    )
+    step = HostStep(_cap((), None, ()), printed=PrintedReads(index_evidence=evidence))
+    shown = f"{tmp_path}/{_SHOWN_INDEX}"
+    assert _render(step, tmp_path) == _text(
+        "action: binding",
+        "binding: <escalate>",
+        "node: plan_round",
+        "reason: cap",
+        f"evidence: {shown} ## Rejected findings",
+        "evidence.open: - **5** (rejected round 2) — r",
+        "evidence.open: - **7** (rejected round 3) — r",
+        f"evidence: {shown} ## Scope register",
     )
 
 
