@@ -189,12 +189,14 @@
 #   actions/cache/restore     v6.1.0
 #   actions/cache             v6.1.0
 #   actions/upload-artifact   v7.0.1
+#   astral-sh/setup-uv        v10.3.0
 # Each `uses:` names the full commit sha of the release on the comment line
-# above it. Each release's own action.yml declares `runs.using: node24`, per
-# a maintainer's lookups on 2026-10-21 (UTC) of each action's action.yml,
-# release notes and tag: each sha is the commit its release tag names, on the
-# action's default branch. Each release's README requires Actions Runner
-# 2.327.1 or newer; a GitHub-hosted runner already
+# above it. Each of the five actions/* releases' own action.yml declares
+# `runs.using: node24`, per a maintainer's lookups on 2026-10-21 (UTC) of each
+# action's action.yml, release notes and tag: each sha is the commit its release
+# tag names, on the action's default branch. setup-uv's `runs.using` and runner
+# floor are owed a maintainer's lookup. Each of those five releases' README
+# requires Actions Runner 2.327.1 or newer; a GitHub-hosted runner already
 # has it, and a self-hosted one must run it (docs/remote-execution.md, section
 # 8). A sha, not a tag: a tag is mutable, and this job holds the Claude
 # credential and write tokens. A pin moves when
@@ -861,6 +863,14 @@ jobs:
             echo "::error::init $DEVSCENE_CLI_VERSION changed tracked files. Run 'npx devscene@$DEVSCENE_CLI_VERSION init' locally and commit the result."
             exit 1
           fi
+
+      - name: Set up uv
+        if: env.HARNESS_STOPPED != '1'
+        # astral-sh/setup-uv v10.3.0
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+        with:
+          # A cache restored from another branch's run would feed an unsandboxed install.
+          enable-cache: false
 
       - name: Install the sandbox prerequisites
         if: env.HARNESS_STOPPED != '1'
