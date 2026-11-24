@@ -16,5 +16,11 @@
 
 **Verification:**
 
-- In a throwaway directory under the system temp directory, plant `harness-runs/.flow_walker_state/feat_x.json`, `harness-runs/.flow_walker_state/revision_findings/feat_x.json`, a flat `harness-runs/.flow_walker_state` in a second copy, and `examples/notes-app/devscene/.flow_walker_state`, each holding the value of `$HOME`. Run `bash <this checkout>/scripts/check-machine-paths.sh` there. Only the `examples/notes-app/…` hit is printed.
+- Exercise the new expression alone, never the gate script. Pipe four sample lines, in the `<path>:<line>:<text>` shape `grep -rn` emits, through exactly the `grep -v` expression this task writes into `check-machine-paths.sh`, copied verbatim:
+  - `./harness-runs/.flow_walker_state:1:x`;
+  - `./harness-runs/.flow_walker_state/feat_x.json:1:x`;
+  - `./harness-runs/.flow_walker_state/revision_findings/feat_x.json:1:x`;
+  - `./examples/notes-app/devscene/.flow_walker_state:1:x`.
+
+  For example: `printf '%s\n' <the four lines> | grep -v '<the expression>'`. Only the `./examples/notes-app/…` line survives.
 - `git grep -n 'STATE —' -- scripts/check-machine-paths.sh docs/development.md` prints nothing.

@@ -8,8 +8,16 @@
 After the cutover, the run copy's walker would execute the run copy's `<scriptsDir>/python/.venv`, which is an unsandboxed step running from a writable environment. This task closes that route instead of widening it (`<state_dir>/lessons.md` → *"Never drop a protection because another route 'can already' reach the same target until that route is measured"*).
 
 **Depends on:**
-- **Task 1.** The hand-off resolves its environment, project and `--flows` directory beside itself unless `DEVSCENE_FLOW_HOST_ENV` / `DEVSCENE_FLOW_HOST_PROJECT` are set. Run from the main checkout, it therefore uses `<main>/<scriptsDir>/python/.venv`, `<main>/<scriptsDir>/python/devscene-flow-host` and `<main>/<scriptsDir>/flows`. It finds the repository root from its working directory, so the walk's state stays in the run copy.
-- **Task 2.** `cli/test/helpers/planning-driver.mjs` builds the driver fixture's environment with `walkerEnv()` merged in. Its fixture also takes a `mainRepo` directory, passed to the driver as `PD_MAIN_REPO` and defaulting to the fixture's own directory.
+- **Task 1.** The hand-off resolves its environment, project, `PYTHONPATH` sources and `--flows` directory beside itself **only**, from the layout names `lib/harness-run-lib.sh` declares. It reads no environment variable to choose any of them, and it replaces an inherited `PYTHONPATH`. Run from the main checkout, it therefore executes the following, whatever environment the driver inherited:
+  - `<main>/<scriptsDir>/python/.venv`;
+  - `<main>/<scriptsDir>/python/devscene-flow-host`;
+  - the sources under `<main>/<scriptsDir>/python/`;
+  - the graphs under `<main>/<scriptsDir>/flows`.
+
+  It finds the repository root from its working directory, so the walk's state stays in the run copy. The trust input this task cares about is therefore closed in the hand-off itself (`<state_dir>/lessons.md` → `## Trust checks`), and this task adds no environment scrubbing to the driver.
+- **Task 2.** `cli/test/helpers/planning-driver.mjs`'s fixture takes a `mainRepo` directory, passed to the driver as `PD_MAIN_REPO` and defaulting to the fixture's own directory. Every repository a walker runs from carries `linkWalkerEnv`'s link, `<scriptsDir>/python/.venv` → this checkout's provisioned environment, built through `flowHostEnvDir`. No walker variable is added to the fixture's environment. `cli/test/helpers/watcher.mjs` links the watcher fixture's main checkout the same way.
+
+**How the watcher and planning-driver suites still run the branch's own sources.** The walker these suites drive is the main fixture's. Its `<scriptsDir>/python/` holds the packages `init` copied from `cli/dist/python/`, which the build stages from this checkout's `devscene-flow-host/` and `graphscene/`. The hand-off puts those sources first on `PYTHONPATH` over the linked environment. So a `devscene-flow-host` change made on the branch is the code these suites exercise, with no variable passed through the unsandboxed call.
 - **Task 5.** It grades an unprovisioned main-checkout environment as a `doctor` failure where `execution.scriptDrivenPlanning` is on, which is the consequence of this task.
 
 **Where this task stops.** The driver's other reads from the run copy are data and stay where they are: `PNL_GRAPH`'s node list from `lib/planning-node-lib.sh`, and the ledger and round files. The driver's logged call text `flow-walker.sh <verb> …` is unchanged, so `cli/test/planning-driver-control.test.mjs`'s `[plan-drive] walker: flow-walker.sh start ` match holds.
@@ -26,7 +34,13 @@ After the cutover, the run copy's walker would execute the run copy's `<scriptsD
   - keep `pd_walk`'s `cd "$PD_WORKTREE" && bash "$PD_WALKER" …`;
   - add a header paragraph: the walker is the main checkout's because it runs unsandboxed, citing `writeProtection.ts`'s rule;
   - update the `REPRO` step *"copy `flow-walker.sh`, `flows/` and the five libraries under "$r/m/s/""* to say the walker run is `$r/m`'s.
-- [ ] `planning-driver-walk.test.mjs`, new case: build a second `walkerFixture` as the main checkout, pass it as Task 2's `mainRepo` option, and replace the worktree fixture's own `<scriptsDir>/flow-walker.sh` with a script that prints nothing and exits `9`. Drive the walk to its first set, and assert the drive did not fault on the walker. Its log carries the real walker's `action: dispatch` lines, so the walker that ran is the main checkout's. State the rule in the case's comment.
+- [ ] `planning-driver-walk.test.mjs`, new case:
+  - build a second `walkerFixture` as the main checkout, and pass it as Task 2's `mainRepo` option;
+  - replace the worktree fixture's own `<scriptsDir>/flow-walker.sh` with a script that prints nothing and exits `9`;
+  - drive the walk to its first set, with `DEVSCENE_FLOW_HOST_ENV`, `DEVSCENE_FLOW_HOST_PROJECT` and `PYTHONPATH` set in the driver's environment to an empty temporary directory;
+  - assert the drive did not fault on the walker. Its log carries the real walker's `action: dispatch` lines, so the walker that ran is the main checkout's, over the main checkout's own environment, whatever the inherited variables named.
+
+  State the rule in the case's comment.
 
 **Verification:**
 

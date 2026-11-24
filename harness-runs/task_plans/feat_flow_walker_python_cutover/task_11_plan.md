@@ -10,7 +10,7 @@ The bash function names cited across this package's docstrings stay as provenanc
 **Depends on:** Task 1, whose hand-off:
 - launches `UV_PROJECT_ENVIRONMENT=<scriptsDir>/python/.venv uv run --frozen --no-sync --no-cache --project <scriptsDir>/python/devscene-flow-host devscene-flow-walker …`;
 - passes `--flows <scriptsDir>/flows` to the walk verbs;
-- names the environment and project through `DEVSCENE_FLOW_HOST_ENV` / `DEVSCENE_FLOW_HOST_PROJECT` when set;
+- sets `PYTHONPATH` on that line to the shipped `devscene-flow-host` and `graphscene` sources beside it, replacing any inherited value, and reads no environment variable to choose the environment, project or sources;
 - refuses an unprovisioned checkout with exit `2`;
 - deletes a regular file at `<stateDir>/.flow_walker_state` for `start`, `next` and `current`.
 

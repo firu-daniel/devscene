@@ -8,7 +8,7 @@
 
 The `cli` suite must not reach the network on every fixture `init`. So `init` honours a probe variable that the suite's isolated environment sets to `off`, which no shipped path ever sets. This follows the `KEEP_AWAKE_LOCK_PROBE_ENV` and `NESTED_USERNS_PROBE_ENV` precedent in `cli/test/helpers/fixture.mjs` → `ISOLATED_ENV`.
 
-**Depends on:** Task 3. That task makes `hr_flow_host_provision` return `1` with `flow-host: provision: failed — uv is not on PATH; …` and `failed — no flow host at …` where it used to print `flow-host: provision: SKIPPED — …` and return `0`. So the `SKIPPED` branch of `provisionFlowHost` and its mirror note are dead code, and this task removes them.
+**Depends on:** Task 3. That task makes `hr_flow_host_provision` return `1` with `flow-host: provision: failed — uv is not on PATH; …` and `failed — no flow host at …` where it used to print `flow-host: provision: SKIPPED — …` and return `0`. So the `SKIPPED` branch of `provisionFlowHost` and its mirror note are dead code, and this task removes them. Task 3 also declares `HR_FLOW_HOST_ENV_MARKER` (`pyvenv.cfg`) in that library as the shell mirror of `ENV_MARKER_FILE`, which this task exports.
 
 ### Targets
 
@@ -21,7 +21,8 @@ The `cli` suite must not reach the network on every fixture `init`. So `init` ho
 - `cli/src/flowHost/provision.ts`:
   - the module header;
   - `SKIPPED_MARKER` and its branch removed;
-  - a new exported constant `FLOW_HOST_PROVISION_PROBE_ENV`, with the value `'DEVSCENE_FLOW_HOST_PROVISION_PROBE'`.
+  - a new exported constant `FLOW_HOST_PROVISION_PROBE_ENV`, with the value `'DEVSCENE_FLOW_HOST_PROVISION_PROBE'`;
+  - `ENV_MARKER_FILE` exported. Its value `'pyvenv.cfg'` stays unchanged. Task 2's `cli/test/helpers/walker.mjs` and Task 16's `cli/test/flow-host-provision.test.mjs` import it from `dist/flowHost/provision.js`.
 - `cli/test/helpers/fixture.mjs` — `ISOLATED_ENV` gains `[FLOW_HOST_PROVISION_PROBE_ENV]: 'off'`, with its paragraph in the doc comment above it.
 - `cli/test/init-provision-python.test.mjs` — the suite's rule and cases.
 
@@ -42,7 +43,8 @@ The `cli` suite must not reach the network on every fixture `init`. So `init` ho
   The post-plan notes keep naming `flowHostProvisionInvocation(effective)`. Where they told the reader to *"pass --provision-python to init"*, they now name the opt-out instead: the note under `--no-provision-python` or the probe says the environment was not built and names the command to run outside the sandbox.
 - [ ] `provision.ts`:
   - remove `SKIPPED_MARKER`, the `skipped` lookup in the `status === 0` branch, and the `MIRROR.` paragraph;
-  - add `FLOW_HOST_PROVISION_PROBE_ENV` with a doc comment saying it exists for the test suite alone, that no shipped path sets it, and that `off` makes `init` skip the default build exactly as `--no-provision-python` does.
+  - add `FLOW_HOST_PROVISION_PROBE_ENV` with a doc comment saying it exists for the test suite alone, that no shipped path sets it, and that `off` makes `init` skip the default build exactly as `--no-provision-python` does;
+  - export `ENV_MARKER_FILE`, and give it a `MIRRORS.` note: `cli/templates/scripts/lib/harness-run-lib.sh` → `HR_FLOW_HOST_ENV_MARKER` (Task 3) spells it for the shell, and `cli/test/flow-host-provision.test.mjs` holds the two equal.
 
   A failed child — exit `1`, including the two new `failed —` lines — is already a warning carrying its last stderr line, and stays one: provisioning never fails `init`.
 - [ ] `fixture.mjs`: import `FLOW_HOST_PROVISION_PROBE_ENV` from `../../dist/flowHost/provision.js`, add it to `ISOLATED_ENV` as `'off'`, and add its paragraph to the comment above `ISOLATED_ENV`, beside the two probe paragraphs, with the same *"a case whose subject is … passes `{ [ENV]: '' }` explicitly"* sentence.
@@ -63,5 +65,5 @@ The `cli` suite must not reach the network on every fixture `init`. So `init` ho
 
 - Run `commands.typecheck`; it must exit 0.
 - Run `npm test --workspace cli -- test/init-provision-python.test.mjs`.
-- `git grep -n -e 'SKIPPED_MARKER' -e 'provision: SKIPPED' -- cli/src cli/test` prints nothing.
+- `git grep -n -e 'SKIPPED_MARKER' -e 'provision: SKIPPED' -- cli/src cli/test/init-provision-python.test.mjs` prints nothing. The provisioning and bootstrap suites' `SKIPPED` lines are Task 16's, which ships after this task.
 - `git grep -n 'askYesNo' -- cli/src/commands/init.ts` no longer shows the walker-environment question.

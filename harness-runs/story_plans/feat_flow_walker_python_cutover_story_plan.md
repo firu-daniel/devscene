@@ -8,20 +8,26 @@ This branch makes `flow-walker.sh` a thin hand-off to `devscene-flow-host`'s com
 - **An unprovisioned checkout.** No `uv`, no environment, or no console script in it: exit 2 with one `flow-walker:` line naming `bash <scriptsDir>/flow-host-provision.sh`, to be run outside the sandbox.
 - **A leftover bash state file.** For `start`, `next` and `current` it deletes a flat file at `<stateDir>/.flow_walker_state`. `current` then answers "no saved walk" (exit 1), and the orchestrator's `current` → exit 1 → `start` recovery (#464) starts fresh.
 
-Two environment variables, `DEVSCENE_FLOW_HOST_ENV` and `DEVSCENE_FLOW_HOST_PROJECT`, let a caller name the environment and project explicitly. That is how the `cli` suites run the branch's own sources (Task 2): the main-built environment, with `<checkout>/devscene-flow-host/src:<checkout>/graphscene/src` first on `PYTHONPATH`, as the task prompt's "after #478" decision requires. The format-4 graph now ships into `scriptsDir` beside the format-3 graph. The format-3 graph stays shipped, because `lib/planning-node-lib.sh` and `lib/planning-driver-lib.sh` read its node list. Retiring it is #459's.
+**What the hand-off executes is chosen by its own directory alone.** It reads no environment variable to choose the environment, the project or the sources (`<state_dir>/lessons.md` → `## Trust checks`), because the watcher's planning driver runs it outside the sandbox (Task 6). It reaches every layout name through one declared shell mirror, `HR_FLOW_HOST_*` in `lib/harness-run-lib.sh`. Task 3 declares those names there, `hr_flow_host_provision` reads them too, and Task 16 holds them equal to `cli/src/flowHost/layout.ts` and `provision.ts` → `ENV_MARKER_FILE`.
+
+It sets `PYTHONPATH` on the launch to the shipped `devscene-flow-host` and `graphscene` sources beside it, replacing any inherited value. A run copy's environment is built from the main checkout's packages as wheels (#478), so this is what makes the code that runs the code `init` shipped. That is also how every `cli` suite runs the branch's own sources, as the task prompt's "after #478" decision requires:
+- a fixture's shipped packages are copied from `cli/dist/python/`, which the build stages from this checkout;
+- the test helper only links the fixture's `<scriptsDir>/python/.venv` to this checkout's provisioned environment (Task 2).
+
+The format-4 graph now ships into `scriptsDir` beside the format-3 graph. The format-3 graph stays shipped, because `lib/planning-node-lib.sh` and `lib/planning-driver-lib.sh` read its node list. Retiring it is #459's.
 
 **Settled here, as the task prompt leaves to this branch:**
 - **`init` builds the walker's environment by default** in every run that is not `--dry-run` and not `--upgrade`, whether or not it can prompt. The question it used to ask is gone, because there is nothing left to ask. `--no-provision-python` opts out. `--provision-python` is still accepted as the explicit form of the default, so adopter scripts that pass it keep working. A run that cannot be prompted builds too: the walker is required, and an `init` that left no environment would leave a repository that cannot plan.
 - **A test seam keeps the `cli` suite off the network.** `init` reads a probe variable owned by `cli/src/flowHost/provision.ts`, which the suite's isolated environment sets to `off`, following the `KEEP_AWAKE_LOCK_PROBE_ENV` precedent (Task 4).
 - **`doctor`'s grades.** `uv` absent is a `fail`. An unprovisioned main-checkout environment stays a `warn`, because run copies build their own at `setup-worktree.sh` step 6. It becomes a `fail` where `execution.scriptDrivenPlanning` is on, because Task 6 makes the planning driver depend on the main checkout's environment (Task 5).
-- **`hr_flow_host_provision` fails rather than skips.** No `uv` and no project both return 1 with `failed —` lines, so `setup-worktree.sh` step 6 fails the bootstrap (Task 3).
+- **`hr_flow_host_provision` fails rather than skips.** No `uv` and no project both return 1 with `failed —` lines, so `setup-worktree.sh` step 6 fails the bootstrap (Task 3). Task 16 brings every suite that bootstraps or provisions to that outcome. Task 17 brings the bundle suites to the walker's directory.
 
-**The trust rule behind Task 6.** The watcher's planning driver runs the walker outside the sandbox. Today it runs the run copy's `flow-walker.sh`, and after the cutover that would also execute the run copy's `<scriptsDir>/python/.venv`. `cli/src/generators/writeProtection.ts` leaves that environment writable *"since no unsandboxed step builds from it"*. Its rule is *"anything that runs outside the sandbox must not be writable from inside it"*. So Task 6 makes the driver run the **main checkout's** walker, whose script and environment that module already write-protects.
+**The trust rule behind Task 6.** The watcher's planning driver runs the walker outside the sandbox. Today it runs the run copy's `flow-walker.sh`, and after the cutover that would also execute the run copy's `<scriptsDir>/python/.venv`. `cli/src/generators/writeProtection.ts` leaves that environment writable *"since no unsandboxed step builds from it"*. Its rule is *"anything that runs outside the sandbox must not be writable from inside it"*. So Task 6 makes the driver run the **main checkout's** walker, whose script and environment that module already write-protects. Task 1's hand-off takes no environment variable that could point that call elsewhere.
 
 **Not in this branch.** This repository's self-adopted copies under `scripts/` (`scripts/flow-walker.sh`, `scripts/lib/flow-walker-gates.sh`, `scripts/flows/`) are re-rendered by the user after merge (task prompt, *"a post-merge user step"*), so no task edits them. Gate 6a's filter (Task 12) matches both the flat file and the directory for that reason. No task changes a file under `.github/workflows/`, so the run never parks for a hand push. The per-call startup cost is measured **by hand, outside any headless session** (`<state_dir>/lessons.md` → *"A wall-clock figure in a document of record is never one a run measured inside its own session"*). Task 13 ships the measurement command and the slot, and the figure is a manual step.
 
 Top risks:
-- **A suite that still drives the bash walker, or drives the Python one against main's code instead of the branch's.** Task 2 owns the one helper every walker-driving suite goes through, including the planning-driver, watcher and remote-run suites. Task 8 pins the hand-off's own contract.
+- **A suite that still drives the bash walker, drives the Python one against main's code instead of the branch's, or still asserts a bootstrap or bundle outcome this branch changed.** Task 2 owns the one helper every walker-driving suite goes through, including the planning-driver, watcher and remote-run suites. Task 8 pins the hand-off's own contract. Tasks 16 and 17 move the provisioning, bootstrap and bundle suites.
 - **A new unsandboxed execution path into a session-writable environment.** Task 6 guards it, and its verification shows the driver ignoring a run copy's own walker.
 - **The `init` default turning every fixture `init` into a networked `uv sync`.** Task 4 guards it through the isolated-environment seam, and its suite asserts both the default and the seam.
 
@@ -33,23 +39,25 @@ Manual setup required:
 
 **This section is the single source of truth for the implementation loop.** The orchestrator walks the `[ ]` entries below from top to bottom. **Only the committing role flips a marker to `[x]`.** In every flow that runs the unit loop, that role is the commit step, `commit-on-branch.sh --unit`. In the supervised flow, which runs no unit loop, it is the orchestrator itself. So no implementer changes a marker here, or edits any other line of this section, in an index a run is iterating. `[ ]` markers anywhere else, such as sub-step bullets in the per-task files, are informational only, and the commit step never touches them.
 
-Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_walker_python_cutover/task_<K>_plan.md`. The entries are ordered bottom-up by ship sequence in the configured layer order, with the catch-all layer last.
+Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_walker_python_cutover/task_<K>_plan.md`. The entries are ordered bottom-up by ship sequence in the configured layer order, with the catch-all layer last. A task's number `K` is its identifier, not its position: the list's order is the ship order, and every `**Depends on:**` names a task listed above it.
 
-1. [ ] **Task 1** — Hand `flow-walker.sh` to `devscene-flow-walker`, ship the format-4 graph and retire the gate library _(layer: cli)_ _(points: 20)_
-2. [ ] **Task 2** — Point the walker-driving test helpers at the Python walker over the branch's own sources _(layer: cli)_ _(points: 15)_
-3. [ ] **Task 3** — Carry one branch's walk files in the remote bundle, and fail provisioning without `uv` or a project _(layer: cli)_ _(points: 20)_
-4. [ ] **Task 4** — Make `init` build the walker's environment by default, with `--no-provision-python` to opt out _(layer: cli)_ _(points: 20)_
-5. [ ] **Task 5** — Grade a missing `uv` as a `doctor` failure _(layer: cli)_ _(points: 15)_
-6. [ ] **Task 6** — Run the main checkout's walker from the unsandboxed planning driver _(layer: cli)_ _(points: 10)_
-7. [ ] **Task 7** — Move the `flow-walker*` cases that pinned the bash walker's behaviour _(layer: cli)_ _(points: 15)_
-8. [ ] **Task 8** — Add a suite for the hand-off's own contract _(layer: cli)_ _(points: 10)_
-9. [ ] **Task 9** — Describe the hand-off in the `cli` package's own READMEs _(layer: cli)_ _(points: 8)_
-10. [ ] **Task 10** — Name the format-4 graph as the planning loop's routing graph in the plugin _(layer: plugin)_ _(points: 8)_
-11. [ ] **Task 11** — Record the launch route and the retired bash walker in `devscene-flow-host` _(layer: devscene-flow-host)_ _(points: 10)_
-12. [ ] **Task 12** — Widen gate 6a's walker-state filter to the per-branch directory _(layer: general)_ _(points: 8)_
-13. [ ] **Task 13** — Rewrite the walker's decisions of record and ship the startup-cost measurement _(layer: general)_ _(points: 15)_
-14. [ ] **Task 14** — Update the remote, sandbox and watcher documents for the walker's directory and shipped set _(layer: general)_ _(points: 10)_
-15. [ ] **Task 15** — Document `init`'s default provisioning in `docs/cli.md` and the root README _(layer: general)_ _(points: 10)_
+1. [ ] **Task 3** — Declare the flow host's layout names once in the gate library, carry one branch's walk files in the remote bundle, and fail provisioning without `uv` or a project _(layer: cli)_ _(points: 20)_
+2. [ ] **Task 4** — Make `init` build the walker's environment by default, with `--no-provision-python` to opt out _(layer: cli)_ _(points: 20)_
+3. [ ] **Task 1** — Hand `flow-walker.sh` to `devscene-flow-walker`, ship the format-4 graph and retire the gate library _(layer: cli)_ _(points: 20)_
+4. [ ] **Task 2** — Point the walker-driving test helpers at the Python walker over the branch's own sources _(layer: cli)_ _(points: 15)_
+5. [ ] **Task 16** — Bring the provisioning and bootstrap suites to failing provisioning, and hold the new layout mirror equal _(layer: cli)_ _(points: 20)_
+6. [ ] **Task 17** — Bring the bundle and shipped-set suites to the walker's directory and the new shipped set _(layer: cli)_ _(points: 20)_
+7. [ ] **Task 5** — Grade a missing `uv` as a `doctor` failure _(layer: cli)_ _(points: 15)_
+8. [ ] **Task 6** — Run the main checkout's walker from the unsandboxed planning driver _(layer: cli)_ _(points: 10)_
+9. [ ] **Task 7** — Move the `flow-walker*` cases that pinned the bash walker's behaviour _(layer: cli)_ _(points: 15)_
+10. [ ] **Task 8** — Add a suite for the hand-off's own contract _(layer: cli)_ _(points: 10)_
+11. [ ] **Task 9** — Describe the hand-off in the `cli` package's own READMEs _(layer: cli)_ _(points: 8)_
+12. [ ] **Task 10** — Name the format-4 graph as the planning loop's routing graph in the plugin _(layer: plugin)_ _(points: 8)_
+13. [ ] **Task 11** — Record the launch route and the retired bash walker in `devscene-flow-host` _(layer: devscene-flow-host)_ _(points: 10)_
+14. [ ] **Task 12** — Widen gate 6a's walker-state filter to the per-branch directory _(layer: general)_ _(points: 8)_
+15. [ ] **Task 13** — Rewrite the walker's decisions of record and ship the startup-cost measurement _(layer: general)_ _(points: 15)_
+16. [ ] **Task 14** — Update the remote, sandbox and watcher documents for the walker's directory and shipped set _(layer: general)_ _(points: 10)_
+17. [ ] **Task 15** — Document `init`'s default provisioning in `docs/cli.md` and the root README _(layer: general)_ _(points: 10)_
 
 ## Scope register
 
