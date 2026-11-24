@@ -30,3 +30,11 @@
 
 - [ ] Make sure `createStallFixture` creates `bin` with `await mkdir(bin, { recursive: true });`, the change Finding 3 makes. If that change has already landed, this test needs no edit of its own.
 - [ ] If the test still fails once that change is in place, its failure is a new one past fixture setup. Diagnose it at the call site the new error names, in this test's body or in `createStallFixture` after the `mkdir`, and fix it there. Do not weaken or skip the case.
+
+## Already passing
+
+**Cause:** already passing after an earlier fix: Finding 3's `mkdir(bin, { recursive: true })` in `createStallFixture` landed in commit 8df6dde6, and the single-file run passes the named test
+
+- (a) Named test `(S1) a githooks/reference-transaction committed on the branch is refused, and never runs`; file run `cli/test/watcher-stall-reset-payloads.test.mjs`. The fix site `createStallFixture` already reads `await mkdir(bin, { recursive: true });`.
+- (b) `npm test --workspace cli -- test/watcher-stall-reset-payloads.test.mjs`, from the repository root: `ok 2 - (S1) a githooks/reference-transaction committed on the branch is refused, and never runs`; file totals `# tests 18`, `# pass 18`, `# fail 0`.
+- (c) No code file was edited; this section is the only write.
