@@ -160,7 +160,7 @@ import { layerCoverage } from '../core/layerCoverage.js';
 import { layerGapRemedy, recordedVerdictClause } from '../core/layerGapRemedy.js';
 import { MAIN_REPO_ANCHOR_READ, MAIN_REPO_ANCHOR_RULE, MAIN_REPO_ANCHOR_VARIABLE } from '../core/mainRepoAnchor.js';
 import { nameList } from '../core/nameList.js';
-import { ownManifestString, readTemplate, workRoot } from '../core/paths.js';
+import { lstatOrUndefined, ownManifestString, readTemplate, workRoot } from '../core/paths.js';
 import { ANALYZE_COMMAND } from '../core/pluginIdentity.js';
 import { normalizeRepoPathStrict } from '../core/repoPaths.js';
 import { pidIsAlive, readRegistryRecords, RUNNING_STATUS } from '../core/runRegistry.js';
@@ -169,7 +169,7 @@ import { detectBackend, resolveWatcherPath, watcherMissingMessage } from '../dae
 import { renderUnit, repoSlug, unitEnvValue } from '../daemon/units.js';
 import { LAYERLESS_BY_DESIGN_PRESETS, SHARED_CONVENTIONS_PATH, TESTS_LAYER_NAME } from '../detect/presets.js';
 import { FORCED_SIGNAL_ID } from '../detect/signals.js';
-import { flowHostDir, flowHostEnvDir } from '../flowHost/layout.js';
+import { FLOW_HOST_PACKAGES, flowHostDir, flowHostEnvDir } from '../flowHost/layout.js';
 import { flowHostProvisioned, flowHostProvisionInvocation } from '../flowHost/provision.js';
 import {
   CLAUDE_MD_PATH,
@@ -5598,8 +5598,9 @@ const OUTER_LOOP_SCRIPTS_CHECK: Check = {
  * Graded at {@link CheckContext.profileRoot}, as {@link OUTER_LOOP_SCRIPTS_CHECK} is: the main
  * checkout, whose packages a run copy's environment is built from. Package drift is
  * {@link flowHostPackageDrift}'s answer and is reported first, because an environment built from
- * drifted packages is rebuilt after `init --upgrade` anyway. Every finding warns, for {@link UV_CHECK}'s
- * reason.
+ * drifted packages is rebuilt after `init --upgrade` anyway. In the harness's own repository, where
+ * the packages are links, the remedy is `npm run build` instead: `init --upgrade` writes nothing to
+ * them there. Every finding warns, for {@link UV_CHECK}'s reason.
  */
 const FLOW_HOST_CHECK: Check = {
   id: 'flow-host',
@@ -5614,9 +5615,12 @@ const FLOW_HOST_CHECK: Check = {
         ...(missing.length > 0 ? [`missing: ${missing.join(', ')}`] : []),
         ...(changed.length > 0 ? [`changed from what this CLI ships: ${changed.join(', ')}`] : []),
       ];
-      return warn(
-        `the flow walker's Python packages differ from this CLI's — ${findings.join('; ')}. Run \`${INIT_UPGRADE_COMMAND}\`, which writes this CLI's copies after a backup, then rebuild the environment as it says`,
-      );
+      const packagesDir = join(ctx.profileRoot, ...flowHostDir(ctx.config).split('/'));
+      const linked = FLOW_HOST_PACKAGES.some((pkg) => lstatOrUndefined(join(packagesDir, pkg), ['ENOENT', 'ENOTDIR'])?.isSymbolicLink() === true);
+      const remedy = linked
+        ? 'Run `npm run build` from the repository root, which re-stages dist/python/ from the packages these links point at'
+        : `Run \`${INIT_UPGRADE_COMMAND}\`, which writes this CLI's copies after a backup, then rebuild the environment as it says`;
+      return warn(`the flow walker's Python packages differ from this CLI's — ${findings.join('; ')}. ${remedy}`);
     }
 
     const environment = flowHostEnvDir(ctx.config);

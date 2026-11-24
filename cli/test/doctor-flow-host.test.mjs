@@ -10,14 +10,14 @@
  */
 
 import assert from 'node:assert/strict';
-import { accessSync, appendFileSync, constants as fsConstants, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { accessSync, appendFileSync, constants as fsConstants, cpSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { describe, it } from 'node:test';
 
 import { requireConfig } from '../dist/config/io.js';
-import { flowHostEnvDir, flowHostProjectDir } from '../dist/flowHost/layout.js';
+import { flowHostDir, flowHostEnvDir, flowHostProjectDir, stagedPythonDir } from '../dist/flowHost/layout.js';
 import { flowHostProvisionInvocation } from '../dist/flowHost/provision.js';
 import { CASE_CONCURRENCY } from './helpers/concurrency.mjs';
 import { createFixture, runCli } from './helpers/fixture.mjs';
@@ -25,6 +25,7 @@ import { createFixture, runCli } from './helpers/fixture.mjs';
 const UV_CHECK = 'uv';
 const FLOW_HOST_CHECK = 'flow-host';
 const REMEDY = 'init --upgrade';
+const SELF_ADOPTED_REMEDY = 'npm run build';
 const STUB_VERSION = 'uv 0.9.0';
 const ENV_MARKER_FILE = 'pyvenv.cfg';
 
@@ -183,6 +184,21 @@ describe('doctor uv and flow-host', { concurrency: CASE_CONCURRENCY }, () => {
     const warning = line(await doctor(dir), 'WARN', FLOW_HOST_CHECK);
     assert.ok(warning.includes(`missing: ${file}`), warning);
     assert.ok(warning.includes(REMEDY), warning);
+  });
+
+  it('names npm run build rather than init --upgrade when a package is a link, as in the harness repository', async (t) => {
+    const dir = await wired(t);
+    plantEnvironment(dir);
+    const copy = join(await tempDir(t, 'harness-linked-pkg-'), 'graphscene');
+    cpSync(join(stagedPythonDir(), 'graphscene'), copy, { recursive: true });
+    appendFileSync(join(copy, 'pyproject.toml'), '# edited\n');
+    const link = join(dir, ...flowHostDir(requireConfig(dir)).split('/'), 'graphscene');
+    rmSync(link, { recursive: true });
+    symlinkSync(copy, link);
+
+    const warning = line(await doctor(dir), 'WARN', FLOW_HOST_CHECK);
+    assert.ok(warning.includes(SELF_ADOPTED_REMEDY), warning);
+    assert.ok(!warning.includes(REMEDY), warning);
   });
 
   it('lists uv after jq and flow-host after outer-loop-scripts', async () => {
