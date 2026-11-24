@@ -9,9 +9,9 @@
  * after a real run is a warning, and is complete without the notes.
  */
 
-import { nameList } from '../core/nameList.js';
 import { sep } from 'node:path';
 
+import { nameList } from '../core/nameList.js';
 import type { WriteEffect, WriteResult } from '../core/writer.js';
 import { FLOW_HOST_PROVISION_SCRIPT_NAME, RESTART_WATCHER_SCRIPT_NAME } from '../generators/outerLoopScripts.js';
 import { namesBrowserTool, namesMcpServerWithoutTool, namesUnstartedMcpServer } from '../generators/permissionProfile.js';

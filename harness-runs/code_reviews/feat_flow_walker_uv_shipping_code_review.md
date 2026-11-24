@@ -12,7 +12,7 @@ Every module added under `cli/src/` opens with its header and rule; every new su
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 4** — Move `upgrade/report.ts`'s `node:path` import ahead of its relative imports _(layer: cli)_
+1. [x] **Finding 4** — Move `upgrade/report.ts`'s `node:path` import ahead of its relative imports _(layer: cli)_
 2. [ ] **Finding 2** — Declare `SKIPPED_MARKER` as a mirror of the library's skip prefix and test `init --provision-python` with no `uv` on `PATH` _(layer: cli)_
 3. [ ] **Finding 1** — Key `init`'s package-written and environment-not-built notes on what the plan actually wrote _(layer: cli)_
 4. [ ] **Finding 3** — Name `npm run build` as `flow-host`'s drift remedy where the packages are links _(layer: cli)_
