@@ -4,8 +4,8 @@
  * **The rule this test exists to enforce: the tarball carries exactly the tracked shipped files,
  * byte for byte.** For each of `FLOW_HOST_PACKAGES`, the files under `cli/dist/python/<package>/`
  * equal the files `git ls-files <package>` lists that `isShippedPythonFile` admits; the exclusion is
- * also asserted against a planted tree under the system temp directory, and `npm pack --dry-run`
- * must list the staged files.
+ * also asserted against a planted tree under the system temp directory, and `npm pack --dry-run`,
+ * run with a cache of its own under that directory, must list the staged files.
  *
  * The staged tree read here is the one `pretest`'s build produced from the tracked files. This
  * suite's tree guard covers `cli/src/flowHost/**` and `cli/package.json` only, because a guard
@@ -107,15 +107,27 @@ test('staging a planted tree copies only pyproject.toml, uv.lock and the source 
   }
 });
 
+// npm gets a cache of its own under the system temp directory: a sandboxed run may write only
+// `~/.npm/_logs`, so the default cache's `_cacache/tmp` write is refused with EPERM before the
+// file list is printed.
 test('npm pack lists the staged Python files', () => {
-  const output = execFileSync('npm', ['pack', '--dry-run', '--json'], { cwd: CLI_ROOT, encoding: 'utf8' });
-  const [pack] = JSON.parse(output);
-  const paths = new Set(pack.files.map((file) => file.path));
-  for (const expected of [
-    'dist/python/devscene-flow-host/pyproject.toml',
-    'dist/python/devscene-flow-host/uv.lock',
-    'dist/python/graphscene/src/graphscene/schemas/flow-graph.schema.json',
-  ]) {
-    assert.ok(paths.has(expected), `${expected} is not in the packed file list`);
+  const cache = mkdtempSync(join(tmpdir(), 'harness-npm-cache-'));
+  try {
+    const output = execFileSync('npm', ['pack', '--dry-run', '--json'], {
+      cwd: CLI_ROOT,
+      encoding: 'utf8',
+      env: { ...process.env, npm_config_cache: cache },
+    });
+    const [pack] = JSON.parse(output);
+    const paths = new Set(pack.files.map((file) => file.path));
+    for (const expected of [
+      'dist/python/devscene-flow-host/pyproject.toml',
+      'dist/python/devscene-flow-host/uv.lock',
+      'dist/python/graphscene/src/graphscene/schemas/flow-graph.schema.json',
+    ]) {
+      assert.ok(paths.has(expected), `${expected} is not in the packed file list`);
+    }
+  } finally {
+    rmSync(cache, { recursive: true, force: true });
   }
 });
