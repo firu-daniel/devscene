@@ -8,6 +8,12 @@ The rule: `record_outcome` reads as `flow-walker.sh`'s `next` (*"outcome FAIL re
 - A round gate's file must pass `round_file_problem` before its verdict is recorded.
 - A refused file records nothing in the walk: its gate is left out of a `wait`'s pending list,
   and once no other gate is out, every refused gate is re-dispatched as one set in the same round.
+- A held gate at a join whose only gates out are refused ones does not escalate there: the
+  refused gates are re-dispatched as one set in the same round, and the held gate escalates at
+  the round's next join, once every re-dispatched gate has a verdict or is held, so the
+  escalation carries the whole round's verdicts. `flow-walker.sh` → `record_in_set` escalates at
+  once instead ("With none out: a held gate escalates"); this order is the host's, chosen in
+  #472, and GraphScene is not changed for it.
 - The third refusal of one gate in a round records the held outcome `error`.
 - A findings file given outside an open set (a non-round reviewer's `FAIL`, or `answered`) is
   kept in `RevisionFindingsStore`, as `next` keeps `revision_findings`; a held outcome at a gate
@@ -19,9 +25,6 @@ after. The refusal and kept-findings records are written only when the returned 
 `Refused`.
 
 Deliberately not covered:
-- A held gate at a join whose only gates out are refused ones: bash escalates it at once, this
-  host re-dispatches the refused gates first and escalates at the join that follows. Marked by
-  the `TODO` at `_redispatch`.
 - Rendering a step or a `refused:` line: the `commands` layer's. `start`, and filtering refused
   gates out of `current`: `devscene_flow_host.host.re_entry`'s.
 """
@@ -249,10 +252,6 @@ def _settle(
 def _redispatch(
     walker: Walker, store: RefusalStore, round_node: RoundNode, refusals: RoundRefusals
 ) -> HostStep:
-    # TODO: @claude add a follow up task for this: escalate a held gate at a join whose only
-    # gates out are refused ones, as flow-walker.sh → record_in_set does ("With none out: a held
-    # gate escalates") — needs a GraphScene way for a host to set a due gate aside in an open
-    # round
     current = walker.current()
     assert isinstance(current, DispatchSet), current
     marked = tuple(gate for gate in round_node.gates if _marked(refusals, gate))
