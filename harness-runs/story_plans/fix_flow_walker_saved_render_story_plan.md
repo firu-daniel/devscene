@@ -21,7 +21,7 @@ This branch makes `devscene-flow-walker`, the compatibility command #465 added, 
 
 Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/fix_flow_walker_saved_render/task_<K>_plan.md` file. Ordered bottom-up by ship sequence inside the one layer this branch touches.
 
-1. [ ] **Task 1** — Add the host's printed-reads record, `read_printed` and `PrintedReadsStore` _(layer: devscene-flow-host)_ _(points: 15)_
+1. [x] **Task 1** — Add the host's printed-reads record, `read_printed` and `PrintedReadsStore` _(layer: devscene-flow-host)_ _(points: 15)_
 2. [ ] **Task 2** — Write the printed reads on `start` and `next`, and return them unchanged on `current` _(layer: devscene-flow-host)_ _(points: 15)_
 3. [ ] **Task 3** — Render from `HostStep.printed`, remove the three `TODO` markers, pin the repeated heading _(layer: devscene-flow-host)_ _(points: 15)_
 4. [ ] **Task 4** — Pin `current` against a file written after the step in `test_flow_walker.py` _(layer: devscene-flow-host)_ _(points: 15)_
