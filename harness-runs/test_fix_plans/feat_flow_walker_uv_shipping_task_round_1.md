@@ -14,7 +14,7 @@ The SKIPPED legs (13d, 14d) and the `gates this script cannot run` list are not 
 
 **This section is the single source of truth for the fix loop.** The loop walks the `[ ]` entries below from top to bottom. `[ ]` markers anywhere else, such as the sub-step bullets inside a per-finding file, are informational only and never drive the loop.
 
-1. [ ] **Finding 1** — Rewrite the home-directory npm-cache paths in two tracked run artifacts (gate 6a). _(layer: general)_
+1. [x] **Finding 1** — Rewrite the home-directory npm-cache paths in two tracked run artifacts (gate 6a). _(layer: general)_
 2. [ ] **Finding 2** — Add the branch's `uv` and `flow-host` check ids to the doctor test's frozen pre-branch id list. _(layer: cli)_
 3. [ ] **Finding 3** — Make `createStallFixture`'s `watcher-test/bin` mkdir tolerate the directory the shared watcher fixture now creates. _(layer: cli)_
 4. [ ] **Finding 4** — Stall-reset (S1) reference-transaction case: EEXIST on `watcher-test/bin`. _(layer: cli)_
