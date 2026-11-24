@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/fix_flow_walker_saved_render_task_prompt.md â†
   - screened: harness-runs/task_prompts/fix_flow_walker_saved_render_task_prompt.md sha256=be5022a1d48f84d7ebae41dbbf34049df76fd799ecd34073f8adcd7e91de03c6
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) â€” or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
