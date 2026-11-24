@@ -9,7 +9,7 @@
  * file it is writing out of the table below; it does not invent one, and it never calls `fs`
  * itself.
  *
- * **Three writes are deliberately outside this engine.** The first is machine state rather than an
+ * **Four writes are deliberately outside this engine.** The first is machine state rather than an
  * adopter's file: the repository registry `machine/registry.ts` owns, which `daemon install`
  * rewrites in place. Its header states why none of the policies below fits it. The
  * docs-retrieval runtime and model cache under `machineCacheDir()/retrieval/` are machine state of
@@ -29,9 +29,15 @@
  * variable `cli/src/retrieval/queryLog.ts` owns (`RETRIEVAL_LOG_ENV`) names, so it may land inside or
  * outside the target repository and **no policy in the table below applies to it**.
  * `cli/src/retrieval/queryLog.ts` is the **one** module that makes that write, nothing is opened or
- * created when the variable is unset, and it is no `init` artifact.
- * `.claude/context/conventions.md` → `### Where a new responsibility goes` records neither the index
- * nor the query log; both are raised for a supervised amendment.
+ * created when the variable is unset, and it is no `init` artifact. The fourth is the walker's
+ * environment `<scriptsDir>/python/.venv`, written into the adopting repository by `uv`, in the
+ * `flow-host-provision.sh` child that `cli/src/flowHost/provision.ts` → `provisionFlowHost` spawns:
+ * after the plan and never under `--dry-run`, at the one path `cli/src/flowHost/layout.ts` →
+ * `flowHostEnvDir` gives. `cli/src/flowHost/provision.ts` is the **one** module of this package that
+ * causes that write; it is no `init` artifact and has no re-run policy.
+ * `.claude/context/conventions.md` → `### Where a new responsibility goes` records none of the index,
+ * the query log or the walker's environment; each is raised for a supervised amendment, as a
+ * `stale-rule` entry in the story index, never an edit here.
  *
  * ## The re-run contract, per artifact
  *

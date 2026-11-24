@@ -15,6 +15,7 @@ import { EXIT } from '../core/errors.js';
 import { pathIsIgnored } from '../core/git.js';
 import { ownManifestString } from '../core/paths.js';
 import { WritePlan } from '../core/writer.js';
+import { flowHostDir } from '../flowHost/layout.js';
 import { planFlowHostPackageUpgrade } from '../generators/flowHostPackages.js';
 import { pinnedCliCommand } from '../generators/githubWorkflows.js';
 import { daemonLoadedScriptPaths, planOuterLoopScriptUpgrade } from '../generators/outerLoopScripts.js';
@@ -73,6 +74,7 @@ export function runInitUpgrade(
     dryRun,
     daemonLoadedPaths: daemonLoadedScriptPaths(repoRoot, config),
     scriptsDir: scripts.scriptsDir,
+    flowHostDir: join(repoRoot, ...flowHostDir(config).split('/')),
     applied,
     delta: profile.delta,
     settingChanges: profile.settingChanges,

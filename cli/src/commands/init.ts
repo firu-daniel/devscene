@@ -18,15 +18,17 @@
  *    and returns; no generator touches the filesystem. So `--dry-run` cannot leak a write no matter
  *    what a generator enqueued, and a refusal raised against the last request cannot leave the first
  *    ten on disk — the write engine checks the whole plan before committing any of it
- *    (`core/writer.ts`). **Three mutations sit outside that plan**, and each is confined by a
+ *    (`core/writer.ts`). **Four mutations sit outside that plan**, and each is confined by a
  *    condition of its own rather than by a shared one: `initRepository` before the plan is built
  *    runs only where there is no repository yet ({@link resolveTargetRepository}); `pointHooksPath`
  *    after it has been applied writes `core.hooksPath` only where that setting is unset
  *    (`generators/githooks.ts`); and `commitAll`, after it as well, runs only in a repository with
  *    no commit ({@link commitGeneratedFiles}) — so none of them can reach an established history or
- *    an adopter's own hooks directory. So `--dry-run`'s "cannot leak a write" guarantee no longer
+ *    an adopter's own hooks directory. The fourth, `provisionFlowHost` after the plan, writes only
+ *    `<scriptsDir>/python/.venv`, through `uv`, and only when {@link resolveProvisionPython} answered
+ *    yes (`flowHost/provision.ts`). So `--dry-run`'s "cannot leak a write" guarantee no longer
  *    rests on the plan's structure alone — it rests on that structure **plus one explicit `dryRun`
- *    guard at each of those three calls**, which is three guards to check rather than a structural
+ *    guard at each of those four calls**, which is four guards to check rather than a structural
  *    argument that covers everything. The commit's position is load-bearing for a second reason: the
  *    managed `.gitignore` block arrives with the plan, and it is what keeps the commit's `git add -A`
  *    from staging the run-control artifacts — so a commit made before `plan.apply` would commit
@@ -146,7 +148,8 @@ import {
   FORCED_SIGNAL_ID,
   type DetectionResult,
 } from '../detect/signals.js';
-import { flowHostDir } from '../flowHost/layout.js';
+import { flowHostDir, flowHostEnvDir } from '../flowHost/layout.js';
+import { flowHostProvisioned, flowHostProvisionInvocation, provisionFlowHost } from '../flowHost/provision.js';
 import {
   writeClaudeContext,
   CLAUDE_MD_PATH,
@@ -418,6 +421,9 @@ const NOTIFICATIONS_FLAG = '--notifications';
 /** The flag that supplies the endpoint the opt-in needs, and without which nothing is written. */
 const PUSH_URL_FLAG = '--push-url';
 
+/** The flag that answers the provisioning offer — named in its option row and in the prompt's no-terminal hint. */
+const PROVISION_PYTHON_FLAG = '--provision-python';
+
 /** The flag that brings the outer-loop scripts, the shipped Python packages and the permission profile up to this CLI. */
 const UPGRADE_FLAG = '--upgrade';
 
@@ -489,6 +495,11 @@ export interface InitFlags extends HarnessConfigFlags, ProjectSettingsFlags {
    * by `resolvePushDestination` and kept as given; read only when the opt-in was taken.
    */
   readonly pushUrl?: string;
+  /**
+   * `--provision-python`. Answers the offer to build the walker's Python environment after the plan
+   * ({@link resolveProvisionPython}), whose non-interactive default is to skip it. Writes no config key.
+   */
+  readonly provisionPython?: boolean;
   /** `--preset`. Bypasses the detection table entirely; validated at parse time. */
   readonly preset?: string;
   /** `--app-dir`. The tree detection probes, when the repository nests its application. */
@@ -556,8 +567,8 @@ type ValueFlagKey = Exclude<keyof InitFlags, SwitchFlagKey>;
  * (`generators/projectSettings.ts`) and `--reference-toolchain-path` reaches the permission profile
  * (`generators/permissionProfile.ts`), so both still take effect on a kept run; and the run-shape
  * rows — `--git-init`, `--reset-config`, the {@link ANALYZE_FLAG} / {@link NO_ANALYZE_FLAG} pair,
- * {@link NOTIFICATIONS_FLAG}, {@link PUSH_URL_FLAG}, {@link PLUGIN_ROOT_ENTRIES_FLAG},
- * {@link UPGRADE_WORKFLOWS_FLAG} and {@link UPGRADE_FLAG} — are about
+ * {@link NOTIFICATIONS_FLAG}, {@link PUSH_URL_FLAG}, {@link PROVISION_PYTHON_FLAG},
+ * {@link PLUGIN_ROOT_ENTRIES_FLAG}, {@link UPGRADE_WORKFLOWS_FLAG} and {@link UPGRADE_FLAG} — are about
  * the shape of the run or about artifacts outside the repository's config.
  *
  * **Marked *and* detection-steering** is the sub-case, and {@link InitOption.steersDetection} is how
@@ -625,10 +636,11 @@ function initOptions<T extends readonly InitOption[]>(
  * answers the offer to analyze this repository — which decides the wording the generated
  * always-loaded file carries — then the pair that decides whether this account gets told when an
  * unattended run finishes, which is the one pair that writes nothing into the repository at all, then
- * the switch that adds this machine's plugin-root entries to a freshly generated profile, then the
- * switch that re-renders the two remote-execution workflows at this CLI's version, and last the switch
- * that upgrades the outer-loop scripts, the shipped Python packages and the permission profile instead
- * of wiring anything.
+ * the switch that builds the walker's Python environment after the plan, then the switch that adds
+ * this machine's plugin-root entries to a freshly generated profile, then the switch that re-renders
+ * the two remote-execution workflows at this CLI's version, and last the switch that upgrades the
+ * outer-loop scripts, the shipped Python packages and the permission profile instead of wiring
+ * anything.
  *
  * The first two sit together, and ahead of everything else, because they are the rows whose subject
  * is the **shape of the run** rather than a value in the generated file: one settles what `init` is
@@ -794,6 +806,12 @@ const INIT_OPTIONS: readonly InitOption[] = initOptions([
     placeholder: PUSH_DESTINATION_PLACEHOLDER,
     summary:
       'Where notifications are posted: an ntfy topic name, or the full http:// or https:// URL of any endpoint that accepts a POST (with --notifications)',
+  },
+  {
+    key: 'provisionPython',
+    flag: PROVISION_PYTHON_FLAG,
+    kind: 'switch',
+    summary: 'Build the Python environment the flow walker runs in with uv after wiring (otherwise asked on a terminal, and skipped with a note when not)',
   },
   {
     key: 'pluginRootEntries',
@@ -1035,6 +1053,7 @@ function parseInitFlags(argv: readonly string[]): InitFlags {
     docs: switches.has('docs'),
     docsRetrieval: switches.has('docsRetrieval'),
     parity: switches.has('parity'),
+    provisionPython: switches.has('provisionPython'),
     pluginRootEntries: switches.has('pluginRootEntries'),
     upgradeWorkflows: switches.has('upgradeWorkflows'),
     upgrade: switches.has('upgrade'),
@@ -1482,6 +1501,31 @@ function askRetrieval(ctx: CommandContext): boolean | undefined {
   );
 }
 
+/**
+ * Whether this run builds the walker's Python environment after the plan: {@link PROVISION_PYTHON_FLAG}
+ * means yes; otherwise a run that can prompt, in a repository without the environment, is asked with
+ * yes as the default; every other run answers no and is told the command by the post-plan step.
+ *
+ * Settled before `plan.apply`, because no answer is taken after anything is written. The default
+ * without a terminal is no because the build reaches the network, which an unattended or piped run
+ * must not do unasked.
+ */
+function resolveProvisionPython(ctx: CommandContext, flags: InitFlags, repoRoot: string, config: HarnessConfig): boolean {
+  if (flags.provisionPython === true) return true;
+  const promptCtx = { flags: ctx.flags, report: ctx.report };
+  if (!canPrompt(promptCtx) || flowHostProvisioned(repoRoot, config)) return false;
+
+  return askYesNo(
+    {
+      question: `Build the Python environment the flow walker runs in now? uv installs it into ${flowHostEnvDir(config)}/, which takes the network and may take minutes`,
+      defaultAnswer: true,
+      flag: PROVISION_PYTHON_FLAG,
+      flagHint: 'to build it without being asked',
+    },
+    promptCtx,
+  );
+}
+
 /** What the analyze offer resolved to, and the pre-plan facts the closing pointer is worded against. */
 interface AnalyzeOfferResolution {
   /** The answer, as {@link writeClaudeContext} takes it. */
@@ -1559,11 +1603,12 @@ function hasOpenSetupBanner(repoRoot: string): boolean {
 /**
  * Settle the offer to run {@link ANALYZE_COMMAND} in this repository's first session.
  *
- * **The third of the four questions this command puts**, and — like all four — settled before
+ * **The third of the five questions this command puts**, and — like all five — settled before
  * `plan.apply`, so no answer is taken after anything has been written: the repository itself
  * ({@link resolveTargetRepository}), which driver the interactive test phase runs
- * ({@link askQaDriver}, asked lazily inside the config generator), this offer, and push
- * notifications ({@link resolveNotifications}). Moving the call site breaks that order and this
+ * ({@link askQaDriver}, asked lazily inside the config generator), this offer, push
+ * notifications ({@link resolveNotifications}), and whether to build the walker's Python environment
+ * ({@link resolveProvisionPython}). Moving the call site breaks that order and this
  * sentence with it.
  *
  * **The documented default is yes, and the interaction rule's continuity clause holds in two halves
@@ -2234,10 +2279,11 @@ function hiddenBackupsNote(options: {
  * configured `scriptsDir`; the state tree and the conventions stubs; the profile;
  * the committable project settings; the repository-root files; the account's own push-notification
  * settings, which are the one target outside the repository and are ordered here only because their
- * question is the last one the run puts; and the git hook last, with
+ * question is the last one a generator takes; and the git hook last, with
  * `core.hooksPath` pointed at it only **after** the plan has been applied and the hook it enables
  * therefore exists — and after that, in a repository that has no commit yet, the first commit
- * ({@link commitGeneratedFiles}).
+ * ({@link commitGeneratedFiles}). The provisioning question follows every generator and precedes the
+ * plan; the step it answers runs after `core.hooksPath` is pointed and before the commit.
  */
 async function run(ctx: CommandContext): Promise<number> {
   const flags = parseInitFlags(ctx.argv);
@@ -2531,7 +2577,7 @@ async function run(ctx: CommandContext): Promise<number> {
   const state = writeStateDir({ repoRoot, config: effective, plan });
   notes.push(...state.notes);
 
-  // The third of the four questions this run puts, and settled here because its answer is an
+  // The third of the five questions this run puts, and settled here because its answer is an
   // *input* to the generator below: that generator enqueues the banner while the plan is being
   // built, so a resolution taken afterwards would be reading a decision it was supposed to make.
   const analyze = resolveAnalyzeOffer(ctx, flags, repoRoot, effective);
@@ -2615,6 +2661,10 @@ async function run(ctx: CommandContext): Promise<number> {
   warnings.push(...hooks.warnings);
   notes.push(...hooks.notes);
 
+  // The last question this run puts, and before the plan for init's rule that no answer is taken after
+  // anything is written; the step it answers runs after the plan.
+  const provisionPython = resolveProvisionPython(ctx, flags, repoRoot, effective);
+
   ctx.report.step(ctx.flags.dryRun ? 'files (dry run — nothing is written)' : 'files');
   const applied = plan.apply({ repoRoot, report: ctx.report, dryRun: ctx.flags.dryRun, force: ctx.flags.force });
   const profileWrite = applied.find((result) => result.path === permissions.path);
@@ -2639,7 +2689,23 @@ async function run(ctx: CommandContext): Promise<number> {
     notes.push(...retrieval.notes);
   }
 
-  // The second post-plan step, and after the plan for a reason of its own: the managed `.gitignore`
+  // Unlike the retrieval step, this one **does** write into the repository: `uv` creates
+  // `<scriptsDir>/python/.venv` in the spawned child. After the plan because the environment is built
+  // from the packages the plan has just written, a sync takes the network and minutes, and it is no
+  // plan artifact — so it is never enqueued and never runs under `--dry-run`. `cli/src/core/writer.ts`'s
+  // header records the exception. Before the commit, which a failure here must not stop.
+  if (provisionPython) {
+    ctx.report.step('flow walker environment');
+    const provisioned = provisionFlowHost({ repoRoot, config: effective, dryRun: ctx.flags.dryRun });
+    warnings.push(...provisioned.warnings);
+    notes.push(...provisioned.notes);
+  } else if (!flowHostProvisioned(repoRoot, effective) || (flowHostPackages?.written.length ?? 0) > 0) {
+    notes.push(
+      `the Python environment the flow walker runs in is not built: run ${flowHostProvisionInvocation(effective)} outside the sandbox to build it with uv, or pass ${PROVISION_PYTHON_FLAG} to init`,
+    );
+  }
+
+  // The last post-plan step, and after the plan for a reason of its own: the managed `.gitignore`
   // block that decides what `git add -A` may stage arrived with the plan. Before the summary, so the
   // commit is reported inside the run's action log rather than after its closing pointer.
   warnings.push(...commitGeneratedFiles(ctx, target));

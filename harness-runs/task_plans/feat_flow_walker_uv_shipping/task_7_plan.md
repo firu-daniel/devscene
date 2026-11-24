@@ -58,3 +58,12 @@
 - `npm test --workspace cli -- test/init-provision-python.test.mjs` passes.
 - `node cli/dist/cli.js init --help` lists `--provision-python`.
 - Existing `init` suites whose expected output now carries the new note: update only that expectation, and only in suites this task edits.
+
+**Deviations from plan:**
+
+- Added `FLOW_HOST_PROVISION_SCRIPT_NAME` to `cli/src/generators/outerLoopScripts.ts` and built its `OUTER_LOOP_SCRIPTS` row from it (file not in Targets): `provision.ts` resolves the script as a path, and `.claude/context/cli.md` → `**One string, one producer.**` makes a `.sh` literal resolved as a path a second source.
+- Edited `cli/src/upgrade/initUpgrade.ts` (file not in Targets) to pass the new `UpgradeReportInput.flowHostDir`: `upgradeReport` reads no file and has no repository root, so it cannot locate `<scriptsDir>/python/` itself.
+- Amended `cli/src/commands/init.ts`'s header choice 1 from three to four mutations outside the plan, naming `provisionFlowHost` and its `dryRun` guard: the header states the count and the post-plan step falsifies it.
+- `init --upgrade` prints the rebuild line as a warning on a real run and a note under `--dry-run`, the split the watcher-restart line in the same report already uses, so the line survives `--quiet`.
+- Added a sixth test case: `init --upgrade --provision-python` is refused with nothing written, confirming the `assertUpgradeFlagsUsable` check the Work list asks for.
+- `npm test` suites this task did not edit (`cli/test/init.test.mjs` and the other `init` suites, `cli/test/upgrade-report.test.mjs`) were not run: deferred to the Run gates phase.

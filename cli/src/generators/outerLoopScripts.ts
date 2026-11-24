@@ -187,6 +187,15 @@ export const RUN_LIBRARY_SCRIPT_NAME = 'harness-run-lib.sh';
 export const TASK_OFFER_CHECK_SCRIPT_NAME = 'task-offer-check.sh';
 
 /**
+ * The walker's environment provisioner's file name, named on its own for the same reason
+ * {@link WATCHER_SCRIPT_NAME} is: `flowHost/provision.ts` runs this file and `upgrade/report.ts` prints
+ * its invocation, and either disagreeing with the writer would name a script that was never written.
+ *
+ * The row below is built from it, so the file is renamed here and nowhere else.
+ */
+export const FLOW_HOST_PROVISION_SCRIPT_NAME = 'flow-host-provision.sh';
+
+/**
  * The whole outer-loop set, in the order `init` writes it: the shared library first, because every
  * other row sources it, and each further library or data file before the script that sources or
  * reads it.
@@ -229,7 +238,7 @@ export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze(
   // Run by `init`, a person and `doctor`'s remedy, outside the sandbox; `false` is a calling
   // convention, and no `DENY_SCRIPT_BASENAMES` entry is owed: it takes no argument and, sandboxed,
   // fails closed having changed nothing outside `<scriptsDir>/python/.venv`.
-  Object.freeze({ file: 'flow-host-provision.sh', mode: 0o755, agentInvocable: false }),
+  Object.freeze({ file: FLOW_HOST_PROVISION_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
   // Started by the agent runner from `.mcp.json`, never by a dispatched agent's Bash call, so `false`
   // is a calling convention. No `DENY_SCRIPT_BASENAMES` entry: the guard auto-allowing it runs
   // nothing destructive.
