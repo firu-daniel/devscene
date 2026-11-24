@@ -25,7 +25,7 @@ The SKIPPED legs (13d, 14d) and the `gates this script cannot run` list are not 
 9. [x] **Finding 9** — Stall-reset (S7) skip-worktree settings.json case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 10. [x] **Finding 10** — Stall-reset (S8) replace-ref case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 11. [x] **Finding 11** — Stall-reset (S9) info/grafts case: EEXIST on `watcher-test/bin`. _(layer: cli)_
-12. [ ] **Finding 12** — Stall-reset (S4) config.worktree case: EEXIST on `watcher-test/bin`. _(layer: cli)_
+12. [x] **Finding 12** — Stall-reset (S4) config.worktree case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 13. [ ] **Finding 13** — Stall-reset (S4c) .git/config core.fsmonitor case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 14. [ ] **Finding 14** — Stall-reset (S10) planted commondir case: EEXIST on `watcher-test/bin`. _(layer: cli)_
 15. [ ] **Finding 15** — Stall-reset (J1) unset default-branch job case: EEXIST on `watcher-test/bin`. _(layer: cli)_
