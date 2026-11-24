@@ -20,7 +20,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_flow_w
 
 1. [x] **Task 1** — Keep a non-round findings file for the writer's revision in `host/revision_findings.py` _(layer: devscene-flow-host)_ _(points: 20)_
 2. [x] **Task 2** — Expose the predicate host's last refusal reason as `HarnessPredicateHost.last_refusal` _(layer: devscene-flow-host)_ _(points: 8)_
-3. [ ] **Task 3** — Render a `HostStep` as `flow-walker.sh`'s `key: value` output in `commands/render.py` _(layer: devscene-flow-host)_ _(points: 20)_
+3. [x] **Task 3** — Render a `HostStep` as `flow-walker.sh`'s `key: value` output in `commands/render.py` _(layer: devscene-flow-host)_ _(points: 20)_
 4. [ ] **Task 4** — Parse `flow-walker.sh`'s verbs and flags in `commands/arguments.py` _(layer: devscene-flow-host)_ _(points: 10)_
 5. [ ] **Task 5** — Add the `devscene-flow-walker` command in `commands/flow_walker.py` with its exit codes _(layer: devscene-flow-host)_ _(points: 20)_
 6. [ ] **Task 6** — Pin the command's concurrency in `tests/test_flow_walker_concurrency.py` _(layer: devscene-flow-host)_ _(points: 10)_

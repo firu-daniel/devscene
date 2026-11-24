@@ -32,3 +32,8 @@
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_render.py` passes, run as one foreground command from the repository root.
 - Each case's expected text matches the corresponding `REPRO` line in `cli/templates/scripts/flow-walker.sh`'s header where one exists (e.g. *"round: 0 FAIL, plan_writer, prompt: revision, arg.iteration: 1, arg.findings_file: b0.md / f0.md / p0.md"*).
 - `commands/render.py` imports only `devscene_flow_host.host`, `devscene_flow_host.records`, `graphscene` and the standard library, with no `graphscene.<submodule>` import.
+
+**Deviations from plan:**
+
+- The "passed lines in the first block only" case is its own test over the converging set (`round: 1 FAIL`, `ledger: P0` hand-placed in `DispatchSet.passed`), since a three-gate set reached by the walk carries no passed lines; a realistic two-gate set led by `skip: business_parity_review passed-by-exclusion` is added beside it. The plain three-gate `full` set is asserted with no passed lines, as REPRO prints it.
+- Added beyond the plan: a non-round reviewer's `arg.iteration` read from its planted folder (`ui_review`), a `Refused` action raising `no rendering for the action type Refused`, and a `ValueError` when a writer's or gate's `Dispatch` carries no `round_number` (bash always reads `round.number`, so this cannot arise from GraphScene's `_dispatch`).
