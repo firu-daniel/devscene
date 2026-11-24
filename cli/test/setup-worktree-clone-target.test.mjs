@@ -10,15 +10,19 @@
  *
  * The fixture is built by hand, as `cli/test/wrapper-clone-arm.test.mjs` builds its own, and the
  * clone is the one `hr_clone_create_var` makes. `commands.depInstall` and `commands.build` are unset,
- * so no command runs.
+ * so no command runs. The main checkout carries a flow-host `pyproject.toml` under the default
+ * `scriptsDir`, which `CONFIG` leaves unset, and every bootstrap runs with a stub `uv` exiting 0 first
+ * on `PATH`, because step 6 fails a bootstrap with no `uv` or no project.
  */
 
 import assert from 'node:assert/strict';
-import { cp, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, cp, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import test from 'node:test';
 
+import { DEFAULTS } from '../dist/config/model.js';
+import { FLOW_HOST_DIRNAME, FLOW_HOST_PROJECT } from '../dist/flowHost/layout.js';
 import { PACKAGE_ROOT, runBash, runGit } from './helpers/fixture.mjs';
 
 const TEMPLATE_SCRIPTS = join(PACKAGE_ROOT, 'templates', 'scripts');
@@ -37,9 +41,9 @@ const BRANCH = 'feat_c';
 const output = (result) => `${result.stdout}\n${result.stderr}`;
 
 /**
- * A main checkout on `trunk` carrying `devscene.config.json`, `githooks/pre-push` and
- * `scripts/setup-worktree.sh` with its `lib/`, and the clone of {@link BRANCH} `hr_clone_create_var`
- * makes at `<root>/main-feat_c`.
+ * A main checkout on `trunk` carrying `devscene.config.json`, `githooks/pre-push`,
+ * `scripts/setup-worktree.sh` with its `lib/` and a flow-host `pyproject.toml`, and the clone of
+ * {@link BRANCH} `hr_clone_create_var` makes at `<root>/main-feat_c`.
  *
  * @param {import('node:test').TestContext} t
  */
@@ -56,7 +60,10 @@ async function fixture(t) {
   await mkdir(join(main, 'scripts'));
   await cp(join(TEMPLATE_SCRIPTS, 'setup-worktree.sh'), join(main, 'scripts', 'setup-worktree.sh'));
   await cp(join(TEMPLATE_SCRIPTS, 'lib'), join(main, 'scripts', 'lib'), { recursive: true });
-  await runGit(main, ['add', 'devscene.config.json', 'githooks', 'scripts']);
+  const project = join(main, DEFAULTS.scriptsDir, FLOW_HOST_DIRNAME, FLOW_HOST_PROJECT);
+  await mkdir(project, { recursive: true });
+  await writeFile(join(project, 'pyproject.toml'), '');
+  await runGit(main, ['add', 'devscene.config.json', 'githooks', 'scripts', DEFAULTS.scriptsDir]);
   await runGit(main, ['commit', '--quiet', '-m', 'fixture: seed']);
   await mkdir(join(main, 'devscene', 'autonomous_logs'), { recursive: true });
 
@@ -70,12 +77,20 @@ async function fixture(t) {
   ]);
   assert.equal(created.status, 0, output(created));
 
+  const bin = join(root, 'bin');
+  await mkdir(bin);
+  await writeFile(join(bin, 'uv'), '#!/usr/bin/env bash\nexit 0\n');
+  await chmod(join(bin, 'uv'), 0o755);
+
   return {
     root,
     main,
     clone: join(root, `main-${BRANCH}`),
     mainConfig: () => readFile(join(main, '.git', 'config')),
-    setup: (target) => runBash(root, [join(main, 'scripts', 'setup-worktree.sh'), '--target', target]),
+    setup: (target) =>
+      runBash(root, [join(main, 'scripts', 'setup-worktree.sh'), '--target', target], {
+        PATH: `${bin}${delimiter}${process.env.PATH ?? ''}`,
+      }),
     /** `git config --file <file> --get <key>`'s exit status and trimmed stdout. */
     get: async (file, key) => {
       const r = await runBash(root, ['-c', 'git -C / config --file "$1" --get "$2"', 'get', file, key]);

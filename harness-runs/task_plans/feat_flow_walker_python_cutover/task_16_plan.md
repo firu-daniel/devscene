@@ -47,6 +47,8 @@ The other hits name the script without running it, or run a stub in its place (`
 
   Every case asserting the bootstrap's `status 0` then keeps that assertion unchanged. Add one sentence to each header saying why the fixture carries them: step 6 fails a bootstrap with no `uv` or no project.
 
+  - **Deviations from plan:** Both fixtures copy the scripts to `scripts/` but leave `scriptsDir` unset in `CONFIG`, so step 6 resolves the schema default `devscene-scripts` (first run: `flow-host: provision: failed — no flow host at …/main/devscene-scripts/python/devscene-flow-host`). The project is planted, and committed, at `<main>/<DEFAULTS.scriptsDir>/python/devscene-flow-host/pyproject.toml`, with `DEFAULTS` imported from `../dist/config/model.js`. `CONFIG` is unchanged, so the wrappers read the same configuration as before. The stub `uv` is `#!/usr/bin/env bash` + `exit 0`, written and `chmod`ed into `<root>/bin` the way `setup-worktree-flow-host.test.mjs` writes its stub. It is put first on `PATH` for `setup` only, because `commit-on-branch.sh` and `push-branch.sh` do not run step 6.
+
 **Verification:**
 
 - Run `commands.typecheck`; it must exit 0.
