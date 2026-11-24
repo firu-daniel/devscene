@@ -183,7 +183,7 @@ These come from the two code surveys.
 | A hosted RagScene tier | Dropped | Decision 1. |
 | RagScene evals | Free | F3 observability. First decouple the suite from `cli/dist`. |
 | TraceScene | Free locally | F3 observability. Combined team analytics move into the team layer below. |
-| Agent builder | Free, a portfolio piece | F3 agent builders. GraphScene has no editor, so this would be new work. |
+| Agent builder | Free, a showcase for GraphScene | F3 agent builders. GraphScene has no editor, so this would be new work. |
 | **Team and governance layer** | **The paid line** | F3 coding agents (the OpenHands model) and F4 (the Langfuse and Sidekiq patterns). Described below. |
 
 ---
@@ -222,7 +222,7 @@ Nothing stops a company from using the Apache core in a team. Several developers
 
 The risk to watch is a free core that already does everything a team needs. That loses more revenue than piracy would.
 
-The only way to make team use of the core itself not free is to relicense future core releases, for example under PolyForm Small Business or FSL. That gives up being open source and the adoption and portfolio value that comes with it, and the Apache releases stay free to fork. It is recorded here, not recommended.
+The only way to make team use of the core itself not free is to relicense future core releases, for example under PolyForm Small Business or FSL. That gives up being open source and the adoption that comes with it, and the Apache releases stay free to fork. It is recorded here, not recommended.
 
 ### Enforcement without hosting
 
@@ -249,12 +249,12 @@ All three options share the same setup:
 | What is sold | A key for code anyone can read | Access to code only customers can install | Support, onboarding and setup for teams adopting DevScene |
 | Where the code is | Public: a folder in the repository, under its own licence | A private repository; installed from a private registry with a per-customer token (the Sidekiq pattern) | No paid code needed |
 | What stops free use | The licence plus the key check; anyone can patch it, and a company that does breaks the licence | No access without paying; the key check still applies after install | The work is the product |
-| Trust and evaluation | High: auditable, and visible portfolio work | Lower: needs a trial build or demo | High |
+| Trust and evaluation | High: auditable before purchase | Lower: needs a trial build or demo | High |
 | Maintainer effort | Low: one repository, normal releases | Higher: registry, token issue and revocation, trial builds | Time per customer |
 | Examples | Langfuse `ee/`, GitLab EE | Sidekiq Pro/Enterprise | Common in open source |
 
 **Recommendation, agreed by the maintainer on 2026-11-24:**
-1. Start with C. Customer requests show which team features matter, and clients are references for the job search.
+1. Start with C. Customer requests show which team features matter, and early clients become references.
 2. Build the team features as option A, inside the DevScene repository, with keys handed out free at first.
 3. Move to B only if real leakage appears.
 
