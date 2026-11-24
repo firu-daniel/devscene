@@ -146,6 +146,7 @@ import {
   FORCED_SIGNAL_ID,
   type DetectionResult,
 } from '../detect/signals.js';
+import { flowHostDir } from '../flowHost/layout.js';
 import {
   writeClaudeContext,
   CLAUDE_MD_PATH,
@@ -154,6 +155,7 @@ import {
   isUntouchedSkeletonText,
   type AnalyzeOffer,
 } from '../generators/claudeContext.js';
+import { writeFlowHostPackages } from '../generators/flowHostPackages.js';
 import { pointHooksPath, writeGitHooks } from '../generators/githooks.js';
 import {
   IN_FLIGHT_RUNS_NOTE,
@@ -416,7 +418,7 @@ const NOTIFICATIONS_FLAG = '--notifications';
 /** The flag that supplies the endpoint the opt-in needs, and without which nothing is written. */
 const PUSH_URL_FLAG = '--push-url';
 
-/** The flag that brings the outer-loop scripts and the permission profile up to this CLI. */
+/** The flag that brings the outer-loop scripts, the shipped Python packages and the permission profile up to this CLI. */
 const UPGRADE_FLAG = '--upgrade';
 
 /** What {@link UPGRADE_FLAG} may be given with: itself, and the one input its profile render takes. */
@@ -506,7 +508,7 @@ export interface InitFlags extends HarnessConfigFlags, ProjectSettingsFlags {
    */
   readonly upgradeWorkflows?: boolean;
   /**
-   * `--upgrade`. Replace only the outer-loop scripts and the permission profile with what this CLI
+   * `--upgrade`. Replace only the outer-loop scripts, the shipped Python packages and the permission profile with what this CLI
    * ships, after a backup (`upgrade/initUpgrade.ts`). Writes no config key.
    */
   readonly upgrade?: boolean;
@@ -625,7 +627,8 @@ function initOptions<T extends readonly InitOption[]>(
  * unattended run finishes, which is the one pair that writes nothing into the repository at all, then
  * the switch that adds this machine's plugin-root entries to a freshly generated profile, then the
  * switch that re-renders the two remote-execution workflows at this CLI's version, and last the switch
- * that upgrades the outer-loop scripts and the permission profile instead of wiring anything.
+ * that upgrades the outer-loop scripts, the shipped Python packages and the permission profile instead
+ * of wiring anything.
  *
  * The first two sit together, and ahead of everything else, because they are the rows whose subject
  * is the **shape of the run** rather than a value in the generated file: one settles what `init` is
@@ -808,7 +811,7 @@ const INIT_OPTIONS: readonly InitOption[] = initOptions([
     key: 'upgrade',
     flag: UPGRADE_FLAG,
     kind: 'switch',
-    summary: "Replace only the outer-loop scripts and the permission profile with this CLI's, after a backup (takes --dry-run and --reference-toolchain-path)",
+    summary: "Replace only the outer-loop scripts, the shipped Python packages and the permission profile with this CLI's, after a backup (takes --dry-run and --reference-toolchain-path)",
   },
 ] as const);
 
@@ -1108,7 +1111,7 @@ function assertUpgradeFlagsUsable(flags: InitFlags, force: boolean): void {
 
   // Joined rather than `nameList`ed: its cap would leave a refused flag unnamed.
   throw new HarnessError(
-    `init: ${UPGRADE_FLAG} cannot be combined with ${refused.join(', ')}: it replaces only the outer-loop scripts and the permission profile, and the one init flag it takes is --reference-toolchain-path. Nothing was written; run it again without ${refused.length === 1 ? 'that flag' : 'those flags'}`,
+    `init: ${UPGRADE_FLAG} cannot be combined with ${refused.join(', ')}: it replaces only the outer-loop scripts, the shipped Python packages and the permission profile, and the one init flag it takes is --reference-toolchain-path. Nothing was written; run it again without ${refused.length === 1 ? 'that flag' : 'those flags'}`,
   );
 }
 
@@ -2501,6 +2504,20 @@ async function run(ctx: CommandContext): Promise<number> {
   // exist (`generators/outerLoopScripts.ts`).
   const outerLoop = writeOuterLoopScripts({ repoRoot, config: effective, plan });
   notes.push(...outerLoop.notes);
+
+  // In the harness's own repository the packages live at the root and `<scriptsDir>/python/` links to
+  // them: writing through those links would overwrite the sources, and `--force` would back them up
+  // into `src/`.
+  const flowHostPackages = selfAdopt ? undefined : writeFlowHostPackages({ repoRoot, config: effective, plan });
+  if (flowHostPackages === undefined) {
+    notes.push(
+      `the shipped Python packages were not written into ${flowHostDir(effective)}/: this is the harness's own repository, where they live at the root and that directory links to them`,
+    );
+  } else if (flowHostPackages.written.length > 0) {
+    notes.push(
+      `${flowHostPackages.written.length} files of the shipped Python packages were written into ${flowHostDir(effective)}/, copied verbatim from this CLI: a re-run leaves an edited copy as it is, --force replaces it after copying the current file to <name>.bak, and init --upgrade brings each file to this CLI's bytes after a backup`,
+    );
+  }
 
   // After the scripts, which the workflows run, and before the permission profile. Enqueues nothing
   // unless `execution.target` is `github-actions` (`generators/githubWorkflows.ts`).

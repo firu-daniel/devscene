@@ -1,9 +1,10 @@
 /**
  * The `init --upgrade` run: it orders the upgrade's steps and reports their outcome.
  *
- * **The rule this module exists to enforce: only the outer-loop scripts and the permission profile
- * are planned, and all refusals and planning finish before one `plan.apply`, so a refused run writes
- * nothing.** What each step decides belongs to the module it calls.
+ * **The rule this module exists to enforce: only the outer-loop scripts, the shipped Python packages
+ * and the permission profile are planned, and all refusals and planning finish before one
+ * `plan.apply`, so a refused run writes nothing.** What each step decides belongs to the module it
+ * calls.
  */
 
 import { existsSync } from 'node:fs';
@@ -14,6 +15,7 @@ import { EXIT } from '../core/errors.js';
 import { pathIsIgnored } from '../core/git.js';
 import { ownManifestString } from '../core/paths.js';
 import { WritePlan } from '../core/writer.js';
+import { planFlowHostPackageUpgrade } from '../generators/flowHostPackages.js';
 import { pinnedCliCommand } from '../generators/githubWorkflows.js';
 import { daemonLoadedScriptPaths, planOuterLoopScriptUpgrade } from '../generators/outerLoopScripts.js';
 import { PROFILE_LOCAL_PATH } from '../generators/profileEntries.js';
@@ -60,6 +62,8 @@ export function runInitUpgrade(
 
   const plan = new WritePlan();
   const scripts = planOuterLoopScriptUpgrade({ repoRoot, config, plan });
+  // Skipped under self-adoption for the reason `commands/init.ts` gives at its own call.
+  if (!target.selfAdopted) planFlowHostPackageUpgrade({ repoRoot, config, plan });
   const profile = planProfileUpgrade({ repoRoot, config, plan, referenceToolchainPath, dryRun });
 
   const backupDir = backupDirectory(target.gitCommonDir);

@@ -53,6 +53,7 @@
  * | `.github/workflows/devscene-trigger.yml` | `create-if-absent` | Written only when `forge` is `github` and `execution.target` is `github-actions`; no pin, so `init --upgrade-workflows` leaves it; `--force` after a `.bak` is its upgrade path. |
  * | `.github/workflows/devscene-control.yml` | `create-if-absent` | Written only when `forge` is `github` and `execution.target` is `github-actions`; no pin, so `init --upgrade-workflows` does not re-render it. `--force` after a `.bak` is its upgrade path. |
  * | The outer-loop scripts and their `lib/` files | `create-if-absent` for `init`; `replace-if-changed` under `init --upgrade` | Copied from the package, so a re-run keeps a patched copy and `--upgrade` is how a shipped fix arrives, with the old copy backed up. |
+ * | The shipped Python packages under `<scriptsDir>/python/` | `create-if-absent` for `init`; `replace-if-changed` under `init --upgrade` | Copied from the package's `dist/python/`, staged at build from the repository root; `init` skips them in the harness's own self-adopted repository. |
  * | Git hook `pre-push`, wrapper scripts | `create-if-absent` | Adopter may have edited the guard. The hook alone is also replaced, after a `.bak`, by the one run that rebuilt the config it is rendered from (`init --reset-config`) — and only where its rendered `case` label no longer matches the set that config resolves, never where the label cannot be read. |
  *
  * `--force` upgrades **`create-if-absent` only** to overwrite-after-backup, and only where the

@@ -47,3 +47,11 @@
 - `npm test --workspace cli -- test/flow-host-packages.test.mjs` passes.
 - `grep -n "flowHost" cli/src/commands/init.ts cli/src/upgrade/initUpgrade.ts` shows both calls, and both sit behind the self-adoption predicate.
 - Existing `init` suites whose expected action logs list every written path may now list the new files. Update only the expectations this change moves, and only in suites this task edits.
+
+**Deviations from plan:**
+
+- `init.ts` adds a note when the packages are written (count, directory, the three re-run contracts), beside the self-adoption skip note the plan asks for. It is what keeps `written` in use under `noUnusedLocals`; Task 7 reads the same `written`.
+- The plan's grep `grep -n "flowHost" … cli/src/upgrade/initUpgrade.ts` matches the import line only: the call is `planFlowHostPackageUpgrade` (capital `F`), behind `if (!target.selfAdopted)`. Verified by reading; `grep -n "FlowHost"` shows the call.
+- `flowHostPackageDrift` also compares the owner-execute bit, as `outerLoopScriptDrift` does, beside the bytes.
+- Verification bullet 3 (existing `init` suites whose action logs list every written path): not run — those suites (`cli/test/init.test.mjs`, `cli/test/init-upgrade.test.mjs` and others) are test files this unit neither created nor edited, which the test-run rule forbids a unit to run; deferred to the Run gates phase, where `commands.test` runs them. No expectation in them was edited.
+- Out of this layer's path: `docs/cli.md` (`--upgrade` row, `## Updating an adopted repository`, the `--force` bullet) and `README.md` still state the upgrade replaces "the outer-loop scripts and the permission profile". Left for a `general`-layer change.
