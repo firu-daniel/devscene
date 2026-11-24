@@ -14,13 +14,13 @@
 
 import assert from 'node:assert/strict';
 import { realpathSync } from 'node:fs';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 
 import { flowHostDir, flowHostProjectDir } from '../dist/flowHost/layout.js';
-import { copySurfacePaths, fileToolDenyRules } from '../dist/generators/writeProtection.js';
+import { copySurfacePaths, fileToolDenyRules, protectedPaths } from '../dist/generators/writeProtection.js';
 import { createFixture, readJson, runCli, runGit } from './helpers/fixture.mjs';
 
 const PROFILE_FILE = '.claude/settings.autonomous.json';
@@ -62,6 +62,27 @@ test('the directory is off the run-copy surface', async (t) => {
   const dir = flowHostDir(config);
   const carried = copySurfacePaths(config).filter((rel) => rel === dir || rel.startsWith(`${dir}/`));
   assert.deepEqual(carried, [], `the run-copy surface carries ${carried.join(', ')}`);
+});
+
+test('a package that is a symbolic link has the directory it resolves to protected', async (t) => {
+  const { dir, config } = await wiredFixture(t);
+  await mkdir(join(dir, 'graphscene'), { recursive: true });
+  await writeFile(join(dir, 'graphscene', 'pyproject.toml'), '', 'utf8');
+  const link = join(dir, flowHostDir(config), 'graphscene');
+  await rm(link, { recursive: true, force: true });
+  await symlink('../../graphscene', link);
+
+  const paths = protectedPaths({ repoRoot: dir, workRoot: dirname(dir), config, additionalDirectories: [] });
+  const target = realpathSync(join(dir, 'graphscene'));
+  assert.ok(
+    paths.some((entry) => entry.path === target && entry.kind === 'directory'),
+    `no directory entry names ${target}`,
+  );
+  const realPackage = realpathSync(join(dir, flowHostDir(config), 'devscene-flow-host'));
+  assert.ok(
+    !paths.some((entry) => entry.path === realPackage),
+    `${realPackage} is a real directory and is named separately`,
+  );
 });
 
 /** Write `files` (relative path → text) under `dir`. */

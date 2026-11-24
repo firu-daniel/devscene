@@ -32,7 +32,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Write-protect the link targets of `<scriptsDir>/python/<pkg>` in `protectedPaths` _(layer: cli)_
+1. [x] **Finding 1** — Write-protect the link targets of `<scriptsDir>/python/<pkg>` in `protectedPaths` _(layer: cli)_
 
 ---
 
