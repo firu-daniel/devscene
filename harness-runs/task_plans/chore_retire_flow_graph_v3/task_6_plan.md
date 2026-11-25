@@ -51,3 +51,7 @@
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_core_agreement.py` passes. That is this task's own test file, and it imports `core_agreement` by module name.
 - The planted clean case's `[]` shows that a document planted under `tmp_path` yields no finding until it is changed. The real case's `[]` is not a vacuous pass. The cap-`6` case's one finding per anchor, and the run-mode and ledger cases' findings against the real documents, show that the closed set, the task-engine ids, the step-2 table and all three cap phrases are each read from the real documents.
 - `git grep -n -e 'run_mode_instructions' -e 'autonomous_pause_and_ledger' -e 'task_plan_writing_instructions_core' -e 'core_agreement' -e 'CORE_FOR_FLOW' -- devscene-flow-host/src` prints nothing. The owner documents and the checker stay out of the shipped package.
+
+**Deviations from plan:**
+
+- Check 6, a step-2 table with no backticked path: the contract does not say whether the revision note's directory clause still runs against that empty table. Bash ran it, so it emitted a second finding beside the refusal. The port lets the refusal replace every comparison against the table, the directory clause included, and keeps the `## Loop` comparison. So the backticks-stripped case asserts exactly one `Violation`. The checker's `_findings_folder_violations` docstring records this.
