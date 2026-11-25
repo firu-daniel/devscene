@@ -34,18 +34,20 @@
   - a changed `findingsFolder`;
   - a changed `paths.revision_note`, asserting both of its findings;
   - a cap of `6`, asserting one finding per anchor;
+  - the `iteration` counter renamed (e.g. to `plan_iteration`) at every site that declares or names it. The declaration is the `counters` key. The names are `nodes.plan_round.counter` and every edge's `increment` and `reset`, in both loops. The rename leaves the `{iteration}` heartbeat placeholders alone, because they are host text that `load_graph` does not check. The mutant still passes `graphscene.load_graph`, since `counter-known` finds every named counter declared. The case asserts exactly one `Violation`, path `counters`, reason `cap-matches-core: graph has no counters.iteration`. Nothing else is found: the anchors are only compared when there is a cap, and check 6 does not read counters;
   - a `flow` absent from `CORE_FOR_FLOW`.
-- [ ] `test_core_agreement.py`, document-side cases. Plant copies of the three plugin documents under `tmp_path`, each with one change, and pass `tmp_path` as `repo_root`:
+- [ ] `test_core_agreement.py`, document-side cases, each passing `tmp_path` as `repo_root`:
+  - **the planted clean case, first.** Copy `plugin/instructions/run_mode_instructions.md`, `plugin/instructions/autonomous_pause_and_ledger.md` and `plugin/instructions/task_plan_writing_instructions_core.md`, unchanged, from the checkout to the same repo-relative paths under `tmp_path`. Take those paths from `RUN_MODE_DOC`, `LEDGER_DOC` and `CORE_FOR_FLOW["task_plan_writing"]`. Assert that `core_agreement_violations(real_graph, tmp_path)` returns `[]`. Every changed-copy case below starts from the shared helper that makes this plant, then makes one change to one planted document. So when a *"refusing to pass"* finding appears, it comes from the planted change, not from a document planted at the wrong path;
   - the closed-set heading renamed;
   - the `**Task engine**` line removed;
   - the step-2 table's backticks stripped;
   - each of the three cap phrases removed in turn.
 
-  Each asserts its *"refusing to pass"* finding. Every expected path and reason is a literal written from the contract above, never taken from the checker's output (`.claude/context/devscene-flow-host.md` → `## Tests — what "done" means here`).
+  Each changed-copy case asserts its *"refusing to pass"* finding. Every expected path and reason is a literal written from the contract above, never taken from the checker's output (`.claude/context/devscene-flow-host.md` → `## Tests — what "done" means here`).
 - [ ] `test_core_agreement.py` header: a module docstring opening *"The rule this file exists to enforce"* (`.claude/context/conventions.md` → `## The testing bar`). It says the suite reads the checkout's graph and three plugin documents read-only and plants every changed copy under `tmp_path`. Under *"Deliberately not covered"*, it says no other flow has a row in `CORE_FOR_FLOW` yet.
 
 **Verification:**
 
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_core_agreement.py` passes. That is this task's own test file, and it imports `core_agreement` by module name.
-- The real case's `[]` is not a vacuous pass. The cap-`6` case's one finding per anchor, and the run-mode and ledger cases' findings against the real documents, show that the closed set, the task-engine ids, the step-2 table and all three cap phrases are each read from the real documents.
+- The planted clean case's `[]` shows that a document planted under `tmp_path` yields no finding until it is changed. The real case's `[]` is not a vacuous pass. The cap-`6` case's one finding per anchor, and the run-mode and ledger cases' findings against the real documents, show that the closed set, the task-engine ids, the step-2 table and all three cap phrases are each read from the real documents.
 - `git grep -n -e 'run_mode_instructions' -e 'autonomous_pause_and_ledger' -e 'task_plan_writing_instructions_core' -e 'core_agreement' -e 'CORE_FOR_FLOW' -- devscene-flow-host/src` prints nothing. The owner documents and the checker stay out of the shipped package.
