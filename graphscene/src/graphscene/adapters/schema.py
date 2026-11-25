@@ -105,21 +105,39 @@ def _ecma_pattern(pattern: str, path: tuple[str | int, ...]) -> str:
     return "".join(out)
 
 
+# Keywords whose value is instance data, never a schema: copied unchanged.
+_DATA_KEYWORDS = frozenset({"const", "enum", "default", "examples"})
+# Keywords whose value maps a name (not a keyword) to a subschema.
+_NAMED_SUBSCHEMAS = frozenset(
+    {"properties", "definitions", "$defs", "dependentSchemas", "dependencies"}
+)
+
+
 def _ecma_patterns(node: object, path: tuple[str | int, ...] = ()) -> object:
-    """Return a copy of the schema `node`, found at `path`, with every `pattern` keyword
-    rewritten by `_ecma_pattern`."""
-    if isinstance(node, dict):
-        return {
-            key: (
-                _ecma_pattern(child, path + (key,))
-                if key == "pattern" and isinstance(child, str)
-                else _ecma_patterns(child, path + (key,))
-            )
-            for key, child in node.items()
-        }
+    """Return a copy of the schema `node`, found at `path`, with every `pattern` keyword and every
+    `patternProperties` key rewritten by `_ecma_pattern`; instance data under `const`, `enum`,
+    `default` and `examples` is copied unchanged."""
     if isinstance(node, list):
         return [_ecma_patterns(child, path + (index,)) for index, child in enumerate(node)]
-    return node
+    if not isinstance(node, dict):
+        return node
+    copied: dict[object, object] = {}
+    for key, child in node.items():
+        here = path + (key,)
+        if key in _DATA_KEYWORDS:
+            copied[key] = child
+        elif key == "pattern" and isinstance(child, str):
+            copied[key] = _ecma_pattern(child, here)
+        elif key == "patternProperties" and isinstance(child, dict):
+            copied[key] = {
+                _ecma_pattern(name, here + (name,)): _ecma_patterns(sub, here + (name,))
+                for name, sub in child.items()
+            }
+        elif key in _NAMED_SUBSCHEMAS and isinstance(child, dict):
+            copied[key] = {name: _ecma_patterns(sub, here + (name,)) for name, sub in child.items()}
+        else:
+            copied[key] = _ecma_patterns(child, here)
+    return copied
 
 
 @cache

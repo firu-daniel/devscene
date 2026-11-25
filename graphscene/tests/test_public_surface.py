@@ -7,13 +7,16 @@ and walker surface, and each name it exposes is the object its own module define
 import pytest
 
 import graphscene
+import graphscene.adapters.return_schema
 import graphscene.adapters.state_file
+import graphscene.adapters.stub_executor
 import graphscene.engine.static_check
 import graphscene.engine.vocabulary
 import graphscene.engine.walker
 import graphscene.facade
 import graphscene.facade.loading
 import graphscene.model.errors
+import graphscene.model.execution
 import graphscene.model.flow_graph
 import graphscene.model.walk_actions
 import graphscene.model.walk_state
@@ -69,6 +72,17 @@ _EXPECTED: list[str] = [
     "SkipPassage",
     "RoundPassage",
     "LedgerPassage",
+    "Executor",
+    "NodeResult",
+    "Completed",
+    "Failed",
+    "FailureClass",
+    "return_violations",
+    "StubExecutor",
+    "Scripted",
+    "ScriptedOutcome",
+    "ScriptedFailure",
+    "ScriptedStall",
 ]
 
 _DEFINED_IN: dict[str, object] = {
@@ -102,6 +116,17 @@ _DEFINED_IN: dict[str, object] = {
     "SkipPassage": graphscene.model.walk_actions,
     "RoundPassage": graphscene.model.walk_actions,
     "LedgerPassage": graphscene.model.walk_actions,
+    "Executor": graphscene.model.execution,
+    "NodeResult": graphscene.model.execution,
+    "Completed": graphscene.model.execution,
+    "Failed": graphscene.model.execution,
+    "FailureClass": graphscene.model.execution,
+    "return_violations": graphscene.adapters.return_schema,
+    "StubExecutor": graphscene.adapters.stub_executor,
+    "Scripted": graphscene.adapters.stub_executor,
+    "ScriptedOutcome": graphscene.adapters.stub_executor,
+    "ScriptedFailure": graphscene.adapters.stub_executor,
+    "ScriptedStall": graphscene.adapters.stub_executor,
 }
 
 

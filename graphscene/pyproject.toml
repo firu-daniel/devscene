@@ -5,6 +5,7 @@ description = "A generic flow-graph navigation library."
 requires-python = ">=3.11"
 dependencies = [
     "jsonschema>=4.26",
+    "referencing>=0.37",
 ]
 
 [project.scripts]
@@ -60,7 +61,7 @@ layers = [
 
 [[tool.importlinter.contracts]]
 id = "graphscene-jsonschema-in-adapters-only"
-name = "jsonschema is imported by adapters only, never by model or engine"
+name = "jsonschema and referencing are imported by adapters only, never by model or engine"
 type = "forbidden"
 source_modules = ["graphscene.model", "graphscene.engine"]
-forbidden_modules = ["jsonschema"]
+forbidden_modules = ["jsonschema", "referencing"]

@@ -1,7 +1,9 @@
 """The rule this file exists to enforce: the shipped schema is a valid draft-7 schema, and the
 ECMA-262 translator (`graphscene.adapters.schema._ecma_patterns`) translates every shipped schema
-`pattern`, rewrites only `$` and `.` in the constructs it supports, and refuses a `pattern` using
-a construct it does not handle, naming its schema path.
+`pattern`, translates every `patternProperties` key alike, rewrites only `$` and `.` in the
+constructs it supports, refuses a `pattern` or `patternProperties` key using a construct it does
+not handle, naming its schema path, and copies instance data under `const`, `enum`, `default` and
+`examples` unchanged.
 """
 
 import json
@@ -66,6 +68,23 @@ def test_a_property_named_pattern_is_recursed_as_a_subschema() -> None:
     with pytest.raises(ValueError) as raised:
         _ecma_patterns({"properties": {"pattern": {"pattern": "\\d"}}})
     assert str(raised.value) == _refusal("properties.pattern.pattern", "\\d", "\\d")
+
+
+def test_a_pattern_properties_key_is_translated() -> None:
+    assert _ecma_patterns({"patternProperties": {"^a$": {"type": "integer"}}}) == {
+        "patternProperties": {"^a\\Z": {"type": "integer"}}
+    }
+
+
+def test_an_untranslatable_pattern_properties_key_is_refused() -> None:
+    with pytest.raises(ValueError) as raised:
+        _ecma_patterns({"patternProperties": {"^\\d$": {}}})
+    assert str(raised.value) == _refusal("patternProperties.^\\d$", "^\\d$", "\\d")
+
+
+def test_instance_data_under_a_data_keyword_is_copied_unchanged() -> None:
+    schema = {"const": {"pattern": "a.b"}, "enum": [{"pattern": "\\d"}]}
+    assert _ecma_patterns(schema) == {"const": {"pattern": "a.b"}, "enum": [{"pattern": "\\d"}]}
 
 
 def test_supported_constructs_translate_unchanged_but_for_dollar_and_dot() -> None:
