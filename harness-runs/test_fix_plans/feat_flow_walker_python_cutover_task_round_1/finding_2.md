@@ -34,3 +34,11 @@ not ok 290 - (E5) an honest --existing branch is cloned at its tip and bootstrap
 - [ ] If Finding 1's fixture change has already landed (`reproFixture` commits `scripts/<FLOW_HOST_DIRNAME>/<FLOW_HOST_PROJECT>/pyproject.toml` and `create` runs with a stub `uv` first on `PATH`), no further code change is needed for this case.
 - [ ] Otherwise apply exactly the fixture change Finding 1 describes, in `reproFixture` — the empty flow-host `pyproject.toml` committed under `join(d, 'scripts', FLOW_HOST_DIRNAME, FLOW_HOST_PROJECT)`, a `uv` stub `#!/usr/bin/env bash\nexit 0\n` in a `bin` directory under `w`, and the `create` member passing `{ PATH: \`${bin}${delimiter}${process.env.PATH ?? ''}\` }` to `runBash` — with the matching file-header update.
 - [ ] Keep every `(E5)` assertion as it is; in particular `git status --porcelain` must stay empty, which holds because the stub writes nothing and the `pyproject.toml` is committed on `trunk`, from which `feat/e5` is cut.
+
+## Already passing
+
+**Cause:** already passing after an earlier fix — Finding 1's reproFixture change (commit be3f2307) seeded the flow-host pyproject.toml and the stub uv; established by the single-file run of cli/test/create-worktree.test.mjs
+
+- (a) Named test: `(E5) an honest --existing branch is cloned at its tip and bootstrapped from the main configuration`; file run: `cli/test/create-worktree.test.mjs`.
+- (b) Command: `npm test --workspace cli -- test/create-worktree.test.mjs`, from the repository root. Result: `ok 15 - (E5) an honest --existing branch is cloned at its tip and bootstrapped from the main configuration`; file totals `# tests 19`, `# pass 19`, `# fail 0`.
+- (c) No code file was edited.

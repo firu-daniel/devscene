@@ -17,7 +17,7 @@ Each entry resolves to a self-contained `finding_<K>.md` in `feat_flow_walker_py
 1. [x] **Finding 4** — Replace the absolute plugin path in the round-0 architecture review with its `${CLAUDE_PLUGIN_ROOT}` form (gate 6a). _(layer: general)_
 2. [x] **Finding 3** — Give `pathWithNpxButNoNpm` in `cli/test/doctor.test.mjs` a `uv` stub so the new `uv` failure grade does not fail the `--check-registry` no-client case. _(layer: cli)_
 3. [x] **Finding 1** — Seed the `create-worktree.test.mjs` fixture with a flow-host `pyproject.toml` and run `create` with a stub `uv` first on `PATH`, so default-mode bootstrap step 6 passes. _(layer: cli)_
-4. [ ] **Finding 2** — The `(E5)` honest `--existing` case fails on the same step-6 provision failure. _(layer: cli)_
+4. [x] **Finding 2** — The `(E5)` honest `--existing` case fails on the same step-6 provision failure. _(layer: cli)_
 
 ---
 
