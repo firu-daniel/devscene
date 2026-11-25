@@ -32,7 +32,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_execution_ru
 
 1. [x] **Task 1** — Add the execution-rule types and host protocols in `model/run_control.py` _(layer: graphscene)_ _(points: 15)_
 2. [x] **Task 2** — Add the per-set safety contract `clear_set` and the run-level `UndeliveredBreaker` _(layer: graphscene)_ _(points: 15)_
-3. [ ] **Task 3** — Add the per-node attempt rule `AttemptBook` in `engine/attempts.py` _(layer: graphscene)_ _(points: 15)_
+3. [x] **Task 3** — Add the per-node attempt rule `AttemptBook` in `engine/attempts.py` _(layer: graphscene)_ _(points: 15)_
 4. [ ] **Task 4** — Add `execute_set`, running one dispatch set under the execution rules _(layer: graphscene)_ _(points: 20)_
 5. [ ] **Task 5** — Make the execution rules public and describe them in the README _(layer: graphscene)_ _(points: 15)_
 6. [ ] **Task 6** — Reproduce the pilot's engine-owned control cases through the public surface _(layer: graphscene)_ _(points: 15)_
