@@ -3,8 +3,9 @@ it is handed, by the draft that schema declares (draft-07 when it declares none)
 declared draft it does not recognise with a `ValueError` opening `return schema: `, matches a
 `pattern` as ECMA-262 through the shared translator, returns every violation sorted by path then
 reason with `schema_violations`' path rendering, and turns an invalid schema into a `ValueError`
-opening `return schema: `. Each schema is planted here and every expected `Violation` is
-hand-written from reading it.
+opening `return schema: `. A `$ref` resolves inside the schema only: a remote one or one pointing
+at nothing is refused with that `ValueError`, and nothing is retrieved. Each schema is planted
+here and every expected `Violation` is hand-written from reading it.
 """
 
 import re
@@ -106,3 +107,29 @@ def test_an_unrecognised_declared_draft_is_refused() -> None:
 def test_a_declared_draft_07_is_accepted() -> None:
     schema = {"$schema": "http://json-schema.org/draft-07/schema#", "type": "string"}
     assert return_violations(5, schema) == [Violation("", "5 is not of type 'string'")]
+
+
+def test_a_local_ref_resolves_inside_the_schema() -> None:
+    schema = {
+        "definitions": {"word": {"type": "string"}},
+        "properties": {"status": {"$ref": "#/definitions/word"}},
+    }
+    assert return_violations({"status": 1}, schema) == [
+        Violation("status", "1 is not of type 'string'")
+    ]
+
+
+def test_a_ref_pointing_at_nothing_is_refused() -> None:
+    schema = {"properties": {"status": {"$ref": "#/definitions/missing"}}}
+    with pytest.raises(ValueError, match=r"^return schema: .*/definitions/missing"):
+        return_violations({"status": "done"}, schema)
+
+
+def test_a_remote_ref_is_refused_without_retrieving_it() -> None:
+    # example.invalid is a reserved name that never resolves, so a retrieval attempt would fail
+    # with a network error rather than this ValueError.
+    schema = {"properties": {"status": {"$ref": "https://example.invalid/status.json"}}}
+    with pytest.raises(
+        ValueError, match=r"^return schema: .*https://example\.invalid/status\.json"
+    ):
+        return_violations({"status": "done"}, schema)

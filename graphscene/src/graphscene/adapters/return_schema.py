@@ -9,6 +9,10 @@ The rule:
   '<uri>' names no draft jsonschema knows")`. The schema itself is checked next, and an invalid
   one raises `ValueError("return schema: <message>")`, so no `jsonschema` exception type crosses
   this boundary.
+- A `$ref` resolves only inside the schema itself, or to a draft's own metaschema. Nothing is ever
+  retrieved: a remote `$ref`, or one pointing at nothing, raises
+  `ValueError("return schema: <message>")` instead of reaching the network, whatever sandbox the
+  caller runs under.
 - A schema `pattern`, and every `patternProperties` key, is matched as ECMA-262 through
   `graphscene.adapters.schema`'s translator, and one outside its supported set raises that
   translator's `ValueError`, naming its schema path. Instance data under `const`, `enum`,
@@ -30,6 +34,8 @@ from typing import Any
 from jsonschema import Draft4Validator, Draft7Validator
 from jsonschema.exceptions import SchemaError
 from jsonschema.validators import validator_for
+from referencing import Registry
+from referencing.exceptions import Unresolvable
 
 from graphscene.adapters.schema import _ecma_patterns, _render
 from graphscene.model.errors import Violation
@@ -37,7 +43,8 @@ from graphscene.model.errors import Violation
 
 def return_violations(document: object, schema: Mapping[str, object]) -> list[Violation]:
     """Return every violation of `schema` in `document`, sorted by path then reason; `[]` for a
-    valid document. Raises `ValueError` for an invalid schema or an untranslatable pattern."""
+    valid document. Raises `ValueError` for an invalid schema, an untranslatable pattern or a `$ref`
+    that does not resolve inside the schema."""
     declared = dict(schema)
     validator_class = validator_for(declared, default=Draft7Validator)
     # `validator_for` returns its default, silently, for a `$schema` it does not recognise; asking
@@ -58,10 +65,16 @@ def return_violations(document: object, schema: Mapping[str, object]) -> list[Vi
     # The `Validator` protocol's stub narrows `instance` to JSON types; the runtime accepts any
     # object, and reports a non-JSON value only where a keyword such as `type` checks it.
     instance: Any = document
-    return sorted(
-        (
-            Violation(_render(error.absolute_path), error.message)
-            for error in validator_class(translated).iter_errors(instance)
-        ),
-        key=lambda violation: (violation.path, violation.reason),
-    )
+    # An empty registry retrieves nothing; without one, jsonschema fetches a remote `$ref` over the
+    # network. A `$ref` is resolved while errors are iterated, so the whole iteration is guarded.
+    validator = validator_class(translated, registry=Registry())
+    try:
+        return sorted(
+            (
+                Violation(_render(error.absolute_path), error.message)
+                for error in validator.iter_errors(instance)
+            ),
+            key=lambda violation: (violation.path, violation.reason),
+        )
+    except Unresolvable as error:
+        raise ValueError(f"return schema: {error}") from None
