@@ -1,7 +1,7 @@
 """The rule this file exists to enforce: `graphscene.adapters.stub_executor.StubExecutor` satisfies
 `Executor` structurally, plays each node's script in order from its own copy, raises on an
 exhausted node and a negative delay with exact text, records started, finished and cancelled
-nodes, and re-raises cancellation out of a stall rather than returning a result.
+nodes, and re-raises cancellation out of a stall or a delay rather than returning a result.
 
 No duration is asserted: order is read from the record, never by timing a run.
 """
@@ -141,6 +141,19 @@ def test_concurrent_gates_finish_in_delay_order_not_call_order() -> None:
 
 def test_a_stall_is_cancelled_by_the_callers_deadline() -> None:
     stub = StubExecutor({"draft": [ScriptedStall()]})
+
+    async def with_deadline() -> NodeResult:
+        return await asyncio.wait_for(stub.run(_dispatch("draft")), timeout=0.01)
+
+    with pytest.raises(TimeoutError):
+        asyncio.run(with_deadline())
+    assert stub.started == ("draft",)
+    assert stub.cancelled == ("draft",)
+    assert stub.finished == ()
+
+
+def test_a_delayed_result_is_cancelled_by_the_callers_deadline() -> None:
+    stub = StubExecutor({"draft": [ScriptedOutcome("done", delay=60.0)]})
 
     async def with_deadline() -> NodeResult:
         return await asyncio.wait_for(stub.run(_dispatch("draft")), timeout=0.01)
