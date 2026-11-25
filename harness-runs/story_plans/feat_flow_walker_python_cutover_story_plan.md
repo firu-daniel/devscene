@@ -57,7 +57,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_walker_python_cuto
 14. [x] **Task 12** — Widen gate 6a's walker-state filter to the per-branch directory _(layer: general)_ _(points: 8)_
 15. [x] **Task 13** — Rewrite the walker's decisions of record and ship the startup-cost measurement _(layer: general)_ _(points: 15)_
 16. [x] **Task 14** — Update the remote, sandbox and watcher documents for the walker's directory and shipped set _(layer: general)_ _(points: 10)_
-17. [ ] **Task 15** — Document `init`'s default provisioning in `docs/cli.md` and the root README _(layer: general)_ _(points: 10)_
+17. [x] **Task 15** — Document `init`'s default provisioning in `docs/cli.md` and the root README _(layer: general)_ _(points: 10)_
 
 ## Scope register
 
