@@ -117,7 +117,7 @@ That environment is `<scriptsDir>/python/.venv`, set through `UV_PROJECT_ENVIRON
 Every caller in an adopting repository runs `bash <scriptsDir>/flow-walker.sh <verb> …`, which hands off with this line (`cli/templates/scripts/flow-walker.sh` → `HAND-OFF`):
 
 ```
-UV_PROJECT_ENVIRONMENT=<scriptsDir>/python/.venv PYTHONPATH=<scriptsDir>/python/devscene-flow-host/src:<scriptsDir>/python/graphscene/src uv run --frozen --no-sync --no-cache --project <scriptsDir>/python/devscene-flow-host devscene-flow-walker <verb> … [--flows <scriptsDir>/flows]
+UV_PROJECT_ENVIRONMENT=<scriptsDir>/python/.venv PYTHONPATH=<scriptsDir>/python/devscene-flow-host/src:<scriptsDir>/python/graphscene/src PYTHONDONTWRITEBYTECODE=1 uv run --frozen --no-sync --no-cache --project <scriptsDir>/python/devscene-flow-host devscene-flow-walker <verb> … [--flows <scriptsDir>/flows]
 ```
 
 It appends `--flows` for `start`, `next` and `current` only, replaces any inherited `PYTHONPATH`, and reads no environment variable to choose the environment, project or sources. An unprovisioned checkout — no `uv`, no environment, or no console script in it — is refused with exit `2`, naming `bash <scriptsDir>/flow-host-provision.sh`. For `start`, `next` and `current` it first deletes a regular file at `<stateDir>/.flow_walker_state` (`## What it reads, answers and keeps` → **The walk.**).

@@ -6,7 +6,8 @@
  * **The rule this suite enforces: the hand-off refuses an unprovisioned checkout with the
  * provisioning remedy and runs nothing; what it executes is chosen by its own directory alone, never
  * by an environment variable (`<state_dir>/lessons.md` → `## Trust checks`); it passes `--flows`
- * only to the walk verbs; and it removes a leftover bash state file so the walk starts fresh.**
+ * only to the walk verbs; it removes a leftover bash state file so the walk starts fresh; and it
+ * writes no bytecode beside the shipped sources.**
  *
  * Not covered here, deliberately: the command's own routing, which the other `flow-walker*` suites
  * and `devscene-flow-host/tests/` cover; and `--no-cache` inside a real sandbox, which no suite can
@@ -16,7 +17,7 @@
  */
 
 import assert from 'node:assert/strict';
-import { accessSync, constants as fsConstants, existsSync, lstatSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { accessSync, constants as fsConstants, existsSync, lstatSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
@@ -133,6 +134,17 @@ test('no environment variable chooses what the hand-off runs', { skip: SKIP }, a
   });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   assert.match(result.stdout, /^action: dispatch\n/);
+});
+
+test('the hand-off writes no bytecode beside the shipped sources', { skip: SKIP }, async (t) => {
+  const dir = await fixture(t);
+  assertDispatch(await walk(dir, startArgs));
+  const python = join(dir, INIT_SCRIPTS_DIR, 'python');
+  for (const pkg of ['devscene-flow-host', 'graphscene']) {
+    const src = join(python, pkg, 'src');
+    const caches = readdirSync(src, { recursive: true }).filter((p) => String(p).split(/[\\/]/).includes('__pycache__'));
+    assert.deepEqual(caches, [], `${src} gained bytecode: ${caches.join(', ')}`);
+  }
 });
 
 test('check-round-file reaches the command without --flows', { skip: SKIP }, async (t) => {

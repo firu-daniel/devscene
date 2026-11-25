@@ -172,6 +172,7 @@
 #
 #        UV_PROJECT_ENVIRONMENT=<py>/.venv \
 #        PYTHONPATH=<py>/devscene-flow-host/src:<py>/graphscene/src \
+#        PYTHONDONTWRITEBYTECODE=1 \
 #        exec uv run --frozen --no-sync --no-cache --project <py>/devscene-flow-host \
 #          devscene-flow-walker <arguments> [--flows <this script's dir>/flows]
 #
@@ -192,7 +193,10 @@
 #   THE SHIPPED SOURCES LEAD `PYTHONPATH` because a run copy's environment is
 #   built from the main checkout's packages as non-editable wheels; putting
 #   the sources beside this script first makes the code that runs the code
-#   `init` shipped here.
+#   `init` shipped here. `PYTHONDONTWRITEBYTECODE=1` keeps Python from writing
+#   `__pycache__` beside those sources, which sit in a committed tree no
+#   ignore rule covers, so a unit commit's untracked listing would otherwise
+#   pick the bytecode up.
 #
 #   `--no-cache` IS ALWAYS PASSED because inside Claude Code's sandbox `uv`
 #   cannot initialise its cache and exits 2 without it; `--no-sync` builds
@@ -275,6 +279,6 @@ if [ -n "$fw_missing" ]; then
 fi
 
 unset VIRTUAL_ENV
-UV_PROJECT_ENVIRONMENT="$fw_env" PYTHONPATH="$fw_sources" \
+UV_PROJECT_ENVIRONMENT="$fw_env" PYTHONPATH="$fw_sources" PYTHONDONTWRITEBYTECODE=1 \
   exec uv run --frozen --no-sync --no-cache --project "$fw_project" \
   devscene-flow-walker "$@" ${fw_flows[@]+"${fw_flows[@]}"}

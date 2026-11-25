@@ -48,7 +48,7 @@ Whether they pass is for the Run gates phase to establish, because this review r
 
 1. [x] **Finding 4** — Drop the retired gate library from `docs/cli.md`'s list of outer-loop scripts _(layer: general)_
 2. [x] **Finding 3** — Bring `remote-run.sh`'s REPRO to the per-branch walker-state directory _(layer: cli)_
-3. [ ] **Finding 1** — Launch the walker with `PYTHONDONTWRITEBYTECODE=1` so no bytecode lands beside the shipped sources _(layer: cli, devscene-flow-host)_
+3. [x] **Finding 1** — Launch the walker with `PYTHONDONTWRITEBYTECODE=1` so no bytecode lands beside the shipped sources _(layer: cli, devscene-flow-host)_
 4. [ ] **Finding 2** — Warn rather than fail `flow-host` under `--remote-job`, whose bootstrap builds the environment after the preflight _(layer: cli, general)_
 
 ---
