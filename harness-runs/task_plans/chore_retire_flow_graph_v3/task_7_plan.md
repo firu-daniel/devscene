@@ -38,7 +38,13 @@ Gate 3 then holds legs `3a`, `3b`, `3g` and `3h`, and `3g` validates the format-
 
 **Verification:**
 
-- `git grep -n -E 'check-flow-graph|generate-flow-graph-v3|validate:flow-graph|flow-graph-check|flow-graph-schema-|schemas/flow-graph\.schema\.json' -- package.json scripts schemas cli devscene-flow-host graphscene plugin` prints nothing. Any hit under `docs/`, `ROADMAP.md` or `.claude/context/` is a site of the story index's `## Scope register`, owned by Task 8 or Task 9 or recorded as stale, and is not this task's.
+- `git grep -n -E 'check-flow-graph|generate-flow-graph-v3|validate:flow-graph|flow-graph-check|flow-graph-schema-|(^|[^/])schemas/flow-graph\.schema\.json' -- package.json scripts schemas cli devscene-flow-host plugin ':!schemas/README.md' ':!scripts/flows'` prints nothing. The command is scoped to reach only the retired format-3 artifacts:
+  - The `(^|[^/])` anchor keeps the schema alternative off the format-4 schema path `graphscene/src/graphscene/schemas/flow-graph.schema.json`, which stays. That path appears in `validate:graphscene-schema` / `validate:graphscene-schema:negative` (legs `3g` / `3h`) and in `cli/test/python-packages-staged.test.mjs`.
+  - `graphscene` is left out of the pathspec. Its remaining hits are format-4 docstrings that cite their own package's schema as `` `schemas/flow-graph.schema.json` ``, which stays, and its bash-checker citations are Task 4's, checked by Task 4's own grep.
+  - `schemas/README.md` is excluded because it is **Task 8's**.
+  - `scripts/flows` is excluded because it holds this repository's self-adopted graph copies. No task edits them; they are re-rendered after merge (story index → **Manual setup required**).
+  - Any hit in `cli/` (Tasks 1 and 2), `plugin/` (Task 3) or `devscene-flow-host/` (Tasks 5 and 6) is in a file an earlier task already finished, so this task does not own it.
+  - Any hit under `docs/`, `ROADMAP.md` or `.claude/context/` falls outside this pathspec. It is a site of the story index's `## Scope register`, owned by Task 8 or Task 9 or recorded as stale, and is not this task's.
 - `git ls-files schemas` lists `schemas/README.md`, `schemas/devscene.config.schema.json`, `schemas/validate.mjs`, and `schemas/negative/` with only the configuration negatives and their README.
 - `grep -n -E '^ +3[a-z]\)' scripts/run-gates.sh` lists the arms `3a`, `3b`, `3g` and `3h` and no other gate-3 arm. The `gr_run_round run_unit 1` line names no removed id.
 - `bash -n scripts/run-gates.sh` exits 0. This is a syntax check, not a run.

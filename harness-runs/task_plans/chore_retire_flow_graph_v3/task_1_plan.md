@@ -26,7 +26,7 @@
 **Verification:**
 
 - `npm test --workspace cli -- test/outer-loop-scripts.test.mjs` passes. It is the one test file this task edits.
-- `git grep -n -e 'v4\.graph' -e 'format-3 graph' -- cli/src cli/templates cli/test` prints nothing.
+- `git grep -n -e 'v4\.graph' -e 'format-3 graph' -- cli/src cli/templates/scripts/flow-walker.sh cli/templates/scripts/flows cli/test` prints nothing. The pathspec is this task's own reach. It deliberately leaves out `cli/templates/scripts/README.md`, which still names both graphs after this task: that README is **Task 2's**, and Task 2's own verification greps it.
 - `git ls-files cli/templates/scripts/flows` lists `cli/templates/scripts/flows/task_plan_writing.graph.json` and no other path.
 - `jq -r .formatVersion cli/templates/scripts/flows/task_plan_writing.graph.json` prints `4`.
 - Compared with `git show HEAD:cli/templates/scripts/flows/task_plan_writing.v4.graph.json`, the new `cli/templates/scripts/flows/task_plan_writing.graph.json` differs in the `description` line alone.

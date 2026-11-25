@@ -41,7 +41,15 @@ This task changes none of their files.
 
 **Verification:**
 
-- Re-run the story index's `## Scope register` derivation entry A verbatim. Among this task's three files, it reaches only the sites that register marks `no-change` (rows 14 and 17), and lines inside the new **Changed** paragraphs, which name what they retired.
+- Run the story index's `## Scope register` derivation entry A pattern in its line form, `git grep -n -E 'v4\.graph\.json|check-flow-graph|generate-flow-graph-v3|schemas/flow-graph\.schema\.json|flow-graph-check|validate:flow-graph|flow-graph-schema-|format-3|format 3|no walker reads' -- docs/flow-graph-walker.md docs/watcher.md ROADMAP.md`. It prints no line of `docs/watcher.md` or `ROADMAP.md`. In `docs/flow-graph-walker.md`, every line it prints falls inside one of the sites this task's own Work and Decision-record rule leave in place, and nowhere else:
+  - **What it owns.** — only for the format-4 schema path `graphscene/src/graphscene/schemas/flow-graph.schema.json`, which the new text names and which matches `schemas/flow-graph\.schema\.json` as a substring;
+  - `### Item 6` — the kept **Decision.** (`flows/task_plan_writing.v4.graph.json`), the kept `**Changed 2026-11-25 (#419).**` (*"format-3 graph"*) and the new `**Changed <date> (#459).**`;
+  - `### Item 7` and `### Item 8` — register row 14, untouched;
+  - `### The iteration cap` — the kept **Cost, and how it is guarded.** (`scripts/check-flow-graph.sh`) and the new **Changed** paragraph;
+  - `### Format 4` — the kept heading (*"format 3 is generated from it"*), the kept **Decision.** (`task_plan_writing.v4.graph.json`), the kept **Cost.** (*"format-3 readers"*), the kept `**Changed 2026-11-25 (#419).**` and the new **Changed** paragraph;
+  - `## 3. Four findings established rather than assumed` — register row 17, untouched.
+
+  In particular, it prints no line of Item 2's **Cost.** or of `## 4`'s *"its own graph"* bullet, and no `scripts/check-flow-graph.sh` in **What it owns.**. Those are the three passages the Work edits in place.
 - `git grep -n -e 'v4\.graph\.json' -e 'format-3' -- docs/watcher.md ROADMAP.md` prints nothing.
 - `git diff -- docs/flow-graph-walker.md` changes no `### ` or `## ` heading line, and removes no **Decision.**, **Reason.** or earlier **Changed** paragraph.
 - Each path and symbol the new text cites exists: `devscene-flow-host/tests/core_agreement.py` (`core_agreement_violations`, `CORE_FOR_FLOW`), `cli/templates/scripts/flows/task_plan_writing.graph.json` and `devscene-flow-host/src/devscene_flow_host/commands/flow_walker.py` (`GRAPH_SUFFIX`).
