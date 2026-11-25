@@ -35,7 +35,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_execution_ru
 3. [x] **Task 3** — Add the per-node attempt rule `AttemptBook` in `engine/attempts.py` _(layer: graphscene)_ _(points: 15)_
 4. [x] **Task 4** — Add `execute_set`, running one dispatch set under the execution rules _(layer: graphscene)_ _(points: 20)_
 5. [x] **Task 5** — Make the execution rules public and describe them in the README _(layer: graphscene)_ _(points: 15)_
-6. [ ] **Task 6** — Reproduce the pilot's engine-owned control cases through the public surface _(layer: graphscene)_ _(points: 15)_
+6. [x] **Task 6** — Reproduce the pilot's engine-owned control cases through the public surface _(layer: graphscene)_ _(points: 15)_
 
 ## Scope register
 
