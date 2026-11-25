@@ -34,7 +34,7 @@ from graphscene.model.walk_actions import Dispatch
 
 
 def _check_delay(owner: object, delay: float) -> None:
-    if delay < 0:
+    if not delay >= 0:
         raise ValueError(f"{type(owner).__name__}: delay must be >= 0, got {delay}")
 
 

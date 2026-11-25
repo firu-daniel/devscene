@@ -7,6 +7,7 @@ No duration is asserted: order is read from the record, never by timing a run.
 """
 
 import asyncio
+import math
 from types import MappingProxyType
 
 import pytest
@@ -91,6 +92,9 @@ def test_a_negative_delay_is_refused() -> None:
     with pytest.raises(ValueError) as failure:
         ScriptedFailure("agent", "refused", delay=-0.5)
     assert str(failure.value) == "ScriptedFailure: delay must be >= 0, got -0.5"
+    with pytest.raises(ValueError) as nan:
+        ScriptedOutcome("done", delay=math.nan)
+    assert str(nan.value) == "ScriptedOutcome: delay must be >= 0, got nan"
 
 
 def test_mutating_the_script_after_construction_changes_nothing() -> None:
