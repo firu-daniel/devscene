@@ -4,12 +4,21 @@ The rule: this layer may import every layer below it — `graphscene.adapters`, 
 and `graphscene.model` — and `__all__` holds exactly the package root's names, in its order.
 """
 
+from graphscene.adapters.return_schema import return_violations
 from graphscene.adapters.state_file import FileStateStore
+from graphscene.adapters.stub_executor import (
+    Scripted,
+    ScriptedFailure,
+    ScriptedOutcome,
+    ScriptedStall,
+    StubExecutor,
+)
 from graphscene.engine.static_check import static_violations
 from graphscene.engine.vocabulary import vocabulary_violations
 from graphscene.engine.walker import Walker
 from graphscene.facade.loading import load_graph, load_graph_file
 from graphscene.model.errors import GraphError, Stage, Violation
+from graphscene.model.execution import Completed, Executor, Failed, FailureClass, NodeResult
 from graphscene.model.flow_graph import (
     BindingDeclaration,
     BindingEdge,
@@ -109,4 +118,15 @@ __all__: list[str] = [
     "SkipPassage",
     "RoundPassage",
     "LedgerPassage",
+    "Executor",
+    "NodeResult",
+    "Completed",
+    "Failed",
+    "FailureClass",
+    "return_violations",
+    "StubExecutor",
+    "Scripted",
+    "ScriptedOutcome",
+    "ScriptedFailure",
+    "ScriptedStall",
 ]

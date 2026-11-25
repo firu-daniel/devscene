@@ -4,8 +4,9 @@ It exposes loading a declared flow graph into its typed model (`load_graph`, `lo
 `FlowGraph` and the objects it holds), and `GraphError`, the error every rejection raises.
 Alongside loading, it exposes the static checker, `static_violations`, and the walker, `Walker`,
 which steps a loaded graph and saves its position through a `StateStore` such as the file-backed
-`FileStateStore`. The surface is re-exported from `graphscene.facade`; no module inside the package
-imports from the package root.
+`FileStateStore`. It declares how a node is run, the executor protocol `Executor` with its
+`NodeResult`, and ships the built-in `StubExecutor` and `return_violations`. The surface is
+re-exported from `graphscene.facade`; no module inside the package imports from the package root.
 
 The boundary: this package imports only the standard library, itself and its declared runtime
 dependencies, and it never reads the harness's configuration file. Harness integration lives in a
@@ -17,6 +18,7 @@ from graphscene.facade import (
     Awaiting,
     BindingDeclaration,
     BindingEdge,
+    Completed,
     CounterDeclaration,
     Dispatch,
     DispatchNode,
@@ -24,6 +26,9 @@ from graphscene.facade import (
     Edge,
     End,
     EndBinding,
+    Executor,
+    Failed,
+    FailureClass,
     FileStateStore,
     FlowGraph,
     GateRecord,
@@ -33,6 +38,7 @@ from graphscene.facade import (
     LedgerPassage,
     Node,
     NodeKind,
+    NodeResult,
     OnCapEdge,
     OpenRound,
     OutcomeDeclaration,
@@ -45,6 +51,10 @@ from graphscene.facade import (
     RoundPassage,
     RoundResume,
     RouteEdge,
+    Scripted,
+    ScriptedFailure,
+    ScriptedOutcome,
+    ScriptedStall,
     SkipEntry,
     SkipPassage,
     Stage,
@@ -52,6 +62,7 @@ from graphscene.facade import (
     Step,
     Stop,
     StopBinding,
+    StubExecutor,
     TerminalNode,
     Verdict,
     Violation,
@@ -61,6 +72,7 @@ from graphscene.facade import (
     WalkState,
     load_graph,
     load_graph_file,
+    return_violations,
     static_violations,
     vocabulary_violations,
 )
@@ -116,4 +128,15 @@ __all__: list[str] = [
     "SkipPassage",
     "RoundPassage",
     "LedgerPassage",
+    "Executor",
+    "NodeResult",
+    "Completed",
+    "Failed",
+    "FailureClass",
+    "return_violations",
+    "StubExecutor",
+    "Scripted",
+    "ScriptedOutcome",
+    "ScriptedFailure",
+    "ScriptedStall",
 ]
