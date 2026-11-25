@@ -45,7 +45,7 @@ All four tasks are in the `graphscene` layer (`.claude/context/graphscene.md`), 
 Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_graphscene_executor_interface/task_<K>_plan.md`. They are ordered by ship sequence: contract before consumer, then the public surface.
 
 1. [x] **Task 1** — Declare the `Executor` protocol and its `Completed` / `Failed` results in `model` _(layer: graphscene)_ _(points: 15)_
-2. [ ] **Task 2** — Add `return_violations`, checking an executor's return against a JSON Schema it names _(layer: graphscene)_ _(points: 10)_
+2. [x] **Task 2** — Add `return_violations`, checking an executor's return against a JSON Schema it names _(layer: graphscene)_ _(points: 10)_
 3. [ ] **Task 3** — Add the scriptable `StubExecutor` with outcomes, delays, failures and stalls _(layer: graphscene)_ _(points: 20)_
 4. [ ] **Task 4** — Export the executor surface from `graphscene` and document it in the README _(layer: graphscene)_ _(points: 15)_
 
