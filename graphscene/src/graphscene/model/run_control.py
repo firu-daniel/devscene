@@ -79,7 +79,7 @@ class Launch:
 
 
 class LaunchSink(Protocol):
-    """Receives one `Launch` row per session launched."""
+    """Receives one `Launch` row per session launched whose run returned a result."""
 
     def record(self, launch: Launch) -> None: ...
 
