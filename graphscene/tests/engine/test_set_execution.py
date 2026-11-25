@@ -264,6 +264,24 @@ def test_the_third_consecutive_undelivered_pass_halts_with_the_default_breaker()
     )
 
 
+def test_an_infra_retry_pass_between_undelivered_passes_leaves_the_strikes_unchanged() -> None:
+    stub = _stub(
+        {
+            "b": [
+                ScriptedFailure("undelivered", "no result"),
+                ScriptedFailure("undelivered", "no result"),
+                ScriptedFailure("infra", "crashed"),
+                ScriptedFailure("undelivered", "no result"),
+            ]
+        }
+    )
+    result = _execute(["b"], stub, breaker=UndeliveredBreaker())
+    assert stub.started == ("b", "b", "b", "b")
+    assert result == SetResult(
+        (), Halt("undelivered", "3 consecutive sets had an undelivered result")
+    )
+
+
 def test_the_hosts_breaker_limit_takes_effect() -> None:
     stub = _stub(
         {

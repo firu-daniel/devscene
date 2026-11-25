@@ -18,10 +18,12 @@ The rule:
   the outcomes, a `Recorded` from a `Failed` joins the held failures, and a `Retry` or `Redispatch`
   sends its node to the next pass.
 - A failing node never cancels a sibling; a pass ends when every run of it has finished.
-- After each pass, `UndeliveredBreaker.observe` is told whether the pass had a `Redispatch`; once
-  the breaker is tripped,
-  `Halt("undelivered", "<strikes> consecutive sets had an undelivered result")` is returned. Its
-  limit is the breaker's own.
+- After a pass that had a `Redispatch`, `UndeliveredBreaker.observe(True)` is called, and once the
+  breaker is tripped `Halt("undelivered", "<strikes> consecutive sets had an undelivered result")`
+  is returned; its limit is the breaker's own. A pass whose every node was recorded calls
+  `observe(False)`. A pass with a `Retry` and no `Redispatch` leaves the breaker unchanged: an
+  infrastructure retry counts neither towards the strikes nor as a delivered set
+  (`docs/flow-graph-walker.md` → `### How each runs a parallel round` → **Cost.**).
 - The next pass is the retried and redispatched nodes' original `Dispatch` objects, together, in
   set order, after `ExecutionLimits.backoff_seconds` when it is above 0.
 - `SetResult.records` is always the outcomes, then the held failures, each in finish order.
@@ -83,10 +85,13 @@ async def execute_set(
         again, undelivered = await _run_pass(
             current, executor, counter, sink, book, limits, failure_outcome, outcomes, held
         )
-        breaker.observe(undelivered)
-        if breaker.tripped:
-            detail = f"{breaker.strikes} consecutive sets had an undelivered result"
-            return SetResult((*outcomes, *held), Halt("undelivered", detail))
+        if undelivered:
+            breaker.observe(True)
+            if breaker.tripped:
+                detail = f"{breaker.strikes} consecutive sets had an undelivered result"
+                return SetResult((*outcomes, *held), Halt("undelivered", detail))
+        elif not again:
+            breaker.observe(False)
         current = tuple(d for d in current if d.node in again)
         if not current:
             return SetResult((*outcomes, *held), None)
