@@ -7,9 +7,10 @@ The rule:
 - The draft is the one the schema declares in `$schema`, and draft-07 when it declares none.
   The schema itself is checked first, and an invalid one raises `ValueError("return schema:
   <message>")`, so no `jsonschema` exception type crosses this boundary.
-- A schema `pattern` is matched as ECMA-262 through `graphscene.adapters.schema`'s translator,
-  and a pattern outside its supported set raises that translator's `ValueError`, naming the
-  pattern's schema path.
+- A schema `pattern`, and every `patternProperties` key, is matched as ECMA-262 through
+  `graphscene.adapters.schema`'s translator, and one outside its supported set raises that
+  translator's `ValueError`, naming its schema path. Instance data under `const`, `enum`,
+  `default` and `examples` is never translated.
 - Violations are sorted by path then reason, with paths rendered as `schema_violations` renders
   them; `[]` for a valid document. A non-empty result is what `graphscene.model.execution` means
   by an `undelivered` return that "failed the schema the executor names".

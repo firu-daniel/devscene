@@ -40,7 +40,7 @@ The diff is 12 files, +631 / −10. 10 run-artifact files excluded from the revi
 
 1. [x] **Finding 3** — Refuse a NaN delay in `_check_delay` _(layer: graphscene)_
 2. [x] **Finding 2** — Test the stub's cancellation during a scripted delay _(layer: graphscene)_
-3. [ ] **Finding 1** — Make `_ecma_patterns` walk by keyword position: translate `patternProperties` keys, leave `const` / `enum` / `default` / `examples` data untouched _(layer: graphscene)_
+3. [x] **Finding 1** — Make `_ecma_patterns` walk by keyword position: translate `patternProperties` keys, leave `const` / `enum` / `default` / `examples` data untouched _(layer: graphscene)_
 
 ---
 

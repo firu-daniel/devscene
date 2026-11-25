@@ -75,6 +75,15 @@ def test_an_untranslated_pattern_construct_is_refused() -> None:
         return_violations("1", {"type": "string", "pattern": "^\\d$"})
 
 
+def test_a_pattern_properties_dollar_matches_only_at_the_very_end() -> None:
+    schema = {"type": "object", "patternProperties": {"^a$": {"type": "integer"}}}
+    assert return_violations({"a\n": "x"}, schema) == []
+
+
+def test_a_document_equal_to_a_const_carrying_pattern_is_valid() -> None:
+    assert return_violations({"pattern": "a.b"}, {"const": {"pattern": "a.b"}}) == []
+
+
 def test_a_declared_draft_2020_12_is_the_draft_applied() -> None:
     schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
