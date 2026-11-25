@@ -1,7 +1,30 @@
 {
-  "formatVersion": 3,
+  "formatVersion": 4,
   "flow": "task_plan_writing",
-  "description": "The routing of ${CLAUDE_PLUGIN_ROOT}/instructions/task_plan_writing_instructions_core.md as data: the task-plan loop, whose gates are dispatched together as one set every round and whose round node joins them, the UI-test-plan loop and convergence, with the values the walker resolves (counters, path templates, heartbeats, findings folders, skip gates, cap summaries). The dispatch blocks each agent receives are not here; they stay in that core. Copied verbatim into the adopter's scripts directory, never rendered.",
+  "description": "The routing of ${CLAUDE_PLUGIN_ROOT}/instructions/task_plan_writing_instructions_core.md in format 4, declaring its own vocabulary: the task-plan loop, whose gates are dispatched together as one set every round and whose round node joins them, the UI-test-plan loop and convergence, with the values the walker resolves (counters, path templates, heartbeats, findings folders, skip predicates, cap summaries). The dispatch blocks each agent receives are not here; they stay in that core. This is the graph flow-walker.sh hands devscene-flow-walker to walk, and the one the planning driver's libraries read for its node list.",
+  "vocabulary": {
+    "outcomes": {
+      "returned": {},
+      "questions": {},
+      "no_ui": {},
+      "PASS": { "verdict": "pass" },
+      "FAIL": { "verdict": "fail" },
+      "error": { "held": true },
+      "blocker": { "held": true }
+    },
+    "bindings": {
+      "<ask>": { "primitive": "interrupt", "resumeOutcome": "answered" },
+      "<escalate>": { "primitive": "stop", "reasons": ["cap", "error", "blocker"] },
+      "<terminal_handoff>": { "primitive": "end" }
+    },
+    "predicates": {
+      "phase_parity_off": { "records": "skipped", "inRoundCounts": false },
+      "phase_qa_off": { "records": "skipped", "inRoundCounts": false },
+      "run_mode_skips_parity": { "records": "passed-by-exclusion", "inRoundCounts": true },
+      "run_mode_skips_architecture": { "records": "passed-by-exclusion", "inRoundCounts": true },
+      "run_mode_skips_qa": { "records": "passed-by-exclusion", "inRoundCounts": true }
+    }
+  },
   "start": "plan_writer",
   "entries": ["plan_writer", "plan_round", "ui_writer", "ui_review", "convergence"],
   "counters": {
@@ -34,14 +57,12 @@
       "findingsFolder": "{state_dir}/business_parity_reviews/{branch}/",
       "skip": [
         {
-          "construct": "passedByExclusion",
-          "runModeId": "parity",
+          "when": "run_mode_skips_parity",
           "to": "plan_round",
           "report": { "business_parity_review": "passed-by-exclusion" }
         },
         {
-          "construct": "skipped",
-          "phase": "parity",
+          "when": "phase_parity_off",
           "to": "plan_round",
           "report": { "business_parity_review": "skipped" }
         }
@@ -63,8 +84,7 @@
       "findingsFolder": "{state_dir}/architecture_reviews/{branch}/",
       "skip": [
         {
-          "construct": "passedByExclusion",
-          "runModeId": "architecture",
+          "when": "run_mode_skips_architecture",
           "to": "plan_round",
           "report": { "architecture_review": "passed-by-exclusion" }
         }
@@ -126,14 +146,12 @@
       "prompts": ["initial", "revision"],
       "skip": [
         {
-          "construct": "skipped",
-          "phase": "qa",
+          "when": "phase_qa_off",
           "to": "convergence",
           "report": { "ui_test": "qa-phase-off" }
         },
         {
-          "construct": "passedByExclusion",
-          "runModeId": "qa",
+          "when": "run_mode_skips_qa",
           "to": "convergence",
           "report": { "ui_test": "run-mode-skipped" }
         }
