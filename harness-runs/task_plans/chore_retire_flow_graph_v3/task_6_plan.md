@@ -1,0 +1,51 @@
+### Task 6 — Port checks 4–7 to a flow-host test checker over the format-4 graph
+
+**Goal:** Keep the four checks of `scripts/check-flow-graph.sh` that hold the planning graph to the plugin documents it duplicates, once that script is gone. They are restated over the format-4 graph `cli/templates/scripts/flows/task_plan_writing.graph.json` as a test-support checker in `devscene-flow-host/tests/`, and run by its own suite and so by gate 13's leg `13j`. The four checks are 4 `run-mode-id-known`, 5 `ledger-id-known`, 6 `findings-folder-in-core` and 7 `cap-matches-core`.
+
+**Depends on:** Task 1, which ships the format-4 graph at `cli/templates/scripts/flows/task_plan_writing.graph.json`, and Task 5, which leaves every flow-host suite reading it there. This task reads the graph at that path. The definitions it ports are `scripts/check-flow-graph.sh` → `THE CONTRACT` items 4–7, `load_owner_docs` and `run_checks`, as they stand at this task's start; Task 7 deletes that script afterwards, so read it here.
+
+**Where this lives, and why it ships nowhere.** The story index's `## Context` records the decision: these checks read `plugin/instructions/…` by repo-relative path, a dev-time gate over this repository. The checker is therefore a test-support module, never a module under `devscene-flow-host/src/`. The shipped package, which an adopter receives under `<scriptsDir>/python/` with no `plugin/` beside it, names no `plugin/` path. Reading those documents and the graph from `tests/` is test input, not an import (`.claude/context/devscene-flow-host.md` → `## What it may depend on`, the `tests/` bullet). The checker imports only the standard library, `graphscene`'s public surface (`from graphscene import …`) and `devscene_flow_host.host.predicates` (`RUN_MODE_PREDICATE`).
+
+**Not a tree guard.** The suite reads a fixed set of named files, the graph and three plugin documents, never a tree of repository files. So it owes no `treeGuards` entry (`${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `## The test-run rule`, point 8's boundary).
+
+**The contract, restated on format 4.** Task 9 cites the names below, `CORE_FOR_FLOW` among them, so spell them exactly.
+
+- `core_agreement_violations(graph: FlowGraph, repo_root: Path) -> list[Violation]`. `FlowGraph` and `Violation` come from `graphscene`. It reads the owner documents under `repo_root` and returns the findings of checks 4, 5, 6 and 7 in that order. Within a check, nodes come in key order, and within a node skip entries and outcomes come in declaration order. Each `Violation.path` uses the graph's serialized spelling, and each `reason` opens with its check id, `<check-id>: <detail>`, as `graphscene.static_violations` reasons do.
+- Module-level `Final` constants: `RUN_MODE_DOC = "plugin/instructions/run_mode_instructions.md"`, `LEDGER_DOC = "plugin/instructions/autonomous_pause_and_ledger.md"`, and `CORE_FOR_FLOW = {"task_plan_writing": "plugin/instructions/task_plan_writing_instructions_core.md"}` as a read-only mapping. The flow-to-core table is held here and never in the graph.
+- **4 `run-mode-id-known`.** For every skip entry whose `when` matches `RUN_MODE_PREDICATE`, its captured id must be a `` | `<id>` | `` row of `RUN_MODE_DOC` → `## The closed directive set — the only four things a run mode may switch off`. Path `nodes.<node>.skip[<i>].when`. Reason `run-mode-id-known: run-mode id '<id>' is not in the closed set of plugin/instructions/run_mode_instructions.md`. When that section yields no id: path `""`, reason `run-mode-id-known: plugin/instructions/run_mode_instructions.md yields no closed-set ids; refusing to pass without them`.
+- **5 `ledger-id-known`.** Every route edge's `ledger` must be a `- [ ] <ID>.` entry of `LEDGER_DOC` → `### 1.3 Templates`, between the line starting `**Task engine**` and the line starting `**User-review engine**`. Path `nodes.<node>.outcomes.<outcome>.ledger`. Reason `ledger-id-known: ledger '<id>' is not a task-engine entry of plugin/instructions/autonomous_pause_and_ledger.md`. When no entry is found: path `""`, reason `ledger-id-known: plugin/instructions/autonomous_pause_and_ledger.md yields no task-engine ledger ids; refusing to pass without them`.
+- **6 `findings-folder-in-core`.** The table is the core's `## Setup (once per session)` text from the line starting `2. **Paths.**` up to the line starting `3. `. Every dispatch node's `findings_folder`, with `{state_dir}` written back as `<state_dir>` and `{branch}` as `<branch>`, must appear backticked in that table: path `nodes.<node>.findingsFolder`, reason `findings-folder-in-core: findingsFolder '<folder>' is not in <core> ## Setup step 2 table`. For every round node declaring `revision_note`, its `paths` entry, with `{round}` also written back as `<iteration>`, must meet two conditions. Its directory part, ending `/`, appears backticked in the table: reason `findings-folder-in-core: revision note '<dir>' is not in <core> ## Setup step 2 table`. The whole path appears in the core's `## Loop`: reason `findings-folder-in-core: revision note '<path>' is not in <core> ## Loop`. Both have path `nodes.<round>.revisionNote`. When the table yields no backticked path: path `""`, reason `findings-folder-in-core: <core> ## Setup step 2 table yields no backticked path; refusing to pass without it`.
+- **7 `cap-matches-core`.** `counters["iteration"].cap` must equal every integer each of three anchors yields. The anchors are the three lines of the bash script's `ANCHORS` here-doc, taken over verbatim: each line's first `|`-field is the `<anchor>` label the reasons quote, its second field is its source text, and its third is its pattern. The first two anchors read the `## Setup (once per session)` line containing `MAX_TOTAL_DISPATCHES = `, for the `iteration >= <N>` and `caps at <N> revisions` patterns. The third reads the `## Safety contract — applies before EVERY Agent dispatch` line containing `Halted: exceeded MAX_TOTAL_DISPATCHES`, for the `<N>-revision caps` pattern. A mismatch has path `counters.iteration.cap` and reason `cap-matches-core: graph cap <cap>, core states <n> at <anchor>`. An anchor yielding nothing has path `""` and reason `cap-matches-core: <anchor> yields no value in <core>; refusing to pass without it`. A graph with no `iteration` counter has path `counters` and reason `cap-matches-core: graph has no counters.iteration`.
+- **A flow `CORE_FOR_FLOW` lacks** yields, in place of checks 6 and 7, path `flow` with reasons `findings-folder-in-core: flow '<flow>' has no core in CORE_FOR_FLOW` and `cap-matches-core: flow '<flow>' has no core in CORE_FOR_FLOW`.
+- **A missing owner document or section** reads as empty, so it yields that check's *"refusing to pass"* finding, never an empty pass. Bash had the same rule: *"An owner document, section or phrase that yields nothing is a finding, never an empty pass."* `<core>` in every reason above is the repo-relative core path from `CORE_FOR_FLOW`.
+
+### Targets
+
+- `devscene-flow-host/tests/core_agreement.py` (new) — the checker.
+- `devscene-flow-host/tests/test_core_agreement.py` (new) — its suite.
+
+**Work:**
+
+- [ ] `core_agreement.py`: implement the contract above. Its module docstring opens with *"The rule this module exists to enforce"*, as the test-support module `devscene-flow-host/tests/requirement_names.py` does. It states the four checks, and that this is the harness's own dev-time check, not shipped, and why. Under *"Deliberately not covered"* it lists checks 1–3, 8 and 9, which are `graphscene.static_violations`, run inside every `load_graph`. It is typed throughout, because `mypy` `strict` covers `tests`.
+- [ ] `test_core_agreement.py`, the real case: load `cli/templates/scripts/flows/task_plan_writing.graph.json` through `graphscene.load_graph_file`, with the checkout root as `repo_root` (built off `__file__`, as `test_walking.py` builds `_GRAPH`). Assert `core_agreement_violations` returns `[]`.
+- [ ] `test_core_agreement.py`, graph-side cases, one per clause. Each takes the real graph's JSON, makes one change, loads it through `graphscene.load_graph` (so the mutant still passes every library check), runs it against the real checkout's documents, and asserts the exact single `Violation`:
+  - a skip entry naming `run_mode_skips_nope`, declared in the vocabulary's `predicates` so loading accepts it;
+  - a ledger `P9`;
+  - a changed `findingsFolder`;
+  - a changed `paths.revision_note`, asserting both of its findings;
+  - a cap of `6`, asserting one finding per anchor;
+  - a `flow` absent from `CORE_FOR_FLOW`.
+- [ ] `test_core_agreement.py`, document-side cases. Plant copies of the three plugin documents under `tmp_path`, each with one change, and pass `tmp_path` as `repo_root`:
+  - the closed-set heading renamed;
+  - the `**Task engine**` line removed;
+  - the step-2 table's backticks stripped;
+  - each of the three cap phrases removed in turn.
+
+  Each asserts its *"refusing to pass"* finding. Every expected path and reason is a literal written from the contract above, never taken from the checker's output (`.claude/context/devscene-flow-host.md` → `## Tests — what "done" means here`).
+- [ ] `test_core_agreement.py` header: a module docstring opening *"The rule this file exists to enforce"* (`.claude/context/conventions.md` → `## The testing bar`). It says the suite reads the checkout's graph and three plugin documents read-only and plants every changed copy under `tmp_path`. Under *"Deliberately not covered"*, it says no other flow has a row in `CORE_FOR_FLOW` yet.
+
+**Verification:**
+
+- `bash scripts/python-service.sh --package devscene-flow-host test tests/test_core_agreement.py` passes. That is this task's own test file, and it imports `core_agreement` by module name.
+- The real case's `[]` is not a vacuous pass. The cap-`6` case's one finding per anchor, and the run-mode and ledger cases' findings against the real documents, show that the closed set, the task-engine ids, the step-2 table and all three cap phrases are each read from the real documents.
+- `git grep -n -e 'run_mode_instructions' -e 'autonomous_pause_and_ledger' -e 'task_plan_writing_instructions_core' -e 'core_agreement' -e 'CORE_FOR_FLOW' -- devscene-flow-host/src` prints nothing. The owner documents and the checker stay out of the shipped package.
