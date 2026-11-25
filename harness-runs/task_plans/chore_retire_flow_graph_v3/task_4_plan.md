@@ -19,3 +19,7 @@
 - `bash scripts/python-service.sh --package graphscene test tests/engine/test_static_check.py` passes, unchanged in what it asserts. It is the one test file this task edits.
 - `git grep -n -e 'check-flow-graph' -e 'bash checker' -- graphscene` prints nothing.
 - `git grep -n -i devscene -- graphscene/src/graphscene/engine/static_check.py` prints nothing: the docstring names no harness module or path.
+
+**Deviations from plan:**
+- `**Verification:**` bullet 1, `bash scripts/python-service.sh --package graphscene test tests/engine/test_static_check.py`, was not run: the tool layer refused the command (*"Permission to use Bash has been denied because Claude Code is running in don't ask mode"*). The claim that the suite passes unchanged rests instead on the diff touching only the module docstring of `graphscene/tests/engine/test_static_check.py` (no test case edited) and on `bash scripts/typecheck.sh` passing, whose `graphscene lint PASS` and `graphscene typecheck PASS` lines cover both edited files. The test file is in the suite `<test_cmd>` runs; deferred to the Run gates phase.
+- Dropping the clause from `static_check.py`'s *"The rule:"* paragraph left a line over the `ruff` line length; lines of that paragraph down to *"and 8 report nodes in key order;"* were rewrapped, with no word changed beyond the dropped clause.
