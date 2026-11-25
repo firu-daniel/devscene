@@ -45,7 +45,7 @@ def return_violations(document: object, schema: Mapping[str, object]) -> list[Vi
     translated = _ecma_patterns(declared)
     assert isinstance(translated, dict)
     # The `Validator` protocol's stub narrows `instance` to JSON types; the runtime accepts any
-    # object and reports a non-JSON value as a violation.
+    # object, and reports a non-JSON value only where a keyword such as `type` checks it.
     instance: Any = document
     return sorted(
         (
