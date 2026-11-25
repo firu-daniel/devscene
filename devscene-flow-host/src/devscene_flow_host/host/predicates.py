@@ -1,7 +1,6 @@
 """Answers the harness graph's phase and run-mode predicates: the harness's `PredicateHost`.
 
-The rule: a predicate is answered only by the two name patterns
-`scripts/generate-flow-graph-v3.mjs` → `V3_PREDICATES` accepts — `phase_<p>_off` from
+The rule: a predicate is answered only by two name patterns — `phase_<p>_off` from
 `phases.<p>`, as `hr_phase_enabled` / `fw_phase_on` read it, and `run_mode_skips_<id>` from the
 run mode, as `fw_run_mode_skipped` and `fw_id_in_list` read it. Every other name, an unresolvable
 phase and an unresolved run mode are `None`, which the walk refuses rather than guesses, as

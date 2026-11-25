@@ -8,7 +8,7 @@ absent file reads as `None`; a document not in that shape is refused with a `Val
 the file; and nothing the store writes lands outside `printed_reads/`.
 
 Steps are built by hand from `graphscene`'s public dataclasses over the harness's own format-4
-graph, `cli/templates/scripts/flows/task_plan_writing.v4.graph.json`, read-only. Review folders
+graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, read-only. Review folders
 and the story index are planted under `tmp_path`. Every expected value is a literal written from
 the rules, never taken from the output of the code under test. After every case,
 `_only_printed_reads_files` checks that the walk's directory holds nothing but `printed_reads/`
@@ -37,7 +37,7 @@ _GRAPH: Final = (
     / "templates"
     / "scripts"
     / "flows"
-    / "task_plan_writing.v4.graph.json"
+    / "task_plan_writing.graph.json"
 )
 _STATE_DIR: Final = "state"
 _BRANCH: Final = "feat/x"

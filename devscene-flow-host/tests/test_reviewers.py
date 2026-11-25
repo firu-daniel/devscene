@@ -1,7 +1,7 @@
 """The rule this file exists to enforce: a path template renders as `flow-walker.sh`'s
 `render_path` — every `{state_dir}`, then every `{branch}`, then `{round}` only when a round number
 is given — and on the harness's own format-4 graph,
-`cli/templates/scripts/flows/task_plan_writing.v4.graph.json`, a node's round is the round that
+`cli/templates/scripts/flows/task_plan_writing.graph.json`, a node's round is the round that
 gates it or names it as its writer, and a reviewer's index outside a round is the next free index
 under its rendered `findingsFolder`.
 
@@ -23,7 +23,7 @@ _GRAPH = (
     / "templates"
     / "scripts"
     / "flows"
-    / "task_plan_writing.v4.graph.json"
+    / "task_plan_writing.graph.json"
 )
 _REVISION_NOTE = "{state_dir}/plan_revisions/{branch}/task_plan_revision_{round}.md"
 
