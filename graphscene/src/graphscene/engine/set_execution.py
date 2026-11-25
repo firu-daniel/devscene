@@ -19,8 +19,9 @@ The rule:
   sends its node to the next pass.
 - A failing node never cancels a sibling; a pass ends when every run of it has finished.
 - After each pass, `UndeliveredBreaker.observe` is told whether the pass had a `Redispatch`; once
-  the breaker is tripped, `Halt("undelivered", "<strikes> consecutive sets delivered nothing")`
-  is returned. Its limit is the breaker's own.
+  the breaker is tripped,
+  `Halt("undelivered", "<strikes> consecutive sets had an undelivered result")` is returned. Its
+  limit is the breaker's own.
 - The next pass is the retried and redispatched nodes' original `Dispatch` objects, together, in
   set order, after `ExecutionLimits.backoff_seconds` when it is above 0.
 - `SetResult.records` is always the outcomes, then the held failures, each in finish order.
@@ -84,7 +85,7 @@ async def execute_set(
         )
         breaker.observe(undelivered)
         if breaker.tripped:
-            detail = f"{breaker.strikes} consecutive sets delivered nothing"
+            detail = f"{breaker.strikes} consecutive sets had an undelivered result"
             return SetResult((*outcomes, *held), Halt("undelivered", detail))
         current = tuple(d for d in current if d.node in again)
         if not current:

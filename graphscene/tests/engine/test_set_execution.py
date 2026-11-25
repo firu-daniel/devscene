@@ -260,7 +260,7 @@ def test_the_third_consecutive_undelivered_pass_halts_with_the_default_breaker()
     assert stub.started == ("a", "b", "b", "b")
     assert result == SetResult(
         (NodeRecord("a", "pass", None),),
-        Halt("undelivered", "3 consecutive sets delivered nothing"),
+        Halt("undelivered", "3 consecutive sets had an undelivered result"),
     )
 
 
@@ -275,7 +275,7 @@ def test_the_hosts_breaker_limit_takes_effect() -> None:
     assert stub.started == ("a", "b", "b")
     assert result == SetResult(
         (NodeRecord("a", "pass", None),),
-        Halt("undelivered", "2 consecutive sets delivered nothing"),
+        Halt("undelivered", "2 consecutive sets had an undelivered result"),
     )
 
 

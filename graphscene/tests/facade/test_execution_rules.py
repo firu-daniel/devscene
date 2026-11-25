@@ -233,7 +233,7 @@ def test_one_gate_undelivered_three_times_running_self_pauses() -> None:
             NodeRecord("parity_review", "approved", None),
             NodeRecord("plan_review", "approved", None),
         ),
-        Halt("undelivered", "3 consecutive sets delivered nothing"),
+        Halt("undelivered", "3 consecutive sets had an undelivered result"),
     )
     assert run.stub.started == (
         "parity_review",
