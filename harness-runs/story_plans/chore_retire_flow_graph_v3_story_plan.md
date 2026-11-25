@@ -32,7 +32,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/chore_retire_flow_graph_v3/t
 5. [x] **Task 5** — Find the walker's graph as `<flows>/<flow>.graph.json` across the flow host, its suites and its README _(layer: devscene-flow-host)_ _(points: 15)_
 6. [x] **Task 6** — Port checks 4–7 to a flow-host test checker over the format-4 graph _(layer: devscene-flow-host)_ _(points: 20)_
 7. [x] **Task 7** — Delete the format-3 schema, its fixtures, the generator, the bash checker and gate legs 3c–3f and 3i _(layer: general)_ _(points: 20)_
-8. [ ] **Task 8** — Restate Gate 3 and the schemas README without the format-3 bridge _(layer: general)_ _(points: 15)_
+8. [x] **Task 8** — Restate Gate 3 and the schemas README without the format-3 bridge _(layer: general)_ _(points: 15)_
 9. [ ] **Task 9** — Record the retirement in the flow-graph decision record, the watcher's script table and the roadmap _(layer: general)_ _(points: 15)_
 
 ## Scope register
