@@ -37,3 +37,7 @@
 - `bash scripts/python-service.sh --package graphscene test tests/model/test_run_control.py` passes.
 - `bash scripts/typecheck.sh` reports no failure in either new file.
 - The module imports only the standard library, `graphscene.model.execution` and `graphscene.model.walk_actions` if needed, and nothing from `engine` or `adapters`.
+
+**Deviations from plan:**
+
+- Plan listed the three protocols before the value types; `Launch` is declared between `DispatchCounter` and `LaunchSink`, because `LaunchSink.record` annotates its parameter with `Launch` and the module uses no `from __future__ import annotations` or string annotation. Every other declaration keeps the plan's order.

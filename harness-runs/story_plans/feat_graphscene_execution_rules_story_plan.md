@@ -30,7 +30,7 @@ Every new module's required accompanying items that sit in shared files — its 
 
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_execution_rules/task_<K>_plan.md`, in ship order: model before engine, the composition after its parts, the public surface and README after every module, and the caller-side suite last.
 
-1. [ ] **Task 1** — Add the execution-rule types and host protocols in `model/run_control.py` _(layer: graphscene)_ _(points: 15)_
+1. [x] **Task 1** — Add the execution-rule types and host protocols in `model/run_control.py` _(layer: graphscene)_ _(points: 15)_
 2. [ ] **Task 2** — Add the per-set safety contract `clear_set` and the run-level `UndeliveredBreaker` _(layer: graphscene)_ _(points: 15)_
 3. [ ] **Task 3** — Add the per-node attempt rule `AttemptBook` in `engine/attempts.py` _(layer: graphscene)_ _(points: 15)_
 4. [ ] **Task 4** — Add `execute_set`, running one dispatch set under the execution rules _(layer: graphscene)_ _(points: 20)_
