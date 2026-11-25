@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/chore_retire_flow_graph_v3_task_prompt.md → 
   - screened: harness-runs/task_prompts/chore_retire_flow_graph_v3_task_prompt.md sha256=c000a1f3d38e7f565bb2b12d7cd883283e1d522384ec28fde2e113d9d3bed4fa
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
