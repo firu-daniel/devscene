@@ -5,14 +5,14 @@
 **Depends on:** Tasks 1, 2 and 3, whose contracts are used here exactly as stated.
 
 - **Task 1** (`graphscene/src/graphscene/model/run_control.py`):
-  - `ExecutionLimits(max_attempts, backoff_seconds, dispatch_cap, undelivered_sets, stall_seconds)`;
+  - `ExecutionLimits(max_attempts, backoff_seconds, dispatch_cap, stall_seconds)` — no undelivered-set limit;
   - `RunSignals`, `DispatchCounter` (`total()`, `increment() -> int`) and `LaunchSink` (`record(launch)`);
   - `Launch(seq, node, agent, attempt, max_attempts, result)`;
   - `Halt(reason, detail)`, `NodeRecord(node, outcome, detail)`, `Recorded(record)`, `Retry(node, attempt, reason)`, `Redispatch(node, reason)`;
   - `SetResult(records: tuple[NodeRecord, ...], halt: Halt | None)`.
 - **Task 2:**
   - `graphscene/src/graphscene/engine/safety.py` → `clear_set(dispatches, signals, counter, limits) -> Halt | None`, which only checks and never increments;
-  - `graphscene/src/graphscene/engine/breaker.py` → `UndeliveredBreaker`, with `observe(undelivered: bool) -> int` and `tripped`.
+  - `graphscene/src/graphscene/engine/breaker.py` → `UndeliveredBreaker(limit: int = 3)`, with `limit`, `strikes`, `observe(undelivered: bool) -> int` and `tripped` (`strikes >= limit`). The limit is the breaker's own constructor argument and its only source; `execute_set` reads no other breaker limit and decides the trip only through `breaker.tripped`.
 - **Task 3:** `graphscene/src/graphscene/engine/attempts.py` → `AttemptBook`, with `attempt(node) -> int` and `settle(node, result, limits, failure_outcome) -> Settlement`.
 - **#420 and #487:** `graphscene.model.execution` → `Executor.run(dispatch) -> NodeResult`, `Completed` and `Failed`.
 
@@ -51,7 +51,8 @@
   - a stall with `stall_seconds` set is cancelled, retried alone and passes, while its siblings run once;
   - three infra failures produce the exhausted three-line `detail`;
   - an undelivered gate is re-dispatched with an unchanged `attempt` in its next `Launch` row;
-  - a third consecutive undelivered pass returns `Halt("undelivered", "3 consecutive sets delivered nothing")`, with the outcomes recorded so far;
+  - with `breaker=UndeliveredBreaker()`, a third consecutive undelivered pass returns `Halt("undelivered", "3 consecutive sets delivered nothing")`, with the outcomes recorded so far;
+  - with `breaker=UndeliveredBreaker(2)`, the second consecutive undelivered pass returns `Halt("undelivered", "2 consecutive sets delivered nothing")` — the host's limit takes effect;
   - a retry pass that would pass `dispatch_cap` returns the cap halt and launches nothing more;
   - a STOP raised by the in-test signals after the first pass lets that pass finish, and the retry pass halts with `"stop"`;
   - the sink holds one row per launched session, retries included, with `seq` taken from the counter and `attempt`/`max_attempts` correct.

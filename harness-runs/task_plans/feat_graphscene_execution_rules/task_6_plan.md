@@ -5,6 +5,7 @@
 **Depends on:** Task 5, which makes these public from `graphscene`: `execute_set`, `AttemptBook`, `UndeliveredBreaker`, `clear_set`, `ExecutionLimits`, `Halt`, `NodeRecord`, `SetResult`, `Launch`, `RunSignals`, `DispatchCounter` and `LaunchSink`, beside the existing `StubExecutor`, `ScriptedOutcome`, `ScriptedFailure`, `ScriptedStall`, `Walker`, `load_graph_file` and the walk-action types. The contracts used are those of Tasks 1–4, restated here:
 
 - **The call.** `await execute_set(dispatches, executor, *, signals, counter, sink, book, breaker, limits, failure_outcome) -> SetResult(records, halt)`.
+- **The limits.** `limits` is `ExecutionLimits(max_attempts=3, backoff_seconds=60.0, dispatch_cap=None, stall_seconds=None)`, which carries no undelivered-set limit. That limit is supplied only at `UndeliveredBreaker(limit=3)` construction, and the trip is the breaker's (`strikes >= limit`).
 - **Record order.** `records` lists the outcomes in finish order, then the held final failures in finish order.
 - **Final failures.** A final failure is `NodeRecord(node, failure_outcome, detail)`. After exhausted infra attempts, `detail` is `all <max> attempts failed for an infrastructure reason` followed by one `\nattempt <i> of <max>: <reason>` line per attempt. After an agent failure, `detail` is the reason.
 - **Halts.** `halt` is `Halt("stop" | "pause" | "cap" | "undelivered", detail)` or `None`.
@@ -28,7 +29,7 @@
   - *STOP present before a set launches none of it*: `Halt("stop", …)`, `StubExecutor.started == ()`.
   - *STOP raised while a set runs lets the set finish, and launches nothing after*.
   - *PAUSE raised mid-set is honoured at the join*: the set's records are returned, and the next `execute_set` halts with `"pause"`.
-  - *one gate undelivered three times running … self-pauses*: `Halt("undelivered", "3 consecutive sets delivered nothing")`.
+  - *one gate undelivered three times running … self-pauses*: with `breaker=UndeliveredBreaker()`, `Halt("undelivered", "3 consecutive sets delivered nothing")`.
   - *a gate stalled once is re-dispatched alone and passes; its siblings run once*: uses `ScriptedStall` and `stall_seconds`.
   - *a return that fails its schema is retried as infrastructure, not parked*: scripted as `ScriptedFailure("infra", …)`.
   - *an agent-reported blocker parks with no retry*.

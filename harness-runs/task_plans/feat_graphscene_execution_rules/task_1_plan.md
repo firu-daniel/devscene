@@ -14,7 +14,7 @@
 - [ ] Write the module docstring in the form `.claude/context/graphscene.md` → `## Naming and layout` requires. It opens by stating what the module owns. Its *"The rule:"* paragraph states: the limits are the host's to pass and the defaults are GraphScene's, not any host's constants; `undelivered` re-dispatches use up no attempt; a halt is returned, never raised; `NodeResult` carries no usage, and a host joins usage to a `Launch` from its own executor's usage sink. Its *"Deliberately not covered:"* list names where STOP and PAUSE live, what the counter counts and where a row is written (the host's), and the run loop (#484).
 - [ ] Declare, in this order:
   - `HaltReason: TypeAlias = Literal["stop", "pause", "cap", "undelivered"]`.
-  - `ExecutionLimits`, frozen, with fields and defaults `max_attempts: int = 3`, `backoff_seconds: float = 60.0`, `dispatch_cap: int | None = None`, `undelivered_sets: int = 3`, `stall_seconds: float | None = None`. Its `__post_init__` raises `ValueError` with exactly `ExecutionLimits: <field> must be <condition>, got <value>`, where `<condition>` is `>= 1` for `max_attempts`, `undelivered_sets` and a set `dispatch_cap`, `>= 0` for `backoff_seconds`, and `> 0` for a set `stall_seconds`. Each comparison is written as `not value >= bound` (or `not value > 0`) so that a NaN is refused, as `graphscene/src/graphscene/adapters/stub_executor.py` → `_check_delay` does.
+  - `ExecutionLimits`, frozen, with fields and defaults `max_attempts: int = 3`, `backoff_seconds: float = 60.0`, `dispatch_cap: int | None = None`, `stall_seconds: float | None = None`. It carries **no** undelivered-set limit: that limit is supplied at `UndeliveredBreaker(limit)` construction (Task 2), so it has one source. Its `__post_init__` raises `ValueError` with exactly `ExecutionLimits: <field> must be <condition>, got <value>`, where `<condition>` is `>= 1` for `max_attempts` and a set `dispatch_cap`, `>= 0` for `backoff_seconds`, and `> 0` for a set `stall_seconds`. Each comparison is written as `not value >= bound` (or `not value > 0`) so that a NaN is refused, as `graphscene/src/graphscene/adapters/stub_executor.py` → `_check_delay` does.
 - [ ] Declare the three host protocols as `typing.Protocol`:
   - `RunSignals`, with `stop_requested(self) -> bool` and `pause_requested(self) -> bool`.
   - `DispatchCounter`, with `total(self) -> int` (sessions launched so far) and `increment(self) -> int` (counts one launch and returns the new total).
@@ -28,7 +28,7 @@
 - [ ] `graphscene/tests/model/test_run_control.py`. Its module docstring opens with *"The rule this file exists to enforce"* (`.claude/context/conventions.md` → `## The testing bar`). Cases, as plain `-> None` functions:
   - every class is frozen;
   - each `kind` is the literal above;
-  - `ExecutionLimits()` equals the hand-written defaults `3`, `60.0`, `None`, `3`, `None`;
+  - `ExecutionLimits()` equals the hand-written defaults `3`, `60.0`, `None`, `None`, and its field names are exactly `max_attempts`, `backoff_seconds`, `dispatch_cap`, `stall_seconds`;
   - one parametrized refusal per field, plus a NaN case, asserting the exact `ValueError` text;
   - in-test classes satisfying `RunSignals`, `DispatchCounter` and `LaunchSink` structurally, assigned to annotated locals so that `mypy` grades them, as `graphscene/tests/model/test_execution.py` does.
 

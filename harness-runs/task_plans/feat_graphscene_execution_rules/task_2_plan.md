@@ -4,7 +4,7 @@
 
 **Depends on:** Task 1, which declares these in `graphscene/src/graphscene/model/run_control.py`, used here exactly as follows:
 
-- `ExecutionLimits`: `dispatch_cap: int | None` and `undelivered_sets: int`, both already validated;
+- `ExecutionLimits`: `dispatch_cap: int | None` only, already validated, read by `clear_set`. `ExecutionLimits` carries no undelivered-set limit, and `UndeliveredBreaker` reads nothing from it: the breaker's limit is its own constructor argument;
 - `RunSignals`: `stop_requested() -> bool` and `pause_requested() -> bool`;
 - `DispatchCounter`: `total() -> int` and `increment() -> int`;
 - `Halt(reason: HaltReason, detail: str)`, where `HaltReason` is `"stop" | "pause" | "cap" | "undelivered"`.
@@ -29,12 +29,12 @@
 
   No halt ever sends part of a set. An empty `dispatches` raises `ValueError("clear_set: a set holds at least one dispatch")`. The docstring adds that a STOP or PAUSE raised while a set is out is honoured by the next `clear_set`, so a running set is never cancelled, and that a retry pass is a set like any other.
 - [ ] `breaker.py` → `class UndeliveredBreaker`:
-  - `__init__(self, limit: int)` raises `ValueError("UndeliveredBreaker: limit must be >= 1, got <limit>")` below 1.
+  - `__init__(self, limit: int = 3)` raises `ValueError("UndeliveredBreaker: limit must be >= 1, got <limit>")` below 1 (written `not limit >= 1`). `3` is GraphScene's default, equal to the pilot's three undelivered sets; the host passes its own value here, and this argument is the limit's **only** source.
   - `observe(self, undelivered: bool) -> int`: an undelivered set adds one strike and a delivered set resets the strikes to 0; it returns the strikes.
-  - `strikes` property, and `tripped` property (`strikes >= limit`).
+  - `limit` property (read-only), `strikes` property, and `tripped` property (`strikes >= limit`).
   - `reset(self) -> None`.
 
-  The docstring's *"The rule:"* states that the breaker counts consecutive sets, not sessions, that a delivered set resets it, and that it is independent of every node's attempts. *"Deliberately not covered:"* lists persisting the count, and what a host does once it trips.
+  The docstring's *"The rule:"* states that the breaker counts consecutive sets, not sessions, that a delivered set resets it, that it is independent of every node's attempts, and that its limit is set at construction and nowhere else (`ExecutionLimits` carries none). *"Deliberately not covered:"* lists persisting the count, and what a host does once it trips.
 - [ ] `test_safety.py`. Its header is the *"The rule this file exists to enforce"* docstring. In-test `RunSignals` and `DispatchCounter` classes record their calls. Cases:
   - STOP halts and asks `pause_requested` nothing;
   - STOP is asked once per dispatch;
@@ -46,7 +46,8 @@
 
   Every `Halt` is asserted with its hand-written detail text.
 - [ ] `test_breaker.py`. Same header rule. Cases:
-  - the third consecutive undelivered set trips at the default-equivalent `limit=3`;
+  - `UndeliveredBreaker()` has `limit == 3`, and its third consecutive undelivered set trips it;
+  - `UndeliveredBreaker(2)` trips on the second consecutive undelivered set, not the third;
   - a delivered set in between resets the strikes;
   - `reset` clears a tripped breaker;
   - the limit refusal, with its exact text.
