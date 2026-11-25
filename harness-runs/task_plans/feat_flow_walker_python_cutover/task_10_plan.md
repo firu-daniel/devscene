@@ -22,3 +22,5 @@
 
 - Re-derive the readers before closing: `git grep -n 'task_plan_writing\.graph\.json' -- plugin` prints nothing, and `git grep -n 'task_plan_writing\.v4\.graph\.json' -- plugin` prints exactly the three edited lines.
 - No adopter value becomes a literal: the new text names only the shipped file name under `<scripts_dir>` (`.claude/context/plugin.md` → *"No adopter's value is ever a literal here"*).
+
+**Deviations from plan:** The re-derive grep found a fourth site the Targets list omits: `plugin/commands/branch-start-plan-semi-autonomous.md` → `## Steps` step 3 (*"The loop's routing and its iteration caps are `<scripts_dir>/flow-walker.sh` over `<scripts_dir>/flows/task_plan_writing.graph.json`"*). Edited it too, since the verification requires the old name to print nothing; `git grep -n 'task_plan_writing\.v4\.graph\.json' -- plugin` therefore prints four lines across the three files, not three.

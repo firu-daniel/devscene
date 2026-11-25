@@ -52,7 +52,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_walker_python_cuto
 9. [x] **Task 7** — Move the `flow-walker*` cases that pinned the bash walker's behaviour _(layer: cli)_ _(points: 15)_
 10. [x] **Task 8** — Add a suite for the hand-off's own contract _(layer: cli)_ _(points: 10)_
 11. [x] **Task 9** — Describe the hand-off in the `cli` package's own READMEs _(layer: cli)_ _(points: 8)_
-12. [ ] **Task 10** — Name the format-4 graph as the planning loop's routing graph in the plugin _(layer: plugin)_ _(points: 8)_
+12. [x] **Task 10** — Name the format-4 graph as the planning loop's routing graph in the plugin _(layer: plugin)_ _(points: 8)_
 13. [ ] **Task 11** — Record the launch route and the retired bash walker in `devscene-flow-host` _(layer: devscene-flow-host)_ _(points: 10)_
 14. [ ] **Task 12** — Widen gate 6a's walker-state filter to the per-branch directory _(layer: general)_ _(points: 8)_
 15. [ ] **Task 13** — Rewrite the walker's decisions of record and ship the startup-cost measurement _(layer: general)_ _(points: 15)_
