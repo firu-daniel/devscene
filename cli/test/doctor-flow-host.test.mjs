@@ -3,7 +3,8 @@
  *
  * **The rule this suite enforces: a host without `uv` fails `doctor`; shipped Python packages that
  * are missing or changed warn; an unprovisioned walker environment warns, and fails where
- * `execution.scriptDrivenPlanning` is true. Each finding names its remedy.**
+ * `execution.scriptDrivenPlanning` is true; under `--remote-job` it warns, because the job builds
+ * the environment after its preflight. Each finding names its remedy.**
  *
  * `uv` is given to the command as a machine rather than mocked: a stub first on `PATH`, or a `PATH`
  * built from links to only the binaries the run needs, so the host's own `uv` cannot reach a case.
@@ -187,6 +188,14 @@ describe('doctor uv and flow-host', { concurrency: CASE_CONCURRENCY }, () => {
 
     plantEnvironment(dir);
     line(await doctor(dir, env), 'PASS', FLOW_HOST_CHECK);
+  });
+
+  it('warns rather than fails on flow-host under --remote-job where script-driven planning is on', async (t) => {
+    const dir = await wired(t);
+    enableScriptDrivenPlanning(dir);
+    const result = await runCli(dir, ['doctor', '--remote-job'], { PATH: await uvStubPath(t, STUB_VERSION) });
+    assert.equal(checkLine(result, 'FAIL', FLOW_HOST_CHECK), undefined, result.stderr);
+    assert.match(line(result, 'WARN', FLOW_HOST_CHECK), /Bootstrap the checkout/);
   });
 
   it('warns on flow-host naming an edited shipped file and init --upgrade', async (t) => {

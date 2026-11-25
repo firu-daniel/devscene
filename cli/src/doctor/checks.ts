@@ -5606,6 +5606,8 @@ const OUTER_LOOP_SCRIPTS_CHECK: Check = {
  * {@link scriptDrivenPlanningEnabled} is true, because the planning driver runs the main checkout's
  * walker and environment; otherwise it warns, because a run copy builds its own at
  * `setup-worktree.sh` step 6 and a session here is refused by the walker with the same command.
+ * Under {@link CheckContext.remoteJob} it warns in every case, because the job's `Bootstrap the
+ * checkout` step builds the environment after the preflight and fails the job without it.
  */
 const FLOW_HOST_CHECK: Check = {
   id: 'flow-host',
@@ -5633,6 +5635,11 @@ const FLOW_HOST_CHECK: Check = {
       const command = flowHostProvisionInvocation(ctx.config);
       const prerequisite = resolvesOnPath('uv') ? '' : 'install uv first (see the uv check), then ';
       const finding = `the flow walker's Python environment at ${environment}/ has not been provisioned: ${prerequisite}run \`${command}\` from the repository root, outside the sandbox, since it reaches the network`;
+      if (ctx.remoteJob) {
+        return warn(
+          `${finding}. A warning rather than a failure under --remote-job because the job builds this environment at its \`Bootstrap the checkout\` step (setup-worktree.sh step 6), which runs after this preflight and fails the job without it`,
+        );
+      }
       if (scriptDrivenPlanningEnabled(ctx.config)) {
         return fail(
           `${finding}. A failure because execution.scriptDrivenPlanning is true, so script-driven planning runs this checkout's walker and environment and stops without them`,
