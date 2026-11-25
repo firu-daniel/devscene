@@ -31,7 +31,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 3** — Say in `execution.py` that `execute_set` applies the stall deadline, not #484 _(layer: graphscene)_
+1. [x] **Finding 3** — Say in `execution.py` that `execute_set` applies the stall deadline, not #484 _(layer: graphscene)_
 2. [ ] **Finding 4** — Document that a cancelled run takes a `seq` but writes no `Launch` row _(layer: graphscene)_
 3. [ ] **Finding 2** — Word the breaker's halt as sets that had an undelivered result _(layer: graphscene)_
 4. [ ] **Finding 1** — Leave the undelivered breaker unchanged on an infrastructure-only retry pass _(layer: graphscene)_
