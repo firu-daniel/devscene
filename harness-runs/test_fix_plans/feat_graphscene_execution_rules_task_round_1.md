@@ -10,7 +10,7 @@
 
 This list is the **single source of truth** for the fix loop: walk it top to bottom, first `[ ]` entry first. `[ ]` markers anywhere else in this plan or its per-finding files are informational only.
 
-1. [ ] **Finding 1** — Make the two plan-revision notes' review paths repo-relative. _(layer: general)_
+1. [x] **Finding 1** — Make the two plan-revision notes' review paths repo-relative. _(layer: general)_
 
 ## Must Fix
 
