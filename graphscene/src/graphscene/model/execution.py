@@ -33,8 +33,10 @@ Deliberately not covered:
   executor, and `run` carries none.
 - A helper for a synchronous executor: none is offered. A blocking implementation wraps its work
   with `await asyncio.to_thread(…)`, and a cancelled `to_thread` call does not stop its thread.
-- What is done with each failure class (retry, park, breaker): #422.
-- The run loop and its deadline: #484.
+- What is done with each failure class: `graphscene.engine.attempts`, `graphscene.engine.breaker`
+  and `graphscene.engine.set_execution`.
+- The run loop and its deadline: #484. The stall deadline's result is recorded as `infra` by
+  `graphscene.engine.set_execution`.
 """
 
 from dataclasses import dataclass
