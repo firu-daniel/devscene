@@ -129,7 +129,11 @@ async function fixture(t, phases) {
 /** One `next` call's argument vector, the flags the helper's `run` would pass. */
 const nextArgs = (...flags) => ['next', '--flow', WALKER_FLOW, '--branch', BRANCH, ...flags, '--skipped', 'none'];
 
-/** `# EXIT CODES`: a refusal exits 1, prints one `flow-walker: <cause>` line and leaves the state file byte-identical. */
+/**
+ * `# EXIT CODES`: a refusal exits 1, prints one `flow-walker: <cause>` line and leaves the state file byte-identical.
+ * Each `cause` is GraphScene's wording, not the bash walker's (`devscene-flow-host/README.md` →
+ * `## Differences from flow-walker.sh` → **Refusal texts no caller parses.**).
+ */
 async function assertRefused(dir, args, cause) {
   const before = readFileSync(walkerStatePath(dir));
   const refused = await walk(dir, args);
@@ -223,7 +227,7 @@ test("(5) a gate's error with two verdicts recorded is held until the set is in,
     assert.ok(existsSync(file), `${file} is absent`);
   }
   // `# USAGE`: a binding other than `<ask>` is "a finished walk … `next` refuses it with exit 1".
-  await assertRefused(dir, nextArgs('--node', 'architecture_review', '--outcome', 'PASS'), /the walk finished/);
+  await assertRefused(dir, nextArgs('--node', 'architecture_review', '--outcome', 'PASS'), /the walk has finished/);
 });
 
 test('(6) --node is required while a set is pending', { skip: SKIP }, async (t) => {
@@ -232,7 +236,7 @@ test('(6) --node is required while a set is pending', { skip: SKIP }, async (t) 
   const findings = await plantReview(dir, `architecture_reviews/${BRANCH}`, 0, 'PASS');
 
   // `# USAGE`, `--node`: "Required while a set is pending"; `# EXIT CODES`, 1: "no `--node`".
-  await assertRefused(dir, nextArgs('--outcome', 'PASS', '--findings', findings), /name the gate with --node/);
+  await assertRefused(dir, nextArgs('--outcome', 'PASS', '--findings', findings), /name the gate with node/);
 });
 
 const LACKS_CLASS = 'Must Fix entry 1 lacks **Class:**';

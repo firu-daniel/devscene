@@ -49,7 +49,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_flow_walker_python_cuto
 6. [x] **Task 17** — Bring the bundle and shipped-set suites to the walker's directory and the new shipped set _(layer: cli)_ _(points: 20)_
 7. [x] **Task 5** — Grade a missing `uv` as a `doctor` failure _(layer: cli)_ _(points: 15)_
 8. [x] **Task 6** — Run the main checkout's walker from the unsandboxed planning driver _(layer: cli)_ _(points: 10)_
-9. [ ] **Task 7** — Move the `flow-walker*` cases that pinned the bash walker's behaviour _(layer: cli)_ _(points: 15)_
+9. [x] **Task 7** — Move the `flow-walker*` cases that pinned the bash walker's behaviour _(layer: cli)_ _(points: 15)_
 10. [ ] **Task 8** — Add a suite for the hand-off's own contract _(layer: cli)_ _(points: 10)_
 11. [ ] **Task 9** — Describe the hand-off in the `cli` package's own READMEs _(layer: cli)_ _(points: 8)_
 12. [ ] **Task 10** — Name the format-4 graph as the planning loop's routing graph in the plugin _(layer: plugin)_ _(points: 8)_

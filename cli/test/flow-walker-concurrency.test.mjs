@@ -3,36 +3,31 @@
  * gate's `next --node` at the same moment, as a per-gate driver does.
  *
  * **The rule this suite exists to enforce: recording is safe under concurrent calls — every outcome
- * of simultaneous `next` calls lands, exactly one call prints the round's result, and no call leaves
- * the lock behind.** Beside it, a lock left by a killed call is broken once it is older than a
- * minute, and a fresh one is waited for. The lock is cited from the shipped walker's own header
- * (`cli/templates/scripts/flow-walker.sh` → `# CONCURRENCY`) and is asserted only where a driver can
- * observe it: the outcomes, the single result, and the lock directory's absence afterwards.
+ * of simultaneous `next` calls lands and exactly one call prints the round's result.** It is asserted
+ * only where a driver can observe it: the outcomes, the single result, and a later `current` that a
+ * held lock would block. Lock waiting and timeouts are pinned by
+ * `devscene-flow-host/tests/test_flow_walker_concurrency.py`.
  *
- * The mutation that turns case (1) red, applied to the template alone and reverted after: `next`
- * no longer calls `lock_take` — run red once on feat_parallel_plan_reviews. The mutation that
- * turns case (4) red: `lock_take`'s stale branch without the `mkdir "$LOCK.break"` guard, so two
- * waiters that both saw the stale lock each remove a lock in turn and both take it.
+ * Deliberately not covered here: breaking a stale lock, waiting on a fresh lock directory, and two
+ * waiters on a stale lock. The command's `flock` locks die with their process, so there is no stale
+ * lock to break and no lock directory to plant (`devscene-flow-host/README.md` →
+ * `## Differences from flow-walker.sh` → **The locks.**). A `.lock` file left beside the state file
+ * after a walk is GraphScene's documented behaviour and harmless:
+ * `graphscene/src/graphscene/adapters/state_file.py` → `FileStateStore.lock` releases it and never
+ * unlinks it.
  *
  * Every fixture repository is built under the system temp directory and torn down in process; no
  * case is ever aimed at this checkout (`.claude/context/conventions.md` → `## The testing bar`).
  */
 
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { mkdir, rmdir, utimes } from 'node:fs/promises';
 import test from 'node:test';
-import { setTimeout as delay } from 'node:timers/promises';
 
-import { INIT_SCRIPTS_DIR, runBash } from './helpers/fixture.mjs';
 import {
-  blocksOf,
-  plantReview,
   run,
   runConcurrently,
   walk,
   walkerFixture,
-  walkerStatePath,
   walkerUnavailable,
   WALKER_FLOW,
 } from './helpers/walker.mjs';
@@ -49,9 +44,6 @@ const REPETITIONS = 5;
 const OPEN = [{ start: true }, { outcome: 'returned' }];
 
 const gate = (node, folder, outcome) => ({ node, outcome, review: [folder, 0] });
-
-/** `# CONCURRENCY`: the lock directory sits beside the state file. */
-const lockPath = (dir) => `${walkerStatePath(dir)}.lock`;
 
 const roundLines = (action) => action.filter(([k]) => k === 'round').map(([, v]) => v);
 
@@ -90,102 +82,12 @@ test("(1) three outcomes recorded by simultaneous next calls all land, and exact
         const recorded = waits.map((w) => w.action.find(([k]) => k === 'recorded')[1].split(' ')[0]);
         assert.equal(new Set(recorded).size, 2, `the waits recorded ${recorded.join(', ')}`);
 
+        // The no-lock-held check: a lock still held once the calls returned would block this call
+        // until the command's lock timeout and fail it.
         const current = await walk(dir, ['current', '--flow', WALKER_FLOW, '--branch', BRANCH]);
         assert.equal(current.status, 0, current.stderr);
         assert.equal(current.stdout, closers[0].stdout);
-        assert.equal(existsSync(lockPath(dir)), false, 'a call left the lock directory behind');
       });
     }
-  }
-});
-
-/** The `wait` recording `plan_review`'s `PASS` with the two other gates still out. */
-const PLAN_WAIT = [
-  ['action', 'wait'],
-  ['node', 'plan_round'],
-  ['recorded', 'plan_review PASS'],
-  ['pending', 'business_parity_review'],
-  ['pending', 'architecture_review'],
-];
-
-const PLAN_PASS = gate('plan_review', 'task_plan_reviews', 'PASS');
-
-/** A killed call's leftover: `# CONCURRENCY`, "removed as stale when older than a minute". */
-async function plantStaleLock(dir) {
-  await mkdir(lockPath(dir));
-  const twoMinutesAgo = new Date(Date.now() - 120_000);
-  await utimes(lockPath(dir), twoMinutesAgo, twoMinutesAgo);
-}
-
-test('(2) a lock older than a minute is broken, and the call proceeds', { skip: SKIP }, async (t) => {
-  const dir = await fixture(t);
-  await run(dir, OPEN);
-
-  await plantStaleLock(dir);
-
-  const [recorded] = await run(dir, [PLAN_PASS]);
-  assert.deepEqual(recorded, PLAN_WAIT);
-  assert.equal(existsSync(lockPath(dir)), false, 'the call left the lock directory behind');
-});
-
-/** Far under the walker's own 120 s give-up, so a call that never waits cannot hide behind it. */
-const WAIT_BOUND_MS = 30_000;
-const HOLD_MS = 1_500;
-
-test('(3) a fresh lock held by another call is waited for, never broken', { skip: SKIP }, async (t) => {
-  const dir = await fixture(t);
-  await run(dir, OPEN);
-
-  await mkdir(lockPath(dir));
-  const findings = await plantReview(dir, `task_plan_reviews/${BRANCH}`, 0, 'PASS');
-  const args = [
-    `${INIT_SCRIPTS_DIR}/flow-walker.sh`, 'next', '--node', 'plan_review', '--outcome', 'PASS',
-    '--flow', WALKER_FLOW, '--branch', BRANCH, '--findings', findings, '--skipped', 'none',
-  ];
-  let settled = false;
-  const pending = runBash(dir, args, {}, { timeoutMs: WAIT_BOUND_MS }).finally(() => {
-    settled = true;
-  });
-
-  await delay(HOLD_MS);
-  assert.equal(settled, false, 'the call finished while another call held a fresh lock');
-  // Throws if the waiting call removed the fresh lock.
-  await rmdir(lockPath(dir));
-
-  const result = await pending;
-  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-  assert.equal(result.stdout, `${PLAN_WAIT.map(([k, v]) => `${k}: ${v}`).join('\n')}\n`);
-  assert.equal(existsSync(lockPath(dir)), false, 'the call left the lock directory behind');
-});
-
-test('(4) two calls waiting on a stale lock both record their gate, and neither lock is left behind', { skip: SKIP }, async (t) => {
-  for (let i = 0; i < REPETITIONS; i += 1) {
-    await t.test(`repetition ${i + 1} of ${REPETITIONS}`, async (st) => {
-      const dir = await fixture(st);
-      await run(dir, OPEN);
-      await plantStaleLock(dir);
-
-      const results = await runConcurrently(dir, [
-        gate('business_parity_review', 'business_parity_reviews', 'PASS'),
-        gate('architecture_review', 'architecture_reviews', 'PASS'),
-      ]);
-
-      for (const r of results) {
-        assert.equal(r.status, 0, `a waiting next exited ${r.status}\n${r.stdout}\n${r.stderr}`);
-        assert.deepEqual(r.action[0], ['action', 'wait']);
-      }
-      // A second breaker removing the first breaker's fresh lock loses one of these two records.
-      const recorded = results.map((r) => r.action.find(([k]) => k === 'recorded')[1].split(' ')[0]);
-      assert.equal(new Set(recorded).size, 2, `the waits recorded ${recorded.join(', ')}`);
-
-      const current = await walk(dir, ['current', '--flow', WALKER_FLOW, '--branch', BRANCH]);
-      assert.equal(current.status, 0, current.stderr);
-      const dispatches = blocksOf(current.action).filter((b) => b[0][1] === 'dispatch');
-      assert.equal(dispatches.length, 1, `current printed ${dispatches.length} dispatch blocks\n${current.stdout}`);
-      assert.deepEqual(dispatches[0].find(([k]) => k === 'node'), ['node', 'plan_review']);
-
-      assert.equal(existsSync(lockPath(dir)), false, 'a call left the lock directory behind');
-      assert.equal(existsSync(`${lockPath(dir)}.break`), false, 'a call left the break lock behind');
-    });
   }
 });

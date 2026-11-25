@@ -181,11 +181,11 @@ const flags = (...rest) => ['--flow', WALKER_FLOW, '--branch', BRANCH, ...rest];
 
 /** `current` exits 0, re-prints `expected`, and leaves the state file byte-identical. */
 async function assertCurrentUnchanged(dir, expected) {
-  const before = readFileSync(walkerStatePath(dir));
+  const before = readFileSync(walkerStatePath(dir, BRANCH));
   const result = await walk(dir, ['current', ...flags()]);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(result.action, expected);
-  assert.deepEqual(readFileSync(walkerStatePath(dir)), before);
+  assert.deepEqual(readFileSync(walkerStatePath(dir, BRANCH)), before);
   return result;
 }
 
@@ -371,16 +371,18 @@ test('(6) a finished walk is recognised as finished and replaced by the ledger f
   assert.equal(current.status, 0, current.stderr);
   assert.deepEqual(current.action[1], ['binding', '<escalate>']);
 
-  const before = readFileSync(walkerStatePath(dir));
+  const before = readFileSync(walkerStatePath(dir, BRANCH));
   const refused = await walk(dir, ['next', ...flags('--node', 'plan_review', '--outcome', 'PASS', '--skipped', 'none')]);
   assert.equal(refused.status, 1);
-  assert.deepEqual(readFileSync(walkerStatePath(dir)), before);
+  assert.deepEqual(readFileSync(walkerStatePath(dir, BRANCH)), before);
 
   // The fallback starts a fresh walk at counter 0 over five complete FAIL rounds with no revision
   // note: it closes round 4 from its files — the round series continues — and the revision is the
-  // first increment of the new walk's counter, so the cap does not fire again.
+  // first increment of the new walk's counter, so the cap does not fire again. Unlike the bash
+  // walker, closing a round from its files passes the parity gate's skip line through, as a round
+  // opened live does.
   const fallback = await run(dir, [REVIEW_ENTRY]);
-  assert.deepEqual(fallback, [writer(1, roundFiles(4), { round: 5, passed: [closed(4, 'FAIL')] })]);
+  assert.deepEqual(fallback, [writer(1, roundFiles(4), { round: 5, passed: [...PARITY_SKIPPED, closed(4, 'FAIL')] })]);
   assert.ok(!has(fallback, 'binding', '<escalate>'), 'the fallback fired the cap again');
 
   const handedOff = await fixture(t, { parity: false, qa: true });
@@ -402,7 +404,7 @@ test('(7) with no saved walk, a draft on disk — committed or not — is review
 
     // core: "exit 1 — no walk of this flow is saved for this branch".
     await assertNoSavedWalk(dir);
-    assert.ok(!existsSync(walkerStatePath(dir)), `${label}: current wrote the walker state`);
+    assert.ok(!existsSync(walkerStatePath(dir, BRANCH)), `${label}: current wrote the walker state`);
 
     // Override 2: "send the draft back through review — never rewrite it, never skip it"; setup:
     // "**review** (send the existing draft back through its loop's gates, neither rewritten nor
@@ -436,7 +438,7 @@ test('(8) with the saved walk deleted and two of three round files committed, st
     ],
   });
   await run(dir, [{ start: true }]);
-  rmSync(walkerStatePath(dir));
+  rmSync(walkerStatePath(dir, BRANCH));
   await assertNoSavedWalk(dir);
 
   // walker STATE: "a round with files missing whose evidence is consistent — no present gate reads
