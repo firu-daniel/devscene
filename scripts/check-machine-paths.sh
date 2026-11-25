@@ -45,13 +45,17 @@
 # always contains `$HOME` and therefore a `/`; a directory name carrying a `:` is printed, the
 # fail-closed direction.
 #
-# THE WALKER-STATE FILTER. The third filter drops `harness-runs/.flow_walker_state`, the flow
-# walker's state file — "machine-local" in `scripts/flow-walker.sh`'s `STATE —` header and listed in
-# `.gitignore` — whose `revision_findings` line stores findings paths as the orchestrator passed
-# them, absolute ones included. It anchors on that exact path rather than using
-# `--exclude=.flow_walker_state`, which grep matches against the base name and so would also skip a
-# same-named file anywhere else, such as one under `examples/notes-app/devscene/`; that file is
-# printed, the fail-closed direction.
+# THE WALKER-STATE FILTER. The third filter drops the flow walker's state, which is machine-local
+# (`devscene-flow-host/README.md` → `## What it reads, answers and keeps`) and listed in
+# `.gitignore`, in exactly two shapes: a file below the per-branch directory
+# `harness-runs/.flow_walker_state/`, whose `revision_findings/` records keep findings paths as the
+# orchestrator passed them, absolute ones included; and the flat file `harness-runs/.flow_walker_state`
+# the bash walker keeps, which this repository's self-adopted `scripts/flow-walker.sh` still is until
+# its re-render. The path segment after the directory excludes `:` so it cannot run past the
+# `path:line:` separator. It anchors on that path rather than using `--exclude=.flow_walker_state`
+# or `--exclude-dir=.flow_walker_state`, which grep matches against the base name and so would also
+# skip a same-named file or directory anywhere else, such as one under
+# `examples/notes-app/devscene/`; that one is printed, the fail-closed direction.
 #
 # THE ONE DROPPED ERROR (docs/sandbox-verification.md §5 F11). Inside the gate launcher's Linux
 # `bwrap` worker, `grep -r` printed `grep: ./.bash_profile: Permission denied` and the like, and the
@@ -77,7 +81,7 @@ err="$(mktemp "${TMPDIR:-/tmp}/check-machine-paths.XXXXXX")" || {
 }
 trap 'rm -f "$err"' EXIT
 
-grep -rn "$HOME" . --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git --exclude-dir=test_run_logs --exclude-dir=scratch --exclude-dir=__pycache__ --exclude-dir=.venv --exclude-dir=.mypy_cache --exclude-dir=.ruff_cache --exclude-dir=.pytest_cache 2>"$err" | grep -v '^\./\.git:[0-9][0-9]*:' | grep -v '^\./harness-runs/clarifications/[^/:][^/:]*/' | grep -v '^\./harness-runs/\.flow_walker_state:'
+grep -rn "$HOME" . --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git --exclude-dir=test_run_logs --exclude-dir=scratch --exclude-dir=__pycache__ --exclude-dir=.venv --exclude-dir=.mypy_cache --exclude-dir=.ruff_cache --exclude-dir=.pytest_cache 2>"$err" | grep -v '^\./\.git:[0-9][0-9]*:' | grep -v '^\./harness-runs/clarifications/[^/:][^/:]*/' | grep -v '^\./harness-runs/\.flow_walker_state\(/[^:]*\)\{0,1\}:'
 
 prefix='grep: '
 suffix=': Permission denied'
