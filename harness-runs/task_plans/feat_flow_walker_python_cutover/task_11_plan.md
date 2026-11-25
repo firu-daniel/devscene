@@ -45,3 +45,9 @@ Also Task 7, which moved the suite cases `## Differences from flow-walker.sh` na
 - Run `commands.typecheck`; it must exit 0.
 - `git grep -n "#419's" -- devscene-flow-host` prints nothing.
 - `git grep -n '## Differences from flow-walker.sh' -- devscene-flow-host/README.md .claude/context` still shows the heading and its two citations, byte-identical.
+
+**Deviations from plan:**
+- Added a **Chosen** entry, *"A skipped gate in a round closed from its files."*, to `## Differences from flow-walker.sh`, which the plan does not list: required by `harness-runs/clarifications/feat_flow_walker_python_cutover/answer_1.md` Q2 (a), matching the expectation Task 7 (commit 49ae981f) changed in `cli/test/flow-walker-resume.test.mjs` case (6).
+- **The walk's state.** entry gains one clause saying `flow-walker.sh` deletes the flat file before handing off; `## The command line` also replaces *"for #419 to hand every `flow-walker.sh` caller to it"*, which the plan did not name but which described the pre-cutover state.
+- The docstring-citation sentence names `start_round` and `fw_round_evidence` as examples rather than all bash names: `hr_config_load`, `hr_state_dir` and `hr_phase_enabled` still live in `cli/templates/scripts/lib/harness-run-lib.sh` and are not retired.
+- The `current` re-renders entry's *"not yet run against the command (#419 runs them)"* is left as written, per *"Chosen entries stay as the record"*; the rewritten `**Who reads this:**` line states every listed suite move is done.

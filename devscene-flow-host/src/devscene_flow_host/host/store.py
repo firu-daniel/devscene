@@ -9,8 +9,9 @@ injective and a `/` never makes a subdirectory. Everything the store writes — 
 Deliberately not covered:
 - Two branch names that differ only in case, on a case-insensitive filesystem: they share a file.
 - Removing a finished branch's file.
-- A flat file already at `<stateDir>/.flow_walker_state`, the bash walker's: the first write or
-  lock raises an `OSError`, which propagates unchanged.
+- A flat file already at `<stateDir>/.flow_walker_state`, the retired bash walker's: the first
+  write or lock raises an `OSError`, which propagates unchanged. `flow-walker.sh` removes such a
+  file before this command runs.
 """
 
 from pathlib import Path
