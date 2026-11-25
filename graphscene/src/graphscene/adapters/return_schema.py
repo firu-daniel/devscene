@@ -19,7 +19,7 @@ The rule:
   `default` and `examples` is never translated.
 - Violations are sorted by path then reason, with paths rendered as `schema_violations` renders
   them; `[]` for a valid document. A non-empty result is what `graphscene.model.execution` means
-  by an `undelivered` return that "failed the schema the executor names".
+  by an `infra` failure whose return "failed the schema the executor names".
 
 Deliberately not covered:
 
