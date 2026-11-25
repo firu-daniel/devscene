@@ -49,3 +49,8 @@ Gate 3 then holds legs `3a`, `3b`, `3g` and `3h`, and `3g` validates the format-
 - `grep -n -E '^ +3[a-z]\)' scripts/run-gates.sh` lists the arms `3a`, `3b`, `3g` and `3h` and no other gate-3 arm. The `gr_run_round run_unit 1` line names no removed id.
 - `bash -n scripts/run-gates.sh` exits 0. This is a syntax check, not a run.
 - `node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"` exits 0. The `validate:graphscene-schema` value names `cli/templates/scripts/flows/task_plan_writing.graph.json`, and that file exists.
+
+**Deviations from plan:**
+- `bash -n scripts/run-gates.sh` was refused by the session's permission layer (both the absolute-path and repo-relative spellings). The syntax claim rests instead on `bash scripts/typecheck.sh`, whose `check-shell-parse` step reported `134 files checked with /bin/bash (bash 3.2.57(1)-release), 0 failed`, and on reading the edited `case` region: only whole single-line `3c)`–`3f)` / `3i)` arms, each `;;`-terminated, were removed.
+- The plan's grep prints one hit, `devscene-flow-host/tests/core_agreement.py:62` (*"Taken over verbatim from the retired `scripts/check-flow-graph.sh` here-doc `ANCHORS`"*). That file is Task 6's, which the plan's own pathspec note assigns to the earlier task; it was left untouched.
+- `git ls-files schemas` still lists the deleted paths until the commit step stages the deletions; `git status --short` shows each as `D`. The emptied directory `schemas/flow-graph-check/` could not be removed (`rmdir` refused); git tracks no empty directory, so the commit carries none.

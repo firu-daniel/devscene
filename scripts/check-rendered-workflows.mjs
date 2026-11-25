@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // check-rendered-workflows.mjs — fail when a workflow `init` renders is not YAML GitHub can parse.
-// Hand-written for this repository, like check-flow-graph.sh; not an `init` output.
+// Hand-written for this repository, like check-llms-txt.sh; not an `init` output.
 //
 // THE RULE. Every workflow `init` renders under `forge: github` and `execution.target:
 // github-actions` parses as YAML. The render is `init`'s own output in a throwaway repository, never
