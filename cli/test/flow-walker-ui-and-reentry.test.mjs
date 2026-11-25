@@ -23,6 +23,12 @@
  * Every case here runs with `phases.parity: false`, so a round records the architecture and
  * plan-review files only.
  *
+ * Each branch has its own walk, so a `next` naming a branch with no walk of its own is refused as
+ * no walk in progress, and the started branch's walk is left as it was
+ * (`devscene-flow-host/README.md` → `## Differences from flow-walker.sh` → **The walk's state.**).
+ * A library is refused as older than the walker when it defines no `hr_state_dir`, one of the
+ * functions the hand-off checks for before it runs anything.
+ *
  * Every fixture repository is built under the system temp directory and torn down in process.
  */
 
@@ -397,24 +403,27 @@ test('(10) current re-prints the pending set byte-identically and changes no sta
   assert.deepEqual(readFileSync(walkerStatePath(dir)), before);
 });
 
-test('(11) next for a branch other than the one started is refused and changes no state', { skip: SKIP }, async (t) => {
+test('(11) next for a branch with no walk of its own is refused, and the started branch\'s walk is unchanged', { skip: SKIP }, async (t) => {
   const dir = await fixture(t, { parity: false, qa: true });
   await run(dir, [{ start: true }]);
   const before = readFileSync(walkerStatePath(dir));
 
-  // `returned` is declared by the pending writer, so the branch is the only thing refused.
-  assertRefused(
-    await walk(dir, ['next', '--flow', WALKER_FLOW, '--branch', 'feat_y', '--outcome', 'returned', '--skipped', 'none']),
-  );
+  const result = await walk(dir, ['next', '--flow', WALKER_FLOW, '--branch', 'feat_y', '--outcome', 'returned', '--skipped', 'none']);
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /^flow-walker: no walk in progress at .*feat_y\.json: run 'start' first\n$/);
   assert.deepEqual(readFileSync(walkerStatePath(dir)), before);
 });
 
-test('(12) a lib/harness-run-lib.sh older than the walker is refused at start, naming the file', { skip: SKIP }, async (t) => {
+test('(12) a lib/harness-run-lib.sh with no hr_state_dir is refused at start, naming the file', { skip: SKIP }, async (t) => {
   const dir = await fixture(t, { parity: false, qa: false });
-  // `init` writes the library create-if-absent, so an adoption from before the walker keeps a copy
-  // with no `hr_phase_enabled`.
+  // `init` writes the library create-if-absent, so an older adoption keeps a copy that may define
+  // no `hr_state_dir`, which the hand-off checks before it runs anything.
   const lib = join(dir, INIT_SCRIPTS_DIR, 'lib', 'harness-run-lib.sh');
-  await writeFile(lib, readFileSync(lib, 'utf8').replace('hr_phase_enabled() {', 'hr_phase_enabled_absent() {'));
+  const source = readFileSync(lib, 'utf8');
+  assert.ok(source.includes('hr_state_dir() {'), 'the shipped library defines no hr_state_dir to remove');
+  await writeFile(lib, source.replace('hr_state_dir() {', 'hr_state_dir_absent() {'));
 
   const result = await walk(dir, ['start', ...flags('--skipped', 'none')]);
 

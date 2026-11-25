@@ -126,6 +126,7 @@ import {
   remoteExecutionApplies,
   retrievalApplies,
   sandboxOptedOut,
+  scriptDrivenPlanningEnabled,
   STATE_DIR_DOT_PATTERN,
   STATE_DIR_PATTERN,
   type HarnessConfig,
@@ -1745,8 +1746,9 @@ const JQ_CHECK: Check = {
 /**
  * Is `uv`, which builds the flow walker's Python environment, on this machine?
  *
- * **Every finding is a `warn` until #419 makes the walker needed**, when an absent `uv` becomes a
- * `fail`: nothing runs the walker yet, so a host without it can still run the flow as configured.
+ * **An absent `uv` is a `fail`**: every walker call refuses without it, and a run copy's bootstrap
+ * fails at `setup-worktree.sh` step 6. The two findings where `uv` resolves but `uv --version` gives
+ * no usable answer are `warn`s: `uv` is present and may work.
  *
  * {@link JQ_CHECK}'s probe discipline and its two-finding split: existence through
  * {@link resolvesOnPath}, then `uv --version` with a fixed argument vector and a bounded timeout.
@@ -1757,8 +1759,8 @@ const UV_CHECK: Check = {
   title: "uv is on PATH, so the flow walker's Python environment can be provisioned",
   run: () => {
     if (!resolvesOnPath('uv')) {
-      return warn(
-        "uv does not resolve on PATH: DevScene requires uv to run its flow walker — install uv (https://docs.astral.sh/uv/), then provision the walker's environment with the command the flow-host check names. A warning rather than a failure because nothing runs the walker yet",
+      return fail(
+        "uv does not resolve on PATH: DevScene requires uv to run its flow walker — install uv (https://docs.astral.sh/uv/), then provision the walker's environment with the command the flow-host check names. A failure because every flow-walker call refuses without uv, and a run copy's bootstrap fails at setup-worktree.sh step 6",
       );
     }
 
@@ -5600,7 +5602,12 @@ const OUTER_LOOP_SCRIPTS_CHECK: Check = {
  * {@link flowHostPackageDrift}'s answer and is reported first, because an environment built from
  * drifted packages is rebuilt after `init --upgrade` anyway. In the harness's own repository, where
  * the packages are links, the remedy is `npm run build` instead: `init --upgrade` writes nothing to
- * them there. Every finding warns, for {@link UV_CHECK}'s reason.
+ * them there. Package drift warns. An unprovisioned environment fails where
+ * {@link scriptDrivenPlanningEnabled} is true, because the planning driver runs the main checkout's
+ * walker and environment; otherwise it warns, because a run copy builds its own at
+ * `setup-worktree.sh` step 6 and a session here is refused by the walker with the same command.
+ * Under {@link CheckContext.remoteJob} it warns in every case, because the job's `Bootstrap the
+ * checkout` step builds the environment after the preflight and fails the job without it.
  */
 const FLOW_HOST_CHECK: Check = {
   id: 'flow-host',
@@ -5627,8 +5634,19 @@ const FLOW_HOST_CHECK: Check = {
     if (!flowHostProvisioned(ctx.profileRoot, ctx.config)) {
       const command = flowHostProvisionInvocation(ctx.config);
       const prerequisite = resolvesOnPath('uv') ? '' : 'install uv first (see the uv check), then ';
+      const finding = `the flow walker's Python environment at ${environment}/ has not been provisioned: ${prerequisite}run \`${command}\` from the repository root, outside the sandbox, since it reaches the network`;
+      if (ctx.remoteJob) {
+        return warn(
+          `${finding}. A warning rather than a failure under --remote-job because the job builds this environment at its \`Bootstrap the checkout\` step (setup-worktree.sh step 6), which runs after this preflight and fails the job without it`,
+        );
+      }
+      if (scriptDrivenPlanningEnabled(ctx.config)) {
+        return fail(
+          `${finding}. A failure because execution.scriptDrivenPlanning is true, so script-driven planning runs this checkout's walker and environment and stops without them`,
+        );
+      }
       return warn(
-        `the flow walker's Python environment at ${environment}/ has not been provisioned: ${prerequisite}run \`${command}\` from the repository root, outside the sandbox, since it reaches the network. A warning rather than a failure because nothing runs the walker yet`,
+        `${finding}. A warning rather than a failure because a run copy builds its own environment at setup-worktree.sh step 6, and a session in this checkout is refused by the walker with this same command`,
       );
     }
 

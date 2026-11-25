@@ -4,8 +4,8 @@
  * **The rule these tests exist to enforce: with no argument the bootstrap builds its own checkout's
  * `<scriptsDir>/python/.venv` from its own `<scriptsDir>/python/devscene-flow-host`; with `--target
  * <clone>` it builds `<clone>/<scriptsDir>/python/.venv` from the MAIN checkout's project, never the
- * clone's; a missing `uv` or a missing project is a `SKIPPED` line and exit 0; a failed sync is exit
- * 1 naming step 6.**
+ * clone's; a missing `uv`, a missing project and a failed sync each fail the bootstrap with exit 1
+ * naming step 6.**
  *
  * The fixture is `cli/test/setup-worktree-clone-target.test.mjs`'s: a hand-built main checkout and
  * the clone `hr_clone_create_var` makes, with `commands.depInstall` and `commands.build` unset. The
@@ -162,30 +162,32 @@ test('(b) With --target <clone>, the main checkout’s project is synced into th
   });
 });
 
-test('(c) No uv on PATH is a SKIPPED line and exit 0', async (t) => {
+test('(c) No uv on PATH fails the bootstrap with exit 1, naming step 6', async (t) => {
   const f = await fixture(t);
   const result = await f.setup([], { PATH: await pathWithoutUv(f.root) });
-  assert.equal(result.status, 0, output(result));
+  assert.equal(result.status, 1, output(result));
   assert.ok(
     result.stderr.includes(
-      `flow-host: provision: SKIPPED — uv is not on PATH; install uv, then run bash ${join(f.main, SCRIPTS_DIR)}/flow-host-provision.sh outside the sandbox\n`,
+      `flow-host: provision: failed — uv is not on PATH; install uv, then run bash ${join(f.main, SCRIPTS_DIR)}/flow-host-provision.sh outside the sandbox\n`,
     ),
     output(result),
   );
+  assert.ok(result.stderr.includes('setup-worktree.sh: step 6 (flow-host provision) failed\n'), output(result));
   assert.equal(f.uvCall(), null, 'the stub uv ran');
 });
 
-test('(d) No flow-host project is a SKIPPED line and exit 0, with uv never run', async (t) => {
+test('(d) No flow-host project fails the bootstrap with exit 1, naming step 6, with uv never run', async (t) => {
   const f = await fixture(t);
   await rm(join(f.main, SCRIPTS_DIR, FLOW_HOST_DIRNAME), { recursive: true, force: true });
   const result = await f.setup();
-  assert.equal(result.status, 0, output(result));
+  assert.equal(result.status, 1, output(result));
   assert.ok(
     result.stderr.includes(
-      `flow-host: provision: SKIPPED — no flow host at ${projectOf(f.main)}; run npx devscene init --upgrade\n`,
+      `flow-host: provision: failed — no flow host at ${projectOf(f.main)}; run npx devscene init --upgrade\n`,
     ),
     output(result),
   );
+  assert.ok(result.stderr.includes('setup-worktree.sh: step 6 (flow-host provision) failed\n'), output(result));
   assert.equal(f.uvCall(), null, 'uv ran with no flow host');
 });
 

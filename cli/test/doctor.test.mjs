@@ -2324,7 +2324,9 @@ async function npmStubPath(t, { line, status, stream = 'stdout' }) {
 
 /**
  * A `PATH` where the launch command resolves but the registry client does **not** — an `npx` stub
- * beside symlinks to the real `git` and `jq`, and no `npm` anywhere on it.
+ * beside symlinks to the real `git` and `jq`, and no `npm` anywhere on it. A `uv` stub sits beside
+ * them because `doctor` grades a missing `uv` as a failure, which would move the exit status this case
+ * asserts is 0; a stub rather than a symlink, so the case does not depend on `uv` being installed.
  *
  * The state an `npx`-only wrapper or a corporate image produces, and the one the registry probe's
  * `no-client` outcome exists for. Built as its own directory rather than by filtering the machine's
@@ -2344,6 +2346,7 @@ async function pathWithNpxButNoNpm(t) {
     symlinkSync(real, join(dir, name));
   }
   writeFileSync(join(dir, 'npx'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+  writeFileSync(join(dir, 'uv'), "#!/bin/sh\nprintf '%s\\n' 'uv 0.9.0'\n", { mode: 0o755 });
   return dir;
 }
 

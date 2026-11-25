@@ -15,10 +15,14 @@
  */
 
 import assert from 'node:assert/strict';
+import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
-import { runGit } from './helpers/fixture.mjs';
+import { INIT_SCRIPTS_DIR, runGit } from './helpers/fixture.mjs';
 import { assertInOrder, BRANCH, drive, driverFixture, driverUnavailable, show } from './helpers/planning-driver.mjs';
+import { walkerFixture } from './helpers/walker.mjs';
 
 const SKIP = driverUnavailable();
 const GATES = ['business-parity-reviewer', 'architecture-reviewer', 'task-plan-reviewer'];
@@ -183,4 +187,26 @@ test('a resume entering at convergence with P2 [x] and an uncommitted UI-test pl
   const tracked = (await runGit(f.dir, ['ls-files'])).stdout.split('\n');
   assert.ok(tracked.includes(uiIndex), tracked.join('\n'));
   assert.ok(tracked.includes(uiTest), tracked.join('\n'));
+});
+
+/**
+ * The driver runs outside the sandbox, so the walker it runs is the main checkout's, over the main
+ * checkout's own environment: the run copy's `flow-walker.sh` and `<scriptsDir>/python/` are
+ * writable from inside the sandbox, and an inherited `DEVSCENE_FLOW_HOST_ENV`,
+ * `DEVSCENE_FLOW_HOST_PROJECT` or `PYTHONPATH` chooses none of it.
+ */
+test('the walker that runs is the main checkout\'s, whatever the run copy\'s walker and the inherited environment name', { skip: SKIP }, async (t) => {
+  const main = await walkerFixture({ parity: true, qa: false, branch: BRANCH });
+  t.after(main.cleanup);
+  const f = await driverFixture(t, { mainRepo: main.dir, script: { [WRITER]: [{ touch: 'STOP' }] } });
+  await writeFile(join(f.dir, INIT_SCRIPTS_DIR, 'flow-walker.sh'), '#!/usr/bin/env bash\nexit 9\n', 'utf8');
+  const empty = await realpath(await mkdtemp(join(tmpdir(), 'planning-driver-empty-')));
+  t.after(() => rm(empty, { recursive: true, force: true }));
+  Object.assign(f.env, { DEVSCENE_FLOW_HOST_ENV: empty, DEVSCENE_FLOW_HOST_PROJECT: empty, PYTHONPATH: empty });
+
+  const r = await drive(t, f);
+  assert.equal(r.status, 3, show(r));
+  assert.ok(!r.log.split('\n').includes('[plan-drive] walker exited 9'), show(r));
+  assert.ok(r.log.split('\n').includes('[plan-drive]   | action: dispatch'), show(r));
+  assert.equal(r.calls.filter((c) => c.agent === WRITER).length, 1, show(r));
 });

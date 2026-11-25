@@ -148,8 +148,13 @@ import {
   FORCED_SIGNAL_ID,
   type DetectionResult,
 } from '../detect/signals.js';
-import { flowHostDir, flowHostEnvDir } from '../flowHost/layout.js';
-import { flowHostProvisioned, flowHostProvisionInvocation, provisionFlowHost } from '../flowHost/provision.js';
+import { flowHostDir } from '../flowHost/layout.js';
+import {
+  FLOW_HOST_PROVISION_PROBE_ENV,
+  flowHostProvisioned,
+  flowHostProvisionInvocation,
+  provisionFlowHost,
+} from '../flowHost/provision.js';
 import {
   writeClaudeContext,
   CLAUDE_MD_PATH,
@@ -421,8 +426,11 @@ const NOTIFICATIONS_FLAG = '--notifications';
 /** The flag that supplies the endpoint the opt-in needs, and without which nothing is written. */
 const PUSH_URL_FLAG = '--push-url';
 
-/** The flag that answers the provisioning offer — named in its option row and in the prompt's no-terminal hint. */
+/** The explicit form of the default build of the walker's environment; kept for scripts written before it was the default. */
 const PROVISION_PYTHON_FLAG = '--provision-python';
+
+/** The flag that skips that build — named in its option row and in the note the skipped run leaves. */
+const NO_PROVISION_PYTHON_FLAG = '--no-provision-python';
 
 /** The flag that brings the outer-loop scripts, the shipped Python packages and the permission profile up to this CLI. */
 const UPGRADE_FLAG = '--upgrade';
@@ -496,10 +504,13 @@ export interface InitFlags extends HarnessConfigFlags, ProjectSettingsFlags {
    */
   readonly pushUrl?: string;
   /**
-   * `--provision-python`. Answers the offer to build the walker's Python environment after the plan
-   * ({@link resolveProvisionPython}), whose non-interactive default is to skip it. Writes no config key.
+   * `--provision-python`. Asks for the build of the walker's Python environment after the plan, which
+   * {@link resolveProvisionPython} already defaults to, so it changes nothing. Two keys rather than one,
+   * with {@link InitFlags.noProvisionPython}, for {@link InitFlags.analyze}'s reason. Writes no config key.
    */
   readonly provisionPython?: boolean;
+  /** `--no-provision-python`. Skips that build, leaving a note naming the command. Writes no config key. */
+  readonly noProvisionPython?: boolean;
   /** `--preset`. Bypasses the detection table entirely; validated at parse time. */
   readonly preset?: string;
   /** `--app-dir`. The tree detection probes, when the repository nests its application. */
@@ -567,8 +578,8 @@ type ValueFlagKey = Exclude<keyof InitFlags, SwitchFlagKey>;
  * (`generators/projectSettings.ts`) and `--reference-toolchain-path` reaches the permission profile
  * (`generators/permissionProfile.ts`), so both still take effect on a kept run; and the run-shape
  * rows — `--git-init`, `--reset-config`, the {@link ANALYZE_FLAG} / {@link NO_ANALYZE_FLAG} pair,
- * {@link NOTIFICATIONS_FLAG}, {@link PUSH_URL_FLAG}, {@link PROVISION_PYTHON_FLAG},
- * {@link PLUGIN_ROOT_ENTRIES_FLAG}, {@link UPGRADE_WORKFLOWS_FLAG} and {@link UPGRADE_FLAG} — are about
+ * {@link NOTIFICATIONS_FLAG}, {@link PUSH_URL_FLAG}, the {@link PROVISION_PYTHON_FLAG} /
+ * {@link NO_PROVISION_PYTHON_FLAG} pair, {@link PLUGIN_ROOT_ENTRIES_FLAG}, {@link UPGRADE_WORKFLOWS_FLAG} and {@link UPGRADE_FLAG} — are about
  * the shape of the run or about artifacts outside the repository's config.
  *
  * **Marked *and* detection-steering** is the sub-case, and {@link InitOption.steersDetection} is how
@@ -636,7 +647,7 @@ function initOptions<T extends readonly InitOption[]>(
  * answers the offer to analyze this repository — which decides the wording the generated
  * always-loaded file carries — then the pair that decides whether this account gets told when an
  * unattended run finishes, which is the one pair that writes nothing into the repository at all, then
- * the switch that builds the walker's Python environment after the plan, then the switch that adds
+ * the pair that decides whether the walker's Python environment is built after the plan, then the switch that adds
  * this machine's plugin-root entries to a freshly generated profile, then the switch that re-renders
  * the two remote-execution workflows at this CLI's version, and last the switch that upgrades the
  * outer-loop scripts, the shipped Python packages and the permission profile instead of wiring
@@ -811,7 +822,13 @@ const INIT_OPTIONS: readonly InitOption[] = initOptions([
     key: 'provisionPython',
     flag: PROVISION_PYTHON_FLAG,
     kind: 'switch',
-    summary: 'Build the Python environment the flow walker runs in with uv after wiring (otherwise asked on a terminal, and skipped with a note when not)',
+    summary: 'Build the Python environment the flow walker runs in with uv after wiring: the default; accepted for scripts written before it was',
+  },
+  {
+    key: 'noProvisionPython',
+    flag: NO_PROVISION_PYTHON_FLAG,
+    kind: 'switch',
+    summary: 'Skip building the Python environment the flow walker runs in, leaving a note naming the command that builds it',
   },
   {
     key: 'pluginRootEntries',
@@ -1020,6 +1037,11 @@ function parseInitFlags(argv: readonly string[]): InitFlags {
       `init: ${ANALYZE_FLAG} and ${NO_ANALYZE_FLAG} answer the same question opposite ways and both were given: pass one, or neither — with neither, the documented default accepts the offer`,
     );
   }
+  if (switches.has('provisionPython') && switches.has('noProvisionPython')) {
+    throw new HarnessError(
+      `init: ${PROVISION_PYTHON_FLAG} and ${NO_PROVISION_PYTHON_FLAG} answer the same question opposite ways and both were given: pass one, or neither — with neither, the default builds the environment`,
+    );
+  }
   // Refused rather than warned, unlike `--qa-driver` without `--qa`: `docs.retrieval: true` without
   // `phases.docs` is a config-check error, so the generated config would fail the write guard.
   if (switches.has('docsRetrieval') && !switches.has('docs')) {
@@ -1054,6 +1076,7 @@ function parseInitFlags(argv: readonly string[]): InitFlags {
     docsRetrieval: switches.has('docsRetrieval'),
     parity: switches.has('parity'),
     provisionPython: switches.has('provisionPython'),
+    noProvisionPython: switches.has('noProvisionPython'),
     pluginRootEntries: switches.has('pluginRootEntries'),
     upgradeWorkflows: switches.has('upgradeWorkflows'),
     upgrade: switches.has('upgrade'),
@@ -1502,28 +1525,30 @@ function askRetrieval(ctx: CommandContext): boolean | undefined {
 }
 
 /**
- * Whether this run builds the walker's Python environment after the plan: {@link PROVISION_PYTHON_FLAG}
- * means yes; otherwise a run that can prompt, in a repository without the environment, is asked with
- * yes as the default; every other run answers no and is told the command by the post-plan step.
+ * What skips the default build of the walker's Python environment, in the words the skipped run's note
+ * names it by — or `undefined` when nothing does: {@link NO_PROVISION_PYTHON_FLAG}, or
+ * {@link FLOW_HOST_PROVISION_PROBE_ENV} at `off`, which only the test suite sets.
  *
- * Settled before `plan.apply`, because no answer is taken after anything is written. The default
- * without a terminal is no because the build reaches the network, which an unattended or piped run
- * must not do unasked.
+ * Read before `plan.apply`, for init's rule that no answer is taken after anything is written; the
+ * rest of the decision needs the plan's result and is {@link resolveProvisionPython}'s.
  */
-function resolveProvisionPython(ctx: CommandContext, flags: InitFlags, repoRoot: string, config: HarnessConfig): boolean {
-  if (flags.provisionPython === true) return true;
-  const promptCtx = { flags: ctx.flags, report: ctx.report };
-  if (!canPrompt(promptCtx) || flowHostProvisioned(repoRoot, config)) return false;
+function provisionPythonOptOut(flags: InitFlags): string | undefined {
+  if (flags.noProvisionPython === true) return `${NO_PROVISION_PYTHON_FLAG} was given`;
+  if (process.env[FLOW_HOST_PROVISION_PROBE_ENV] === 'off') return `${FLOW_HOST_PROVISION_PROBE_ENV} is off`;
+  return undefined;
+}
 
-  return askYesNo(
-    {
-      question: `Build the Python environment the flow walker runs in now? uv installs it into ${flowHostEnvDir(config)}/, which takes the network and may take minutes`,
-      defaultAnswer: true,
-      flag: PROVISION_PYTHON_FLAG,
-      flagHint: 'to build it without being asked',
-    },
-    promptCtx,
-  );
+/**
+ * Whether this run builds the walker's Python environment after the plan: never under an opt-out
+ * ({@link provisionPythonOptOut}); otherwise yes where the environment is not built, or where the plan
+ * changed a shipped package file it was built from; else no. Asks nothing, on a terminal or off one.
+ *
+ * The default is to build, network and all, because the walker is required: a repository left
+ * without its environment cannot plan.
+ */
+function resolveProvisionPython(optOut: string | undefined, provisioned: boolean, flowHostChanged: number): boolean {
+  if (optOut !== undefined) return false;
+  return !provisioned || flowHostChanged > 0;
 }
 
 /** What the analyze offer resolved to, and the pre-plan facts the closing pointer is worded against. */
@@ -1603,12 +1628,11 @@ function hasOpenSetupBanner(repoRoot: string): boolean {
 /**
  * Settle the offer to run {@link ANALYZE_COMMAND} in this repository's first session.
  *
- * **The third of the five questions this command puts**, and — like all five — settled before
+ * **The third of the four questions this command puts**, and — like all four — settled before
  * `plan.apply`, so no answer is taken after anything has been written: the repository itself
  * ({@link resolveTargetRepository}), which driver the interactive test phase runs
- * ({@link askQaDriver}, asked lazily inside the config generator), this offer, push
- * notifications ({@link resolveNotifications}), and whether to build the walker's Python environment
- * ({@link resolveProvisionPython}). Moving the call site breaks that order and this
+ * ({@link askQaDriver}, asked lazily inside the config generator), this offer, and push
+ * notifications ({@link resolveNotifications}). Moving the call site breaks that order and this
  * sentence with it.
  *
  * **The documented default is yes, and the interaction rule's continuity clause holds in two halves
@@ -2282,8 +2306,8 @@ function hiddenBackupsNote(options: {
  * question is the last one a generator takes; and the git hook last, with
  * `core.hooksPath` pointed at it only **after** the plan has been applied and the hook it enables
  * therefore exists — and after that, in a repository that has no commit yet, the first commit
- * ({@link commitGeneratedFiles}). The provisioning question follows every generator and precedes the
- * plan; the step it answers runs after `core.hooksPath` is pointed and before the commit.
+ * ({@link commitGeneratedFiles}). The provisioning opt-out is read after every generator and before the
+ * plan; the build it governs runs after `core.hooksPath` is pointed and before the commit.
  */
 async function run(ctx: CommandContext): Promise<number> {
   const flags = parseInitFlags(ctx.argv);
@@ -2573,7 +2597,7 @@ async function run(ctx: CommandContext): Promise<number> {
   const state = writeStateDir({ repoRoot, config: effective, plan });
   notes.push(...state.notes);
 
-  // The third of the five questions this run puts, and settled here because its answer is an
+  // The third of the four questions this run puts, and settled here because its answer is an
   // *input* to the generator below: that generator enqueues the banner while the plan is being
   // built, so a resolution taken afterwards would be reading a decision it was supposed to make.
   const analyze = resolveAnalyzeOffer(ctx, flags, repoRoot, effective);
@@ -2657,9 +2681,9 @@ async function run(ctx: CommandContext): Promise<number> {
   warnings.push(...hooks.warnings);
   notes.push(...hooks.notes);
 
-  // The last question this run puts, and before the plan for init's rule that no answer is taken after
-  // anything is written; the step it answers runs after the plan.
-  const provisionPython = resolveProvisionPython(ctx, flags, repoRoot, effective);
+  // Before the plan for init's rule that no answer is taken after anything is written; the step it
+  // governs runs after the plan.
+  const provisionOptOut = provisionPythonOptOut(flags);
 
   ctx.report.step(ctx.flags.dryRun ? 'files (dry run — nothing is written)' : 'files');
   const applied = plan.apply({ repoRoot, report: ctx.report, dryRun: ctx.flags.dryRun, force: ctx.flags.force });
@@ -2706,18 +2730,19 @@ async function run(ctx: CommandContext): Promise<number> {
   // from the packages the plan has just written, a sync takes the network and minutes, and it is no
   // plan artifact — so it is never enqueued and never runs under `--dry-run`. `cli/src/core/writer.ts`'s
   // header records the exception. Before the commit, which a failure here must not stop.
-  if (provisionPython) {
+  const envProvisioned = flowHostProvisioned(repoRoot, effective);
+  if (resolveProvisionPython(provisionOptOut, envProvisioned, flowHostChanged)) {
     ctx.report.step('flow walker environment');
     const provisioned = provisionFlowHost({ repoRoot, config: effective, dryRun: ctx.flags.dryRun });
     warnings.push(...provisioned.warnings);
     notes.push(...provisioned.notes);
-  } else if (!flowHostProvisioned(repoRoot, effective)) {
+  } else if (provisionOptOut !== undefined && !envProvisioned) {
     notes.push(
-      `the Python environment the flow walker runs in is not built: run ${flowHostProvisionInvocation(effective)} outside the sandbox to build it with uv, or pass ${PROVISION_PYTHON_FLAG} to init`,
+      `the Python environment the flow walker runs in was not built, because ${provisionOptOut}: run ${flowHostProvisionInvocation(effective)} outside the sandbox to build it with uv`,
     );
-  } else if (flowHostChanged > 0) {
+  } else if (provisionOptOut !== undefined && flowHostChanged > 0) {
     notes.push(
-      `the Python environment the flow walker runs in was built from the previous packages: rebuild it by running ${flowHostProvisionInvocation(effective)} outside the sandbox, or pass ${PROVISION_PYTHON_FLAG} to init`,
+      `the Python environment the flow walker runs in was built from the previous packages and was not rebuilt, because ${provisionOptOut}: rebuild it by running ${flowHostProvisionInvocation(effective)} outside the sandbox`,
     );
   }
 

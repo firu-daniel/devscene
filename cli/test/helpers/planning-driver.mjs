@@ -11,7 +11,7 @@
  * `node --test test` loads this file as a test file of its own, so nothing here runs at import time.
  *
  * The fixture is one repository on `feat_x`, both the main checkout and the worktree `pd_drive`
- * runs in, with `phases.parity` `true` (a round's set is three gates) and `phases.qa` `false`. Its
+ * runs in unless `mainRepo` names another main checkout, with `phases.parity` `true` (a round's set is three gates) and `phases.qa` `false`. Its
  * bare `origin` is the one `createFixture` seeds, so `push-branch.sh` has a remote.
  *
  * The stub reads `--agent`, `-p` and `--plugin-dir` from its argv and acts on the entry the case's
@@ -51,7 +51,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import { INIT_SCRIPTS_DIR, WORKSPACE_ROOT, runBash, runGit } from './fixture.mjs';
-import { mustFixSection, stateDirOf, walkerFixture, walkerUnavailable } from './walker.mjs';
+import { linkWalkerEnv, mustFixSection, stateDirOf, walkerFixture, walkerUnavailable } from './walker.mjs';
 
 export const BRANCH = 'feat_x';
 
@@ -183,12 +183,16 @@ process.stdout.write(events.map((e) => JSON.stringify(e)).join('\n') + (events.l
  * plugin copy and the stub.
  *
  * @param {import('node:test').TestContext} t
- * @param {{ script?: Record<string, object[]>, core?: (text: string) => string }} [options]
- *   `script` maps an agent to its entries by call index; `core` transforms the copied planning core.
+ * @param {{ script?: Record<string, object[]>, core?: (text: string) => string, mainRepo?: string }} [options]
+ *   `script` maps an agent to its entries by call index; `core` transforms the copied planning core;
+ *   `mainRepo` is the checkout `pd_drive` gets as `PD_MAIN_REPO`, the fixture's own by default.
  */
-export async function driverFixture(t, { script = {}, core = (text) => text } = {}) {
+export async function driverFixture(t, { script = {}, core = (text) => text, mainRepo } = {}) {
+  // `walkerFixture` links the fixture's own environment; another main checkout is linked here.
   const { dir, cleanup } = await walkerFixture({ parity: true, qa: false, branch: BRANCH });
   t.after(cleanup);
+  const main = mainRepo ?? dir;
+  if (main !== dir) linkWalkerEnv(main);
   const root = await realpath(await mkdtemp(join(tmpdir(), 'planning-driver-')));
   t.after(() => rm(root, { recursive: true, force: true }));
   const sd = stateDirOf(dir);
@@ -250,6 +254,7 @@ export async function driverFixture(t, { script = {}, core = (text) => text } = 
 
   const f = {
     dir,
+    mainRepo: main,
     root,
     sd,
     plugin,
@@ -284,6 +289,11 @@ export async function driverFixture(t, { script = {}, core = (text) => text } = 
   return f;
 }
 
+/** A shell single-quoted literal, so a fixture path is one word whatever it contains. */
+function shellQuote(value) {
+  return `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
 /** The calls log as one record per call, in start order, each with its prompt. */
 async function readCalls(f) {
   const path = join(f.stubDir, 'calls.log');
@@ -314,7 +324,7 @@ export async function drive(t, f, { stallSecs = 0 } = {}) {
     'cd "$W" || exit 90',
     ...LIBRARIES.map((lib) => `. "$W/${INIT_SCRIPTS_DIR}/lib/${lib}.sh" || exit 91`),
     'session_exec() { exec "$STUB" -p "$1" "${@:2}"; }',
-    'PD_PLUGIN_DIR=$P PD_MAIN_REPO=$W PD_SESSION_EXEC=session_exec PD_FORMATTER=cat',
+    `PD_PLUGIN_DIR=$P PD_MAIN_REPO=${shellQuote(f.mainRepo)} PD_SESSION_EXEC=session_exec PD_FORMATTER=cat`,
     `PD_NODE_STALL_SECS=${Number(stallSecs)} PD_BACKOFF_SECS=0`,
     `pd_drive ${BRANCH} "$W" "$LOG"`,
   ].join('\n');

@@ -4,10 +4,11 @@
  *
  * **The rule this suite enforces: the script builds exactly one environment, its own checkout's
  * `<scriptsDir>/python/.venv`, from exactly one project, `<scriptsDir>/python/devscene-flow-host`,
- * through one `uv sync --frozen --no-dev --no-editable` call; a missing `uv` or a missing flow host
- * is a `SKIPPED` line and exit 0, a failed sync is exit 1, and any argument is exit 2.** The three
- * path segments are a declared mirror of `cli/src/flowHost/layout.ts`, and the expected paths below
- * are built from that module's compiled exports, so a rename on either side fails here.
+ * through one `uv sync --frozen --no-dev --no-editable` call; a missing `uv`, a missing flow host
+ * and a failed sync are each a `failed` line and exit 1, and any argument is exit 2.** The library's
+ * six `HR_FLOW_HOST_*` names are a declared mirror of `cli/src/flowHost/layout.ts` and of
+ * `cli/src/flowHost/provision.ts` → `ENV_MARKER_FILE`, and the expected paths below are built from
+ * those modules' compiled exports, so a rename on either side fails here.
  *
  * `uv` is a stub on `PATH` that records its argv and `UV_PROJECT_ENVIRONMENT` — the stub-binary
  * pattern `cli/test/job-layout-root.test.mjs` uses — so no case reaches the network or the shared
@@ -25,7 +26,14 @@ import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import test from 'node:test';
 
-import { FLOW_HOST_DIRNAME, FLOW_HOST_ENV_DIRNAME, FLOW_HOST_PROJECT } from '../dist/flowHost/layout.js';
+import {
+  FLOW_HOST_DIRNAME,
+  FLOW_HOST_ENV_DIRNAME,
+  FLOW_HOST_PACKAGES,
+  FLOW_HOST_PROJECT,
+  FLOW_HOST_SOURCE_DIRNAME,
+} from '../dist/flowHost/layout.js';
+import { ENV_MARKER_FILE } from '../dist/flowHost/provision.js';
 import { PACKAGE_ROOT, runBash, runGit } from './helpers/fixture.mjs';
 
 const TEMPLATE_SCRIPTS = join(PACKAGE_ROOT, 'templates', 'scripts');
@@ -110,22 +118,22 @@ test('a failed sync prints the failure line and exits 1', { skip: NO_JQ }, async
   );
 });
 
-test('no flow host is a SKIPPED line and exit 0, with uv never run', { skip: NO_JQ }, async (t) => {
+test('no flow host is a failed line and exit 1, with uv never run', { skip: NO_JQ }, async (t) => {
   const f = await fixture(t);
   await rm(join(f.scripts, FLOW_HOST_DIRNAME), { recursive: true, force: true });
   const result = await f.run([], f.env);
   assert.deepEqual(
     { status: result.status, stdout: result.stdout, stderr: result.stderr },
     {
-      status: 0,
+      status: 1,
       stdout: '',
-      stderr: `flow-host: provision: SKIPPED — no flow host at ${f.project}; run npx devscene init --upgrade\n`,
+      stderr: `flow-host: provision: failed — no flow host at ${f.project}; run npx devscene init --upgrade\n`,
     },
   );
   assert.equal(existsSync(f.argsFile), false, 'uv ran with no flow host');
 });
 
-test('no uv on PATH is a SKIPPED line naming this script, and exit 0', { skip: NO_JQ }, async (t) => {
+test('no uv on PATH is a failed line naming this script, and exit 1', { skip: NO_JQ }, async (t) => {
   const f = await fixture(t);
   const bare = join(f.w, 'bare-bin');
   await mkdir(bare);
@@ -138,9 +146,9 @@ test('no uv on PATH is a SKIPPED line naming this script, and exit 0', { skip: N
   assert.deepEqual(
     { status: result.status, stdout: result.stdout, stderr: result.stderr },
     {
-      status: 0,
+      status: 1,
       stdout: '',
-      stderr: `flow-host: provision: SKIPPED — uv is not on PATH; install uv, then run bash ${f.scripts}/${SCRIPT} outside the sandbox\n`,
+      stderr: `flow-host: provision: failed — uv is not on PATH; install uv, then run bash ${f.scripts}/${SCRIPT} outside the sandbox\n`,
     },
   );
 });
@@ -155,13 +163,37 @@ test('any argument is usage, exit 2, with uv never run', async (t) => {
   assert.equal(existsSync(f.argsFile), false, 'uv ran on a usage error');
 });
 
-test('the library spells the three layout literals as cli/src/flowHost/layout.ts exports them', () => {
-  const text = readFileSync(join(TEMPLATE_SCRIPTS, LIBRARY), 'utf8');
-  const body = /^hr_flow_host_provision\(\) \{\n([\s\S]*?)\n\}$/m.exec(text);
-  assert.ok(body, 'hr_flow_host_provision is not defined in the library');
-  const literal = (name) => new RegExp(`\\b${name}='([^']*)'`).exec(body[1])?.[1];
-  assert.deepEqual(
-    { flow_dir: literal('flow_dir'), flow_project: literal('flow_project'), flow_env: literal('flow_env') },
-    { flow_dir: FLOW_HOST_DIRNAME, flow_project: FLOW_HOST_PROJECT, flow_env: FLOW_HOST_ENV_DIRNAME },
+test('the library sets the six HR_FLOW_HOST_* names as cli/src/flowHost/layout.ts and provision.ts export them', async () => {
+  const names = [
+    'HR_FLOW_HOST_DIRNAME',
+    'HR_FLOW_HOST_PROJECT',
+    'HR_FLOW_HOST_GRAPHSCENE',
+    'HR_FLOW_HOST_ENV_DIRNAME',
+    'HR_FLOW_HOST_SOURCE_DIRNAME',
+    'HR_FLOW_HOST_ENV_MARKER',
+  ];
+  const result = await runBash(PACKAGE_ROOT, [
+    '-c',
+    '. "$1" || exit 99; shift; for name in "$@"; do printf "%s=%s\\n" "$name" "${!name-<unset>}"; done',
+    'hr',
+    join(TEMPLATE_SCRIPTS, LIBRARY),
+    ...names,
+  ]);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  const sourced = Object.fromEntries(
+    result.stdout
+      .split('\n')
+      .filter((line) => line !== '')
+      .map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]),
   );
+  const others = FLOW_HOST_PACKAGES.filter((name) => name !== FLOW_HOST_PROJECT);
+  assert.equal(others.length, 1, `FLOW_HOST_PACKAGES holds ${JSON.stringify(FLOW_HOST_PACKAGES)}`);
+  assert.deepEqual(sourced, {
+    HR_FLOW_HOST_DIRNAME: FLOW_HOST_DIRNAME,
+    HR_FLOW_HOST_PROJECT: FLOW_HOST_PROJECT,
+    HR_FLOW_HOST_GRAPHSCENE: others[0],
+    HR_FLOW_HOST_ENV_DIRNAME: FLOW_HOST_ENV_DIRNAME,
+    HR_FLOW_HOST_SOURCE_DIRNAME: FLOW_HOST_SOURCE_DIRNAME,
+    HR_FLOW_HOST_ENV_MARKER: ENV_MARKER_FILE,
+  });
 });

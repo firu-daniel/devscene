@@ -20,9 +20,11 @@ and `current`; then the verb. The walk is reached only through the host's entry 
 own methods, which would skip the round-file check, the refusal count and the `refused:` lines.
 
 Deliberately not covered:
-- The launch route and `uv`: #419's.
-- The bash walker's own flat state file at `<stateDir>/.flow_walker_state`, and comparing the two
-  walkers: `devscene-flow-host/README.md` → the differences section.
+- The launch route and `uv`: `cli/templates/scripts/flow-walker.sh`'s.
+- A flat bash state file at `<stateDir>/.flow_walker_state`: `flow-walker.sh` deletes it before
+  this command runs.
+- Comparing this command with the retired bash walker: `devscene-flow-host/README.md` → the
+  differences section.
 - A rendering fault after `start` or `next` has saved the walk: the walk stays saved, where bash
   renders before it writes.
 """

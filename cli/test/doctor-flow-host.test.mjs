@@ -1,16 +1,17 @@
 /**
  * `doctor`'s `uv` and `flow-host` lines, against the compiled CLI on repositories `init` wired.
  *
- * **The rule this suite enforces: a host without `uv`, shipped Python packages that are missing or
- * changed, and an unprovisioned walker environment are each reported as a warning naming its
- * remedy, and none of them moves `doctor`'s exit status until #419 makes the walker needed.**
+ * **The rule this suite enforces: a host without `uv` fails `doctor`; shipped Python packages that
+ * are missing or changed warn; an unprovisioned walker environment warns, and fails where
+ * `execution.scriptDrivenPlanning` is true; under `--remote-job` it warns, because the job builds
+ * the environment after its preflight. Each finding names its remedy.**
  *
  * `uv` is given to the command as a machine rather than mocked: a stub first on `PATH`, or a `PATH`
  * built from links to only the binaries the run needs, so the host's own `uv` cannot reach a case.
  */
 
 import assert from 'node:assert/strict';
-import { accessSync, appendFileSync, constants as fsConstants, cpSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { accessSync, appendFileSync, constants as fsConstants, cpSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
@@ -99,7 +100,7 @@ async function pathWithoutUv(t) {
 
 /** The `id` line in `status` from the stream the reporter puts it on, or `undefined`. */
 function checkLine({ stdout, stderr }, status, id) {
-  const [stream, prefix] = status === 'PASS' ? [stdout, ''] : [stderr, '! '];
+  const [stream, prefix] = status === 'PASS' ? [stdout, ''] : [stderr, status === 'FAIL' ? '!! ' : '! '];
   return stream.split('\n').find((line) => new RegExp(`^${prefix}${status}\\s+${id}\\s`).test(line));
 }
 
@@ -113,6 +114,14 @@ async function doctor(dir, env = {}) {
   const result = await runCli(dir, ['doctor'], env);
   assert.equal(result.status, 0, `doctor exited ${result.status}\n${result.stdout}\n${result.stderr}`);
   return result;
+}
+
+/** Turn on `execution.scriptDrivenPlanning` in the fixture's `devscene.config.json`. */
+function enableScriptDrivenPlanning(dir) {
+  const file = join(dir, 'devscene.config.json');
+  const config = JSON.parse(readFileSync(file, 'utf8'));
+  config.execution = { ...config.execution, scriptDrivenPlanning: true };
+  writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
 }
 
 /** Plant the marker `uv` writes into every environment, as a provisioned repository has. */
@@ -135,13 +144,14 @@ describe('doctor uv and flow-host', { concurrency: CASE_CONCURRENCY }, () => {
     assert.ok(pass.includes(JSON.stringify(STUB_VERSION)), pass);
   });
 
-  it('warns on uv with no uv reachable, and doctor still exits 0', async (t) => {
+  it('fails on uv with no uv reachable, and doctor exits 1', async (t) => {
     const dir = await wired(t);
-    const result = await doctor(dir, { PATH: await pathWithoutUv(t) });
-    assert.match(line(result, 'WARN', UV_CHECK), /DevScene requires uv/);
+    const result = await runCli(dir, ['doctor'], { PATH: await pathWithoutUv(t) });
+    assert.equal(result.status, 1, `doctor exited ${result.status}\n${result.stdout}\n${result.stderr}`);
+    assert.match(line(result, 'FAIL', UV_CHECK), /DevScene requires uv/);
     const flowHost = line(result, 'WARN', FLOW_HOST_CHECK);
     assert.match(flowHost, /install uv first/);
-    assert.match(result.stdout, /^Summary: \d+ pass, [1-9]\d* warn, 0 fail — exit 0/m);
+    assert.match(result.stdout, /^Summary: \d+ pass, \d+ warn, [1-9]\d* fail — exit 1/m);
   });
 
   it('warns on uv when the stub prints no version', async (t) => {
@@ -164,13 +174,37 @@ describe('doctor uv and flow-host', { concurrency: CASE_CONCURRENCY }, () => {
     line(await doctor(dir, env), 'PASS', FLOW_HOST_CHECK);
   });
 
+  it('fails on flow-host naming the provisioning command where script-driven planning is on, then passes once provisioned', async (t) => {
+    const dir = await wired(t);
+    enableScriptDrivenPlanning(dir);
+    const env = { PATH: await uvStubPath(t, STUB_VERSION) };
+    const command = flowHostProvisionInvocation(requireConfig(dir));
+
+    const result = await runCli(dir, ['doctor'], env);
+    assert.equal(result.status, 1, `doctor exited ${result.status}\n${result.stdout}\n${result.stderr}`);
+    const failure = line(result, 'FAIL', FLOW_HOST_CHECK);
+    assert.ok(failure.includes(command), failure);
+    assert.match(failure, /script-driven planning/);
+
+    plantEnvironment(dir);
+    line(await doctor(dir, env), 'PASS', FLOW_HOST_CHECK);
+  });
+
+  it('warns rather than fails on flow-host under --remote-job where script-driven planning is on', async (t) => {
+    const dir = await wired(t);
+    enableScriptDrivenPlanning(dir);
+    const result = await runCli(dir, ['doctor', '--remote-job'], { PATH: await uvStubPath(t, STUB_VERSION) });
+    assert.equal(checkLine(result, 'FAIL', FLOW_HOST_CHECK), undefined, result.stderr);
+    assert.match(line(result, 'WARN', FLOW_HOST_CHECK), /Bootstrap the checkout/);
+  });
+
   it('warns on flow-host naming an edited shipped file and init --upgrade', async (t) => {
     const dir = await wired(t);
     plantEnvironment(dir);
     const file = shippedFile(dir);
     appendFileSync(join(dir, ...file.split('/')), '# edited\n');
 
-    const warning = line(await doctor(dir), 'WARN', FLOW_HOST_CHECK);
+    const warning = line(await doctor(dir, { PATH: await uvStubPath(t, STUB_VERSION) }), 'WARN', FLOW_HOST_CHECK);
     assert.ok(warning.includes(`changed from what this CLI ships: ${file}`), warning);
     assert.ok(warning.includes(REMEDY), warning);
   });
@@ -181,7 +215,7 @@ describe('doctor uv and flow-host', { concurrency: CASE_CONCURRENCY }, () => {
     const file = shippedFile(dir);
     rmSync(join(dir, ...file.split('/')));
 
-    const warning = line(await doctor(dir), 'WARN', FLOW_HOST_CHECK);
+    const warning = line(await doctor(dir, { PATH: await uvStubPath(t, STUB_VERSION) }), 'WARN', FLOW_HOST_CHECK);
     assert.ok(warning.includes(`missing: ${file}`), warning);
     assert.ok(warning.includes(REMEDY), warning);
   });
@@ -196,7 +230,7 @@ describe('doctor uv and flow-host', { concurrency: CASE_CONCURRENCY }, () => {
     rmSync(link, { recursive: true });
     symlinkSync(copy, link);
 
-    const warning = line(await doctor(dir), 'WARN', FLOW_HOST_CHECK);
+    const warning = line(await doctor(dir, { PATH: await uvStubPath(t, STUB_VERSION) }), 'WARN', FLOW_HOST_CHECK);
     assert.ok(warning.includes(SELF_ADOPTED_REMEDY), warning);
     assert.ok(!warning.includes(REMEDY), warning);
   });
