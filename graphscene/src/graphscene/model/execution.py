@@ -11,11 +11,14 @@ The rule:
 - An anticipated failure is returned as a `Failed`, never raised. An exception out of `run` is a
   defect and propagates.
 - The failure classes:
-  - `infra`: the run did not finish for a reason outside the agent, such as a crash, an
-    unresolved session or a stall the executor detected itself. Retryable.
+  - `infra`: the run failed for a reason outside the agent's own judgement, such as a crash, a
+    session that ended in error, a stall the executor detected itself, or a return that was
+    absent, could not be parsed, or failed the schema the executor names. Retryable for that
+    node alone, a bounded number of times.
   - `agent`: the agent finished and reported that it failed.
-  - `undelivered`: the run finished but left no return the executor could read as a valid one,
-    because it was absent, could not be parsed, or failed the schema the executor names.
+  - `undelivered`: the run delivered nothing the executor could read at all, such as no result
+    from the provider or the provider being unavailable. It says nothing about the node, so a
+    re-dispatch of it is not one of the node's attempts; repeated, it is a run-level condition.
 - `run` is cancellable. On `asyncio.CancelledError` it releases what it holds and re-raises, and
   never turns cancellation into a result. The deadline around a node's coroutine is the caller's
   to set and to report (#484).
