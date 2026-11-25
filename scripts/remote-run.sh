@@ -1513,10 +1513,10 @@
 #
 #   restore and save run in the job's checkout; with that same "a bundle" stub
 #   (the bundle also carrying clarifications/feat_x/question_1.md and
-#   flow_walker_state) and GITHUB_RUN_ID set to another id:
+#   flow_walker_state/feat_x.json, the branch's walk) and GITHUB_RUN_ID set to another id:
 #   restore    bash scripts/remote-run.sh restore feat_x --resume none   -> 0; the
 #              checkout carries clarifications/feat_x/question_1.md,
-#              .flow_walker_state and autonomous_logs/remote_status.json, and
+#              .flow_walker_state/feat_x.json and autonomous_logs/remote_status.json, and
 #              places the bundle's planning/ drafts where the checkout has none
 #   answer     HARNESS_INPUT_ANSWERS='{"1":"Use B.\n"}' ... --resume answer -> 0;
 #              clarifications/feat_x/answer_1.md holds exactly `Use B.` + newline
@@ -1541,7 +1541,7 @@
 #              branch-resume; sync -> the record is paused / expired; status
 #              -> prints the expired line, "$r" byte-identical
 #   save       bash scripts/remote-run.sh save feat_x /tmp/b -> 0; /tmp/b holds
-#              status.json, clarifications/feat_x/, flow_walker_state (and
+#              status.json, clarifications/feat_x/, flow_walker_state/ with the branch's walk files (and
 #              PAUSE_PROGRESS.md, run.log, planning/ when present); with
 #              GITHUB_STEP_SUMMARY=/tmp/s, /tmp/s gains the status table
 #   never started  no remote_status.json and no registry: save -> 0, /tmp/b

@@ -152,7 +152,8 @@
 #   3. THE REMOTE STATE BUNDLE writes the files its format lists. Fence: inside
 #      `<root>/<state_dir>/` (resolved through `hr_remote_state_dir_var`), only
 #      `autonomous_logs/remote_status.json`, `clarifications/<branch>/`,
-#      `PAUSE_PROGRESS.md`, `.flow_walker_state`, the move-aside directory
+#      `PAUSE_PROGRESS.md`, the branch's `<enc>.json` files under
+#      `.flow_walker_state/` with their parent directories, the move-aside directory
 #      `autonomous_logs/remote_superseded/` and, only where nothing exists yet,
 #      files under the nine planning paths `hr_remote_planning_paths` assigns;
 #      outside it, only the caller-named `<out_dir>` (its `planning/` included)
@@ -300,8 +301,17 @@
 # `cli/test/sandbox-prerequisites-shell-mirror.test.mjs`.
 #
 # MIRROR OF `cli/src/flowHost/layout.ts` → `FLOW_HOST_DIRNAME`,
-# `FLOW_HOST_PROJECT` and `FLOW_HOST_ENV_DIRNAME`; `hr_flow_host_provision`
-# spells all three, listed in the section THE FLOW HOST'S ENVIRONMENT.
+# `FLOW_HOST_PROJECT`, `FLOW_HOST_PACKAGES` (its `graphscene` entry),
+# `FLOW_HOST_ENV_DIRNAME` and `FLOW_HOST_SOURCE_DIRNAME`, and of
+# `cli/src/flowHost/provision.ts` → `ENV_MARKER_FILE`; the six `HR_FLOW_HOST_*`
+# names listed in the section THE FLOW HOST'S ENVIRONMENT spell them, for
+# `hr_flow_host_provision` and `flow-walker.sh`, and
+# `cli/test/flow-host-provision.test.mjs` holds them equal.
+#
+# MIRROR OF `devscene-flow-host/src/devscene_flow_host/host/store.py` →
+# `walk_state_path`'s branch encoding; `hr_walk_state_name` is its shell
+# mirror, and `cli/test/remote-run.test.mjs`'s bundle round trip holds them
+# equal.
 #
 # MIRROR OF `cli/src/config/model.ts` → `SANDBOX_PASS_ENV_PATTERN`;
 # `hr_session_pass_env`'s element filter (`^[A-Za-z_][A-Za-z0-9_]*$`) is its
@@ -487,8 +497,8 @@
 # and `HR_CREDENTIAL_HIT_FORM` (`hr_text_has_credential`,
 # `hr_stream_has_credential`), the push-refusal record's
 # `HR_PUSH_REFUSAL_FILES` and `HR_PUSH_REFUSAL_REASON`
-# (`hr_push_refusals_for_var`), and `HR_REMOTE_WORKFLOWS_DIR` (assigned at
-# source time).
+# (`hr_push_refusals_for_var`), and `HR_REMOTE_WORKFLOWS_DIR` and the flow
+# host's six `HR_FLOW_HOST_*` layout names (assigned at source time).
 # Every one of them is assigned
 # before it is read by the function that owns it, so an inherited value from a
 # parent process is overwritten rather than believed — except
@@ -6216,8 +6226,11 @@ HR_REMOTE_WORKFLOWS_DIR='.github/workflows'
 #   <bundle>/status.json                 the job's record, fixed schema below
 #   <bundle>/clarifications/<branch>/    the whole branch directory, answered/ included
 #   <bundle>/PAUSE_PROGRESS.md           when present
-#   <bundle>/flow_walker_state           <state_dir>/.flow_walker_state, WITHOUT its dot
-#   <bundle>/run.log                     <state_dir>/autonomous_logs/<branch>.log; never restored
+#   <bundle>/flow_walker_state/<path>    a DIRECTORY, <state_dir>/.flow_walker_state/ WITHOUT
+#                                          its dot: every regular file there, at any depth,
+#                                          named exactly `<enc>.json`, at the same relative
+#                                          path, where `<enc>` is `hr_walk_state_name <branch>`
+#   <bundle>/run.log                    <state_dir>/autonomous_logs/<branch>.log; never restored
 #   <bundle>/planning/<path>             each of these under <state_dir>, when present:
 #                                          story_plans/<branch>_story_plan.md
 #                                          task_plans/<branch>
@@ -6230,7 +6243,10 @@ HR_REMOTE_WORKFLOWS_DIR='.github/workflows'
 #                                          ui_test_plan_reviews/<branch>
 #
 # The walker state loses its dot because `actions/upload-artifact` skips hidden
-# files by default. THE BUNDLE ITSELF IS NEVER COMMITTED. Every file outside
+# files by default. Its set is the branch's walk and the branch's records the
+# host keeps in subdirectories; no subdirectory is named here, so a record the
+# host adds travels without an edit. A `.lock` file and another branch's files
+# never match the name, and are never carried. THE BUNDLE ITSELF IS NEVER COMMITTED. Every file outside
 # `planning/` is gitignored machine-local state, and the remote-status and
 # move-aside paths sit under `autonomous_logs/`, whose ignore rule already
 # covers them. The task-plan loop's files under `planning/` are committed and
@@ -6256,7 +6272,9 @@ HR_REMOTE_WORKFLOWS_DIR='.github/workflows'
 # local registry), `continue` / `poll` (the decision, `chain`, the reset time)
 # and the next job's seed. The clarification directory and `PAUSE_PROGRESS.md`:
 # the next job, and the user's local mirror. The walker state: the next job
-# only. `planning/`: the next job only, never a mirror — an untracked draft left
+# only, each file placed back at its relative path under
+# `<state_dir>/.flow_walker_state/`; a pre-cutover bundle's `flow_walker_state`,
+# a regular file, is placed nowhere, and the walk starts fresh. `planning/`: the next job only, never a mirror — an untracked draft left
 # in the mirror would make its later fast-forward to `origin/<branch>` refuse,
 # because a commit on the branch adds the same path — the per-round commit of
 # the task-plan files, or the UI-test plan's convergence commit. `run.log`: the
@@ -6362,6 +6380,34 @@ architecture_reviews/$branch
 plan_revisions/$branch
 ui_test_plan_reviews/$branch"
   return 0
+}
+
+# hr_walk_state_name <branch>
+#
+# Prints <branch> as `urllib.parse.quote(branch, safe="")` encodes it, the
+# mirror the header declares: each byte of `A-Za-z0-9_.-~` kept, every other
+# byte as `%XX`, upper-case hex, read byte by byte under `LC_ALL=C`. 1 with
+# nothing printed for an empty <branch>.
+hr_walk_state_name() {
+  local LC_ALL=C
+  local s="${1-}" out='' c v i=0 n
+  [ -n "$s" ] || return 1
+  n=${#s}
+  while [ "$i" -lt "$n" ]; do
+    c=${s:i:1}
+    case "$c" in
+      [ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.~-]) out="$out$c" ;;
+      *)
+        printf -v v '%d' "'$c"
+        # bash 3.2 reads a byte above 0x7F as a signed char.
+        [ "$v" -ge 0 ] || v=$((v + 256))
+        printf -v v '%%%02X' "$v"
+        out="$out$v"
+        ;;
+    esac
+    i=$((i + 1))
+  done
+  printf '%s\n' "$out"
 }
 
 # hr_remote_status_write <registry_file> <branch> <out_json> <decision> <detail>
@@ -6638,7 +6684,9 @@ hr_remote_copy_tree() {
 # absolute. A linked `remote_status.json` falls through to the registry-derived
 # `status.json`, as an absent one does. Directory sources go through
 # `hr_remote_copy_tree`, so no link inside one is copied or followed either:
-# the bundle holds no link at all.
+# the bundle holds no link at all. The walker state's files are selected by
+# name rather than copied as a tree, each one gated as its own source, under
+# the same discipline.
 #
 # WHY NOT `cp -R`, MEASURED 2026-10-17. Command, in a fresh `mktemp -d`:
 #   mkdir -p src/sub; echo secret > sentinel; echo hi > src/a
@@ -6655,6 +6703,7 @@ hr_remote_copy_tree() {
 # is published.
 hr_remote_bundle_write() {
   local root="${1-}" branch="${2-}" registry="${3-}" out="${4-}" state base rel dst rc=0
+  local enc wsrc entry
   [ -n "$root" ] && [ -n "$branch" ] && [ -n "$registry" ] && [ -n "$out" ] || return 1
   hr_remote_state_dir_var "$root" || rc=$?
   case "$rc" in
@@ -6690,8 +6739,23 @@ hr_remote_bundle_write() {
     cp "$base/$HR_REMOTE_PAUSE_FILE" "$out/$HR_REMOTE_PAUSE_FILE" 2>/dev/null || return 1
   fi
   if hr_remote_bundle_source_ok "$root" "$state/$HR_REMOTE_WALKER_SOURCE" \
-    && [ -f "$base/$HR_REMOTE_WALKER_SOURCE" ]; then
-    cp "$base/$HR_REMOTE_WALKER_SOURCE" "$out/$HR_REMOTE_WALKER_FILE" 2>/dev/null || return 1
+    && [ -d "$base/$HR_REMOTE_WALKER_SOURCE" ]; then
+    enc=$(hr_walk_state_name "$branch") || return 1
+    wsrc="$base/$HR_REMOTE_WALKER_SOURCE"
+    # `find` without `-L` / `-H` never descends through a link; each match is
+    # still gated as a source, so a linked leaf gets the skip line. No glob
+    # character survives the encoding, so `-name` matches it literally.
+    while IFS= read -r -d '' entry; do
+      rel=${entry#"$wsrc"/}
+      hr_remote_bundle_source_ok "$root" "$state/$HR_REMOTE_WALKER_SOURCE/$rel" || continue
+      if [ ! -f "$entry" ]; then
+        printf 'remote state bundle: skipped %s: %s is not a regular file\n' "$entry" "$entry" >&2
+        continue
+      fi
+      dst="$out/$HR_REMOTE_WALKER_FILE/$rel"
+      mkdir -p "${dst%/*}" 2>/dev/null || return 1
+      cp "$entry" "$dst" 2>/dev/null || return 1
+    done < <(find "$wsrc" -name "$enc.json" ! -type d -print0 2>/dev/null)
   fi
   if hr_remote_bundle_source_ok "$root" "$state/$HR_REMOTE_LOGS_DIR/$branch.log" \
     && [ -f "$base/$HR_REMOTE_LOGS_DIR/$branch.log" ]; then
@@ -6766,9 +6830,16 @@ hr_remote_move_aside() {
 # hr_remote_bundle_restore <bundle_dir> <root> <branch> <mode>
 #
 # <mode> `job` places the clarification directory, `PAUSE_PROGRESS.md`, the
-# walker state (back under its dotted name), the planning drafts and
-# `status.json` (as `autonomous_logs/remote_status.json`); `mirror` places the
-# first two only. The run log is placed by neither.
+# walker state, the planning drafts and `status.json` (as
+# `autonomous_logs/remote_status.json`); `mirror` places the first two only.
+# The run log is placed by neither.
+#
+# THE WALKER STATE. Each regular file under the bundle's `flow_walker_state/`
+# directory named `<enc>.json` for <branch> is placed at its relative path
+# under `<state_dir>/.flow_walker_state/`, its directories made; one whose
+# target path has a symbolic link on it, or whose target is a directory, is
+# placed nowhere. A `flow_walker_state` that is a regular file — a pre-cutover
+# bundle — or a link is not restored, and the walk starts fresh.
 #
 # A PLANNING DRAFT NEVER OVERWRITES. A regular file under `planning/` whose
 # path lies in `HR_REMOTE_PLANNING_PATHS` and has no `..` segment is placed only
@@ -6785,7 +6856,7 @@ hr_remote_move_aside() {
 # `HR_REMOTE_PLANNING_WITHHELD`: those files are committed at every round's end,
 # so a draft newer than the commit — a job killed mid-round — placed beside it
 # would leave the next session walking a mixture of two revisions. When the
-# bundle carries a walker state and any withheld file is missing from <root> or
+# bundle carries a walker-state directory and any withheld file is missing from <root> or
 # differs from its copy there (`cmp -s`), the walker state is not placed and
 # `HR_REMOTE_WALKER_WITHHELD` is `1`, so the next session's `start` decides from
 # the committed round. The UI-test-plan paths keep the never-overwrites rule in
@@ -6804,7 +6875,7 @@ hr_remote_move_aside() {
 # `branch` other than <branch>) or <root>'s configuration is unresolvable.
 hr_remote_bundle_restore() {
   local bundle="${1-}" root="${2-}" branch="${3-}" mode="${4-}"
-  local state base named target tmp pdir file rel p inset tracked differs
+  local state base named target tmp pdir file rel p inset tracked differs wdir enc
   HR_REMOTE_PLANNING_PLACED=0
   HR_REMOTE_PLANNING_KEPT=0
   HR_REMOTE_PLANNING_WITHHELD=0
@@ -6885,12 +6956,26 @@ EOF
       HR_REMOTE_PLANNING_PLACED=$((HR_REMOTE_PLANNING_PLACED + 1))
     done < <(find "$pdir" -type f 2>/dev/null)
   fi
-  if [ -f "$bundle/$HR_REMOTE_WALKER_FILE" ]; then
+  wdir="$bundle/$HR_REMOTE_WALKER_FILE"
+  if [ -d "$wdir" ] && [ ! -L "$wdir" ]; then
     if [ "$differs" = 1 ]; then
       HR_REMOTE_WALKER_WITHHELD=1
     else
-      mkdir -p "$base" 2>/dev/null || return 1
-      cp "$bundle/$HR_REMOTE_WALKER_FILE" "$base/$HR_REMOTE_WALKER_SOURCE" 2>/dev/null || return 1
+      enc=$(hr_walk_state_name "$branch") || return 1
+      while IFS= read -r -d '' file; do
+        [ -f "$file" ] && [ ! -L "$file" ] || continue
+        rel=${file#"$wdir"/}
+        case "/$rel/" in
+          */../*) continue ;;
+        esac
+        # A link anywhere on the target path, the leaf included, is refused:
+        # `mkdir -p` and `cp` would both write through it.
+        hr_remote_link_free_var "$root" "$state/$HR_REMOTE_WALKER_SOURCE/$rel" || continue
+        target="$base/$HR_REMOTE_WALKER_SOURCE/$rel"
+        [ ! -d "$target" ] || continue
+        mkdir -p "${target%/*}" 2>/dev/null || return 1
+        cp "$file" "$target" 2>/dev/null || return 1
+      done < <(find "$wdir" -type f -name "$enc.json" -print0 2>/dev/null)
     fi
   fi
   mkdir -p "$base/$HR_REMOTE_LOGS_DIR" 2>/dev/null || return 1
@@ -6907,14 +6992,25 @@ EOF
 # THE FLOW HOST'S ENVIRONMENT — the one route that syncs the walker's Python
 # environment, for `flow-host-provision.sh` and `setup-worktree.sh` alike.
 #
-# MIRRORS `cli/src/flowHost/layout.ts`, which owns these three literals; a
-# rename there is an edit here, byte for byte, and
-# `cli/test/flow-host-provision.test.mjs` holds them equal:
-#   flow_dir      'python'              mirrors  FLOW_HOST_DIRNAME
-#   flow_project  'devscene-flow-host'  mirrors  FLOW_HOST_PROJECT
-#   flow_env      '.venv'               mirrors  FLOW_HOST_ENV_DIRNAME
-#   skip prefix   'flow-host: provision: SKIPPED'  mirrored by  cli/src/flowHost/provision.ts → SKIPPED_MARKER
+# THE LAYOUT NAMES BELOW ARE THE ONE SHELL MIRROR of their owners, set when
+# the library is sourced and read by `hr_flow_host_provision` and by
+# `flow-walker.sh`, which spell none of them. A rename at an owner is an edit
+# here, byte for byte, and `cli/test/flow-host-provision.test.mjs` holds each
+# equal to its owner:
+#   HR_FLOW_HOST_DIRNAME         'python'              mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_DIRNAME
+#   HR_FLOW_HOST_PROJECT         'devscene-flow-host'  mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_PROJECT
+#   HR_FLOW_HOST_GRAPHSCENE      'graphscene'          mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_PACKAGES, its entry other than FLOW_HOST_PROJECT
+#   HR_FLOW_HOST_ENV_DIRNAME     '.venv'               mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_ENV_DIRNAME
+#   HR_FLOW_HOST_SOURCE_DIRNAME  'src'                 mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_SOURCE_DIRNAME
+#   HR_FLOW_HOST_ENV_MARKER      'pyvenv.cfg'          mirrors  cli/src/flowHost/provision.ts → ENV_MARKER_FILE
 # ---------------------------------------------------------------------------
+
+HR_FLOW_HOST_DIRNAME='python'
+HR_FLOW_HOST_PROJECT='devscene-flow-host'
+HR_FLOW_HOST_GRAPHSCENE='graphscene'
+HR_FLOW_HOST_ENV_DIRNAME='.venv'
+HR_FLOW_HOST_SOURCE_DIRNAME='src'
+HR_FLOW_HOST_ENV_MARKER='pyvenv.cfg'
 
 # hr_flow_host_provision <source_scripts_dir> <env_scripts_dir> — sync the
 # project `<source_scripts_dir>/python/devscene-flow-host` into the environment
@@ -6925,17 +7021,17 @@ EOF
 # `UV_PROJECT_ENVIRONMENT` is set on the `uv` command alone, never assigned
 # here. `uv`'s own stdout goes to stderr, so stdout carries only the success line.
 #
-#   no `uv` on PATH   stderr `flow-host: provision: SKIPPED — uv is not on PATH;
+#   no `uv` on PATH   stderr `flow-host: provision: failed — uv is not on PATH;
 #                     install uv, then run bash <env_scripts_dir>/flow-host-provision.sh
-#                     outside the sandbox`, return 0
-#   no pyproject      stderr `flow-host: provision: SKIPPED — no flow host at
-#                     <project>; run npx devscene init --upgrade`, return 0
+#                     outside the sandbox`, return 1
+#   no pyproject      stderr `flow-host: provision: failed — no flow host at
+#                     <project>; run npx devscene init --upgrade`, return 1
 #   synced            stdout `flow-host: provisioned <environment>`, return 0
 #   `uv` failed       stderr `flow-host: provision: failed (exit <n>)`, return 1
 #   an empty argument stderr `flow-host: provision: failed — needs two scripts
 #                     directories`, return 1
 hr_flow_host_provision() {
-  local src="${1-}" env_root="${2-}" flow_dir='python' flow_project='devscene-flow-host' flow_env='.venv'
+  local src="${1-}" env_root="${2-}"
   local project environment status
   if [ -z "$src" ] || [ -z "$env_root" ]; then
     printf '%s\n' 'flow-host: provision: failed — needs two scripts directories' >&2
@@ -6943,15 +7039,15 @@ hr_flow_host_provision() {
   fi
   while [ "$src" != / ] && [ "${src%/}" != "$src" ]; do src=${src%/}; done
   while [ "$env_root" != / ] && [ "${env_root%/}" != "$env_root" ]; do env_root=${env_root%/}; done
-  project="$src/$flow_dir/$flow_project"
-  environment="$env_root/$flow_dir/$flow_env"
+  project="$src/$HR_FLOW_HOST_DIRNAME/$HR_FLOW_HOST_PROJECT"
+  environment="$env_root/$HR_FLOW_HOST_DIRNAME/$HR_FLOW_HOST_ENV_DIRNAME"
   if ! command -v uv >/dev/null 2>&1; then
-    printf 'flow-host: provision: SKIPPED — uv is not on PATH; install uv, then run bash %s/flow-host-provision.sh outside the sandbox\n' "$env_root" >&2
-    return 0
+    printf 'flow-host: provision: failed — uv is not on PATH; install uv, then run bash %s/flow-host-provision.sh outside the sandbox\n' "$env_root" >&2
+    return 1
   fi
   if [ ! -f "$project/pyproject.toml" ]; then
-    printf 'flow-host: provision: SKIPPED — no flow host at %s; run npx devscene init --upgrade\n' "$project" >&2
-    return 0
+    printf 'flow-host: provision: failed — no flow host at %s; run npx devscene init --upgrade\n' "$project" >&2
+    return 1
   fi
   status=0
   UV_PROJECT_ENVIRONMENT="$environment" uv sync --frozen --no-dev --no-editable --project "$project" >&2 || status=$?
