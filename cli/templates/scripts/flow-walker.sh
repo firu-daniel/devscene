@@ -54,7 +54,7 @@
 #              under the repository root (ROUNDS, on a refused file).
 #   --skipped  the run mode's skipped ids; read only when no flow-progress
 #              ledger exists, and re-read on every arrival at a gated node.
-#   The graph is `<this script's dir>/flows/<flow>.v4.graph.json`, formatVersion
+#   The graph is `<this script's dir>/flows/<flow>.graph.json`, formatVersion
 #   4; the root is a bare `git rev-parse --show-toplevel` in the working
 #   directory. Each branch keeps its own walk, so a call naming another branch
 #   is not refused; one naming another flow than the branch's saved walk is.
@@ -136,7 +136,7 @@
 #      a gate not pending, a missing `--node`, a finished walk, an `--entry`
 #      outside the flow's entries, an unresolvable phase flag, no run-mode
 #      record); `next` or `current` with no saved walk (a re-entry's "no saved
-#      walk"); no `<this script's dir>/flows/<flow>.v4.graph.json`
+#      walk"); no `<this script's dir>/flows/<flow>.graph.json`
 #   2  a fault: not inside a git repository; a graph that does not load or
 #      declares another flow; a lock not acquired within 120 s; any other
 #      failure, `internal error: <type>: <message>` among them. This script's

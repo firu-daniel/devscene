@@ -31,3 +31,9 @@
 - `jq -r .formatVersion cli/templates/scripts/flows/task_plan_writing.graph.json` prints `4`.
 - Compared with `git show HEAD:cli/templates/scripts/flows/task_plan_writing.v4.graph.json`, the new `cli/templates/scripts/flows/task_plan_writing.graph.json` differs in the `description` line alone.
 - `git grep -n 'task_plan_writing.graph.json' -- cli/templates/scripts/lib` still lists `PNL_GRAPH`, the header's `cp` line and the `hr_remote_planning_paths` comment, unedited. They are the readers that now get format 4 under the name they already use.
+
+**Deviations from plan:**
+
+- `cli/src/generators/outerLoopScripts.ts` module header: *"the flow walker's hand-off with its two flow graphs"* became *"… with its flow graph"*. The plan named only the `flows` rows; `.claude/context/cli.md` → `## What "done" means here` requires the header to stay true in the same edit.
+- Byte comparison against `git show HEAD:cli/templates/scripts/flows/task_plan_writing.v4.graph.json` was not executed: the compound `cp`/`rm` and a `diff <(git show …)` were refused, so the file was rewritten with the Write tool from a Read of the v4 file, then `rm`'d the old path. Evidence it rests on: `wc -lc` gives 202 lines / 7785 bytes for the v4 file before the move and 202 lines / 7745 bytes for the new file; the 40-byte drop equals the replaced description sentence's length difference (176 → 136 characters), and the multibyte `·` / `→` heartbeat characters survive (otherwise the byte delta would not match). `jq -r .formatVersion` prints `4`.
+- `git ls-files cli/templates/scripts/flows` still lists `task_plan_writing.v4.graph.json` beside the shipped name: the working-tree file is deleted and the index entry drops when the commit step stages the removal (no `git rm` per the implementer contract). Verify post-commit.

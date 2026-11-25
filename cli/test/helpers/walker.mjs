@@ -42,7 +42,7 @@ const FLOW = 'task_plan_writing';
  * The fixture's own copy of the format-4 graph the walker loads — the one a mutation check edits,
  * never the template.
  */
-export const WALKER_GRAPH_PATH = `${INIT_SCRIPTS_DIR}/flows/${FLOW}.v4.graph.json`;
+export const WALKER_GRAPH_PATH = `${INIT_SCRIPTS_DIR}/flows/${FLOW}.graph.json`;
 
 /** The command the hand-off runs, under the environment's `bin/`. */
 const WALKER_COMMAND = 'devscene-flow-walker';

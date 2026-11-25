@@ -25,7 +25,7 @@ Manual setup required:
 
 Each entry resolves 1:1 to `harness-runs/task_plans/chore_retire_flow_graph_v3/task_<K>_plan.md`. The entries are ordered bottom-up by ship sequence in the configured layer order, with the catch-all layer last.
 
-1. [ ] **Task 1** — Ship the format-4 planning graph as `flows/task_plan_writing.graph.json` and retire the format-3 template _(layer: cli)_ _(points: 20)_
+1. [x] **Task 1** — Ship the format-4 planning graph as `flows/task_plan_writing.graph.json` and retire the format-3 template _(layer: cli)_ _(points: 20)_
 2. [ ] **Task 2** — Describe the one shipped planning graph in the CLI's READMEs and drop the bash checker from a suite header _(layer: cli)_ _(points: 10)_
 3. [ ] **Task 3** — Name the planning graph by its shipped name in the plugin's planning commands and flow document _(layer: plugin)_ _(points: 5)_
 4. [ ] **Task 4** — Stop GraphScene's static checker and its suite citing the retired bash checker _(layer: graphscene)_ _(points: 5)_
