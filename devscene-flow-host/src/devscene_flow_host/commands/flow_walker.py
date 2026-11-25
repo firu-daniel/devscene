@@ -6,7 +6,7 @@ The rule: the command answers as `cli/templates/scripts/flow-walker.sh` does, by
   nothing.
 - `1`: a `UsageError`; a `Refused` step, whose cause is the predicate host's `last_refusal` when
   it has one, else the refusal's reason; `next` or `current` with no saved walk; no
-  `<flows>/<flow>.v4.graph.json`.
+  `<flows>/<flow>.graph.json`.
 - `2`: not inside a git repository; a graph that does not load, or declares another flow; and
   every other exception, mapped by `failure` — an unanticipated type as `internal error:`.
 - `3`: `check-round-file` found the file invalid or absent.
@@ -49,7 +49,7 @@ from devscene_flow_host.records.errors import RecordError
 from devscene_flow_host.records.round_files import round_file_path, round_file_problem
 
 PREFIX: Final = "flow-walker: "
-GRAPH_SUFFIX: Final = ".v4.graph.json"
+GRAPH_SUFFIX: Final = ".graph.json"
 NOT_IN_REPOSITORY: Final = "not inside a git repository"
 
 

@@ -3,12 +3,12 @@
 The rule: `static_violations` returns the reference violations
 (`graphscene.engine.references.reference_violations`) alone when there are any. Otherwise it
 returns the graph checks' violations: all of check 1 (`reachable-from-start`), then 2
-(`reaches-terminal`), 3 (`fail-cycle-capped`), 8 (`gate-in-round`) and 9 (`round-fan-out`), the
-ids `scripts/check-flow-graph.sh` gives them. Checks 8 and 9 hold two kinds of rule: their round
-rules run on every round, and their review-loop rules run only on a round
-`graphscene.engine.review_loop` reports as a review loop. Check 8's graph-wide clause, that a
-dispatch node routing a fail verdict with no increment is a gate of exactly one round, runs only
-when the graph declares a review loop. Checks 1, 2, 3 and 8 report nodes in key order;
+(`reaches-terminal`), 3 (`fail-cycle-capped`), 8 (`gate-in-round`) and 9 (`round-fan-out`).
+Checks 8 and 9 hold two kinds of rule: their round rules run on every round, and their
+review-loop rules run only on a round `graphscene.engine.review_loop` reports as a review
+loop. Check 8's graph-wide clause, that a dispatch node routing a fail verdict with no increment
+is a gate of exactly one round, runs only when the graph declares a review loop. Checks 1, 2, 3
+and 8 report nodes in key order;
 check 9 reports round by round, rounds in key order, and within a round each gate's clauses in
 `gates` order, then the writer, then the other edges and skips that target the round, by source
 node in key order. Every reason opens with its check id. The walked edge set W is: a

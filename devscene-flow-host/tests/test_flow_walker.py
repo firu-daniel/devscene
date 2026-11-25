@@ -373,7 +373,7 @@ def test_an_unknown_flow_is_refused_naming_the_graph_file(tmp_path: Path) -> Non
     root = _repo(tmp_path)
     argv = ("start", "--flow", "nope", "--branch", _BRANCH, "--flows", _FLOWS)
     assert _refused(root, 1, *argv) == (
-        f"flow-walker: unknown flow 'nope': no {_FLOWS}/nope.v4.graph.json\n"
+        f"flow-walker: unknown flow 'nope': no {_FLOWS}/nope.graph.json\n"
     )
 
 

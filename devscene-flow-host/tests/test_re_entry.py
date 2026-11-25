@@ -10,7 +10,7 @@ and a refused start leaves them byte-identical, and that `current_step` returns 
 rather than re-reading the folder, reading it only when no record exists.
 
 The graph is the harness's own format-4 graph,
-`cli/templates/scripts/flows/task_plan_writing.v4.graph.json`. Config, review files and git
+`cli/templates/scripts/flows/task_plan_writing.graph.json`. Config, review files and git
 history are planted under `tmp_path` through `round_fixtures`. Every expected set's gates and
 round number are literals written from the `STATE` paragraph and `A REFUSED ROUND FILE`, never
 taken from the output of the code under test.
@@ -44,7 +44,7 @@ _GRAPH: Final = (
     / "templates"
     / "scripts"
     / "flows"
-    / "task_plan_writing.v4.graph.json"
+    / "task_plan_writing.graph.json"
 )
 _BRANCH: Final = "feat_x"
 _PARITY: Final = "state/business_parity_reviews/feat_x"

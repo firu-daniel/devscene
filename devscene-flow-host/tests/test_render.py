@@ -4,7 +4,7 @@ files taken from `revision_findings` when non-empty and otherwise from the close
 records, and raises `ValueError` for the faults bash reports as exit 2.
 
 Each `HostStep` is built by hand from `graphscene`'s public dataclasses over the harness's own
-format-4 graph, `cli/templates/scripts/flows/task_plan_writing.v4.graph.json`, read-only. The
+format-4 graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, read-only. The
 values a step read from disk are given as `HostStep.printed`; the one review folder planted under
 `tmp_path` disagrees with them, to show `render` reads none. Every expected text is a literal
 written from `flow-walker.sh`'s `OUTPUT` grammar and `REPRO` block, never taken from the output
@@ -44,7 +44,7 @@ _GRAPH: Final = (
     / "templates"
     / "scripts"
     / "flows"
-    / "task_plan_writing.v4.graph.json"
+    / "task_plan_writing.graph.json"
 )
 _STATE_DIR: Final = "state"
 _BRANCH: Final = "feat_x"

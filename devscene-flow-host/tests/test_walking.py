@@ -1,5 +1,5 @@
 """The rule this file exists to enforce: the harness's own format-4 graph,
-`cli/templates/scripts/flows/task_plan_writing.v4.graph.json`, loads through every library check
+`cli/templates/scripts/flows/task_plan_writing.graph.json`, loads through every library check
 and walks through `open_walker` on records planted under `tmp_path`: phases and the run mode
 decide each skip, an unanswerable predicate refuses without writing, and each branch walks in
 its own state file.
@@ -37,7 +37,7 @@ _GRAPH = (
     / "templates"
     / "scripts"
     / "flows"
-    / "task_plan_writing.v4.graph.json"
+    / "task_plan_writing.graph.json"
 )
 _BRANCH = "feat_x"
 _UNANSWERED_LEDGER_REASON = (

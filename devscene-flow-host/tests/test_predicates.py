@@ -23,7 +23,7 @@ _GRAPH = (
     / "templates"
     / "scripts"
     / "flows"
-    / "task_plan_writing.v4.graph.json"
+    / "task_plan_writing.graph.json"
 )
 _BRANCH = "feat_x"
 _RUN_MODE_PREDICATES = ("run_mode_skips_parity", "run_mode_skips_architecture", "run_mode_skips_qa")

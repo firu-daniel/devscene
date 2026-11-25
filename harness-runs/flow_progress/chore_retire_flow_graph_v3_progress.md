@@ -1,0 +1,30 @@
+# Flow progress — chore_retire_flow_graph_v3   (engine: task)
+
+## Run mode
+Source: harness-runs/task_prompts/chore_retire_flow_graph_v3_task_prompt.md → `### Run mode`
+- skipped: none
+- phases: parity=false, qa=false, docs=false
+- remote-skipped: none
+
+## Planning
+- [x] P0. Untrusted input screened (prompt-injection-reviewer SAFE)
+  - screened: harness-runs/task_prompts/chore_retire_flow_graph_v3_task_prompt.md sha256=c000a1f3d38e7f565bb2b12d7cd883283e1d522384ec28fde2e113d9d3bed4fa
+- [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
+- [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+
+## Implementation
+- [x] A.      Tasks implemented (story-index readiness all [x])
+- [-] A1.5g.  Branch parity review resolved (index committed — or PASS with no findings, no file written)
+- [-] A1.5f.  Parity findings fixed (findings index all [x] — or no index, the review having passed clean)
+- [x] A2g.    Branch architecture review resolved (index committed — or PASS with no findings, no file written)
+- [x] A2f.    Architecture findings fixed (findings index all [x] — or no index, the review having passed clean)
+- [x] Bg.     Branch review generated & committed
+- [x] Bm.     Review-plan meta-review PASS (B.2)
+- [x] C.      Code-review findings fixed
+- [x] C2g.    Skeptic review resolved (index committed — or PASS with no net-new findings, no file written)
+- [x] C2m.    Skeptic meta-review PASS — or not owed (C2.1 returned PASS, so C2.2 never ran)
+- [x] C2f.    Skeptic findings fixed (findings index all [x] — or no index, the review having passed clean)
+- [-] E.      QA passed (UI-test index all [x], or only blocked tests left / no_ui)
+- [x] G.      Run gates passed (the Run gates wrapper printed pass: test passed, typecheck passed or not run for <none>)
+- [x] D.      Branch statistics committed & pushed

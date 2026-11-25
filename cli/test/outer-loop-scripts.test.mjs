@@ -1257,16 +1257,15 @@ test('the scratch runner is written directly in scriptsDir, executable, and a re
 });
 
 /**
- * The flow walker and the two graphs beside it, as paths under `scriptsDir` with the mode each must
- * land with: the walker is run and both graphs are data.
+ * The flow walker and the graph beside it, as paths under `scriptsDir` with the mode each must
+ * land with: the walker is run and the graph is data.
  */
 const WALKER_FILES = [
   ['flow-walker.sh', 0o755],
-  ['flows/task_plan_writing.v4.graph.json', 0o644],
   ['flows/task_plan_writing.graph.json', 0o644],
 ];
 
-test('the flow walker and its two graphs land verbatim under scriptsDir, and a re-run keeps them', async (t) => {
+test('the flow walker and its graph land verbatim under scriptsDir, and a re-run keeps them', async (t) => {
   for (const [name, scriptsDir, config] of [
     ["a generated config's scriptsDir", SCRIPTS_DIR, undefined],
     ['a relocated scriptsDir', RELOCATED_SCRIPTS_DIR, seededConfig({ scriptsDir: RELOCATED_SCRIPTS_DIR })],

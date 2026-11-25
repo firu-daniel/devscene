@@ -19,10 +19,8 @@ one change, returns exactly its one violation. Expected values are hand-written 
 graph.
 
 Deliberately not covered:
-- Checks 4–7 of `scripts/check-flow-graph.sh`: they read plugin documents and are not ported.
+- Checks 4–7: they read a host's own documents, and belong to the host, not to this package.
 - What runs a node: a harness check, outside this package.
-- Agreement with the bash checker on the harness's own graph: it needs the harness side, and
-  belongs to the cutover.
 """
 
 import json

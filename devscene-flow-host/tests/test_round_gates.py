@@ -1,6 +1,6 @@
 """The rule this file exists to enforce: `record_outcome` records a gate's outcome under
 `flow-walker.sh`'s reviewer-file rules on the harness's own format-4 graph,
-`cli/templates/scripts/flows/task_plan_writing.v4.graph.json` — a verdict needs a findings file,
+`cli/templates/scripts/flows/task_plan_writing.graph.json` — a verdict needs a findings file,
 a round gate's file must pass the round-file check, a refused file records nothing and its gate
 is re-dispatched in the same round once no other gate is out, and the third refusal holds it as
 `error` — and that a refusal below the cap never reaches GraphScene's saved walk.
@@ -63,7 +63,7 @@ _GRAPH: Final = (
     / "templates"
     / "scripts"
     / "flows"
-    / "task_plan_writing.v4.graph.json"
+    / "task_plan_writing.graph.json"
 )
 _BRANCH: Final = "feat_x"
 _PARITY: Final = "state/business_parity_reviews/feat_x"
