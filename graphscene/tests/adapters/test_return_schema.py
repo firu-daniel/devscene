@@ -1,5 +1,6 @@
 """The rule this file exists to enforce: `return_violations` checks a document against the schema
-it is handed, by the draft that schema declares (draft-07 when it declares none), matches a
+it is handed, by the draft that schema declares (draft-07 when it declares none), refuses a
+declared draft it does not recognise with a `ValueError` opening `return schema: `, matches a
 `pattern` as ECMA-262 through the shared translator, returns every violation sorted by path then
 reason with `schema_violations`' path rendering, and turns an invalid schema into a `ValueError`
 opening `return schema: `. Each schema is planted here and every expected `Violation` is
@@ -91,3 +92,17 @@ def test_a_declared_draft_2020_12_is_the_draft_applied() -> None:
         "prefixItems": [{"type": "string"}],
     }
     assert return_violations([5], schema) == [Violation("[0]", "5 is not of type 'string'")]
+
+
+def test_an_unrecognised_declared_draft_is_refused() -> None:
+    schema = {"$schema": "https://example.invalid/schema", "type": "array"}
+    with pytest.raises(ValueError) as raised:
+        return_violations([5], schema)
+    assert str(raised.value) == (
+        "return schema: $schema 'https://example.invalid/schema' names no draft jsonschema knows"
+    )
+
+
+def test_a_declared_draft_07_is_accepted() -> None:
+    schema = {"$schema": "http://json-schema.org/draft-07/schema#", "type": "string"}
+    assert return_violations(5, schema) == [Violation("", "5 is not of type 'string'")]

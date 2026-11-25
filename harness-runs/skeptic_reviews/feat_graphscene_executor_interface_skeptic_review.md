@@ -29,7 +29,7 @@
 ## Phase 2 Readiness — Ordered Fix List
 
 1. [x] **Finding 2** — Correct the `Any`-cast comment in `return_violations`: a non-JSON value is reported only where a keyword checks it _(layer: graphscene)_
-2. [ ] **Finding 1** — Refuse a `$schema` that names no draft jsonschema recognises in `return_violations`, instead of silently applying draft-07 _(layer: graphscene)_
+2. [x] **Finding 1** — Refuse a `$schema` that names no draft jsonschema recognises in `return_violations`, instead of silently applying draft-07 _(layer: graphscene)_
 
 ---
 

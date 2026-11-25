@@ -4,9 +4,11 @@ violation.
 
 The rule:
 
-- The draft is the one the schema declares in `$schema`, and draft-07 when it declares none.
-  The schema itself is checked first, and an invalid one raises `ValueError("return schema:
-  <message>")`, so no `jsonschema` exception type crosses this boundary.
+- The draft is the one the schema declares in `$schema`, and draft-07 when it declares none; a
+  `$schema` that names no draft `jsonschema` knows raises `ValueError("return schema: $schema
+  '<uri>' names no draft jsonschema knows")`. The schema itself is checked next, and an invalid
+  one raises `ValueError("return schema: <message>")`, so no `jsonschema` exception type crosses
+  this boundary.
 - A schema `pattern`, and every `patternProperties` key, is matched as ECMA-262 through
   `graphscene.adapters.schema`'s translator, and one outside its supported set raises that
   translator's `ValueError`, naming its schema path. Instance data under `const`, `enum`,
@@ -25,7 +27,7 @@ Deliberately not covered:
 from collections.abc import Mapping
 from typing import Any
 
-from jsonschema import Draft7Validator
+from jsonschema import Draft4Validator, Draft7Validator
 from jsonschema.exceptions import SchemaError
 from jsonschema.validators import validator_for
 
@@ -38,6 +40,15 @@ def return_violations(document: object, schema: Mapping[str, object]) -> list[Vi
     valid document. Raises `ValueError` for an invalid schema or an untranslatable pattern."""
     declared = dict(schema)
     validator_class = validator_for(declared, default=Draft7Validator)
+    # `validator_for` returns its default, silently, for a `$schema` it does not recognise; asking
+    # again with a different default tells a recognised declaration from an unrecognised one.
+    if (
+        "$schema" in declared
+        and validator_for(declared, default=Draft4Validator) is not validator_class
+    ):
+        raise ValueError(
+            f"return schema: $schema {declared['$schema']!r} names no draft jsonschema knows"
+        )
     try:
         validator_class.check_schema(declared)
     except SchemaError as error:
