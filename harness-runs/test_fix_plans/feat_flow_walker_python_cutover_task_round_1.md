@@ -14,7 +14,7 @@
 
 Each entry resolves to a self-contained `finding_<K>.md` in `feat_flow_walker_python_cutover_task_round_1/` via its `**Finding K**` reference. Sorted lowest blast-radius first; Finding 1 is the suspected root cause of Finding 2 and precedes it.
 
-1. [ ] **Finding 4** — Replace the absolute plugin path in the round-0 architecture review with its `${CLAUDE_PLUGIN_ROOT}` form (gate 6a). _(layer: general)_
+1. [x] **Finding 4** — Replace the absolute plugin path in the round-0 architecture review with its `${CLAUDE_PLUGIN_ROOT}` form (gate 6a). _(layer: general)_
 2. [ ] **Finding 3** — Give `pathWithNpxButNoNpm` in `cli/test/doctor.test.mjs` a `uv` stub so the new `uv` failure grade does not fail the `--check-registry` no-client case. _(layer: cli)_
 3. [ ] **Finding 1** — Seed the `create-worktree.test.mjs` fixture with a flow-host `pyproject.toml` and run `create` with a stub `uv` first on `PATH`, so default-mode bootstrap step 6 passes. _(layer: cli)_
 4. [ ] **Finding 2** — The `(E5)` honest `--existing` case fails on the same step-6 provision failure. _(layer: cli)_
