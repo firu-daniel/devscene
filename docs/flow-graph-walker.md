@@ -175,7 +175,7 @@ uv --version
 
 **How to read it.** Record the median of the ten `real` figures, the `uv` version, the host and the date.
 
-**The figure.** Not yet measured — taken by hand after this branch merges and this repository is re-rendered, outside any headless session, on an otherwise idle machine.
+**The figure.** A median of **0.126 s** over ten calls, with every call between 0.126 s and 0.127 s. Taken on 2026-11-25 with `uv` 0.12.23 (Homebrew) on an Apple M4 running macOS 15.7.4. The run was by hand from an interactive session, with no autonomous run active and a load average of about 1.8. It was taken after #481 re-rendered this repository's `scripts/`, so `scripts/flow-walker.sh` was the hand-off, and the main checkout's `scripts/python/.venv` had just been provisioned. The `uv` cache was warm.
 
 ---
 
