@@ -36,7 +36,7 @@ One finding remains.
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Say "the graph" rather than "the two graphs" in `docs/watcher.md`'s reachability paragraph _(layer: general)_
+1. [x] **Finding 1** — Say "the graph" rather than "the two graphs" in `docs/watcher.md`'s reachability paragraph _(layer: general)_
 
 ---
 
