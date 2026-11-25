@@ -33,7 +33,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Say in `cli/templates/scripts/README.md` that `init` builds the walker's environment by default, with `--no-provision-python` to skip it _(layer: cli)_
+1. [x] **Finding 1** — Say in `cli/templates/scripts/README.md` that `init` builds the walker's environment by default, with `--no-provision-python` to skip it _(layer: cli)_
 
 ---
 
