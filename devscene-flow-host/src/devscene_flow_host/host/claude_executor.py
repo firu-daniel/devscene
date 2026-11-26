@@ -16,15 +16,22 @@ stall's.
   The host's `session_args` and `agent_args` are passed through unchanged, and may carry no
   `EXECUTOR_FLAGS` member, bare or as `<member>=`.
 - Each contract's return schema is checked at construction, so an invalid one never fails mid-run.
-- A dispatch whose agent has no contract, or that carries no prompt, is a defect and is raised.
+- `dispatch.prompt` is the node's prompt variant (`initial`, `revision`) or `None`, never the text
+  a session is given. The agent prompt comes from the host's `AgentPromptBuilder`, called exactly
+  once per `run` before the launch, with nothing kept between runs; the builder must return the
+  same agent prompt for a repeated run of the same dispatch.
+- A dispatch whose agent has no contract raises `LookupError`, an exception out of the builder
+  propagates unchanged, and a builder that returns no non-blank string raises `ValueError`, each
+  before the launch, so nothing is launched and the sink is not called.
 - A launch error is `Failed("infra", …)` with every usage field empty. A stall is
   `Failed("infra", …)` with the stream's usage fields kept. Otherwise the result is
   `judge_session`'s.
 - `--json-schema` is never passed: on Claude Code 2.1.332 it is not applied under `--agent`, so
   the return is read from the final `json` block.
-- The usage record also carries the session's whole stdout stream, its stderr tail and its exit
-  status, and, for a `Completed` result, the validated return object, so the host can write the
-  stream and read the return's other fields, which `Completed` cannot carry.
+- The usage record also carries the agent prompt it was given, the session's whole stdout
+  stream, its stderr tail and its exit status, and, for a `Completed` result, the validated
+  return object, so the host can write the stream and read the return's other fields, which
+  `Completed` cannot carry.
 
 Deliberately not covered:
 - Building the usage-to-`Launch` pairing: the flow host's script-driven planning driver's,
@@ -37,6 +44,12 @@ Deliberately not covered:
 - The findings-file presence rule: `host/round_gates.py` → `record_outcome`.
 - Writing the stream (from `SessionUsage.stream`) or a session manifest: the flow host's
   script-driven planning driver's, not yet merged.
+- Building an agent prompt from the instruction core's dispatch blocks and appending answered
+  clarification pairs, as `cli/templates/scripts/lib/planning-node-lib.sh` → `pnl_prompt` and
+  `cli/templates/scripts/lib/planning-driver-lib.sh` do, and refusing a prompt source that
+  cannot be built when the host constructs its builder: the later branch that makes prompt
+  sources and node hooks declarations, not yet merged.
+- Renaming GraphScene's `Dispatch.prompt`: that same later branch's.
 """
 
 import time
@@ -74,6 +87,7 @@ class SessionUsage:
 
     node: str
     agent: str
+    agent_prompt: str
     session_id: str | None
     started_at: datetime
     duration_seconds: float
@@ -97,6 +111,13 @@ class UsageSink(Protocol):
     def record(self, usage: SessionUsage) -> None: ...
 
 
+class AgentPromptBuilder(Protocol):
+    """Builds the agent prompt, the text a session is given, for one dispatch; the same
+    dispatch gives the same agent prompt."""
+
+    def __call__(self, dispatch: Dispatch) -> str: ...
+
+
 class ClaudeExecutor:
     """Runs each dispatched node as one headless `claude` session, under this module's rule."""
 
@@ -110,6 +131,7 @@ class ClaudeExecutor:
         contracts: Mapping[str, AgentContract],
         inactivity_limit_seconds: float,
         usage_sink: UsageSink,
+        agent_prompt_builder: AgentPromptBuilder,
         session_args: Sequence[str] = (),
         agent_args: Mapping[str, Sequence[str]] | None = None,
         env: Mapping[str, str] | None = None,
@@ -122,6 +144,7 @@ class ClaudeExecutor:
         self._contracts: Mapping[str, AgentContract] = MappingProxyType(dict(contracts))
         self._inactivity_limit_seconds = inactivity_limit_seconds
         self._usage_sink = usage_sink
+        self._agent_prompt_builder = agent_prompt_builder
         self._session_args = tuple(session_args)
         self._agent_args: Mapping[str, tuple[str, ...]] = MappingProxyType(
             {agent: tuple(args) for agent, args in (agent_args or {}).items()}
@@ -153,12 +176,13 @@ class ClaudeExecutor:
         contract = self._contracts.get(dispatch.agent)
         if contract is None:
             raise LookupError(f"{dispatch.node}: no agent contract for '{dispatch.agent}'")
-        if dispatch.prompt is None:
-            raise ValueError(f"{dispatch.node}: the dispatch carries no prompt")
+        agent_prompt = self._agent_prompt_builder(dispatch)
+        if not isinstance(agent_prompt, str) or not agent_prompt.strip():
+            raise ValueError(f"{dispatch.node}: the agent prompt builder returned no agent prompt")
         argv = [
             *self._command,
             "-p",
-            dispatch.prompt,
+            agent_prompt,
             *self._session_args,
             "--output-format",
             "stream-json",
@@ -184,6 +208,7 @@ class ClaudeExecutor:
             usage = SessionUsage(
                 node=dispatch.node,
                 agent=dispatch.agent,
+                agent_prompt=agent_prompt,
                 session_id=None,
                 started_at=started_at,
                 duration_seconds=duration_seconds,
@@ -213,6 +238,7 @@ class ClaudeExecutor:
             usage = SessionUsage(
                 node=dispatch.node,
                 agent=dispatch.agent,
+                agent_prompt=agent_prompt,
                 session_id=reading.session_id,
                 started_at=started_at,
                 duration_seconds=duration_seconds,

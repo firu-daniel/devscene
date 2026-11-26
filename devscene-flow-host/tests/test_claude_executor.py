@@ -1,9 +1,11 @@
 """The rule this file exists to enforce: `ClaudeExecutor` satisfies `graphscene.Executor`, launches
 each dispatch with the argument vector its module docstring fixes, returns `judge_session`'s result
 — or `Failed("infra", …)` for a launch error or a stall — and calls the usage sink exactly once
-immediately before returning, never for a cancelled run; its constructor and `run` refuse each
-caller defect with an exact message; and through `graphscene.execute_set` each usage record comes
-just before that node's `Launch` row, with equal `result`.
+immediately before returning, never for a cancelled run; `run` builds the agent prompt through the
+host's builder, never from `Dispatch.prompt`; its constructor and `run` refuse each caller defect
+with an exact message, a defect in building the agent prompt included; and through
+`graphscene.execute_set` each usage record comes just before that node's `Launch` row, with
+equal `result`.
 
 Every session is `fake_claude`, its scenario and files under `tmp_path`, every stream is built from
 `session_events`, and every expected value is a literal written from the task plan's rules, never
@@ -33,7 +35,11 @@ from graphscene import (
     execute_set,
 )
 
-from devscene_flow_host.host.claude_executor import ClaudeExecutor, SessionUsage
+from devscene_flow_host.host.claude_executor import (
+    AgentPromptBuilder,
+    ClaudeExecutor,
+    SessionUsage,
+)
 from devscene_flow_host.records.plugin_contracts import AgentContract
 from fake_claude import plant
 from session_events import init_event, result_event, return_block
@@ -69,11 +75,15 @@ class Usages:
         self.records.append(usage)
 
 
-def _dispatch(prompt: str | None = "Review the plan.", agent: str = "reviewer") -> Dispatch:
+def _agent_prompt(dispatch: Dispatch) -> str:
+    return f"{dispatch.node}: review the plan."
+
+
+def _dispatch(variant: str | None = None, agent: str = "reviewer") -> Dispatch:
     return Dispatch(
         node="plan_review",
         agent=agent,
-        prompt=prompt,
+        prompt=variant,
         counters={},
         round_number=None,
         converging=None,
@@ -91,6 +101,7 @@ def _executor(
     session_args: Sequence[str] = (),
     agent_args: Mapping[str, Sequence[str]] | None = None,
     contracts: Mapping[str, AgentContract] | None = None,
+    agent_prompt_builder: AgentPromptBuilder = _agent_prompt,
 ) -> ClaudeExecutor:
     return ClaudeExecutor(
         command=command,
@@ -100,6 +111,7 @@ def _executor(
         contracts={"reviewer": _CONTRACT} if contracts is None else contracts,
         inactivity_limit_seconds=limit,
         usage_sink=sink,
+        agent_prompt_builder=agent_prompt_builder,
         session_args=session_args,
         agent_args=agent_args,
         kill_grace_seconds=2.0,
@@ -153,7 +165,7 @@ def test_the_argument_vector_passes_the_hosts_args_through_in_place(tmp_path: Pa
 
     assert json.loads(argv_file.read_text(encoding="utf-8")) == [
         "-p",
-        "Review the plan.",
+        "plan_review: review the plan.",
         "--permission-mode",
         "dontAsk",
         "--model",
@@ -188,6 +200,7 @@ def test_a_completed_session_returns_its_absolute_detail_and_one_usage_record(
     usage = sink.records[0]
     assert usage.node == "plan_review"
     assert usage.agent == "reviewer"
+    assert usage.agent_prompt == "plan_review: review the plan."
     assert usage.session_id == "s-1"
     assert usage.total_cost_usd == 0.5
     assert usage.cache_creation_input_tokens == 111
@@ -282,6 +295,7 @@ def test_a_launch_error_is_an_infra_failure_with_empty_usage(tmp_path: Path) -> 
     assert len(sink.records) == 1
     usage = sink.records[0]
     assert (
+        usage.agent_prompt,
         usage.session_id,
         usage.stalled,
         usage.total_cost_usd,
@@ -295,7 +309,22 @@ def test_a_launch_error_is_an_infra_failure_with_empty_usage(tmp_path: Path) -> 
         usage.returncode,
         usage.return_document,
         usage.result,
-    ) == (None, False, None, None, None, {}, 0, (), "", "", None, None, expected)
+    ) == (
+        "plan_review: review the plan.",
+        None,
+        False,
+        None,
+        None,
+        None,
+        {},
+        0,
+        (),
+        "",
+        "",
+        None,
+        None,
+        expected,
+    )
 
 
 @pytest.mark.parametrize(
@@ -352,6 +381,7 @@ def test_the_constructor_refuses_each_caller_defect(
         "contracts": {"reviewer": _CONTRACT},
         "inactivity_limit_seconds": 30.0,
         "usage_sink": Usages(),
+        "agent_prompt_builder": _agent_prompt,
         **overrides,
     }
 
@@ -370,15 +400,75 @@ def test_run_raises_for_an_agent_with_no_contract(tmp_path: Path) -> None:
     assert str(raised.value) == "plan_review: no agent contract for 'writer'"
 
 
-def test_run_raises_for_a_dispatch_with_no_prompt(tmp_path: Path) -> None:
+def test_a_dispatch_with_no_prompt_variant_launches_with_the_built_agent_prompt(
+    tmp_path: Path,
+) -> None:
+    argv_file = tmp_path / "argv.json"
+    command = plant(tmp_path, {"argv_file": str(argv_file), "steps": _stream({"outcome": "PASS"})})
+
+    result = asyncio.run(_executor(command, tmp_path, Usages()).run(_dispatch()))
+
+    assert result == Completed("PASS", None)
+    assert json.loads(argv_file.read_text(encoding="utf-8"))[:2] == [
+        "-p",
+        "plan_review: review the plan.",
+    ]
+
+
+def test_the_builder_receives_the_dispatch_and_the_variant_never_reaches_claude(
+    tmp_path: Path,
+) -> None:
+    argv_file = tmp_path / "argv.json"
+    command = plant(tmp_path, {"argv_file": str(argv_file), "steps": _stream({"outcome": "PASS"})})
+    received: list[Dispatch] = []
+
+    def revise(dispatch: Dispatch) -> str:
+        received.append(dispatch)
+        return "Revise the plan."
+
+    executor = _executor(command, tmp_path, Usages(), agent_prompt_builder=revise)
+
+    asyncio.run(executor.run(_dispatch(variant="revision")))
+
+    argv = json.loads(argv_file.read_text(encoding="utf-8"))
+    assert received == [_dispatch(variant="revision")]
+    assert argv[:2] == ["-p", "Revise the plan."]
+    assert "revision" not in argv
+
+
+def test_an_exception_from_the_builder_propagates_before_any_launch(tmp_path: Path) -> None:
+    argv_file = tmp_path / "argv.json"
+    command = plant(tmp_path, {"argv_file": str(argv_file), "steps": _stream({"outcome": "PASS"})})
     sink = Usages()
-    executor = _executor(("claude",), tmp_path, sink)
+
+    def unbuildable(dispatch: Dispatch) -> str:
+        raise RuntimeError("no dispatch block for plan_review")
+
+    executor = _executor(command, tmp_path, sink, agent_prompt_builder=unbuildable)
+
+    with pytest.raises(RuntimeError, match="^no dispatch block for plan_review$"):
+        asyncio.run(executor.run(_dispatch()))
+
+    assert sink.records == []
+    assert not argv_file.exists()
+
+
+def test_a_blank_agent_prompt_is_raised_before_any_launch(tmp_path: Path) -> None:
+    argv_file = tmp_path / "argv.json"
+    command = plant(tmp_path, {"argv_file": str(argv_file), "steps": _stream({"outcome": "PASS"})})
+    sink = Usages()
+
+    def blank(dispatch: Dispatch) -> str:
+        return " \n"
+
+    executor = _executor(command, tmp_path, sink, agent_prompt_builder=blank)
 
     with pytest.raises(ValueError) as raised:
-        asyncio.run(executor.run(_dispatch(prompt=None)))
+        asyncio.run(executor.run(_dispatch()))
 
-    assert str(raised.value) == "plan_review: the dispatch carries no prompt"
+    assert str(raised.value) == "plan_review: the agent prompt builder returned no agent prompt"
     assert sink.records == []
+    assert not argv_file.exists()
 
 
 def test_a_later_change_to_the_callers_inputs_changes_nothing(tmp_path: Path) -> None:
@@ -405,7 +495,13 @@ def test_a_repeated_run_launches_the_same_vector_and_reports_twice(tmp_path: Pat
     argv_file = tmp_path / "argv.json"
     command = plant(tmp_path, {"argv_file": str(argv_file), "steps": _stream({"outcome": "PASS"})})
     sink = Usages()
-    executor = _executor(command, tmp_path, sink)
+    calls: list[Dispatch] = []
+
+    def counted(dispatch: Dispatch) -> str:
+        calls.append(dispatch)
+        return _agent_prompt(dispatch)
+
+    executor = _executor(command, tmp_path, sink, agent_prompt_builder=counted)
 
     asyncio.run(executor.run(_dispatch()))
     first = argv_file.read_text(encoding="utf-8")
@@ -414,6 +510,7 @@ def test_a_repeated_run_launches_the_same_vector_and_reports_twice(tmp_path: Pat
     second = argv_file.read_text(encoding="utf-8")
 
     assert first == second
+    assert len(calls) == 2
     assert [usage.node for usage in sink.records] == ["plan_review", "plan_review"]
 
 
@@ -475,6 +572,7 @@ def test_through_execute_set_the_usage_record_precedes_its_launch_row(tmp_path: 
         contracts={"reviewer": _CONTRACT},
         inactivity_limit_seconds=30.0,
         usage_sink=LoggedUsages(log),
+        agent_prompt_builder=_agent_prompt,
         kill_grace_seconds=2.0,
     )
 
