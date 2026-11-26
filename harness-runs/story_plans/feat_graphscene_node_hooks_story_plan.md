@@ -78,7 +78,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_graphs
 11. [x] **Task 11** — Port `pnl_prompt` as `CorePromptBuilder`, the host's `AgentPromptBuilder` _(layer: devscene-flow-host)_ _(points: 20)_
 12. [x] **Task 12** — Commit through the main checkout's commit wrapper and flip a ledger entry in `host/commit_points.py` _(layer: devscene-flow-host)_ _(points: 15)_
 13. [x] **Task 13** — Implement the planning graph's hooks as `PlanningHooks` and walk the planning graph in run mode with them _(layer: devscene-flow-host)_ _(points: 20)_
-14. [ ] **Task 14** — Port `pd_entry` as `decide_planning_entry`, the host's entry and resume decision _(layer: devscene-flow-host)_ _(points: 20)_
+14. [x] **Task 14** — Port `pd_entry` as `decide_planning_entry`, the host's entry and resume decision _(layer: devscene-flow-host)_ _(points: 20)_
 15. [ ] **Task 15** — Hold each prompt source to the planning core as core-agreement check 10 _(layer: devscene-flow-host)_ _(points: 10)_
 16. [ ] **Task 16** — Document the prompt builder, the planning hooks and the entry decision in `devscene-flow-host/README.md` _(layer: devscene-flow-host)_ _(points: 10)_
 17. [ ] **Task 17** — Record format 5 and the hook seam in the flow-graph decision record, Gate 3, the schemas README and the roadmap _(layer: general)_ _(points: 15)_
