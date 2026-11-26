@@ -1,14 +1,14 @@
 """The rule this file exists to enforce: a caller importing only from `graphscene` drives the
-committed graph `valid_generic.json` end to end in run mode, `start_run` and `continue_run`, over
-a real `FileStateStore`, and gets back the `RunExit` the graph and the script lead to — the graph's
-`End`, the graph's own `Stop` binding, or a `Halt` that a later `continue_run` resumes from the
-saved walk.
+committed graphs `valid_generic.json` and `valid_plain_round.json` end to end in run mode,
+`start_run` and `continue_run`, over a real `FileStateStore`, and gets back the `RunExit` the graph
+and the script lead to — the graph's `End`, the graph's own `Stop` binding, or a `Halt`, between
+sets or mid-round, that a later `continue_run` resumes from the saved walk.
 
 It imports the public names from `graphscene`, as a caller does (`.claude/context/graphscene.md` →
 `## Tests`). Each case runs with `backoff_seconds=0` through `asyncio.run`. `Signals`, `Counter`,
 `Rows` and `DictHost` are in-test classes satisfying `RunSignals`, `DispatchCounter`, `LaunchSink`
 and `PredicateHost` structurally. Every expected literal is hand-written from the script and from
-reading `valid_generic.json`, never taken from the code's output.
+reading the fixture, never taken from the code's output.
 
 Deliberately not covered: the run loop's own cases (refusals, interrupts, cancellation, the
 store's thread) are `graphscene/tests/engine/test_run_loop.py`'s.
@@ -16,8 +16,12 @@ store's thread) are `graphscene/tests/engine/test_run_loop.py`'s.
 
 import asyncio
 from pathlib import Path
+from types import MappingProxyType
 
 from graphscene import (
+    Completed,
+    Dispatch,
+    DispatchSet,
     End,
     ExecutionLimits,
     FileStateStore,
@@ -37,6 +41,7 @@ from graphscene import (
 )
 
 _FIXTURE = Path(__file__).parents[1] / "fixtures" / "flow_graph" / "valid_generic.json"
+_PLAIN_ROUND = Path(__file__).parents[1] / "fixtures" / "flow_graph" / "valid_plain_round.json"
 
 _HELD = "crashed"
 
@@ -178,3 +183,60 @@ def test_a_stop_after_the_draft_halts_and_continue_run_finishes_from_the_state_f
     second = _stub({"edit_check": [ScriptedOutcome("approved")]})
     assert _continue(_walker(state_file), second, Signals()) == _PUBLISHED
     assert second.started == ("edit_check",)
+
+
+def test_a_stop_mid_round_saves_the_recorded_gate_and_continue_run_finishes_from_the_state_file(
+    tmp_path: Path,
+) -> None:
+    state_file = tmp_path / "walk.json"
+    stub = _stub(
+        {
+            "lint": [
+                ScriptedFailure("infra", "session ended in error"),
+                ScriptedOutcome("accepted"),
+            ],
+            "license": [ScriptedOutcome("accepted", "license.md")],
+        }
+    )
+
+    def walker() -> Walker:
+        return Walker(load_graph_file(_PLAIN_ROUND), FileStateStore(state_file), DictHost({}))
+
+    # The first pass's clear asks STOP once per gate; lint's retry pass's first ask is the third.
+    assert asyncio.run(
+        start_run(
+            walker(),
+            stub,
+            signals=Signals(stop_after=2),
+            counter=Counter(),
+            sink=Rows(),
+            limits=ExecutionLimits(backoff_seconds=0),
+            failure_outcome=_HELD,
+            entry="checks",
+        )
+    ) == Halt("stop", "stop requested before a set of 1")
+    lint = Dispatch(
+        node="lint",
+        agent="lint-checker",
+        prompt=None,
+        counters=MappingProxyType({}),
+        round_number=0,
+        converging=None,
+        closed_round=(),
+        passed=(),
+    )
+    assert walker().current() == DispatchSet("checks", 0, (lint,), ())
+
+    rows = Rows()
+    assert asyncio.run(
+        continue_run(
+            walker(),
+            stub,
+            signals=Signals(),
+            counter=Counter(),
+            sink=rows,
+            limits=ExecutionLimits(backoff_seconds=0),
+            failure_outcome=_HELD,
+        )
+    ) == End("<finish>", "published", reports=(), passed=(RoundPassage("checks", 0, "pass"),))
+    assert rows.rows == [Launch(1, "lint", "lint-checker", 1, 3, Completed("accepted"))]
