@@ -59,14 +59,14 @@ Imports point down only, and `records` never imports `graphscene`. The contracts
 | `contracts` | Each agent's `AgentContract`: its `tools:` line and its return schema | `read_agent_contract` (`records/plugin_contracts.py`), which reads them as `pnl_agent_tools_var` and `pnl_load_schemas` do |
 | `inactivity_limit_seconds` | How long the stream may stay silent before the session is a stall; must be `> 0` | The host, as `NODE_INACTIVITY_LIMIT_SECONDS` below |
 | `usage_sink` | The host's `UsageSink` | The host |
-| `session_args` | The shared session flags, passed through unchanged | The host; default none |
+| `session_args` | The shared session flags, passed through unchanged. They include `--add-dir <plugin_dir>`, which the executor does not add: the pilot passes it for every node (`cli/templates/scripts/lib/planning-node-lib.sh` → `pnl_agent_flags`) | The host; default none |
 | `agent_args` | Per-agent flags, such as an agent's MCP flags, keyed by an agent that has a contract | The host; default none |
 | `env` | The session's environment; `None` inherits the host's | The host; default `None` |
 | `kill_grace_seconds` | How long a killed group has between `SIGTERM` and `SIGKILL`; must be `>= 0` | Default `KILL_GRACE_SECONDS`, `5.0` |
 
 Each contract's return schema is checked at construction through `graphscene.return_violations`, so an invalid schema raises `ValueError` there rather than failing mid-run. A dispatch whose agent has no contract raises `LookupError`, and one that carries no prompt raises `ValueError`: both are defects in the caller, not a node's result.
 
-**The flags it adds.** The session's argument vector is `command`, then `-p <prompt>`, then `session_args`, then `--output-format stream-json --verbose --agent <plugin_name>:<agent> --plugin-dir <plugin_dir>`, then the agent's `agent_args`. `session_args` and every `agent_args` entry may carry no member of `EXECUTOR_FLAGS` — `-p`, `--print`, `--output-format`, `--input-format`, `--agent`, `--plugin-dir` — bare or as `<flag>=…`; construction refuses one with `ValueError`.
+**The flags it adds.** The session's argument vector is `command`, then `-p <prompt>`, then `session_args`, then `--output-format stream-json --verbose --agent <plugin_name>:<agent> --plugin-dir <plugin_dir>`, then the agent's `agent_args`. `--add-dir <plugin_dir>` is not among them: the host passes it in `session_args`. `session_args` and every `agent_args` entry may carry no member of `EXECUTOR_FLAGS` — `-p`, `--print`, `--output-format`, `--input-format`, `--agent`, `--plugin-dir` — bare or as `<flag>=…`; construction refuses one with `ValueError`.
 
 **How a session becomes a result.** The first clause that holds decides:
 

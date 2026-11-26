@@ -14,7 +14,7 @@
 
 Each entry resolves to a self-contained `harness-runs/user_reviews/feat_flow_host_claude_executor_fix_plan/finding_<K>.md` file through its `**Finding K**` reference, 1-to-1 with the `### K. <title>` pointers below. The entries run from the lowest blast radius to the widest refactor. Findings 1–3 are documentation only. Finding 4 changes the executor's constructor, `run`, `SessionUsage`, its tests and the README.
 
-1. [ ] **Finding 1** — Name `--add-dir <plugin_dir>` among the host-supplied flags in `claude_executor.py`'s docstring and the README's `## The executor`. _(layer: devscene-flow-host)_
+1. [x] **Finding 1** — Name `--add-dir <plugin_dir>` among the host-supplied flags in `claude_executor.py`'s docstring and the README's `## The executor`. _(layer: devscene-flow-host)_
 2. [ ] **Finding 2** — State in the pairing rule (docstring and README) that a `Launch` row written by GraphScene's total-run timeout has no usage record and is not a pairing fault. _(layer: devscene-flow-host)_
 3. [ ] **Finding 3** — Replace the five issue-number deferrals (`#484`, `#424`) this branch added with descriptions of the work. _(layer: devscene-flow-host)_
 4. [ ] **Finding 4** — Give `ClaudeExecutor` a host-supplied `AgentPromptBuilder`, stop passing `Dispatch.prompt` to `claude -p`, and carry `agent_prompt` on `SessionUsage`, with tests and README. _(layer: devscene-flow-host)_
