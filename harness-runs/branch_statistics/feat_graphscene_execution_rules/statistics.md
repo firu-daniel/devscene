@@ -2,11 +2,11 @@
 
 ## Summary
 
-- `success_rate`: **`100%`** — headline metric.
+- `success_rate`: **`94.7%`** — headline metric.
 - `story_points_total`: `95` — denominator (sum of every task's `_(points: <N>)_` story-point estimate in the story index's `## Phase 2 Readiness — Ordered Fix List`).
-- `issue_cost_total`: `0` — subtraction (sum of each user-review observation's severity weight, in story-point units).
+- `issue_cost_total`: `5` — subtraction (sum of each user-review observation's severity weight, in story-point units).
 - `story_plan_tasks`: `6` — retained raw count of `## Phase 2 Readiness — Ordered Fix List` task entries.
-- `user_review_issues`: `0` — retained raw count of observations across all `feat_graphscene_execution_rules_review*.md` user-review files.
+- `user_review_issues`: `1` — retained raw count of observations across all `feat_graphscene_execution_rules_review*.md` user-review files.
 
 Formula:
 
@@ -14,11 +14,11 @@ Formula:
 success_rate = round(clamp((story_points_total - issue_cost_total) / story_points_total, 0, 1) * 100, 1) percent
 ```
 
-Worked example: `round(clamp((95 - 0) / 95, 0, 1) * 100, 1)` = `100%`.
+Worked example: `round(clamp((95 - 5) / 95, 0, 1) * 100, 1)` = `round(94.7368…, 1)` = `94.7%`.
 
 Edge cases (the rate is always computed via the formula, then adjusted by these rules):
 
-- **No issues** — when `issue_cost_total` is `0` (no user review yet, or a fully clean review) the rate is `100%`. This rule applies here: no user review exists yet.
+- **No issues** — when `issue_cost_total` is `0` (no user review yet, or a fully clean review) the rate is `100%`.
 - **Clamped at zero** — when `issue_cost_total > story_points_total` (weighted defect load exceeds the planned story points), the raw value goes negative; the rate is **clamped to `0%`** rather than recorded as a negative number. The rate never exceeds `100%`.
 - **No points** — when `story_points_total` is `0` the rate is recorded as `n/a` (cannot divide by zero). This is only reachable when the story index has **zero** task entries; a story index that has tasks but no `_(points: …)_` tags falls back to the legacy task-count denominator (see below), so it still produces a number.
 - **No points tags (back-compat fallback)** — when the story index has task entries but **none** carry a `_(points: …)_` tag, `story_points_total` falls back to `story_plan_tasks` (the legacy task-count denominator) and `## Notes` records that points were unavailable.
@@ -39,16 +39,19 @@ Per-source raw numbers and per-issue costs are retained so the metric can be ref
     - **sum (`story_points_total`)**: `95`
   - `dispositioned_points`: `0` — no commit in `origin/dev..HEAD` (`git log --format='%h %s%n%b' origin/dev..HEAD`) carries the `record disposition of ` record, so no unit here was closed without a fix.
   - (Back-compat: every entry carries a `_(points: …)_` tag, so the task-count fallback did not fire.)
-- **User-review source** — `user_review_issues`: `0`, `issue_cost_total`: `0`
-  - No `harness-runs/user_reviews/feat_graphscene_execution_rules_review*.md` file exists yet (first write, pre-user-review), so no file was counted and no observation was weighted.
-  - **total**: `0` observations → `issue_cost_total` `0`
-  - Each file's observation count is the count of whatever top-level enumeration that file uses, taken from the first of four arms to return non-zero and never summed across arms: (1) numbered `##`–`####` headings with required trailing punctuation, `grep -cE '^#{2,4} +[0-9]+[.):]'`; (2) top-level numbered/bulleted list items, `grep -cE '^[0-9]+\.|^[-*][[:space:]]'`; (3) an explicit per-observation marker the file itself uses, with the matching grep recorded beside the count; (4) `1`, reserved for a file with no enumeration of any kind.
+- **User-review source** — `user_review_issues`: `1`, `issue_cost_total`: `5` (per user-review file, then summed)
+  - `harness-runs/user_reviews/feat_graphscene_execution_rules_review.md`: `1` observation → cost `5`. Counted by **arm 2, top-level list items** — `grep -cE '^[0-9]+\.|^[-*][[:space:]]' <file>` → `1`, arm 1 (`grep -cE '^#{2,4} +[0-9]+[.):]' <file>`) having returned `0`. The glob's only other `feat_graphscene_execution_rules_*` matches in that directory are the `_fix_plan` file and directory, which do not match `_review*.md` and are excluded in any case. The observation's assigned weight:
+    1. `ExecutionLimits.stall_seconds` limits a node's total run time rather than acting as an inactivity (stall) timeout; rename it to `run_timeout_seconds` and reword every docstring, README passage, test name, message and validation error → **Minor** `5`
+  - **total**: `1` observation → `issue_cost_total` `5`
+  - Each file's observation count is the count of whatever top-level enumeration that file uses, taken from the first of four arms to return non-zero and never summed across arms: (1) numbered `##`–`####` headings with required trailing punctuation, `grep -cE '^#{2,4} +[0-9]+[.):]'` — here `0`; (2) top-level numbered/bulleted list items, `grep -cE '^[0-9]+\.|^[-*][[:space:]]'` — here `1`, so arm 2 is this file's count; (3) an explicit per-observation marker the file itself uses, with the matching grep recorded beside the count; (4) `1`, reserved for a file with no enumeration of any kind. Every observation the user wrote is counted and weighted, including any a later fix plan verifies as OK — the count measures what the user found, not what survived triage.
   - Each observation is weighted in story-point units: **Major** `15` (explicit `[major]` marker, or the observation describes a broken/incorrect user-facing flow, a missing/client-only authorization gate, data loss/corruption/unprotected data, or an absent whole ported behaviour — the deciding phrase is quoted beside the observation), **Trivial** `2` (explicit `[trivial]` marker), **Minor** `5` (the default for every observation without a Major/Trivial classification).
+
+**Why the one observation took the Minor default.** It carries no explicit `[major]` or `[trivial]` marker. Read from the review text alone, it describes a misnamed and misdocumented limit — a total-run timeout presented as a stall timeout — whose fix is a rename and a rewording. The review itself states that inactivity detection belongs to the executor, not the engine, so this is no absent ported behaviour. It describes no end-to-end broken user-facing flow, no authorization gap and no data loss or corruption either. The warning that a host passing its stall value "would kill long but healthy sessions" is a misuse risk the naming invites, not a flow the review reports as broken.
 
 ## Status
 
-- status: `pre-user-review` — `pre-user-review` means this file was written right after the branch (code) review with no user review yet (`issue_cost_total` `0` → `100%`); `post-user-review` means it was re-written after user-review fixes, with the issues from the `feat_graphscene_execution_rules_review*.md` files counted and weighted.
-- last_updated: `2026-11-25`
+- status: `post-user-review` — `pre-user-review` means this file was written right after the branch (code) review with no user review yet (`issue_cost_total` `0` → `100%`); `post-user-review` means it was re-written after user-review fixes, with the issues from the `feat_graphscene_execution_rules_review*.md` files counted and weighted.
+- last_updated: `2026-11-26`
 
 ## Notes
 
