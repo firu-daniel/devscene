@@ -16,6 +16,9 @@ The rule:
   running past it is a stall.
 - Killing the group is `SIGTERM` to the group, up to the kill grace for the process to exit, then
   `SIGKILL` to the group and its exit awaited; a `ProcessLookupError` means the group is gone.
+  Once the leader has exited, a `PermissionError` from `killpg` means only zombies remain (Darwin
+  answers `EPERM` for a zombie-only group) and is treated as the group being gone; while the
+  leader runs, it propagates.
 - On every path out — a normal exit, a stall, `asyncio.CancelledError`, any unexpected
   exception — the group is killed, whether or not the leader has exited, and the stderr drain is
   then awaited for at most `STDERR_DRAIN_SECONDS`. `CancelledError` is re-raised after the kill,
@@ -135,17 +138,21 @@ async def _stderr_tail(task: asyncio.Task[bytes]) -> bytes:
 
 
 async def _kill_group(process: asyncio.subprocess.Process, kill_grace_seconds: float) -> None:
-    _signal_group(process.pid, signal.SIGTERM)
+    _signal_group(process.pid, signal.SIGTERM, leader_exited=process.returncode is not None)
     try:
         await asyncio.wait_for(process.wait(), kill_grace_seconds)
     except TimeoutError:
         pass
-    _signal_group(process.pid, signal.SIGKILL)
+    _signal_group(process.pid, signal.SIGKILL, leader_exited=process.returncode is not None)
     await process.wait()
 
 
-def _signal_group(pid: int, signal_number: signal.Signals) -> None:
+def _signal_group(pid: int, signal_number: signal.Signals, *, leader_exited: bool) -> None:
     try:
         os.killpg(pid, signal_number)
     except ProcessLookupError:
         pass
+    except PermissionError:
+        # Darwin answers EPERM, not ESRCH, for a group whose only members are zombies.
+        if not leader_exited:
+            raise

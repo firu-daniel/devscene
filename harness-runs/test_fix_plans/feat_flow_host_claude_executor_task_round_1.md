@@ -10,7 +10,7 @@
 
 This list is the **single source of truth** for the fix loop: the loop walks these entries in order, and `[ ]` markers anywhere else in this plan are informational only.
 
-1. [ ] **Finding 1** — `_signal_group` lets a `PermissionError` from `os.killpg` escape after the leader has exited. _(layer: devscene-flow-host)_
+1. [x] **Finding 1** — `_signal_group` lets a `PermissionError` from `os.killpg` escape after the leader has exited. _(layer: devscene-flow-host)_
 
 ## Must Fix
 
