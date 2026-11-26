@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/feat_flow_host_claude_executor_task_prompt.md 
   - screened: harness-runs/task_prompts/feat_flow_host_claude_executor_task_prompt.md sha256=230289b9c48f3b0f5249eb60697204d8ea1a16da3c743c2e4165f86fb23baec2
   - screened: harness-runs/user_reviews/feat_flow_host_claude_executor_review.md sha256=1442355dd7a446da455159e3859dca47f13d25b3a86ab0b6a54a586894036942
 - [x] R1. Fix plan written & converged (parity + architecture gates PASS)
-- [ ] R2. Fix plan + source review committed
+- [x] R2. Fix plan + source review committed
 ## Fixing
 - [ ] R3. All fix-plan findings implemented (fix-plan index all [x])
 - [-] R4. QA passed (UI-test index all [x], or only blocked tests left / no_ui / no-op augment)
