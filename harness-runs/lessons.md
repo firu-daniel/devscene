@@ -122,8 +122,4 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 
 - **When a change makes agent definitions state one rule in two places, such as a checklist and a table, the same change ships the static check that holds the two aligned.** _(taught by: feat_must_fix_definition)_
 
-## Code comments and maintainer documents
-
-- **Name deferred or related work by what it does, never by an issue number; where merged work needs naming, cite its merge-commit title.** _(taught by: feat_flow_host_claude_executor)_
-
 _Written by `autonomous-sdlc-harness init`, and yours from there on: a re-run never touches a ledger that already exists._
