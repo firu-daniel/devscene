@@ -96,3 +96,8 @@ The builder reads disk only through the host-kept `RevisionFindingsStore`, `revi
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_agent_prompts.py` passes.
 - `host/agent_prompts.py` opens no pair file: grep it for `read_text` / `read_bytes` / `open(` and find none applied to a pair path.
 - The through-the-executor case shows the builder wired into `ClaudeExecutor` end to end. The text the session was given is the text the contract spells.
+
+**Deviations from plan:**
+
+- **An empty pair file.** The contract adds `"\n"` to a pair file's text whenever it does not end in one. `pd_pairs_text` adds nothing after an empty file: `[ -z "$(tail -c 1 "$abs")" ]` holds for it. The builder follows bash and adds the newline only to non-empty text, with a code comment at that line. No test plants an empty pair file.
+- **Pairs and a failing first build.** The pairs count as spent only after a first build succeeds. A first writer build that raises, for example through `read_pair_text`'s `RecordError`, spends nothing and caches nothing, so a retry raises again rather than dropping the pairs silently. The contract does not say what happens in this case.

@@ -44,12 +44,11 @@ Deliberately not covered:
 - The findings-file presence rule: `host/round_gates.py` → `record_outcome`.
 - Writing the stream (from `SessionUsage.stream`) or a session manifest: the flow host's
   script-driven planning driver's, not yet merged.
-- Building an agent prompt from the instruction core's dispatch blocks and appending answered
-  clarification pairs, as `cli/templates/scripts/lib/planning-node-lib.sh` → `pnl_prompt` and
-  `cli/templates/scripts/lib/planning-driver-lib.sh` do, and refusing a prompt source that
-  cannot be built when the host constructs its builder: the later branch that makes prompt
-  sources and node hooks declarations, not yet merged.
-- Renaming GraphScene's `Dispatch.prompt`: that same later branch's.
+- Building the agent prompt: the harness's builder is `host/agent_prompts.py` →
+  `CorePromptBuilder`.
+- Renaming GraphScene's `Dispatch.prompt`: it is kept as GraphScene names it. Renaming it raises
+  GraphScene's walk-state document version, refusing every saved walk, and changes `graphscene`
+  and this package in one change.
 """
 
 import time
