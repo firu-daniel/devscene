@@ -12,8 +12,9 @@ per-set safety contract `clear_set`, the per-node attempt rule `AttemptBook` and
 the `RunSignals`, `DispatchCounter` and `LaunchSink` protocols the host implements. Run mode,
 `start_run` and `continue_run`, drives a walk end to end through a caller's `Executor`, applying
 `execute_set` set by set and returning a `RunExit`, while step mode, `Walker`, stays the
-synchronous route. The surface is
-re-exported from `graphscene.facade`; no module inside the package imports from the package root.
+synchronous route. Run mode runs the hooks a graph names through a caller's `HookHost`, each with
+its `HookCall`. The surface is re-exported from `graphscene.facade`; no module inside the package
+imports from the package root.
 
 The boundary: this package imports only the standard library, itself and its declared runtime
 dependencies, and it never reads the harness's configuration file. Harness integration lives in a
@@ -22,8 +23,13 @@ separate distribution that depends on this one, never the reverse (`tests/test_b
 
 from graphscene.facade import (
     Action,
+    AfterDispatch,
+    AfterRound,
     AttemptBook,
     Awaiting,
+    BeforeDispatch,
+    BeforeEnd,
+    BeforeRound,
     BindingDeclaration,
     BindingEdge,
     Completed,
@@ -45,6 +51,9 @@ from graphscene.facade import (
     GraphError,
     Halt,
     HaltReason,
+    HookCall,
+    HookDeclaration,
+    HookHost,
     Interrupt,
     InterruptBinding,
     Launch,
@@ -124,6 +133,7 @@ __all__: list[str] = [
     "StopBinding",
     "EndBinding",
     "PredicateDeclaration",
+    "HookDeclaration",
     "Vocabulary",
     "CounterDeclaration",
     "OnCapEdge",
@@ -186,4 +196,11 @@ __all__: list[str] = [
     "RunExit",
     "start_run",
     "continue_run",
+    "HookHost",
+    "HookCall",
+    "BeforeDispatch",
+    "AfterDispatch",
+    "BeforeRound",
+    "AfterRound",
+    "BeforeEnd",
 ]

@@ -20,8 +20,8 @@ Deliberately not covered:
 - The escalation-resume cases (a)-(d): which gates a resume re-dispatches is the host's.
 - The `<ask>` questions park: the host's.
 - Round-file refusals and their re-dispatch: the host's.
-- Commits, the run log and the clarification and pause files: the host's, and the run loop's
-  (#423).
+- Commits, the run log and the clarification and pause files: the host's, run through its
+  `HookHost` in run mode.
 """
 
 import asyncio

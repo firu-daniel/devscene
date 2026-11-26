@@ -45,3 +45,9 @@ This task restates those rules in the README and changes no behaviour.
 - `tests/test_public_surface.py`, `tests/facade/test_run_mode.py` and `tests/facade/test_execution_rules.py` pass, each run as `bash scripts/python-service.sh --package graphscene test tests/<path>.py`.
 - `git grep -nE 'format 4|format-4' -- graphscene/README.md graphscene/src` prints nothing.
 - Every hook statement in the README traces to a clause of `run_loop.py`'s or `set_execution.py`'s *"The rule:"*. Read them side by side, and find no README claim the code's rule does not make.
+
+**Deviations from plan:**
+
+- `HookDeclaration`'s `_DEFINED_IN` entry is made by widening the existing `graphscene.model.flow_graph` slice from `_EXPECTED[7:28]` to `_EXPECTED[7:29]`, not by a separate key: inserting the name after `PredicateDeclaration` shifts `TerminalNode` to index 28, so the slice had to widen either way, and a separate key would duplicate it.
+- The README's hooks paragraph also restates `graphscene.model.hooks`'s *"The rule:"* (node kinds, repeatable side effects, `Walker` runs none), the vocabulary check's undeclared-hook refusal (`graphscene.engine.vocabulary` → *"The rule:"*) and the schema's `promptSource` description, beside `run_loop.py`'s and `set_execution.py`'s rules.
+- Out of this layer's path and left unchanged: `.claude/context/graphscene.md` still says *"format-4"* in its `> **Read this when:**` line and in `## What this layer owns, and what it is not`.

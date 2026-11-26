@@ -23,6 +23,7 @@ import graphscene.facade.loading
 import graphscene.model.errors
 import graphscene.model.execution
 import graphscene.model.flow_graph
+import graphscene.model.hooks
 import graphscene.model.run_control
 import graphscene.model.walk_actions
 import graphscene.model.walk_state
@@ -47,6 +48,7 @@ _EXPECTED: list[str] = [
     "StopBinding",
     "EndBinding",
     "PredicateDeclaration",
+    "HookDeclaration",
     "Vocabulary",
     "CounterDeclaration",
     "OnCapEdge",
@@ -109,6 +111,13 @@ _EXPECTED: list[str] = [
     "RunExit",
     "start_run",
     "continue_run",
+    "HookHost",
+    "HookCall",
+    "BeforeDispatch",
+    "AfterDispatch",
+    "BeforeRound",
+    "AfterRound",
+    "BeforeEnd",
 ]
 
 _DEFINED_IN: dict[str, object] = {
@@ -119,7 +128,8 @@ _DEFINED_IN: dict[str, object] = {
     "Violation": graphscene.model.errors,
     "vocabulary_violations": graphscene.engine.vocabulary,
     "static_violations": graphscene.engine.static_check,
-    **{name: graphscene.model.flow_graph for name in _EXPECTED[7:28]},
+    # FlowGraph through TerminalNode, HookDeclaration among them.
+    **{name: graphscene.model.flow_graph for name in _EXPECTED[7:29]},
     "Walker": graphscene.engine.walker,
     "FileStateStore": graphscene.adapters.state_file,
     "StateStore": graphscene.model.walk_state,
@@ -173,6 +183,13 @@ _DEFINED_IN: dict[str, object] = {
     "RunExit": graphscene.model.run_control,
     "start_run": graphscene.engine.run_loop,
     "continue_run": graphscene.engine.run_loop,
+    "HookHost": graphscene.model.hooks,
+    "HookCall": graphscene.model.hooks,
+    "BeforeDispatch": graphscene.model.hooks,
+    "AfterDispatch": graphscene.model.hooks,
+    "BeforeRound": graphscene.model.hooks,
+    "AfterRound": graphscene.model.hooks,
+    "BeforeEnd": graphscene.model.hooks,
 }
 
 
