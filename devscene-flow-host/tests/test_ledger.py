@@ -1,10 +1,13 @@
 """The rule this file exists to enforce: `read_run_mode` reads the run mode's skipped ids as the
 bash walker's `fw_run_mode_skipped` does — the ledger's `## Run mode` block wins, the caller's ids
 are used only when no ledger exists, and neither answering is a `RunModeUnresolved` with one exact
-reason — and `parse_skipped` reads a list as `fw_id_in_list` does.
+reason — and `parse_skipped` reads a list as `fw_id_in_list` does; and `read_planning_marks` reads
+the `P1`-`P3` marks as `pd_ledger_read` does — a line opening with a mark and `<entry>.` sets the
+mark, the last such line wins, no such line is `None`, and an unreadable ledger is a `RecordError`
+with one exact message.
 
 Every ledger is planted under `tmp_path`; every expected value is written from the rules in the
-task plan, never taken from `read_run_mode`'s output.
+task plan, never taken from the output of the code under test.
 
 Deliberately not covered:
 - An `OSError` other than a missing ledger, which propagates unwrapped: no portable way to plant
@@ -17,10 +20,12 @@ import pytest
 
 from devscene_flow_host.records.errors import RecordError
 from devscene_flow_host.records.ledger import (
+    PlanningMarks,
     RunMode,
     RunModeUnresolved,
     ledger_path,
     parse_skipped,
+    read_planning_marks,
     read_run_mode,
 )
 
@@ -116,3 +121,53 @@ def test_a_ledger_that_is_not_utf8_raises(tmp_path: Path) -> None:
 )
 def test_parse_skipped(value: str, expected: frozenset[str]) -> None:
     assert parse_skipped(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        (b"- [x] P1. a\n- [-] P2. b\n- [ ] P3. c\n", PlanningMarks(p1="x", p2="-", p3=" ")),
+        (b"- [-] P1. a\n- [ ] P2. b\n- [x] P3. c\n", PlanningMarks(p1="-", p2=" ", p3="x")),
+        (b"- [ ] P1. a\n- [x] P2. b\n- [-] P3. c\n", PlanningMarks(p1=" ", p2="x", p3="-")),
+    ],
+)
+def test_each_mark_is_read_for_each_entry(
+    tmp_path: Path, data: bytes, expected: PlanningMarks
+) -> None:
+    _plant(tmp_path, b"## Run mode\n- skipped: none\n\n## Planning\n" + data)
+    assert read_planning_marks(tmp_path, "state", "feat_x") == expected
+
+
+def test_an_entry_with_no_line_is_none(tmp_path: Path) -> None:
+    _plant(tmp_path, b"## Planning\n- [x] P1. plan\n- [x] P3. ui\n")
+    assert read_planning_marks(tmp_path, "state", "feat_x") == PlanningMarks(
+        p1="x", p2=None, p3="x"
+    )
+
+
+def test_the_last_line_for_an_entry_wins(tmp_path: Path) -> None:
+    _plant(tmp_path, b"- [x] P2. first\n- [ ] P2. second\n")
+    assert read_planning_marks(tmp_path, "state", "feat_x") == PlanningMarks(
+        p1=None, p2=" ", p3=None
+    )
+
+
+def test_a_mark_after_leading_text_does_not_match(tmp_path: Path) -> None:
+    _plant(tmp_path, b"note: - [x] P1. plan\n  - [x] P1. plan\n")
+    assert read_planning_marks(tmp_path, "state", "feat_x") == PlanningMarks(
+        p1=None, p2=None, p3=None
+    )
+
+
+def test_a_missing_ledger_raises_for_the_planning_marks(tmp_path: Path) -> None:
+    path = tmp_path / "state" / "flow_progress" / "feat_x_progress.md"
+    with pytest.raises(RecordError) as raised:
+        read_planning_marks(tmp_path, "state", "feat_x")
+    assert str(raised.value) == f"no flow-progress ledger at {path}"
+
+
+def test_a_ledger_that_is_not_utf8_raises_for_the_planning_marks(tmp_path: Path) -> None:
+    path = _plant(tmp_path, b"- [x] P1. \xff\n")
+    with pytest.raises(RecordError) as raised:
+        read_planning_marks(tmp_path, "state", "feat_x")
+    assert str(raised.value) == f"{path}: not UTF-8 text"
