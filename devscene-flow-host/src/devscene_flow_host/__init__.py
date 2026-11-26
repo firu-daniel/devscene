@@ -1,7 +1,8 @@
 """The harness's GraphScene host.
 
-It holds only the code that feeds GraphScene the harness's configuration, records, predicates,
-executor configuration and hooks, and the commands over it; anything useful without DevScene
+It holds only the code that feeds GraphScene the harness's configuration, records, predicates and
+hooks, the harness's executor — `ClaudeExecutor`, which runs each dispatched node as one headless
+`claude` session — and the commands over it; anything useful without DevScene
 belongs in GraphScene; another DevScene Python integration gets its own `devscene`-prefixed
 package.
 

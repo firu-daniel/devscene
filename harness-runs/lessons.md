@@ -104,6 +104,8 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 
 - **A shim that makes one engine read a shared contract as another engine does lists the constructs it supports and refuses every other one, naming where it occurs. It never passes an unhandled construct through untranslated.** _(taught by: feat_graphscene_graph_model)_
 
+- **Before code consumes a field of another component's type, read how that type's existing consumers use it, and test with the values its producer actually emits; never infer a field's meaning from its name or feed it a literal stand-in.** _(taught by: feat_flow_host_claude_executor)_
+
 - **Name a ported limit by what the new code measures, never by the original's concern it resembles: a deadline on a run's total time is a run timeout, and inactivity is detected only by the component that sees the activity.** _(taught by: feat_graphscene_execution_rules)_
 
 ## Agent prose
