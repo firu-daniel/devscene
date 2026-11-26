@@ -5,13 +5,16 @@ recorded every record after it, else the `SetResult.halt`, else carry on from th
 step until an `End`, `Stop`, `Interrupt` or `Refused`; each call builds its own book and breaker
 before touching the walker, calls the store only off the event loop's thread, and on cancellation
 re-raises with nothing of the set recorded, and a saved `Wait` pending is refused rather than
-looped on (`graphscene.engine.run_loop`).
+looped on; a graph naming a hook the host cannot run is refused before the store is read, and the
+declared hooks run at each taken step, before each attempt and after each recorded record, in
+that order, a hook's exception propagating with the walk as saved (`graphscene.engine.run_loop`).
 
 Every case drives `StubExecutor` with `backoff_seconds=0` through `asyncio.run`, over a `Walker`
 on a graph planted through `graphscene/tests/engine/walk_support.py` → `planted` and an in-test
 `MemoryStore` satisfying `StateStore` that logs each call's thread id. `Signals`, `Counter` and
-`Sink` satisfy `RunSignals`, `DispatchCounter` and `LaunchSink` structurally. Every expected value
-is hand-written from the planted graph and the script, never from the code's output.
+`Sink` satisfy `RunSignals`, `DispatchCounter` and `LaunchSink` structurally, and `Hooks`
+satisfies `HookHost`. Every expected value is hand-written from the planted graph and the script,
+never from the code's output.
 """
 
 import asyncio
@@ -34,6 +37,14 @@ from graphscene.engine.run_loop import continue_run, start_run
 from graphscene.engine.walker import Walker
 from graphscene.model.execution import Completed
 from graphscene.model.flow_graph import FlowGraph
+from graphscene.model.hooks import (
+    AfterDispatch,
+    AfterRound,
+    BeforeDispatch,
+    BeforeEnd,
+    BeforeRound,
+    HookCall,
+)
 from graphscene.model.run_control import ExecutionLimits, Halt, Launch, RunExit
 from graphscene.model.walk_actions import (
     Dispatch,
@@ -46,7 +57,7 @@ from graphscene.model.walk_actions import (
     Stop,
     Wait,
 )
-from graphscene.model.walk_state import WalkState
+from graphscene.model.walk_state import RoundResume, WalkState
 
 from .walk_support import AnswerTable, planted
 
@@ -475,3 +486,276 @@ def test_a_saved_wait_pending_is_refused_instead_of_looping() -> None:
         "the saved walk's pending action is a wait, which names no dispatch"
     )
     assert store.writes == writes
+
+
+_HookLine = tuple[str, str, str, object]
+
+
+def _line(hook: str, call: HookCall) -> _HookLine:
+    if isinstance(call, BeforeDispatch):
+        return (hook, call.kind, call.dispatch.node, call.attempt)
+    if isinstance(call, AfterDispatch):
+        return (hook, call.kind, call.record.node, f"{call.record.outcome}->{call.step.kind}")
+    if isinstance(call, BeforeRound):
+        dispatch_set = call.dispatch_set
+        gates = ",".join(d.node for d in dispatch_set.dispatches)
+        return (hook, call.kind, dispatch_set.round, f"{dispatch_set.number}:{gates}")
+    if isinstance(call, AfterRound):
+        passage = call.passage
+        return (hook, call.kind, passage.round, f"{passage.number}:{passage.verdict}")
+    assert isinstance(call, BeforeEnd)
+    return (hook, call.kind, call.end.node, None)
+
+
+class Hooks:
+    """A `HookHost` providing every hook, or only `provided` when given, logging each run as
+    `(hook, call.kind, node-or-round, detail)` and each call whole; `raise_on` names a hook whose
+    first run raises `RuntimeError` after it is logged."""
+
+    def __init__(self, provided: frozenset[str] | None = None, raise_on: str | None = None) -> None:
+        self._provided = provided
+        self._raise_on = raise_on
+        self.lines: list[_HookLine] = []
+        self.calls: list[HookCall] = []
+
+    def provides(self, hook: str) -> bool:
+        return self._provided is None or hook in self._provided
+
+    async def run(self, hook: str, call: HookCall) -> None:
+        self.lines.append(_line(hook, call))
+        self.calls.append(call)
+        if hook == self._raise_on:
+            self._raise_on = None
+            raise RuntimeError(f"hook '{hook}' failed")
+
+
+def _hooked_graph(cap: int = 3) -> FlowGraph:
+    """`_graph` with `vocabulary.hooks`: `draft` and `g1` run `prep` before and `log` after,
+    `review_round` runs `open` before and `close` after, and `published` runs `publish` before;
+    `rejected` stops on `<halt>` (`limit`) once `attempt` reaches `cap`."""
+    return planted(
+        {
+            "draft": {
+                "kind": "dispatch",
+                "agent": "article-writer",
+                "heartbeat": "beat",
+                "outcomes": {
+                    "done": {"to": "review_round"},
+                    "crashed": {"binding": "<halt>", "reason": "crash"},
+                },
+                "before": ["prep"],
+                "after": ["log"],
+            },
+            "g1": {**_gate(), "before": ["prep"], "after": ["log"]},
+            "g2": _gate(),
+            "review_round": {
+                "kind": "round",
+                "parallel": True,
+                "gates": ["g1", "g2"],
+                "writer": "draft",
+                "counter": "attempt",
+                "convergingFrom": 1,
+                "outcomes": {
+                    "approved": {"to": "published", "reset": "attempt"},
+                    "rejected": {
+                        "to": "draft",
+                        "increment": "attempt",
+                        "prompt": "rework",
+                        "onCap": {"binding": "<halt>", "reason": "limit"},
+                    },
+                },
+                "before": ["open"],
+                "after": ["close"],
+            },
+            "published": {"kind": "terminal", "binding": "<finish>", "before": ["publish"]},
+        },
+        vocabulary={
+            "outcomes": {
+                "done": {},
+                "approved": {"verdict": "pass"},
+                "rejected": {"verdict": "fail"},
+                "crashed": {"held": True},
+            },
+            "bindings": {
+                "<pause>": {"primitive": "interrupt", "resumeOutcome": "resumed"},
+                "<halt>": {"primitive": "stop", "reasons": ["limit", "crash"]},
+                "<finish>": {"primitive": "end"},
+            },
+            "predicates": {},
+            "hooks": {name: {} for name in ("prep", "log", "open", "close", "publish")},
+        },
+        counters={"attempt": {"cap": cap}},
+    )
+
+
+def _start_hooked(
+    walker: Walker,
+    stub: StubExecutor,
+    hooks: Hooks | None,
+    *,
+    entry: str | None = None,
+    resume: RoundResume | None = None,
+) -> RunExit:
+    return asyncio.run(
+        start_run(
+            walker,
+            stub,
+            signals=Signals(),
+            counter=Counter(),
+            sink=Sink(),
+            limits=_limits(),
+            failure_outcome=_FAILED,
+            entry=entry,
+            resume=resume,
+            hooks=hooks,
+        )
+    )
+
+
+def _continue_hooked(walker: Walker, stub: StubExecutor, hooks: Hooks) -> RunExit:
+    return asyncio.run(
+        continue_run(
+            walker,
+            stub,
+            signals=Signals(),
+            counter=Counter(),
+            sink=Sink(),
+            limits=_limits(),
+            failure_outcome=_FAILED,
+            hooks=hooks,
+        )
+    )
+
+
+def test_a_whole_walk_runs_every_declared_hook_at_its_point_in_order() -> None:
+    stub = _stub(
+        {
+            "draft": [ScriptedOutcome("done"), ScriptedOutcome("done")],
+            "g1": [ScriptedOutcome("rejected"), ScriptedOutcome("approved")],
+            "g2": [ScriptedOutcome("approved"), ScriptedOutcome("approved")],
+        }
+    )
+    hooks = Hooks()
+    assert _start_hooked(_walker(MemoryStore(), _hooked_graph()), stub, hooks) == End(
+        "<finish>", "published", reports=(), passed=(RoundPassage("review_round", 1, "pass"),)
+    )
+    assert hooks.lines == [
+        ("prep", "before_dispatch", "draft", 1),
+        ("log", "after_dispatch", "draft", "done->set"),
+        ("open", "before_round", "review_round", "0:g1,g2"),
+        ("prep", "before_dispatch", "g1", 1),
+        ("log", "after_dispatch", "g1", "rejected->wait"),
+        ("close", "after_round", "review_round", "0:fail"),
+        ("prep", "before_dispatch", "draft", 1),
+        ("log", "after_dispatch", "draft", "done->set"),
+        ("open", "before_round", "review_round", "1:g1,g2"),
+        ("prep", "before_dispatch", "g1", 1),
+        ("log", "after_dispatch", "g1", "approved->wait"),
+        ("close", "after_round", "review_round", "1:pass"),
+        ("publish", "before_end", "published", None),
+    ]
+
+
+def test_an_infrastructure_retry_runs_the_before_dispatch_hook_again_on_attempt_two() -> None:
+    stub = _stub(
+        {
+            "draft": [ScriptedFailure("infra", "crashed"), ScriptedOutcome("done")],
+            "g1": [ScriptedOutcome("approved")],
+            "g2": [ScriptedOutcome("approved")],
+        }
+    )
+    hooks = Hooks()
+    assert _start_hooked(_walker(MemoryStore(), _hooked_graph()), stub, hooks) == _END
+    drafts = [
+        c for c in hooks.calls if isinstance(c, BeforeDispatch) and c.dispatch.node == "draft"
+    ]
+    assert [(c.seq, c.attempt) for c in drafts] == [(1, 1), (2, 2)]
+
+
+def test_a_hooked_graph_without_a_hook_host_is_refused_with_the_store_unread() -> None:
+    store = MemoryStore()
+    with pytest.raises(ValueError) as raised:
+        _start_hooked(_walker(store, _hooked_graph()), _stub({}), None)
+    assert str(raised.value) == "the graph names hook 'prep' and no hook host was given"
+    assert store.calls == []
+
+
+def test_a_hook_the_host_does_not_provide_is_refused_with_the_store_unread() -> None:
+    store = MemoryStore()
+    hooks = Hooks(provided=frozenset({"prep", "log", "open", "publish"}))
+    with pytest.raises(ValueError) as raised:
+        _continue_hooked(_walker(store, _hooked_graph()), _stub({}), hooks)
+    assert str(raised.value) == "the graph names hook 'close', which the hook host does not provide"
+    assert store.calls == []
+    assert hooks.lines == []
+
+
+def test_a_graph_with_no_hooks_runs_with_no_hook_host() -> None:
+    stub = _stub(
+        {
+            "draft": [ScriptedOutcome("done")],
+            "g1": [ScriptedOutcome("approved")],
+            "g2": [ScriptedOutcome("approved")],
+        }
+    )
+    assert _start_hooked(_walker(MemoryStore()), stub, None) == _END
+
+
+def test_a_hook_raising_after_a_round_closes_propagates_and_continue_run_re_runs_it() -> None:
+    stub = _stub(
+        {
+            "draft": [ScriptedOutcome("done")],
+            "g1": [ScriptedOutcome("approved")],
+            "g2": [ScriptedOutcome("approved")],
+        }
+    )
+    walker = _walker(MemoryStore(), _hooked_graph())
+    with pytest.raises(RuntimeError) as raised:
+        _start_hooked(walker, stub, Hooks(raise_on="close"))
+    assert str(raised.value) == "hook 'close' failed"
+    hooks = Hooks()
+    assert _continue_hooked(walker, stub, hooks) == _END
+    assert hooks.lines == [
+        ("close", "after_round", "review_round", "0:pass"),
+        ("publish", "before_end", "published", None),
+    ]
+
+
+def test_a_resumed_round_runs_its_before_hooks_once_with_only_the_due_gate() -> None:
+    stub = _stub({"g2": [ScriptedOutcome("approved")]})
+    hooks = Hooks()
+    resume = RoundResume("review_round", 0, (GateRecord("g1", "approved", None),))
+    walker = _walker(MemoryStore(), _hooked_graph())
+    assert _start_hooked(walker, stub, hooks, entry="review_round", resume=resume) == _END
+    assert hooks.lines == [
+        ("open", "before_round", "review_round", "0:g2"),
+        ("close", "after_round", "review_round", "0:pass"),
+        ("publish", "before_end", "published", None),
+    ]
+
+
+def test_a_stop_reached_by_a_cap_first_runs_the_closed_rounds_after_hooks() -> None:
+    stub = _stub(
+        {
+            "draft": [ScriptedOutcome("done")],
+            "g1": [ScriptedOutcome("rejected")],
+            "g2": [ScriptedOutcome("approved")],
+        }
+    )
+    hooks = Hooks()
+    assert _start_hooked(_walker(MemoryStore(), _hooked_graph(cap=1)), stub, hooks) == Stop(
+        binding="<halt>",
+        node="review_round",
+        agent=None,
+        reason="limit",
+        summary=None,
+        evidence=None,
+        round_counts=(),
+        held=(),
+        closed_round=(GateRecord("g1", "rejected", None), GateRecord("g2", "approved", None)),
+        passed=(RoundPassage("review_round", 0, "fail"),),
+    )
+    assert hooks.lines[-2:] == [
+        ("log", "after_dispatch", "g1", "rejected->wait"),
+        ("close", "after_round", "review_round", "0:fail"),
+    ]
