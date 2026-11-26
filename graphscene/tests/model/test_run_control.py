@@ -1,14 +1,15 @@
 """The rule this file exists to enforce: the execution-rule types in `graphscene.model.run_control`
 are immutable plain types with fixed `kind` discriminators; `ExecutionLimits` defaults to
-GraphScene's own values and refuses an out-of-range or NaN value with an exact `ValueError`; and
-`RunSignals`, `DispatchCounter` and `LaunchSink` are structural protocols a host satisfies without
-subclassing.
+GraphScene's own values and refuses an out-of-range or NaN value with an exact `ValueError`;
+`RunExit` is exactly the five things a run of a walk ends on; and `RunSignals`, `DispatchCounter`
+and `LaunchSink` are structural protocols a host satisfies without subclassing.
 
 The protocol cases are graded by `mypy`, which checks each in-test class against the annotated
 local it is assigned to; at run time they show the calls return what the class answers.
 """
 
 import dataclasses
+import typing
 
 import pytest
 
@@ -23,9 +24,11 @@ from graphscene.model.run_control import (
     Recorded,
     Redispatch,
     Retry,
+    RunExit,
     RunSignals,
     SetResult,
 )
+from graphscene.model.walk_actions import End, Interrupt, Refused, Stop
 
 _RECORD = NodeRecord("draft", "written", "plan.md")
 
@@ -59,13 +62,18 @@ def test_each_variant_carries_its_kind() -> None:
 
 def test_the_limits_default_to_graphscenes_own_values() -> None:
     assert ExecutionLimits() == ExecutionLimits(
-        max_attempts=3, backoff_seconds=60.0, dispatch_cap=None, run_timeout_seconds=None
+        max_attempts=3,
+        backoff_seconds=60.0,
+        dispatch_cap=None,
+        run_timeout_seconds=None,
+        max_concurrent_dispatches=10,
     )
     assert [f.name for f in dataclasses.fields(ExecutionLimits)] == [
         "max_attempts",
         "backoff_seconds",
         "dispatch_cap",
         "run_timeout_seconds",
+        "max_concurrent_dispatches",
     ]
 
 
@@ -77,16 +85,31 @@ def test_the_limits_default_to_graphscenes_own_values() -> None:
         ({"dispatch_cap": 0}, "ExecutionLimits: dispatch_cap must be >= 1, got 0"),
         ({"run_timeout_seconds": 0.0}, "ExecutionLimits: run_timeout_seconds must be > 0, got 0.0"),
         (
+            {"max_concurrent_dispatches": 0},
+            "ExecutionLimits: max_concurrent_dispatches must be >= 1, got 0",
+        ),
+        (
             {"backoff_seconds": float("nan")},
             "ExecutionLimits: backoff_seconds must be >= 0, got nan",
         ),
     ),
-    ids=("max_attempts", "backoff_seconds", "dispatch_cap", "run_timeout_seconds", "nan"),
+    ids=(
+        "max_attempts",
+        "backoff_seconds",
+        "dispatch_cap",
+        "run_timeout_seconds",
+        "max_concurrent_dispatches",
+        "nan",
+    ),
 )
 def test_an_out_of_range_limit_is_refused(kwargs: dict[str, float], message: str) -> None:
     with pytest.raises(ValueError) as caught:
         ExecutionLimits(**kwargs)  # type: ignore[arg-type]
     assert str(caught.value) == message
+
+
+def test_a_run_exit_is_one_of_the_five_ends() -> None:
+    assert typing.get_args(RunExit) == (End, Stop, Interrupt, Halt, Refused)
 
 
 class _Signals:

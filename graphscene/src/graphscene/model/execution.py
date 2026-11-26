@@ -3,11 +3,13 @@ returns, `Completed` or `Failed` with a `FailureClass`.
 
 The rule:
 
-- `run` takes one `Dispatch`. A `DispatchSet` is fanned out by the caller, one `run` per gate, and
-  the runs may be concurrent on one event loop.
-- `Completed.outcome` and `Completed.detail` are what the caller passes to
-  `Walker.next(outcome, node, detail)`, with `node` being `dispatch.node`. Whether the outcome is
-  one the node declares is the walk's to refuse, never the executor's to check.
+- `run` takes one `Dispatch`. `graphscene.engine.set_execution.execute_set` fans out a
+  `DispatchSet`, one `run` per gate, with at most `ExecutionLimits.max_concurrent_dispatches` runs
+  concurrent on one event loop.
+- `Completed.outcome` is what the caller passes to `Walker.next(outcome, node, detail)`, with
+  `node` being `dispatch.node`. `Completed.detail` is passed as `detail` only for a gate of a set:
+  the walk records no detail for a lone dispatch. Whether the outcome is one the node declares is
+  the walk's to refuse, never the executor's to check.
 - An anticipated failure is returned as a `Failed`, never raised. An exception out of `run` is a
   defect and propagates.
 - The failure classes:
@@ -38,7 +40,7 @@ Deliberately not covered:
   with `await asyncio.to_thread(…)`, and a cancelled `to_thread` call does not stop its thread.
 - What is done with each failure class: `graphscene.engine.attempts`, `graphscene.engine.breaker`
   and `graphscene.engine.set_execution`.
-- The run loop: #484.
+- Driving a walk with an executor: graphscene.engine.run_loop.
 """
 
 from dataclasses import dataclass
