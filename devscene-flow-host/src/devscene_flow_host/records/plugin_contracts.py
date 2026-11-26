@@ -37,11 +37,11 @@ class AgentContract:
     return_schema: Mapping[str, object]
 
 
-def agent_definition_path(plugin_dir: Path, agent: str) -> Path:
+def _agent_definition_path(plugin_dir: Path, agent: str) -> Path:
     return plugin_dir / AGENTS_DIRECTORY / f"{_checked(agent)}.md"
 
 
-def return_schema_path(plugin_dir: Path, agent: str) -> Path:
+def _return_schema_path(plugin_dir: Path, agent: str) -> Path:
     return plugin_dir / SCHEMAS_DIRECTORY / f"{_checked(agent)}.return.json"
 
 
@@ -64,8 +64,8 @@ def read_plugin_name(plugin_dir: Path) -> str:
 
 
 def read_agent_contract(plugin_dir: Path, agent: str) -> AgentContract:
-    definition = agent_definition_path(plugin_dir, agent)
-    schema = return_schema_path(plugin_dir, agent)
+    definition = _agent_definition_path(plugin_dir, agent)
+    schema = _return_schema_path(plugin_dir, agent)
     return AgentContract(
         agent=agent,
         tools=_tools(definition),
