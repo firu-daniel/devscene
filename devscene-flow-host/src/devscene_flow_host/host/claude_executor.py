@@ -16,12 +16,15 @@ the check.
   `judge_session`'s.
 - `--json-schema` is never passed: on Claude Code 2.1.332 it is not applied under `--agent`, so
   the return is read from the final `json` block.
+- The usage record also carries the session's whole stdout stream, its stderr tail and its exit
+  status, and, for a `Completed` result, the validated return object, so the host can write the
+  stream and read the return's other fields, which `Completed` cannot carry.
 
 Deliberately not covered:
 - Building the usage-to-`Launch` pairing into a run loop (#484).
 - The per-agent MCP flags and the shared session flags: the host's input.
 - The findings-file presence rule: `host/round_gates.py` → `record_outcome`.
-- Writing the stream or a session manifest.
+- Writing the stream (from `SessionUsage.stream`) or a session manifest: the host's (#484).
 """
 
 import time
@@ -69,6 +72,10 @@ class SessionUsage:
     model_usage: Mapping[str, object]
     permission_denials: int
     withheld_tools: tuple[str, ...]
+    stream: str
+    stderr_tail: str
+    returncode: int | None
+    return_document: Mapping[str, object] | None
     result: NodeResult
 
 
@@ -175,6 +182,10 @@ class ClaudeExecutor:
                 model_usage=MappingProxyType({}),
                 permission_denials=0,
                 withheld_tools=(),
+                stream="",
+                stderr_tail="",
+                returncode=None,
+                return_document=None,
                 result=result,
             )
         else:
@@ -200,6 +211,10 @@ class ClaudeExecutor:
                 model_usage=reading.model_usage,
                 permission_denials=reading.permission_denials,
                 withheld_tools=reading.withheld_tools,
+                stream=session.stdout,
+                stderr_tail=session.stderr_tail,
+                returncode=session.returncode,
+                return_document=None if session.stalled else reading.return_document,
                 result=result,
             )
         self._usage_sink.record(usage)

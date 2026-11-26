@@ -14,7 +14,9 @@ event. The first clause that holds decides the result:
 7. a block that is not one JSON object — `infra`;
 8. a return that fails `contract.return_schema` — `infra`;
 9. a return with no non-empty string `outcome` — `infra`;
-10. otherwise `Completed`, its detail the return's non-blank `findings_file` resolved against `cwd`.
+10. otherwise `Completed`, its detail the return's non-blank `findings_file` resolved against `cwd`;
+    the validated return object is kept as `return_document`, which is `None` on every other
+    clause.
 Every reason is one line. The usage fields are read whenever their event exists, on every
 classification, and a field of the wrong JSON type is `None`. A `ValueError` from
 `return_violations` for an invalid schema propagates.
@@ -59,6 +61,7 @@ class SessionReading:
     model_usage: Mapping[str, object]
     permission_denials: int
     withheld_tools: tuple[str, ...]
+    return_document: Mapping[str, object] | None
 
 
 def judge_session(stream: str, contract: AgentContract, cwd: Path) -> SessionReading:
@@ -78,8 +81,9 @@ def judge_session(stream: str, contract: AgentContract, cwd: Path) -> SessionRea
     usage = _object(result_event.get("usage")) if result_event is not None else {}
     model_usage = _object(result_event.get("modelUsage")) if result_event is not None else {}
     denials = _list(result_event.get("permission_denials")) if result_event is not None else []
+    result, document = _classify(init, init_tools, result_event, contract, cwd)
     return SessionReading(
-        result=_classify(init, init_tools, result_event, contract, cwd),
+        result=result,
         session_id=_string(init.get("session_id")) if init is not None else None,
         total_cost_usd=(
             _number(result_event.get("total_cost_usd")) if result_event is not None else None
@@ -89,6 +93,7 @@ def judge_session(stream: str, contract: AgentContract, cwd: Path) -> SessionRea
         model_usage=MappingProxyType(dict(model_usage)),
         permission_denials=len(denials),
         withheld_tools=withheld,
+        return_document=document,
     )
 
 
@@ -98,43 +103,43 @@ def _classify(
     result_event: Mapping[str, object] | None,
     contract: AgentContract,
     cwd: Path,
-) -> NodeResult:
+) -> tuple[NodeResult, Mapping[str, object] | None]:
     if init is None:
-        return Failed("infra", "the agent did not resolve: no init event")
+        return Failed("infra", "the agent did not resolve: no init event"), None
     extra = [tool for tool in init_tools if tool not in contract.tools]
     if extra:
         granted = ", ".join(_tostring(tool) for tool in extra)
         return Failed(
             "agent",
             _oneline(f"the init event grants tools the agent does not declare: [{granted}]"),
-        )
+        ), None
     if result_event is None:
-        return Failed("undelivered", "no result event")
+        return Failed("undelivered", "no result event"), None
     is_error = result_event.get("is_error") is True
     text = _tostring(result_event.get("result"))
     if is_error and any(marker in text for marker in OVERLOAD_MARKERS):
-        return Failed("undelivered", f"API error: {_oneline(text)[:_API_ERROR_LIMIT]}")
+        return Failed("undelivered", f"API error: {_oneline(text)[:_API_ERROR_LIMIT]}"), None
     subtype = result_event.get("subtype")
     if is_error or subtype != "success":
         ended = "no subtype" if subtype is None or subtype is False else _tostring(subtype)
         suffix = " with is_error" if is_error else ""
-        return Failed("infra", _oneline(f"the session ended as {ended}{suffix}"))
+        return Failed("infra", _oneline(f"the session ended as {ended}{suffix}")), None
     block = _return_block(result_event.get("result"))
     if block is None:
-        return Failed("infra", "the result carries no return block")
+        return Failed("infra", "the result carries no return block"), None
     try:
         document: object = json.loads(block)
     except json.JSONDecodeError:
         document = None
     if not isinstance(document, dict):
-        return Failed("infra", "the return block is not one JSON object")
+        return Failed("infra", "the return block is not one JSON object"), None
     violations = return_violations(document, contract.return_schema)
     if violations:
-        return Failed("infra", _oneline(f"the return fails its schema: {violations[0]}"))
+        return Failed("infra", _oneline(f"the return fails its schema: {violations[0]}")), None
     outcome = document.get("outcome")
     if not isinstance(outcome, str) or not outcome:
-        return Failed("infra", "the return carries no outcome")
-    return Completed(outcome, _detail(document.get(DETAIL_FIELD), cwd))
+        return Failed("infra", "the return carries no outcome"), None
+    return Completed(outcome, _detail(document.get(DETAIL_FIELD), cwd)), MappingProxyType(document)
 
 
 def _return_block(text: object) -> str | None:

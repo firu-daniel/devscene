@@ -30,7 +30,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Carry the stream, stderr tail, exit status and validated return object out of `ClaudeExecutor.run` on `SessionUsage` _(layer: devscene-flow-host)_
+1. [x] **Finding 1** — Carry the stream, stderr tail, exit status and validated return object out of `ClaudeExecutor.run` on `SessionUsage` _(layer: devscene-flow-host)_
 
 ---
 

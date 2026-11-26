@@ -26,7 +26,8 @@ The rule:
 Deliberately not covered:
 - A platform without `os.killpg`: POSIX only, as GraphScene's `FileStateStore` is POSIX-only
   through `fcntl`.
-- Writing the stream anywhere: the run loop's (#484).
+- Writing the stream anywhere: the run loop's (#484), which receives it through `ClaudeExecutor`'s
+  `SessionUsage.stream`.
 - What a stall or an exit status means for the node: `host/claude_executor.py`.
 """
 

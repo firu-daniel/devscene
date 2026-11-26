@@ -200,6 +200,26 @@ def test_a_completed_session_returns_its_absolute_detail_and_one_usage_record(
     assert usage.started_at.tzinfo is UTC
     assert isinstance(usage.duration_seconds, float)
     assert usage.duration_seconds >= 0
+    assert usage.return_document == {"outcome": "PASS", "findings_file": "reviews/plan_review.md"}
+    assert usage.returncode == 0
+    assert usage.stderr_tail == ""
+    assert usage.stream.splitlines()[0] == init_event(_TOOLS)
+
+
+def test_a_session_that_dies_on_stderr_keeps_its_tail_and_status(tmp_path: Path) -> None:
+    command = plant(tmp_path, {"steps": [{"stderr": "error: unknown option"}], "exit": 1})
+    sink = Usages()
+
+    result = asyncio.run(_executor(command, tmp_path, sink).run(_dispatch()))
+
+    assert result == Failed("infra", "the agent did not resolve: no init event")
+    usage = sink.records[0]
+    assert (usage.stream, usage.stderr_tail, usage.returncode, usage.return_document) == (
+        "",
+        "error: unknown option\n",
+        1,
+        None,
+    )
 
 
 def test_a_session_with_no_result_event_is_undelivered(tmp_path: Path) -> None:
@@ -224,6 +244,7 @@ def test_a_stall_is_an_infra_failure_keeping_the_streams_usage(tmp_path: Path) -
     assert sink.records[0].stalled is True
     assert sink.records[0].session_id == "s-1"
     assert sink.records[0].result == expected
+    assert sink.records[0].return_document is None
 
 
 def test_a_cancelled_run_re_raises_kills_the_session_and_reports_no_usage(
@@ -269,8 +290,12 @@ def test_a_launch_error_is_an_infra_failure_with_empty_usage(tmp_path: Path) -> 
         dict(usage.model_usage),
         usage.permission_denials,
         usage.withheld_tools,
+        usage.stream,
+        usage.stderr_tail,
+        usage.returncode,
+        usage.return_document,
         usage.result,
-    ) == (None, False, None, None, None, {}, 0, (), expected)
+    ) == (None, False, None, None, None, {}, 0, (), "", "", None, None, expected)
 
 
 @pytest.mark.parametrize(

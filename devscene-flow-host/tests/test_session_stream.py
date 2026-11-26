@@ -66,6 +66,7 @@ def test_clause_1_no_init_event_is_infra() -> None:
     assert reading.result == Failed("infra", "the agent did not resolve: no init event")
     assert reading.withheld_tools == ()
     assert reading.session_id is None
+    assert reading.return_document is None
 
 
 def test_clause_2_an_undeclared_granted_tool_is_agent() -> None:
@@ -166,6 +167,7 @@ def test_clause_9_a_return_without_a_non_empty_string_outcome_is_infra() -> None
 def test_clause_10_a_valid_return_is_completed_without_detail() -> None:
     reading = judge_session(_passing(), _contract(), _CWD)
     assert reading.result == Completed("PASS", None)
+    assert reading.return_document == {"outcome": "PASS"}
 
 
 def test_a_blank_findings_file_gives_no_detail() -> None:
