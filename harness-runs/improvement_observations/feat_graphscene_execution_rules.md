@@ -37,3 +37,10 @@
 - **category:** optimization
 - **evidence:** plan-review rounds 0, 1, 2 across `harness-runs/task_plan_reviews/feat_graphscene_execution_rules/` and `harness-runs/architecture_reviews/feat_graphscene_execution_rules/` (no business-parity folder; `phases.parity` is false). `task_plan_reviews` round 0 `verdict: FAIL`, round 1 `verdict: FAIL`, round 2 `verdict: PASS`; `architecture_reviews` PASS in all three. Net-new vs re-raised split: unmeasurable from headings — the round files carry only severity-section headings (`## Must Fix` / `## Should Fix` / `## Nice to Have`), no per-finding headings.
 - **cost this run:** 3 rounds, 9 planning node sessions (per the script-driven block above).
+
+# User-review fix round 1 — Rename ExecutionLimits.stall_seconds to run_timeout_seconds
+
+## The per-unit layer-reviewer and the fix-plan architecture gate produced no change this round
+- **category:** optimization
+- **evidence:** one unit this round (Finding 1 in `harness-runs/user_reviews/feat_graphscene_execution_rules_fix_plan.md`). The per-unit `layer-reviewer` ran on 1 of 1 units and returned PASS on iteration 0 with no findings file (`harness-runs/user_review_fix_plan_point_reviews/feat_graphscene_execution_rules_fix_plan/item_1/` absent; commit 1029dad0 skipped it). The fix-plan architecture gate ran 1 round, PASS (`harness-runs/architecture_user_review_reviews/feat_graphscene_execution_rules/user_review_1/review_0.md`). The business-parity gate did not run (`phases.parity` false).
+- **cost this run:** 2 reviewer dispatches with no resulting change, out of 5 this session (cap 450).
