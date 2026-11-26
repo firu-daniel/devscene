@@ -36,6 +36,7 @@ This task reads them and adds nothing to the model.
   - Bump the planted mapping's `formatVersion` to 5.
 
   Write each expected path and reason by hand from the planted graph.
+  - **Deviations from plan:** `_graph`'s planted mapping already carried `"formatVersion": 5` at this task's base commit (Task 2 raised it), so the bump was a no-op and no edit was made for it.
 
 **Verification:**
 

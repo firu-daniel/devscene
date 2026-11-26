@@ -1,11 +1,13 @@
-"""The rule this file exists to enforce: every name a flow graph uses is one it declares, and each
-binding is used where its primitive allows (`graphscene.engine.vocabulary.vocabulary_violations`).
+"""The rule this file exists to enforce: every name a flow graph uses is one it declares, every hook
+name a node uses is declared in `vocabulary.hooks`, and each binding is used where its primitive
+allows (`graphscene.engine.vocabulary.vocabulary_violations`).
 
 The check reads the built model: every graph here goes through
 `graphscene.adapters.builder.build_flow_graph` first, and the check returns `Violation` values
 (`graphscene.model.errors.Violation`). Each clause has a planted in-test graph asserting the exact
-list returned; `valid_generic.json` returns nothing; and each `vocabulary_negative_*.json` fixture,
-a schema-valid copy of it with one change, returns exactly its one violation. One case renders the
+list returned; `valid_generic.json` and `valid_hooks.json` return nothing; and each
+`vocabulary_negative_*.json` fixture, a schema-valid copy of it with one change, returns exactly its
+one violation. One case renders the
 check's `Violation` values back to the strings it returned before it used them.
 
 Deliberately not covered:
@@ -92,6 +94,10 @@ def _vocabulary() -> dict[str, object]:
         },
         "predicates": {"off": {"records": "bypassed", "inRoundCounts": False}},
     }
+
+
+def _with_hooks(*names: str) -> dict[str, object]:
+    return {**_vocabulary(), "hooks": {name: {} for name in names}}
 
 
 def _graph(nodes: dict[str, object], vocabulary: dict[str, object] | None = None) -> FlowGraph:
@@ -304,6 +310,58 @@ def test_clause_7_an_undeclared_skip_predicate_is_named() -> None:
     ]
 
 
+def test_clause_8_an_undeclared_before_hook_on_a_dispatch_node_is_named() -> None:
+    graph = _graph(
+        {"a": _dispatch({"done": {"to": "a"}}, before=["announce", "ghost"])},
+        vocabulary=_with_hooks("announce"),
+    )
+    assert vocabulary_violations(graph) == [
+        Violation("nodes.a.before[1]", "hook 'ghost' is not declared in vocabulary.hooks")
+    ]
+
+
+def test_clause_8_an_undeclared_after_hook_on_a_round_node_is_named() -> None:
+    node = {**_round({"approved": {"to": "r"}, "rejected": {"to": "r"}}), "after": ["ghost"]}
+    graph = _graph({"r": node}, vocabulary=_with_hooks("announce"))
+    assert vocabulary_violations(graph) == [
+        Violation("nodes.r.after[0]", "hook 'ghost' is not declared in vocabulary.hooks")
+    ]
+
+
+def test_clause_8_an_undeclared_before_hook_on_a_terminal_node_is_named() -> None:
+    graph = _graph(
+        {"t": {"kind": "terminal", "binding": "<finish>", "before": ["ghost"]}},
+        vocabulary=_with_hooks("announce"),
+    )
+    assert vocabulary_violations(graph) == [
+        Violation("nodes.t.before[0]", "hook 'ghost' is not declared in vocabulary.hooks")
+    ]
+
+
+def test_clause_8_a_graph_without_vocabulary_hooks_declares_no_hook() -> None:
+    graph = _graph({"a": _dispatch({"done": {"to": "a"}}, before=["announce"])})
+    assert vocabulary_violations(graph) == [
+        Violation("nodes.a.before[0]", "hook 'announce' is not declared in vocabulary.hooks")
+    ]
+
+
+def test_clause_8_declared_hooks_on_every_node_kind_are_not_reported() -> None:
+    round_node = {
+        **_round({"approved": {"to": "t"}, "rejected": {"to": "a"}}),
+        "before": ["announce"],
+        "after": ["archive"],
+    }
+    graph = _graph(
+        {
+            "a": _dispatch({"done": {"to": "r"}}, before=["announce"], after=["archive"]),
+            "r": round_node,
+            "t": {"kind": "terminal", "binding": "<finish>", "before": ["archive", "announce"]},
+        },
+        vocabulary=_with_hooks("announce", "archive"),
+    )
+    assert vocabulary_violations(graph) == []
+
+
 def test_violations_come_in_document_order() -> None:
     graph = _graph(
         {
@@ -322,6 +380,10 @@ def test_violations_come_in_document_order() -> None:
 
 def test_the_valid_generic_fixture_has_no_violation() -> None:
     assert vocabulary_violations(_load("valid_generic.json")) == []
+
+
+def test_the_valid_hooks_fixture_has_no_violation() -> None:
+    assert vocabulary_violations(_load("valid_hooks.json")) == []
 
 
 def test_each_vocabulary_negative_fixture_returns_its_one_violation() -> None:
