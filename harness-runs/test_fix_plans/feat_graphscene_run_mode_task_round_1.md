@@ -10,7 +10,7 @@
 
 This list is the **single source of truth** for the fix loop. `[ ]` markers anywhere else in this plan or its finding files are informational only.
 
-1. [ ] **Finding 1** — Bound the full-run grade suite's driver call so a hang fails one case instead of the whole file. _(layer: cli)_
+1. [x] **Finding 1** — Bound the full-run grade suite's driver call so a hang fails one case instead of the whole file. _(layer: cli)_
 
 ## Must Fix
 

@@ -48,6 +48,7 @@ import test from 'node:test';
 
 import { runGit, WORKSPACE_ROOT } from './helpers/fixture.mjs';
 import { cleanup, GATE12_SLUG, ghStub, makeGate12Fixture, runRound } from './helpers/gate12-round.mjs';
+import { scaleBound } from './helpers/timing.mjs';
 
 // ---------------------------------------------------------------------------------------------
 // The shipped strings.
@@ -396,6 +397,10 @@ const show = (result) => `status ${result.status}\nstdout:\n${result.stdout}\nst
 const LINE = /^row="([^"]*)" result="([^"]*)" evidence="([^"]*)" departure="([^"]*)"$/;
 const FR_ROWS = ['FR1', 'FR2', 'FR3', 'FR4', 'FR5', 'FR6', 'FR7'];
 
+// Stays below `--test-timeout` at the maximum scale, so a stuck grade is killed with its group and
+// fails its own case rather than cancelling the file.
+const ROUND_BOUND_MS = scaleBound(120_000);
+
 /**
  * Run `grade --full-run B` with the state file absent before and after, parse its result lines, and
  * hold it to printing FR rows only, in order, with FR1's `source` line second, and to its exit status:
@@ -403,7 +408,9 @@ const FR_ROWS = ['FR1', 'FR2', 'FR3', 'FR4', 'FR5', 'FR6', 'FR7'];
  */
 async function grade(fixture) {
   assert.equal(existsSync(fixture.stateFile), false, 'no state file before the grade');
-  const result = await runRound(fixture, ['grade', '--repo', GATE12_SLUG, '--full-run', B]);
+  const result = await runRound(fixture, ['grade', '--repo', GATE12_SLUG, '--full-run', B], {
+    timeoutMs: ROUND_BOUND_MS,
+  });
   assert.equal(existsSync(fixture.stateFile), false, `no state file after the grade\n${show(result)}`);
   const lines = result.stdout
     .split('\n')
