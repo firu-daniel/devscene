@@ -67,7 +67,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_flow_h
 1. [x] **Task 1** — Read the plugin's name and each agent's `AgentContract` in `records/plugin_contracts.py` _(layer: devscene-flow-host)_ _(points: 15)_
 2. [x] **Task 2** — Judge a finished `stream-json` transcript into a `NodeResult` and usage fields in `host/session_stream.py` _(layer: devscene-flow-host)_ _(points: 20)_
 3. [x] **Task 3** — Supervise one session process with inactivity detection and group kill in `host/session_process.py` _(layer: devscene-flow-host)_ _(points: 20)_
-4. [ ] **Task 4** — Compose `ClaudeExecutor` with its usage sink and inactivity limit in `host/claude_executor.py` _(layer: devscene-flow-host)_ _(points: 20)_
+4. [x] **Task 4** — Compose `ClaudeExecutor` with its usage sink and inactivity limit in `host/claude_executor.py` _(layer: devscene-flow-host)_ _(points: 20)_
 5. [ ] **Task 5** — Document the executor in `devscene-flow-host/README.md` and the package docstring _(layer: devscene-flow-host)_ _(points: 10)_
 
 ## Scope register
