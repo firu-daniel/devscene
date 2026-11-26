@@ -35,7 +35,7 @@ class ExecutionLimits:
     max_attempts: int = 3
     backoff_seconds: float = 60.0
     dispatch_cap: int | None = None
-    stall_seconds: float | None = None
+    run_timeout_seconds: float | None = None
 
     def __post_init__(self) -> None:
         if not self.max_attempts >= 1:
@@ -44,8 +44,8 @@ class ExecutionLimits:
             _refuse("backoff_seconds", ">= 0", self.backoff_seconds)
         if self.dispatch_cap is not None and not self.dispatch_cap >= 1:
             _refuse("dispatch_cap", ">= 1", self.dispatch_cap)
-        if self.stall_seconds is not None and not self.stall_seconds > 0:
-            _refuse("stall_seconds", "> 0", self.stall_seconds)
+        if self.run_timeout_seconds is not None and not self.run_timeout_seconds > 0:
+            _refuse("run_timeout_seconds", "> 0", self.run_timeout_seconds)
 
 
 def _refuse(field: str, condition: str, value: object) -> NoReturn:

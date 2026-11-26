@@ -59,13 +59,13 @@ def test_each_variant_carries_its_kind() -> None:
 
 def test_the_limits_default_to_graphscenes_own_values() -> None:
     assert ExecutionLimits() == ExecutionLimits(
-        max_attempts=3, backoff_seconds=60.0, dispatch_cap=None, stall_seconds=None
+        max_attempts=3, backoff_seconds=60.0, dispatch_cap=None, run_timeout_seconds=None
     )
     assert [f.name for f in dataclasses.fields(ExecutionLimits)] == [
         "max_attempts",
         "backoff_seconds",
         "dispatch_cap",
-        "stall_seconds",
+        "run_timeout_seconds",
     ]
 
 
@@ -75,13 +75,13 @@ def test_the_limits_default_to_graphscenes_own_values() -> None:
         ({"max_attempts": 0}, "ExecutionLimits: max_attempts must be >= 1, got 0"),
         ({"backoff_seconds": -1.0}, "ExecutionLimits: backoff_seconds must be >= 0, got -1.0"),
         ({"dispatch_cap": 0}, "ExecutionLimits: dispatch_cap must be >= 1, got 0"),
-        ({"stall_seconds": 0.0}, "ExecutionLimits: stall_seconds must be > 0, got 0.0"),
+        ({"run_timeout_seconds": 0.0}, "ExecutionLimits: run_timeout_seconds must be > 0, got 0.0"),
         (
             {"backoff_seconds": float("nan")},
             "ExecutionLimits: backoff_seconds must be >= 0, got nan",
         ),
     ),
-    ids=("max_attempts", "backoff_seconds", "dispatch_cap", "stall_seconds", "nan"),
+    ids=("max_attempts", "backoff_seconds", "dispatch_cap", "run_timeout_seconds", "nan"),
 )
 def test_an_out_of_range_limit_is_refused(kwargs: dict[str, float], message: str) -> None:
     with pytest.raises(ValueError) as caught:

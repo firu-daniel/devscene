@@ -1,5 +1,5 @@
 """The rule this file exists to enforce: `execute_set` clears every pass through `clear_set`,
-launches each dispatch concurrently under the optional stall deadline, writes one `Launch` row per
+launches each dispatch concurrently under the optional run timeout, writes one `Launch` row per
 launched session, settles results in finish order, never cancels a sibling, re-dispatches only the
 retried and undelivered nodes as a new pass, halts through the breaker, and returns the outcomes
 then the held failures; on its own cancellation or a defect out of `run` it cancels and awaits its
@@ -102,13 +102,13 @@ def _execute(
     breaker: UndeliveredBreaker | None = None,
     max_attempts: int = 3,
     dispatch_cap: int | None = None,
-    stall_seconds: float | None = None,
+    run_timeout_seconds: float | None = None,
 ) -> SetResult:
     limits = ExecutionLimits(
         max_attempts=max_attempts,
         backoff_seconds=0,
         dispatch_cap=dispatch_cap,
-        stall_seconds=stall_seconds,
+        run_timeout_seconds=run_timeout_seconds,
     )
     return asyncio.run(
         execute_set(
@@ -181,7 +181,7 @@ def test_an_agent_failure_waits_for_its_siblings_and_is_listed_after_the_outcome
     )
 
 
-def test_a_stall_is_cancelled_and_retried_alone_while_its_siblings_run_once() -> None:
+def test_a_run_past_its_timeout_is_cancelled_and_retried_alone_while_siblings_run_once() -> None:
     stub = _stub(
         {
             "a": [ScriptedOutcome("pass")],
@@ -190,7 +190,7 @@ def test_a_stall_is_cancelled_and_retried_alone_while_its_siblings_run_once() ->
         }
     )
     sink = Sink()
-    result = _execute(["a", "b", "c"], stub, sink=sink, stall_seconds=0.05)
+    result = _execute(["a", "b", "c"], stub, sink=sink, run_timeout_seconds=0.05)
     assert stub.started == ("a", "b", "c", "b")
     assert stub.cancelled == ("b",)
     assert result == SetResult(
@@ -202,7 +202,7 @@ def test_a_stall_is_cancelled_and_retried_alone_while_its_siblings_run_once() ->
         None,
     )
     assert sink.rows[2] == Launch(
-        2, "b", "b-agent", 1, 3, Failed("infra", "stalled: no result within 0.05s")
+        2, "b", "b-agent", 1, 3, Failed("infra", "timed out: no result within 0.05s")
     )
     assert sink.rows[3] == Launch(4, "b", "b-agent", 2, 3, Completed("pass"))
 

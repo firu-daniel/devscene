@@ -43,7 +43,6 @@ from graphscene import (
     Scripted,
     ScriptedFailure,
     ScriptedOutcome,
-    ScriptedStall,
     SetResult,
     Stop,
     StubExecutor,
@@ -116,7 +115,6 @@ class Run:
         signals: Signals | None = None,
         counter: Counter | None = None,
         dispatch_cap: int | None = None,
-        stall_seconds: float | None = None,
     ) -> None:
         self.stub = stub
         self.signals = signals or Signals()
@@ -124,9 +122,7 @@ class Run:
         self.rows = Rows()
         self.book = AttemptBook()
         self.breaker = UndeliveredBreaker()
-        self.limits = ExecutionLimits(
-            backoff_seconds=0, dispatch_cap=dispatch_cap, stall_seconds=stall_seconds
-        )
+        self.limits = ExecutionLimits(backoff_seconds=0, dispatch_cap=dispatch_cap)
 
     def execute(self, dispatches: Sequence[Dispatch]) -> SetResult:
         return asyncio.run(
@@ -253,8 +249,11 @@ def test_one_gate_undelivered_three_times_running_self_pauses() -> None:
 
 def test_a_gate_stalled_once_is_re_dispatched_alone_and_passes_its_siblings_run_once() -> None:
     script = _all_approve()
-    script["architecture_review"] = [ScriptedStall(), ScriptedOutcome("approved")]
-    run = Run(_stub(script), stall_seconds=0.05)
+    script["architecture_review"] = [
+        ScriptedFailure("infra", "stalled: its stream was silent", delay=0.01),
+        ScriptedOutcome("approved"),
+    ]
+    run = Run(_stub(script))
     assert run.execute(_gates()) == SetResult(
         (
             NodeRecord("parity_review", "approved", None),
@@ -269,14 +268,14 @@ def test_a_gate_stalled_once_is_re_dispatched_alone_and_passes_its_siblings_run_
         "plan_review",
         "architecture_review",
     )
-    assert run.stub.cancelled == ("architecture_review",)
+    assert run.stub.cancelled == ()
     assert run.rows.rows[2] == Launch(
         2,
         "architecture_review",
         "architecture_review-agent",
         1,
         3,
-        Failed("infra", "stalled: no result within 0.05s"),
+        Failed("infra", "stalled: its stream was silent"),
     )
     assert run.rows.rows[3] == Launch(
         4, "architecture_review", "architecture_review-agent", 2, 3, Completed("approved")

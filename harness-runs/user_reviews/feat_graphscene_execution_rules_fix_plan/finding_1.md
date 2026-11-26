@@ -37,3 +37,5 @@
 - [ ] Leave `ScriptedStall`, `graphscene/tests/adapters/test_stub_executor.py` → `test_a_stall_is_cancelled_by_the_callers_deadline`, and the `stalled` outcome names in `graphscene/tests/engine/test_vocabulary.py` alone. They are a scripted hang and an outcome name, not this limit.
 
 The suites edited above are this unit's own test files; run them per the layer's single-file test command (`.claude/context/graphscene.md` → `## Tests`).
+
+- **Deviations from plan:** The plan's test name `test_a_run_past_its_timeout_is_cancelled_and_retried_alone_while_its_siblings_run_once` makes its `def` line 101 characters, which `bash scripts/typecheck.sh` refused (`E501 Line too long (101 > 100)`, `graphscene lint FAIL`). Implemented as `test_a_run_past_its_timeout_is_cancelled_and_retried_alone_while_siblings_run_once` (drops "its" before "siblings"); the rerun reports `PASS: typecheck`.

@@ -14,7 +14,7 @@
 
 Each entry resolves to a self-contained `harness-runs/user_reviews/feat_graphscene_execution_rules_fix_plan/finding_<K>.md` file through its `**Finding K**` reference. Entries are sorted from lowest blast radius first to wider refactors last.
 
-1. [ ] **Finding 1** — Rename `ExecutionLimits.stall_seconds` to `run_timeout_seconds`, settle its expiry as a `timed out` `infra` failure, and state that detecting inactivity is the executor's (source, README, suites). _(layer: graphscene)_
+1. [x] **Finding 1** — Rename `ExecutionLimits.stall_seconds` to `run_timeout_seconds`, settle its expiry as a `timed out` `infra` failure, and state that detecting inactivity is the executor's (source, README, suites). _(layer: graphscene)_
 
 ---
 

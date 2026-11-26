@@ -10,9 +10,10 @@ The rule:
 - Each dispatch of a cleared pass, in set order, takes its `Launch.seq` from
   `DispatchCounter.increment` and its attempt from `AttemptBook.attempt`, then starts running
   concurrently with its siblings.
-- With `ExecutionLimits.stall_seconds` set, each run is under that deadline; a run that passes it
-  is cancelled and becomes `Failed("infra", "stalled: no result within <stall_seconds>s")`. A
-  timeout is an `infra` failure.
+- With `ExecutionLimits.run_timeout_seconds` set, each run's total time is under that deadline; a
+  run that passes it is cancelled and becomes
+  `Failed("infra", "timed out: no result within <run_timeout_seconds>s")`. A timeout is an `infra`
+  failure.
 - Results are handled in finish order; runs found finished together are taken in set order. Each
   writes one `Launch` row to the `LaunchSink` and is settled: a `Recorded` from a `Completed` joins
   the outcomes, a `Recorded` from a `Failed` joins the held failures, and a `Retry` or `Redispatch`
@@ -36,6 +37,8 @@ Deliberately not covered:
 - Recording the records through the walker, and acting on a `Halt`: the caller's.
 - Persisting the book, the breaker and the counter across processes: the host's.
 - Usage: the host's, through its executor's usage sink.
+- Detecting a stalled (inactive) session: the executor's, since only the executor sees the
+  session's activity, and it returns that stall as `Failed("infra", …)` (#421).
 - A `Launch` row for a run cancelled because `execute_set` was cancelled or another run raised:
   such a run has taken its `seq` from `DispatchCounter.increment` but returns no `NodeResult`,
   so it writes no row.
@@ -117,7 +120,7 @@ async def _run_pass(
         for dispatch in current:
             seq = counter.increment()
             attempt = book.attempt(dispatch.node)
-            task = asyncio.create_task(_run(executor, dispatch, limits.stall_seconds))
+            task = asyncio.create_task(_run(executor, dispatch, limits.run_timeout_seconds))
             launched[task] = (dispatch, seq, attempt)
         outstanding = set(launched)
         while outstanding:
@@ -143,14 +146,16 @@ async def _run_pass(
     return again, undelivered
 
 
-async def _run(executor: Executor, dispatch: Dispatch, stall_seconds: float | None) -> NodeResult:
-    if stall_seconds is None:
+async def _run(
+    executor: Executor, dispatch: Dispatch, run_timeout_seconds: float | None
+) -> NodeResult:
+    if run_timeout_seconds is None:
         return await executor.run(dispatch)
-    deadline = asyncio.timeout(stall_seconds)
+    deadline = asyncio.timeout(run_timeout_seconds)
     try:
         async with deadline:
             return await executor.run(dispatch)
     except TimeoutError:
         if not deadline.expired():
             raise
-        return Failed("infra", f"stalled: no result within {stall_seconds}s")
+        return Failed("infra", f"timed out: no result within {run_timeout_seconds}s")

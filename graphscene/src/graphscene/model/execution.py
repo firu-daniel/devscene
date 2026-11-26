@@ -20,9 +20,11 @@ The rule:
     from the provider or the provider being unavailable. It says nothing about the node, so a
     re-dispatch of it is not one of the node's attempts; repeated, it is a run-level condition.
 - `run` is cancellable. On `asyncio.CancelledError` it releases what it holds and re-raises, and
-  never turns cancellation into a result. The deadline around a node's run is
-  `ExecutionLimits.stall_seconds`, set by the host and applied by
-  `graphscene.engine.set_execution`, which settles an expiry as an `infra` failure.
+  never turns cancellation into a result. The limit on a run's total time is
+  `ExecutionLimits.run_timeout_seconds`, set by the host and applied by
+  `graphscene.engine.set_execution`, which settles an expiry as an `infra` failure. It is not an
+  inactivity timeout: a stall, a session gone silent, is the executor's to detect and return as
+  `Failed("infra", …)`.
 - A run may be repeated for the same dispatch (a retry, an interrupt's resume), so an executor's
   side effects must be repeatable.
 - Each result variant carries its discriminator as a `ClassVar[Literal[...]]` named `kind`, as
