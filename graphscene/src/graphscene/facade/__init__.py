@@ -13,6 +13,10 @@ from graphscene.adapters.stub_executor import (
     ScriptedStall,
     StubExecutor,
 )
+from graphscene.engine.attempts import AttemptBook
+from graphscene.engine.breaker import UndeliveredBreaker
+from graphscene.engine.safety import clear_set
+from graphscene.engine.set_execution import execute_set
 from graphscene.engine.static_check import static_violations
 from graphscene.engine.vocabulary import vocabulary_violations
 from graphscene.engine.walker import Walker
@@ -41,6 +45,21 @@ from graphscene.model.flow_graph import (
     TerminalNode,
     Verdict,
     Vocabulary,
+)
+from graphscene.model.run_control import (
+    DispatchCounter,
+    ExecutionLimits,
+    Halt,
+    HaltReason,
+    Launch,
+    LaunchSink,
+    NodeRecord,
+    Recorded,
+    Redispatch,
+    Retry,
+    RunSignals,
+    SetResult,
+    Settlement,
 )
 from graphscene.model.walk_actions import (
     Action,
@@ -129,4 +148,21 @@ __all__: list[str] = [
     "ScriptedOutcome",
     "ScriptedFailure",
     "ScriptedStall",
+    "ExecutionLimits",
+    "HaltReason",
+    "Halt",
+    "NodeRecord",
+    "Recorded",
+    "Retry",
+    "Redispatch",
+    "Settlement",
+    "SetResult",
+    "Launch",
+    "RunSignals",
+    "DispatchCounter",
+    "LaunchSink",
+    "clear_set",
+    "UndeliveredBreaker",
+    "AttemptBook",
+    "execute_set",
 ]

@@ -10,6 +10,10 @@ import graphscene
 import graphscene.adapters.return_schema
 import graphscene.adapters.state_file
 import graphscene.adapters.stub_executor
+import graphscene.engine.attempts
+import graphscene.engine.breaker
+import graphscene.engine.safety
+import graphscene.engine.set_execution
 import graphscene.engine.static_check
 import graphscene.engine.vocabulary
 import graphscene.engine.walker
@@ -18,6 +22,7 @@ import graphscene.facade.loading
 import graphscene.model.errors
 import graphscene.model.execution
 import graphscene.model.flow_graph
+import graphscene.model.run_control
 import graphscene.model.walk_actions
 import graphscene.model.walk_state
 
@@ -83,6 +88,23 @@ _EXPECTED: list[str] = [
     "ScriptedOutcome",
     "ScriptedFailure",
     "ScriptedStall",
+    "ExecutionLimits",
+    "HaltReason",
+    "Halt",
+    "NodeRecord",
+    "Recorded",
+    "Retry",
+    "Redispatch",
+    "Settlement",
+    "SetResult",
+    "Launch",
+    "RunSignals",
+    "DispatchCounter",
+    "LaunchSink",
+    "clear_set",
+    "UndeliveredBreaker",
+    "AttemptBook",
+    "execute_set",
 ]
 
 _DEFINED_IN: dict[str, object] = {
@@ -127,6 +149,23 @@ _DEFINED_IN: dict[str, object] = {
     "ScriptedOutcome": graphscene.adapters.stub_executor,
     "ScriptedFailure": graphscene.adapters.stub_executor,
     "ScriptedStall": graphscene.adapters.stub_executor,
+    "ExecutionLimits": graphscene.model.run_control,
+    "HaltReason": graphscene.model.run_control,
+    "Halt": graphscene.model.run_control,
+    "NodeRecord": graphscene.model.run_control,
+    "Recorded": graphscene.model.run_control,
+    "Retry": graphscene.model.run_control,
+    "Redispatch": graphscene.model.run_control,
+    "Settlement": graphscene.model.run_control,
+    "SetResult": graphscene.model.run_control,
+    "Launch": graphscene.model.run_control,
+    "RunSignals": graphscene.model.run_control,
+    "DispatchCounter": graphscene.model.run_control,
+    "LaunchSink": graphscene.model.run_control,
+    "clear_set": graphscene.engine.safety,
+    "UndeliveredBreaker": graphscene.engine.breaker,
+    "AttemptBook": graphscene.engine.attempts,
+    "execute_set": graphscene.engine.set_execution,
 }
 
 

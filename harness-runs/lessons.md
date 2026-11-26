@@ -104,6 +104,8 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 
 - **A shim that makes one engine read a shared contract as another engine does lists the constructs it supports and refuses every other one, naming where it occurs. It never passes an unhandled construct through untranslated.** _(taught by: feat_graphscene_graph_model)_
 
+- **Name a ported limit by what the new code measures, never by the original's concern it resembles: a deadline on a run's total time is a run timeout, and inactivity is detected only by the component that sees the activity.** _(taught by: feat_graphscene_execution_rules)_
+
 ## Agent prose
 
 - **State a new behaviour once, in the section that decides it, and cite it from everywhere else; never re-walk in prose the cases that other arms or sections already route.** _(taught by: fix_run_gates_answered_park_resume, feat_structured_outputs_unit_loop)_ — codified in `.claude/context/plugin.md` §Writing agent prose
