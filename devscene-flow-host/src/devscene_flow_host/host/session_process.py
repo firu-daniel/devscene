@@ -12,12 +12,14 @@ The rule:
 - Each stdout read is bounded by the inactivity limit, so any chunk resets the clock. A read that
   times out is a stall: the group is killed and the run returns with `stalled=True` and the stdout
   read so far.
-- At stdout EOF the process's exit and the stderr task are awaited.
+- At stdout EOF the process's exit is awaited, bounded by the inactivity limit; a leader still
+  running past it is a stall.
 - Killing the group is `SIGTERM` to the group, up to the kill grace for the process to exit, then
   `SIGKILL` to the group and its exit awaited; a `ProcessLookupError` means the group is gone.
-- On every path out while the process is still running — a stall, `asyncio.CancelledError`, any
-  unexpected exception — the group is killed and the process awaited. `CancelledError` is
-  re-raised after the kill, never turned into a `SessionRun`.
+- On every path out — a normal exit, a stall, `asyncio.CancelledError`, any unexpected
+  exception — the group is killed, whether or not the leader has exited, and the stderr drain is
+  then awaited for at most `STDERR_DRAIN_SECONDS`. `CancelledError` is re-raised after the kill,
+  never turned into a `SessionRun`.
 - Nothing is written to a file, so repeating a run repeats nothing.
 - The inactivity limit and the kill grace have no default here: the caller owns both values.
 
@@ -29,6 +31,7 @@ Deliberately not covered:
 """
 
 import asyncio
+import contextlib
 import os
 import signal
 from collections.abc import Mapping, Sequence
@@ -38,6 +41,7 @@ from typing import Final
 
 READ_CHUNK_BYTES: Final = 65536
 STDERR_TAIL_BYTES: Final = 4096
+STDERR_DRAIN_SECONDS: Final = 5.0
 
 
 @dataclass(frozen=True)
@@ -80,6 +84,7 @@ async def run_session(
     stderr_task = asyncio.create_task(_drain_tail(process.stderr))
     chunks: list[bytes] = []
     stalled = False
+    tail = b""
     try:
         while True:
             try:
@@ -92,20 +97,16 @@ async def run_session(
             if not chunk:
                 break
             chunks.append(chunk)
-        if stalled:
-            await _kill_group(process, kill_grace_seconds)
-        else:
-            await process.wait()
-        tail = await stderr_task
-    finally:
-        if process.returncode is None:
-            await _kill_group(process, kill_grace_seconds)
-        if not stderr_task.done():
-            stderr_task.cancel()
+        if not stalled:
             try:
-                await stderr_task
-            except asyncio.CancelledError:
-                pass
+                await asyncio.wait_for(process.wait(), inactivity_limit_seconds)
+            except TimeoutError:
+                stalled = True
+    finally:
+        # The leader may already have exited while members of its group run on, so the group
+        # is killed on every path out, never only while the leader runs.
+        await _kill_group(process, kill_grace_seconds)
+        tail = await _stderr_tail(stderr_task)
     return SessionRun(
         stdout=b"".join(chunks).decode("utf-8", errors="replace"),
         stderr_tail=tail.decode("utf-8", errors="replace"),
@@ -120,6 +121,16 @@ async def _drain_tail(stream: asyncio.StreamReader) -> bytes:
     while chunk := await stream.read(READ_CHUNK_BYTES):
         tail = (tail + chunk)[-STDERR_TAIL_BYTES:]
     return tail
+
+
+async def _stderr_tail(task: asyncio.Task[bytes]) -> bytes:
+    done, _ = await asyncio.wait({task}, timeout=STDERR_DRAIN_SECONDS)
+    if task in done:
+        return task.result()
+    task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await task
+    return b""
 
 
 async def _kill_group(process: asyncio.subprocess.Process, kill_grace_seconds: float) -> None:

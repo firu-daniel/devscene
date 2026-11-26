@@ -42,7 +42,7 @@ The new-exported-symbol caller check ran over every `layers[].path` scope. Each 
 ## Phase 2 Readiness — Ordered Fix List
 
 1. [x] **Finding 2** — Make `agent_definition_path` and `return_schema_path` private in `records/plugin_contracts.py` _(layer: devscene-flow-host)_
-2. [ ] **Finding 1** — Kill the session's process group on every path out of `run_session` and bound the post-EOF waits _(layer: devscene-flow-host)_
+2. [x] **Finding 1** — Kill the session's process group on every path out of `run_session` and bound the post-EOF waits _(layer: devscene-flow-host)_
 
 ---
 

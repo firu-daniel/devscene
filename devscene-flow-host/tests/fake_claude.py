@@ -5,6 +5,9 @@ Run as `python fake_claude.py <scenario.json> [args…]`. The scenario is a JSON
 - `argv_file` (optional): the JSON list of the args after the scenario path is written there;
 - `child_pid_file` (optional): a child sleeping for 600 s is spawned in this process's group and
   its pid written there, before `pid_file`;
+- `child_stdio` (optional, default `"inherit"`): the child's stdio — `"inherit"` shares this
+  process's; `"detached"` puts stdin, stdout and stderr on `DEVNULL`; `"stderr"` puts stdin and
+  stdout on `DEVNULL` and inherits stderr;
 - `pid_file` (optional): this process's own pid is written there;
 - `steps`: a list of `{"stdout": <text>}` or `{"stderr": <text>}`, each written with a newline and
   flushed, or `{"sleep": <seconds>}`;
@@ -52,7 +55,14 @@ def main(arguments: list[str]) -> int:
         _write_whole(argv_file, json.dumps(arguments[1:]))
     child_pid_file = _optional_path(scenario, "child_pid_file")
     if child_pid_file is not None:
-        child = subprocess.Popen([sys.executable, "-c", _CHILD_SOURCE])
+        child_stdio = scenario.get("child_stdio", "inherit")
+        quiet = subprocess.DEVNULL if child_stdio in ("detached", "stderr") else None
+        child = subprocess.Popen(
+            [sys.executable, "-c", _CHILD_SOURCE],
+            stdin=quiet,
+            stdout=quiet,
+            stderr=subprocess.DEVNULL if child_stdio == "detached" else None,
+        )
         _write_whole(child_pid_file, str(child.pid))
     pid_file = _optional_path(scenario, "pid_file")
     if pid_file is not None:

@@ -1,7 +1,8 @@
 """The rule this file exists to enforce: `run_session` returns every byte of stdout and the tail of
 stderr with the exit status, reads a line longer than 64 KiB whole, treats only a stdout silent
-past the inactivity limit as a stall, turns a launch `OSError` into `launch_error`, and on a stall
-or a cancellation leaves no process of the session's group alive — the cancellation re-raised.
+past the inactivity limit as a stall, turns a launch `OSError` into `launch_error`, and on a normal
+exit, a stall or a cancellation leaves no process of the session's group alive — the cancellation
+re-raised.
 
 Every session is `fake_claude`, its scenario and pid files under `tmp_path`, and every expected
 value is a literal written from the task plan's rules, never taken from `run_session`'s output.
@@ -142,6 +143,44 @@ def test_a_cancelled_run_kills_the_group_and_re_raises(tmp_path: Path) -> None:
     asyncio.run(cancel_once_started())
 
     _assert_gone(_pid(pid_file))
+    _assert_gone(_pid(tmp_path / "child.pid"))
+
+
+def _group_member_scenario(tmp_path: Path, child_stdio: str) -> dict[str, object]:
+    scenario = _scenario_with_pids(tmp_path, [{"stdout": "done"}])
+    scenario["child_stdio"] = child_stdio
+    scenario["exit"] = 0
+    return scenario
+
+
+def test_a_group_member_left_by_a_normal_exit_is_killed(tmp_path: Path) -> None:
+    argv = plant(tmp_path, _group_member_scenario(tmp_path, "detached"))
+
+    run = _run(argv, tmp_path)
+
+    assert run.returncode == 0
+    assert run.stalled is False
+    _assert_gone(_pid(tmp_path / "child.pid"))
+
+
+def test_a_member_holding_stderr_does_not_hold_the_run(tmp_path: Path) -> None:
+    argv = plant(tmp_path, _group_member_scenario(tmp_path, "stderr"))
+
+    run = asyncio.run(
+        asyncio.wait_for(
+            run_session(
+                argv,
+                cwd=tmp_path,
+                env=None,
+                inactivity_limit_seconds=10.0,
+                kill_grace_seconds=2.0,
+            ),
+            _BOUNDED_WAIT_SECONDS,
+        )
+    )
+
+    assert run.returncode == 0
+    assert run.stdout == "done\n"
     _assert_gone(_pid(tmp_path / "child.pid"))
 
 
