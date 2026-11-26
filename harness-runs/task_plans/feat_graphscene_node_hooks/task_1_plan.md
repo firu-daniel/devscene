@@ -35,6 +35,7 @@ The bash planning libraries are not changed. They read the graph's node list wit
 - [ ] **`task_plan_writing.graph.json` — the format and the vocabulary.**
   - Set `"formatVersion": 5`.
   - Add `"hooks": { "commit_plan_round": {}, "flip_ledger": {}, "commit_convergence": {} }` under `vocabulary`, after `predicates`.
+  - In `description`, change *"in format 4"* to *"in format 5"*, keeping the rest of the existing text. After this edit nothing in the file states format 4 (story index `## Scope register` row 4 assigns both `formatVersion` and `description` to this task, and Task 17's re-run of derivation entry 1 must no longer print this file).
   - Extend `description` with one sentence: each dispatch node's `promptSource` names the core heading its dispatch blocks are cut from, and the graph's hooks are the host's commit and ledger points.
   - Keep the existing sentence that the dispatch blocks stay in the core.
 - [ ] **`task_plan_writing.graph.json` — the prompt sources.** Add `promptSource` to each dispatch node, after `prompts` (or after `heartbeat` where a node has no `prompts`). The document of all six is `instructions/task_plan_writing_instructions_core.md`. The section and heading of each are taken verbatim from `PNL_CORE_BLOCKS`:
@@ -57,5 +58,6 @@ The bash planning libraries are not changed. They read the graph's node list wit
 **Verification:**
 
 - `planning-node-lib.test.mjs` passes with the new case. Spot-check it on a copy of the graph in which one `promptSource` heading differs from its `PNL_CORE_BLOCKS` row: the case must fail and name that node.
-- `jq -e '.formatVersion == 5 and (.vocabulary.hooks | keys == ["commit_convergence","commit_plan_round","flip_ledger"]) and ([.nodes[] | select(.kind == "dispatch") | .promptSource | type == "string"] | all)' cli/templates/scripts/flows/task_plan_writing.graph.json` prints `true`.
+- `jq -e '.formatVersion == 5 and (.description | test("format 4") | not) and (.description | test("in format 5")) and (.vocabulary.hooks | keys == ["commit_convergence","commit_plan_round","flip_ledger"]) and ([.nodes[] | select(.kind == "dispatch") | .promptSource | type == "string"] | all)' cli/templates/scripts/flows/task_plan_writing.graph.json` prints `true`.
+- `grep -c 'format 4' cli/templates/scripts/flows/task_plan_writing.graph.json` prints `0`.
 - Every other key of the graph is byte-unchanged: `git diff` shows only the lines the four Work bullets name.
