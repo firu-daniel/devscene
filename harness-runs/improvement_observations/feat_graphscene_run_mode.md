@@ -16,3 +16,9 @@
 - **cost this run:** 6 node session(s)
 
 # Task run (Phase D)
+
+## A Run gates round failed on a suite this branch's diff does not touch
+- **category:** flow-efficiency
+- **evidence:** `bash scripts/run-test-suite.sh task_round_1` printed `fail harness-runs/test_run_logs/feat_graphscene_run_mode/task_round_1.log`; `test-fix-plan-writer` diagnosed `cli/test/gate12-sandbox-round-full-run.test.mjs` cancelled at the runner's 1800000 ms file timeout (4729 pass, 0 fail, 1 cancelled) while the branch diff touches only `graphscene/` and `harness-runs/`; fix landed as ed2cbd3c (`fix: Test fix 1 — Bound the full-run grade suite's driver call …`) and round 2 printed `pass`
+- **cost this run:** one extra gate round plus 5 dispatches (#13–#17: test-fix-plan-writer ×2, architecture-reviewer ×2, layer-implementer ×1) spent on a `cli` test outside the task's scope
+- **hypothesis:** (guess) a host stall during the unbounded `runRound` call; the log does not name the blocking case
