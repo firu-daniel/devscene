@@ -13,7 +13,9 @@ The rule:
   event loop's thread.
 - A `Dispatch` runs as a set of one, a `DispatchSet` as its `dispatches`, each through
   `execute_set`. A `Wait` is never dispatched: `Walker.current()`, the set of gates still out, is
-  taken in its place. An `End`, `Stop`, `Interrupt` or `Refused` is returned.
+  taken in its place, and if that is itself a `Wait` the call returns `Refused("the saved walk's
+  pending action is a wait, which names no dispatch")`. An `End`, `Stop`, `Interrupt` or
+  `Refused` is returned.
 - After `execute_set`, every record of its `SetResult` is recorded through `Walker.next`, in order:
   a gate of a set as `(outcome, node, detail)`, a lone dispatch as `(outcome, node)` with no
   detail, because the walk records a detail only for a gate and the host already has it in the
@@ -115,6 +117,8 @@ async def _drive(
     while True:
         if isinstance(step, Wait):
             step = await asyncio.to_thread(walker.current)
+            if isinstance(step, Wait):
+                return Refused("the saved walk's pending action is a wait, which names no dispatch")
             continue
         if isinstance(step, Dispatch):
             dispatches: tuple[Dispatch, ...] = (step,)

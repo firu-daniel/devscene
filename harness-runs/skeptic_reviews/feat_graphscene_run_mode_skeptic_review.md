@@ -32,7 +32,7 @@
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Return a `Refused` from `_drive` when `Walker.current()` itself returns a `Wait`, instead of looping forever _(layer: graphscene)_
+1. [x] **Finding 1** — Return a `Refused` from `_drive` when `Walker.current()` itself returns a `Wait`, instead of looping forever _(layer: graphscene)_
 
 ---
 

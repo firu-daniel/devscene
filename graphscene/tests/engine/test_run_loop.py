@@ -4,7 +4,8 @@ gate with its detail, a lone dispatch without), and return the first `Refused`, 
 recorded every record after it, else the `SetResult.halt`, else carry on from the last record's
 step until an `End`, `Stop`, `Interrupt` or `Refused`; each call builds its own book and breaker
 before touching the walker, calls the store only off the event loop's thread, and on cancellation
-re-raises with nothing of the set recorded (`graphscene.engine.run_loop`).
+re-raises with nothing of the set recorded, and a saved `Wait` pending is refused rather than
+looped on (`graphscene.engine.run_loop`).
 
 Every case drives `StubExecutor` with `backoff_seconds=0` through `asyncio.run`, over a `Walker`
 on a graph planted through `graphscene/tests/engine/walk_support.py` → `planted` and an in-test
@@ -15,6 +16,7 @@ is hand-written from the planted graph and the script, never from the code's out
 
 import asyncio
 import contextlib
+import dataclasses
 import threading
 from collections.abc import Iterator, Mapping, Sequence
 from types import MappingProxyType
@@ -42,6 +44,7 @@ from graphscene.model.walk_actions import (
     Refused,
     RoundPassage,
     Stop,
+    Wait,
 )
 from graphscene.model.walk_state import WalkState
 
@@ -456,3 +459,19 @@ def test_a_refused_gate_record_does_not_stop_its_siblings_being_recorded() -> No
     assert store.state is not None and store.state.open_round is not None
     assert dict(store.state.open_round.records) == {"g2": GateRecord("g2", "approved", None)}
     assert walker.current() == DispatchSet("review_round", 0, (_gate_dispatch("g1"),), ())
+
+
+def test_a_saved_wait_pending_is_refused_instead_of_looping() -> None:
+    store = MemoryStore()
+    walker = _walker(store)
+    assert isinstance(walker.start("review_round"), DispatchSet)
+    assert store.state is not None
+    store.state = dataclasses.replace(
+        store.state,
+        pending=Wait("review_round", recorded=GateRecord("g1", "approved", None), pending=("g2",)),
+    )
+    writes = store.writes
+    assert _continue(walker, _stub({})) == Refused(
+        "the saved walk's pending action is a wait, which names no dispatch"
+    )
+    assert store.writes == writes
