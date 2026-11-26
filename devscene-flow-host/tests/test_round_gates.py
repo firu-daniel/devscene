@@ -1,5 +1,5 @@
 """The rule this file exists to enforce: `record_outcome` records a gate's outcome under
-`flow-walker.sh`'s reviewer-file rules on the harness's own format-4 graph,
+`flow-walker.sh`'s reviewer-file rules on the harness's own format-5 graph,
 `cli/templates/scripts/flows/task_plan_writing.graph.json` — a verdict needs a findings file,
 a round gate's file must pass the round-file check, a refused file records nothing and its gate
 is re-dispatched in the same round once no other gate is out, and the third refusal holds it as

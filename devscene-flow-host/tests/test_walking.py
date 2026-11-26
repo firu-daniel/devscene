@@ -1,4 +1,4 @@
-"""The rule this file exists to enforce: the harness's own format-4 graph,
+"""The rule this file exists to enforce: the harness's own format-5 graph,
 `cli/templates/scripts/flows/task_plan_writing.graph.json`, loads through every library check
 and walks through `open_walker` on records planted under `tmp_path`: phases and the run mode
 decide each skip, an unanswerable predicate refuses without writing, and each branch walks in

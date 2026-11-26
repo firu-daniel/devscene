@@ -7,7 +7,7 @@ cap's per-node FAIL counts and story-index evidence — and nothing for any othe
 absent file reads as `None`; a document not in that shape is refused with a `ValueError` naming
 the file; and nothing the store writes lands outside `printed_reads/`.
 
-Steps are built by hand from `graphscene`'s public dataclasses over the harness's own format-4
+Steps are built by hand from `graphscene`'s public dataclasses over the harness's own format-5
 graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, read-only. Review folders
 and the story index are planted under `tmp_path`. Every expected value is a literal written from
 the rules, never taken from the output of the code under test. After every case,

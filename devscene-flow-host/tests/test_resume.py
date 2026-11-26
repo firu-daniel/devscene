@@ -1,6 +1,6 @@
 """The rule this file exists to enforce: a round's `RoundResume` is built from its files as
 `flow-walker.sh`'s `start_round` builds the resumed state — one case per mapping row — on the
-harness's own format-4 graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, and
+harness's own format-5 graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, and
 with every round file PASS no resume carries records, so convergence is never inferred.
 
 Review files and git history are planted under `tmp_path` through `round_fixtures`; the host is a
