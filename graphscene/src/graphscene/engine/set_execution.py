@@ -18,6 +18,11 @@ The rule:
   which runs from the run's start and never counts the wait for a slot; a run that passes it is
   cancelled and becomes `Failed("infra", "timed out: no result within <run_timeout_seconds>s")`.
   A timeout is an `infra` failure.
+- With `before_dispatch` given, each dispatch that starts awaits
+  `before_dispatch(BeforeDispatch(dispatch, seq, attempt))` after taking its `seq` and attempt,
+  inside its own task, before `Executor.run` and outside the `run_timeout_seconds` deadline, so a
+  hook's time never counts against the run. It is awaited once per attempt: a retried or
+  redispatched node awaits it again with its new `seq` and attempt.
 - Results are handled in finish order; runs found finished together are taken in set order. Each
   writes one `Launch` row to the `LaunchSink` and is settled: a `Recorded` from a `Completed` joins
   the outcomes, a `Recorded` from a `Failed` joins the held failures, and a `Retry` or `Redispatch`
@@ -33,8 +38,9 @@ The rule:
   set order, after `ExecutionLimits.backoff_seconds` when it is above 0.
 - `SetResult.records` is always the outcomes, then the held failures, each in finish order.
 - If `execute_set` is cancelled, it cancels its outstanding runs, awaits them and re-raises.
-- An exception out of `Executor.run` is a defect: the outstanding runs are cancelled and awaited,
-  then it propagates.
+- An exception out of `Executor.run` or `before_dispatch` is a defect: the outstanding runs are
+  cancelled and awaited, then it propagates. A dispatch whose hook raised runs no `Executor.run`
+  and writes no `Launch` row, though it has taken its `seq`.
 - On either, a dispatch not yet started is never started: it takes no `seq` and writes no row.
 
 Deliberately not covered:
@@ -48,16 +54,19 @@ Deliberately not covered:
   such a run has taken its `seq` from `DispatchCounter.increment` but returns no `NodeResult`,
   so it writes no row.
 - Recording the records through the walker and driving the walk: graphscene.engine.run_loop.
+- Which hooks a node runs, and every hook other than the `before_dispatch` call: the caller's
+  (graphscene.engine.run_loop).
 """
 
 import asyncio
 from collections import deque
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 
 from graphscene.engine.attempts import AttemptBook
 from graphscene.engine.breaker import UndeliveredBreaker
 from graphscene.engine.safety import clear_set
 from graphscene.model.execution import Completed, Executor, Failed, NodeResult
+from graphscene.model.hooks import BeforeDispatch
 from graphscene.model.run_control import (
     DispatchCounter,
     ExecutionLimits,
@@ -83,6 +92,7 @@ async def execute_set(
     breaker: UndeliveredBreaker,
     limits: ExecutionLimits,
     failure_outcome: str,
+    before_dispatch: Callable[[BeforeDispatch], Awaitable[None]] | None = None,
 ) -> SetResult:
     outcomes: list[NodeRecord] = []
     held: list[NodeRecord] = []
@@ -92,7 +102,16 @@ async def execute_set(
         if halt is not None:
             return SetResult((*outcomes, *held), halt)
         again, undelivered = await _run_pass(
-            current, executor, counter, sink, book, limits, failure_outcome, outcomes, held
+            current,
+            executor,
+            counter,
+            sink,
+            book,
+            limits,
+            failure_outcome,
+            outcomes,
+            held,
+            before_dispatch,
         )
         if undelivered:
             breaker.observe(True)
@@ -118,6 +137,7 @@ async def _run_pass(
     failure_outcome: str,
     outcomes: list[NodeRecord],
     held: list[NodeRecord],
+    before_dispatch: Callable[[BeforeDispatch], Awaitable[None]] | None,
 ) -> tuple[set[str], bool]:
     again: set[str] = set()
     undelivered = False
@@ -130,7 +150,16 @@ async def _run_pass(
                 dispatch = queued.popleft()
                 seq = counter.increment()
                 attempt = book.attempt(dispatch.node)
-                task = asyncio.create_task(_run(executor, dispatch, limits.run_timeout_seconds))
+                task = asyncio.create_task(
+                    _run(
+                        executor,
+                        dispatch,
+                        seq,
+                        attempt,
+                        limits.run_timeout_seconds,
+                        before_dispatch,
+                    )
+                )
                 launched[task] = (dispatch, seq, attempt)
                 outstanding.add(task)
             if not outstanding:
@@ -158,8 +187,15 @@ async def _run_pass(
 
 
 async def _run(
-    executor: Executor, dispatch: Dispatch, run_timeout_seconds: float | None
+    executor: Executor,
+    dispatch: Dispatch,
+    seq: int,
+    attempt: int,
+    run_timeout_seconds: float | None,
+    before_dispatch: Callable[[BeforeDispatch], Awaitable[None]] | None,
 ) -> NodeResult:
+    if before_dispatch is not None:
+        await before_dispatch(BeforeDispatch(dispatch, seq, attempt))
     if run_timeout_seconds is None:
         return await executor.run(dispatch)
     deadline = asyncio.timeout(run_timeout_seconds)
