@@ -12,6 +12,7 @@ import graphscene.adapters.state_file
 import graphscene.adapters.stub_executor
 import graphscene.engine.attempts
 import graphscene.engine.breaker
+import graphscene.engine.run_loop
 import graphscene.engine.safety
 import graphscene.engine.set_execution
 import graphscene.engine.static_check
@@ -105,6 +106,9 @@ _EXPECTED: list[str] = [
     "UndeliveredBreaker",
     "AttemptBook",
     "execute_set",
+    "RunExit",
+    "start_run",
+    "continue_run",
 ]
 
 _DEFINED_IN: dict[str, object] = {
@@ -166,6 +170,9 @@ _DEFINED_IN: dict[str, object] = {
     "UndeliveredBreaker": graphscene.engine.breaker,
     "AttemptBook": graphscene.engine.attempts,
     "execute_set": graphscene.engine.set_execution,
+    "RunExit": graphscene.model.run_control,
+    "start_run": graphscene.engine.run_loop,
+    "continue_run": graphscene.engine.run_loop,
 }
 
 
