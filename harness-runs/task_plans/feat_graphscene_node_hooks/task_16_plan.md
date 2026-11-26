@@ -42,5 +42,5 @@ This task restates each module's *"The rule:"*. It adds no rule a module does no
 
 **Verification:**
 
-- `git grep -nE 'format 4|format-4|not yet merged' -- devscene-flow-host/README.md devscene-flow-host/tests` prints nothing. One exception: a *"not yet merged"* left in the README must name the usage-to-`Launch` pairing or the stream writing, which stay the run driver's.
+- `git grep -nE 'format 4|format-4|not yet merged' -- devscene-flow-host/README.md devscene-flow-host/tests` prints nothing outside these exceptions: a *"not yet merged"* left in the README that names the flow host's script-driven planning driver (#424) — `## What it is`'s sentence stays true after this branch, and no Work bullet edits it — or the usage-to-`Launch` pairing or the stream writing, which stay that driver's. Every printed line is one of those.
 - Every statement in the two new sections traces to a clause of `host/planning_hooks.py`'s or `host/planning_entry.py`'s *"The rule:"*. Read them side by side.

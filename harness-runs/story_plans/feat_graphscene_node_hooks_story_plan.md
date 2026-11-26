@@ -106,6 +106,8 @@ That change alters what the durable corpus says in three places, and each has it
 
 **Closure invariant:** every path that any derivation entry above prints appears as a row below.
 
+Round 1 added two target files: `graphscene/tests/fixtures/flow_graph/valid_hooks.json` (Task 2) and the root `package.json` → `validate:graphscene-schema` (Task 17). Neither is durable corpus text. All three derivation entries were re-run verbatim in that pass, and every path they print is already a row below.
+
 | # | Site | Copy | Evidence (what the derivation matched) | Disposition | Owning task or reason |
 |---|---|---|---|---|---|
 | 1 | `.claude/context/conventions.md` → `## What accompanies a new unit of each kind`, the *A negative schema fixture* row (*"`graphscene/src/graphscene/schemas/flow-graph.schema.json`, format 4"*) | — | format entry, `format 4` | `no-change` | A conventions document is never a plannable target. The branch falsifies its *"format 4"*, so a `stale-rule` entry is recorded for a supervised `/devscene:analyze` re-run or a hand edit. |

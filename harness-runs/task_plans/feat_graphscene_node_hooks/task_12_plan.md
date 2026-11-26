@@ -15,6 +15,17 @@ They read as `cli/templates/scripts/lib/planning-record-lib.sh` → `prl_artifac
 
 The wrapper's path is the caller's input. The run driver (#424) resolves it to `<MAIN_REPO>/<scriptsDir>/commit-on-branch.sh`, because a run copy's wrapper is not trusted (`cli/templates/scripts/lib/planning-driver-lib.sh` header, *"THE WALKER IS THE MAIN CHECKOUT'S"*).
 
+**Depends on:** Task 10, whose `records/ledger.py` declares the ledger's planning literals and owns them:
+
+```python
+PLANNING_ENTRIES: Final = ("P1", "P2", "P3")
+OPEN_MARK: Final = "- [ ] "
+DONE_MARK: Final = "- [x] "
+SKIPPED_MARK: Final = "- [-] "
+```
+
+An entry's line opens `<mark> + f"{entry}."`. This module imports all four and declares none of its own.
+
 ### Targets
 
 - `devscene-flow-host/src/devscene_flow_host/host/commit_points.py` (new)
@@ -23,7 +34,9 @@ The wrapper's path is the caller's input. The run driver (#424) resolves it to `
 **The contract this task produces.** Task 13 calls it.
 
 ```python
-PLANNING_ENTRIES: Final = ("P1", "P2", "P3")
+from devscene_flow_host.records.ledger import (
+    DONE_MARK, OPEN_MARK, PLANNING_ENTRIES, SKIPPED_MARK, ledger_path,
+)   # Task 10's; not redeclared here
 
 class CommitPointError(Exception): ...   # one-line message naming the call and its cause
 
@@ -56,8 +69,8 @@ The wrapper's exit status decides the result:
 
 - **An `entry` not in `PLANNING_ENTRIES`** raises `ValueError(f"flip_ledger_entry takes P1, P2 or P3, not '{entry}'")`.
 - **A missing ledger** raises `RecordError(f"the ledger '{rel}' does not exist")`.
-- **An open entry.** The first line opening `- [ ] <entry>.` becomes `- [x] <entry>.` with the rest of the line kept, and the call returns `True`. The file is replaced atomically, through a temporary file in the same directory and `os.replace`, with mode `0o644`.
-- **A resolved entry.** If the first matching line is `[x]` or `[-]`, the file is left untouched and the call returns `False`.
+- **An open entry.** The first line opening `OPEN_MARK + f"{entry}."` (`- [ ] <entry>.`) becomes `DONE_MARK + f"{entry}."` (`- [x] <entry>.`) with the rest of the line kept, and the call returns `True`. The file is replaced atomically, through a temporary file in the same directory and `os.replace`, with mode `0o644`.
+- **A resolved entry.** If the first matching line opens `DONE_MARK` or `SKIPPED_MARK` + `f"{entry}."` (`[x]` or `[-]`), the file is left untouched and the call returns `False`.
 - **No line for the entry** raises `RecordError(f"the ledger '{rel}' carries no {entry} line")`.
 
 `rel` is the ledger's repo-relative path. A flip writes the file only. The `ledger-flip` commit is the caller's next `commit_artifact` call.
@@ -65,7 +78,7 @@ The wrapper's exit status decides the result:
 **Work:**
 
 - [ ] **`host/commit_points.py`.**
-  - **The code.** Implement `CommitPointError`, `commit_artifact` and `flip_ledger_entry` exactly as the contract spells them. Import `ledger_path` from `records/ledger.py` and `RecordError` from `records/errors.py`.
+  - **The code.** Implement `CommitPointError`, `commit_artifact` and `flip_ledger_entry` exactly as the contract spells them. Import `ledger_path`, `PLANNING_ENTRIES`, `OPEN_MARK`, `DONE_MARK` and `SKIPPED_MARK` from `records/ledger.py` (Task 10) and `RecordError` from `records/errors.py`. Declare no entry id or mark literal in this module.
   - **The docstring.** Its *"The rule:"* names `prl_artifact_commit` and `prl_ledger_flip`, the fork's call spelling, the exit-status mapping and the atomic replace. Its *"Deliberately not covered"* list names three things: resolving the wrapper path (the caller's), which artifact a step owes (`host/planning_hooks.py`'s), and the wrapper's own subjects, paths, re-sync and push.
 - [ ] **`tests/test_commit_points.py` — the commit point.** Open with the header *"The rule this file exists to enforce"*. Plant a fake wrapper under `tmp_path`: a `#!/usr/bin/env bash` script that appends its arguments, one call per line, to a log file beside it, prints a scripted stdout, and exits with a scripted status. Then cover:
   - the exact argument vector for `plan-round --round 2`, for `ledger-flip --entry P1` and for `task-plan`;
@@ -82,3 +95,4 @@ The wrapper's exit status decides the result:
 
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_commit_points.py` passes.
 - `commit_points.py` builds every argument vector as a list, with no `shell=True` and no string command. Grep the module and find neither.
+- `git grep -nE '"P1"|"- \[ \] "|"- \[x\] "|"- \[-\] "' -- devscene-flow-host/src` has no hit outside `records/ledger.py`.

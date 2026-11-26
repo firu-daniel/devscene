@@ -6,8 +6,8 @@
 
 - **Task 1:** the planning graph declares `vocabulary.hooks` `commit_plan_round`, `flip_ledger` and `commit_convergence`; `plan_round` has `"after": ["commit_plan_round", "flip_ledger"]`; `convergence` has `"before": ["flip_ledger", "commit_convergence"]`.
 - **Task 7:** `graphscene` exports `HookHost` (`provides(hook) -> bool`, `async run(hook, call) -> None`) and the calls `AfterRound(passage, step)`, `BeforeEnd(end)`, `AfterDispatch(record, step)`, `BeforeRound(dispatch_set)` and `BeforeDispatch(dispatch, seq, attempt)`. It also exports `start_run(…, hooks=…)`. Per Task 6, run mode runs a round's after-hooks for every `RoundPassage` in a step it takes, a `current` included, and a terminal's before-hooks before returning its `End`.
-- **Task 10:** `read_planning_marks(repo_root, state_dir, branch) -> PlanningMarks(p1, p2, p3)`, each `"x" | "-" | " " | None`.
-- **Task 12:** `commit_artifact(wrapper, worktree, kind, *, round_number=None, entry=None) -> bool`. It raises `CommitPointError` on a refusal. Also `flip_ledger_entry(repo_root, state_dir, branch, entry) -> bool` and `PLANNING_ENTRIES`.
+- **Task 10:** `records/ledger.py` → `read_planning_marks(repo_root, state_dir, branch) -> PlanningMarks(p1, p2, p3)`, each `"x" | "-" | " " | None`, and `PLANNING_ENTRIES: Final = ("P1", "P2", "P3")`, the ledger's planning entry ids, which this module imports from `records/ledger.py` and does not redeclare.
+- **Task 12:** `commit_artifact(wrapper, worktree, kind, *, round_number=None, entry=None) -> bool`. It raises `CommitPointError` on a refusal. Also `flip_ledger_entry(repo_root, state_dir, branch, entry) -> bool`.
 
 ### Targets
 
@@ -28,7 +28,7 @@ class PlanningHooks:
 
 - **`commit_plan_round`** is Override 6. It takes an `AfterRound` and calls `commit_artifact(..., "plan-round", round_number=call.passage.number)`.
 - **`flip_ledger`** is Override 5's flips, as `pd_act` makes them. Every call kind carries a step whose `passed` it reads: `AfterRound.step`, `AfterDispatch.step`, `BeforeEnd.end` and `BeforeRound.dispatch_set`. A `BeforeDispatch` carries none and is refused, as below. For each `LedgerPassage` in that `passed`, in order:
-  - an entry in `PLANNING_ENTRIES` is flipped with `flip_ledger_entry`, then committed with `commit_artifact(..., "ledger-flip", entry=<id>)`. The commit is made even when the flip returned `False`. A flip whose earlier commit was lost lands now, and an already-landed one costs the wrapper's exit 3;
+  - an entry in `PLANNING_ENTRIES` (imported from `records/ledger.py`) is flipped with `flip_ledger_entry`, then committed with `commit_artifact(..., "ledger-flip", entry=<id>)`. The commit is made even when the flip returned `False`. A flip whose earlier commit was lost lands now, and an already-landed one costs the wrapper's exit 3;
   - any other entry is skipped.
 - **`commit_convergence`** is Overrides 3 and 4, then the `P3` flip, as `pd_handoff` → `prl_convergence_commits` then `prl_ledger_flip P3`. It takes a `BeforeEnd`.
   - **Whether a UI-test plan was written.** The `End.reports` slot `ui_test` decides when present: the plan was written exactly when its status is `passed`. With no such slot (a walk that entered at `convergence`), the ledger decides: the plan was written exactly when `P2` is `"x"` and the graph's `paths["ui_test_index"]`, rendered with `host/paths.py` → `render_path`, exists under `repo_root`.
@@ -37,7 +37,7 @@ class PlanningHooks:
 
 **Work:**
 
-- [ ] **`host/planning_hooks.py` — the module.** Implement `PlanningHooks` exactly as the contract spells it, with `HOOKS`, the `ui_test` slot and the `ui_test_index` path key as `Final` constants.
+- [ ] **`host/planning_hooks.py` — the module.** Implement `PlanningHooks` exactly as the contract spells it, with `HOOKS`, the `ui_test` slot and the `ui_test_index` path key as `Final` constants. Import `PLANNING_ENTRIES` from `records/ledger.py` and declare no entry id of its own.
   - **The docstring's *"The rule:"*** names the overrides each hook carries and the bash functions it reads as (`pd_act`, `pd_handoff`, `prl_round_commit`, `prl_convergence_commits`, `prl_ledger_flip`), and states that every hook is repeatable through the wrapper's exit 3.
   - **Its *"Deliberately not covered"*** names three things: a pause's `plan-round-partial` commit and the `<ask>` / `<escalate>` parks (the run driver's, #424, because each is a `RunExit` and not a node or round event); `P0` and the ledger's creation (the fork's Setup acts); and resolving `commit_wrapper` (the caller's).
 - [ ] **`tests/test_planning_hooks.py` — each hook.** Open with the header *"The rule this file exists to enforce"*. Use a fake wrapper planted under `tmp_path`, which logs each call's arguments and exits by a scripted status, as `tests/test_commit_points.py` (Task 12) plants one, plus planted ledgers. Cover:

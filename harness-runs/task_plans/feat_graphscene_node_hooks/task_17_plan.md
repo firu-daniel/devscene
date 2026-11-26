@@ -10,7 +10,7 @@ This is the catch-all task, so it ships last. It documents what the layers below
 
 **Depends on:**
 
-- **Task 2:** format 5's keys: `vocabulary.hooks`, `promptSource`, `before` / `after` on dispatch and round nodes, and `before` on a terminal node.
+- **Task 2:** format 5's keys: `vocabulary.hooks`, `promptSource`, `before` / `after` on dispatch and round nodes, and `before` on a terminal node. Task 2 also created the valid fixture `graphscene/tests/fixtures/flow_graph/valid_hooks.json` and its `_FIXTURE_NAMES` entry, and left the other half of its accompanying set, the root `package.json` listing, to this task, because the root file is this layer's.
 - **Task 6:** the firing points and the once-per-attempt before-dispatch rule.
 - **Task 7:** the public names and `graphscene/README.md`'s description.
 - **Task 13:** the planning graph's three hooks and the overrides they carry.
@@ -25,9 +25,11 @@ This task cites those, and restates no rule beyond the one line each document ne
 - `docs/development.md`
 - `schemas/README.md`
 - `ROADMAP.md`
+- `package.json` (root): the `validate:graphscene-schema` script only.
 
 **Work:**
 
+- [ ] **`package.json` → `validate:graphscene-schema`.** Add `-d graphscene/tests/fixtures/flow_graph/valid_hooks.json` directly after the `-d graphscene/tests/fixtures/flow_graph/valid_plain_round.json` argument, completing the new valid fixture's accompanying set (`.claude/context/graphscene.md` → `## What accompanies a new module`). Change nothing else in the file.
 - [ ] **`docs/flow-graph-walker.md`.** Under the item whose **Decision.** opens *"The planning graph is authored in format 4"*, append a paragraph, in the same form as the item's existing **Changed 2026-11-25 (#459).** notes. It opens **Changed 2026-11-26 (`feat_graphscene_node_hooks`).** and records:
   - format 5's four keys, and why the version rose: the schema's *"A change to the key set raises it"*;
   - that the planning graph declares each dispatch node's core heading as `promptSource`, `plan_round`'s `after` hooks and `convergence`'s `before` hooks;
@@ -50,4 +52,5 @@ This task cites those, and restates no rule beyond the one line each document ne
 
 - Re-run the story index's `## Scope register` format derivation entry verbatim: `git grep -lE 'format 4|format-4|"formatVersion": ?4' -- '*.md' 'cli/templates/**' ':!harness-runs/**' ':!examples/**'`. Every path it prints must be ⊆ the register's `no-change` rows, plus `docs/flow-graph-walker.md`, whose decisions of record keep their format-4 text above the new **Changed** note. There must be no hits outside those.
 - `git grep -nE 'format 4|format-4' -- docs/development.md schemas/README.md` prints nothing.
+- `git grep -n 'valid_hooks.json' -- package.json` prints the `validate:graphscene-schema` line and no other, and `git diff -- package.json` shows that one argument added and nothing else changed.
 - Read the new **Changed** note against `graphscene/README.md`'s hooks paragraph (Task 7). The two describe the same keys and the same firing points, in the same words.

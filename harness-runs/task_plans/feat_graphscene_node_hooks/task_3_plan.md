@@ -40,4 +40,4 @@ This task reads them and adds nothing to the model.
 **Verification:**
 
 - `bash scripts/python-service.sh --package graphscene test tests/engine/test_vocabulary.py` passes.
-- `valid_generic.json`, which Task 2 gave declared hooks, still produces no vocabulary violation. If no case in `test_vocabulary.py` already asserts that `vocabulary_violations` of the built `valid_generic.json` is `[]`, add one.
+- `valid_hooks.json`, the fixture Task 2 created with declared hooks used on a dispatch, a round and a terminal node, produces no vocabulary violation. Add a case in `test_vocabulary.py` asserting that `vocabulary_violations` of the built `valid_hooks.json` is `[]`.
