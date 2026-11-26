@@ -6,6 +6,12 @@ before the return, and never for a cancelled or raising run. GraphScene writes i
 after `run` returns, and a node runs once at a time within a set, so a node's usage record comes
 just before that node's next `Launch` row: the host pairs them on `node`, with equal `result` as
 the check.
+A `Launch` row written by GraphScene's total-run timeout
+(`graphscene/src/graphscene/engine/set_execution.py` → `_run`, its result
+`Failed("infra", "timed out: no result within <run_timeout_seconds>s")`) has no usage record:
+the deadline cancels `run`, which records none. The host pairs nothing with that row and does
+not treat it as a pairing fault. The usage of a session killed this way is lost, unlike a
+stall's.
 - Every constructor input is copied, so a later change to the caller's object changes nothing.
   The host's `session_args` and `agent_args` are passed through unchanged, and may carry no
   `EXECUTOR_FLAGS` member, bare or as `<member>=`.
