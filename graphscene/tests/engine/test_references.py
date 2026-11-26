@@ -2,7 +2,7 @@
 built flow graph uses exists, `start` is listed in `entries`, and each violation's reason opens
 with its check id (`graphscene.engine.references.reference_violations`).
 
-Each planted graph is a complete format-4 mapping built with
+Each planted graph is a complete format-5 mapping built with
 `graphscene.adapters.builder.build_flow_graph`, so the check reads what the builder produces.
 Each id position has a planted case asserting the exact list returned, and a round declaring no
 `writer` and no `counter` has one asserting neither is reported; `valid_generic.json`
@@ -80,7 +80,7 @@ _TERMINAL: dict[str, object] = {"kind": "terminal", "binding": "<finish>"}
 
 def _graph(nodes: dict[str, object], **overrides: object) -> dict[str, object]:
     graph: dict[str, object] = {
-        "formatVersion": 4,
+        "formatVersion": 5,
         "flow": "planted",
         "description": "A planted graph.",
         "vocabulary": _vocabulary(),

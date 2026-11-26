@@ -1,7 +1,7 @@
 """Loading a declared flow graph: turning parsed or on-disk data into the typed `FlowGraph` model,
 or into a `GraphError` whose violations name the node and the field.
 
-The rule: a returned graph has passed the format-4 schema this package ships
+The rule: a returned graph has passed the format-5 schema this package ships
 (`schemas/flow-graph.schema.json`), been built, then passed the vocabulary check and the static
 checks, in that order. A graph failing one stage never reaches the next.
 

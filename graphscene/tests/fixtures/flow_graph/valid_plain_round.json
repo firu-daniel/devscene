@@ -1,5 +1,5 @@
 {
-  "formatVersion": 4,
+  "formatVersion": 5,
   "flow": "release_checks",
   "description": "A small release flow: an intake step accepts a release, a lint check and a license check run together in one round, and the release is published once both accept it.",
   "vocabulary": {

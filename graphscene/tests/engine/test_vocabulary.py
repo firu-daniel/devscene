@@ -97,7 +97,7 @@ def _vocabulary() -> dict[str, object]:
 def _graph(nodes: dict[str, object], vocabulary: dict[str, object] | None = None) -> FlowGraph:
     return build_flow_graph(
         {
-            "formatVersion": 4,
+            "formatVersion": 5,
             "flow": "planted",
             "description": "a planted graph",
             "vocabulary": _vocabulary() if vocabulary is None else vocabulary,

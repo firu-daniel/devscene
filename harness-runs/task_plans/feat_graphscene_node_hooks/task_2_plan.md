@@ -82,3 +82,10 @@ The schema, the typed model and the builder all carry them, and every committed 
 - `git grep -n '"formatVersion": 3' -- graphscene/tests/fixtures` prints only `schema_negative_format_version_3.json`.
 - `git grep -lE '"(before|after|promptSource|hooks)"' -- graphscene/tests/fixtures` prints only `valid_hooks.json`.
 - `git grep -nE 'format 4|format-4' -- graphscene/src` prints only `engine/vocabulary.py`, whose docstring is Task 3's.
+
+**Deviations from plan:**
+
+- The plan says `build_flow_graph` "reads no `formatVersion`". It does: `build_flow_graph` refuses any value other than the one it builds and raises `TypeError("formatVersion: expected <n>")`. Now that the guard requires 5, a mapping planted at 4 would raise. So `graphscene/tests/engine/test_vocabulary.py` → `_graph` was also moved to `"formatVersion": 5`, although Targets does not list it. Without that change its suite fails, and the first verification grep would print it.
+- `graphscene/tests/test_flow_graph_schema.py`: the test `test_the_schema_parses_as_format_4` was renamed to `test_the_schema_parses_as_format_5`, along with the header.
+- The schema adds a `hookList` definition beside `hookName`: an array with `minItems` 1, `uniqueItems`, and `hookName` items. Each `before` / `after` refers to it, so the array shape is declared once.
+- The probe ran through `bash scripts/python-service.sh --package graphscene probe` with a scratch file. It loaded `valid_generic.json`, `valid_plain_round.json`, `valid_hooks.json` and `cli/templates/scripts/flows/task_plan_writing.graph.json` through `graphscene.load_graph_file`, and all four returned format 5. The schema-negative refusals are checked by `tests/facade/test_loading.py` and `tests/adapters/test_schema.py`. This unit did not edit them, so they were not run: they are deferred to the Run gates phase.

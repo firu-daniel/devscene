@@ -1,4 +1,4 @@
-"""The rule this file exists to enforce: the format-4 flow-graph schema ships as `graphscene`
+"""The rule this file exists to enforce: the format-5 flow-graph schema ships as `graphscene`
 package data and names no harness vocabulary.
 
 The schema is read through `importlib.resources`, as a consumer of the installed package reads it.
@@ -23,6 +23,7 @@ _FIXTURES = Path(__file__).parent / "fixtures" / "flow_graph"
 _FIXTURE_NAMES = [
     "valid_generic.json",
     "valid_plain_round.json",
+    "valid_hooks.json",
     "schema_negative_format_version_3.json",
     "schema_negative_no_vocabulary.json",
     "schema_negative_unknown_primitive.json",
@@ -92,14 +93,14 @@ def harness_names(schema: object) -> list[str]:
     return found
 
 
-def test_the_schema_parses_as_format_4() -> None:
+def test_the_schema_parses_as_format_5() -> None:
     schema = _load_schema()
     assert isinstance(schema, dict)
     properties = schema["properties"]
     assert isinstance(properties, dict)
     format_version = properties["formatVersion"]
     assert isinstance(format_version, dict)
-    assert format_version["const"] == 4
+    assert format_version["const"] == 5
 
 
 def test_node_kinds_stay_a_closed_engine_enum() -> None:

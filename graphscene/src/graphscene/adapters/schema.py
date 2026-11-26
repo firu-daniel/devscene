@@ -1,4 +1,4 @@
-"""The format-4 schema check: `schema_violations` validates parsed data against the schema this
+"""The format-5 schema check: `schema_violations` validates parsed data against the schema this
 package ships (`schemas/flow-graph.schema.json`) and returns every violation, sorted by path then
 reason.
 

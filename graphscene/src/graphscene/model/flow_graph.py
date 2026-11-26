@@ -1,8 +1,9 @@
-"""The typed, immutable form of a declared format-4 flow graph, built by
+"""The typed, immutable form of a declared format-5 flow graph, built by
 `graphscene.adapters.builder.build_flow_graph`.
 
-- Absent keys: an absent optional key is `None`. The one exception is `held`, which the schema
-  allows only as `true`: it is a `bool`, `False` when absent.
+- Absent keys: an absent optional key is `None` — `Vocabulary.hooks`, a node's `prompt_source`,
+  `before` and `after` among them. The one exception is `held`, which the schema allows only as
+  `true`: it is a `bool`, `False` when absent.
 - Fixed words: the only fixed words are the schema's own enums, typed as `NodeKind`, `Primitive`
   and `Verdict`.
 """
@@ -49,10 +50,16 @@ class PredicateDeclaration:
 
 
 @dataclass(frozen=True)
+class HookDeclaration:
+    pass
+
+
+@dataclass(frozen=True)
 class Vocabulary:
     outcomes: Mapping[str, OutcomeDeclaration]
     bindings: Mapping[str, BindingDeclaration]
     predicates: Mapping[str, PredicateDeclaration]
+    hooks: Mapping[str, HookDeclaration] | None
 
 
 @dataclass(frozen=True)
@@ -110,6 +117,9 @@ class DispatchNode:
     prompts: tuple[str, ...] | None
     findings_folder: str | None
     skip: tuple[SkipEntry, ...] | None
+    prompt_source: str | None
+    before: tuple[str, ...] | None
+    after: tuple[str, ...] | None
 
 
 @dataclass(frozen=True)
@@ -127,6 +137,8 @@ class RoundNode:
     plan: tuple[str, ...] | None
     revision_note: str | None
     outcomes: Mapping[str, Edge]
+    before: tuple[str, ...] | None
+    after: tuple[str, ...] | None
 
 
 @dataclass(frozen=True)
@@ -134,6 +146,7 @@ class TerminalNode:
     kind: ClassVar[Literal["terminal"]] = "terminal"
     id: str
     binding: str
+    before: tuple[str, ...] | None
 
 
 Node: TypeAlias = DispatchNode | RoundNode | TerminalNode
@@ -141,7 +154,7 @@ Node: TypeAlias = DispatchNode | RoundNode | TerminalNode
 
 @dataclass(frozen=True)
 class FlowGraph:
-    format_version: Literal[4]
+    format_version: Literal[5]
     flow: str
     description: str
     vocabulary: Vocabulary

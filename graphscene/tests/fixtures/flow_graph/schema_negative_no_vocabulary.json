@@ -1,5 +1,5 @@
 {
-  "formatVersion": 4,
+  "formatVersion": 5,
   "flow": "article_review",
   "description": "A small editorial flow: a writer drafts an article, an editor reviews it in a one-gate round, and the article is published once the editor approves it.",
   "start": "draft",

@@ -2,8 +2,8 @@
 (`graphscene.adapters.builder.build_flow_graph`) mirrors the declaration one to one, and keeps
 references as ids.
 
-Every expected value is hand-written from reading `valid_generic.json` or
-`valid_plain_round.json`; a planted in-test graph covers the optional keys those fixtures leave
+Every expected value is hand-written from reading `valid_generic.json`, `valid_plain_round.json`
+or `valid_hooks.json`; a planted in-test graph covers the optional keys those fixtures leave
 out.
 
 Deliberately not covered:
@@ -23,6 +23,7 @@ from graphscene.model.flow_graph import (
     BindingEdge,
     DispatchNode,
     FlowGraph,
+    HookDeclaration,
     InterruptBinding,
     OnCapEdge,
     OutcomeDeclaration,
@@ -46,9 +47,14 @@ def _fixture() -> FlowGraph:
     return build_flow_graph(_declared())
 
 
+def _hooked() -> FlowGraph:
+    loaded = json.loads((_FIXTURES / "valid_hooks.json").read_text(encoding="utf-8"))
+    return build_flow_graph(cast(dict[str, object], loaded))
+
+
 def _planted() -> dict[str, object]:
     return {
-        "formatVersion": 4,
+        "formatVersion": 5,
         "flow": "planted",
         "description": "Every optional key present.",
         "vocabulary": {
@@ -106,7 +112,7 @@ def _planted() -> dict[str, object]:
 
 def test_the_top_level_keys_mirror_the_fixture() -> None:
     graph = _fixture()
-    assert graph.format_version == 4
+    assert graph.format_version == 5
     assert graph.start == "draft"
     assert graph.entries == ("draft", "review_round")
     assert list(graph.nodes) == ["draft", "edit_check", "review_round", "published"]
@@ -170,7 +176,7 @@ def test_the_round_and_terminal_nodes_mirror_the_fixture() -> None:
         round_counts=("edit_check",),
         evidence="article",
     )
-    assert graph.nodes["published"] == TerminalNode(id="published", binding="<finish>")
+    assert graph.nodes["published"] == TerminalNode(id="published", binding="<finish>", before=None)
 
 
 def test_a_round_without_a_writer_carries_none_for_the_review_loop_keys() -> None:
@@ -206,6 +212,44 @@ def test_every_optional_key_lands_on_its_snake_case_attribute() -> None:
     assert round_node.revision_note == "note"
 
 
+def test_every_hook_key_lands_on_its_snake_case_attribute() -> None:
+    graph = _hooked()
+    hooks = graph.vocabulary.hooks
+    assert hooks is not None
+    assert list(hooks) == ["announce", "archive_draft"]
+    assert hooks["announce"] == HookDeclaration()
+    draft = graph.nodes["draft"]
+    assert isinstance(draft, DispatchNode)
+    assert draft.prompt_source == "prompts/article-writer.md"
+    assert draft.before == ("announce",)
+    assert draft.after == ("archive_draft", "announce")
+    review_round = graph.nodes["review_round"]
+    assert isinstance(review_round, RoundNode)
+    assert review_round.before is None
+    assert review_round.after == ("archive_draft",)
+    assert graph.nodes["published"] == TerminalNode(
+        id="published", binding="<finish>", before=("announce",)
+    )
+
+
+def test_absent_hook_keys_build_as_none() -> None:
+    graph = _fixture()
+    assert graph.vocabulary.hooks is None
+    for node_id in ("draft", "edit_check"):
+        node = graph.nodes[node_id]
+        assert isinstance(node, DispatchNode)
+        assert node.prompt_source is None
+        assert node.before is None
+        assert node.after is None
+    review_round = graph.nodes["review_round"]
+    assert isinstance(review_round, RoundNode)
+    assert review_round.before is None
+    assert review_round.after is None
+    published = graph.nodes["published"]
+    assert isinstance(published, TerminalNode)
+    assert published.before is None
+
+
 def test_references_stay_strings() -> None:
     draft = _fixture().nodes["draft"]
     assert isinstance(draft, DispatchNode)
@@ -221,6 +265,10 @@ def test_the_model_is_immutable() -> None:
         graph.start = "published"  # type: ignore[misc]
     with pytest.raises(TypeError):
         graph.nodes["draft"] = graph.nodes["published"]  # type: ignore[index]
+    hooks = _hooked().vocabulary.hooks
+    assert hooks is not None
+    with pytest.raises(TypeError):
+        hooks["announce"] = HookDeclaration()  # type: ignore[index]
 
 
 def test_mutating_the_input_after_the_build_leaves_the_graph_unchanged() -> None:
