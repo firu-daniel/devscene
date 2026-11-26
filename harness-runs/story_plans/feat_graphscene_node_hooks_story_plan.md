@@ -65,7 +65,7 @@ The work goes bottom-up through four layers. The `cli` task authors the declarat
 
 Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_graphscene_node_hooks/task_<K>_plan.md`. The entries are ordered bottom-up in the configured layer order (`cli`, `graphscene`, `devscene-flow-host`), with the catch-all layer last.
 
-1. [ ] **Task 1** — Declare the planning graph's prompt sources and hooks at format 5, held to `PNL_CORE_BLOCKS` _(layer: cli)_ _(points: 10)_
+1. [x] **Task 1** — Declare the planning graph's prompt sources and hooks at format 5, held to `PNL_CORE_BLOCKS` _(layer: cli)_ _(points: 10)_
 2. [ ] **Task 2** — Raise the flow-graph format to 5 with hook and prompt-source declarations in the schema, model and builder _(layer: graphscene)_ _(points: 20)_
 3. [ ] **Task 3** — Refuse a node hook that `vocabulary.hooks` does not declare _(layer: graphscene)_ _(points: 10)_
 4. [ ] **Task 4** — Declare the hook calls and the `HookHost` protocol in `model/hooks.py` _(layer: graphscene)_ _(points: 15)_

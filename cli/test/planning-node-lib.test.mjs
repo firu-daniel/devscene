@@ -1,7 +1,8 @@
 /**
  * One planning node session, `cli/templates/scripts/lib/planning-node-lib.sh`: the core's dispatch
  * blocks, each dispatch node's return schema, the node's prompt, the per-node flags, the launch and
- * the validated read.
+ * the validated read — and the shipped planning graph's `promptSource` on each dispatch node, held
+ * to `PNL_CORE_BLOCKS` row for row, with one key per declared prompt.
  *
  * **The rule this suite enforces: a node's result is a declared outcome, `error` or
  * `undelivered`, never a guess.** `pnl_reap` decides in one fixed order — 1 no `init` event, 2 an
@@ -243,6 +244,40 @@ d=$PNL_TMP; pnl_cleanup; [ ! -e "$d" ] || exit 92
   ]);
   assert.deepEqual(JSON.parse(schemaLine), REVIEWER_SCHEMA, 'the schema file, compact');
   assert.ok(!schemaLine.includes('\n  '));
+});
+
+test('every dispatch node\'s promptSource is one PNL_CORE_BLOCKS row, with one key per prompt', async () => {
+  const CORE_DOC = 'instructions/task_plan_writing_instructions_core.md';
+  const EXPECTED = {
+    plan_writer: ['## Loop', '### 1. Spawn `task-plan-writer`'],
+    business_parity_review: ['## Loop', '### 2. Business-parity review (plan-review mode)'],
+    architecture_review: ['## Loop', '### 3. Architecture review (plan-review mode)'],
+    plan_review: ['## Loop', '### 4. Spawn `task-plan-reviewer`'],
+    ui_writer: ['## UI-test-plan write loop', '### 1. Spawn `ui-tests-plan-writer`'],
+    ui_review: ['## UI-test-plan write loop', '### 2. Spawn `ui-tests-plan-reviewer`'],
+  };
+  const source = (section, heading) => `${CORE_DOC} → ${section} → ${heading}`;
+  const lib = await readFile(join(TEMPLATES, 'lib', 'planning-node-lib.sh'), 'utf8');
+  const graph = JSON.parse(await readFile(join(TEMPLATES, 'flows', 'task_plan_writing.graph.json'), 'utf8'));
+  const blocks = lib.match(/^PNL_CORE_BLOCKS='([^']*)'$/m);
+  assert.ok(blocks, 'PNL_CORE_BLOCKS is declared on one quoted assignment');
+  const rows = blocks[1].split('\n').map((row) => {
+    const [section, heading, keys] = row.split('|');
+    return { source: source(section, heading), keys: keys.split(' ').filter(Boolean) };
+  });
+  const dispatch = Object.entries(graph.nodes).filter(([, node]) => node.kind === 'dispatch');
+  assert.deepEqual(dispatch.map(([name]) => name).sort(), Object.keys(EXPECTED).sort(), 'the dispatch nodes');
+
+  for (const [name, node] of dispatch) {
+    assert.equal(node.promptSource, source(...EXPECTED[name]), `${name}: promptSource`);
+    const row = rows.find((r) => r.source === node.promptSource);
+    assert.ok(row, `${name}: promptSource '${node.promptSource}' is no PNL_CORE_BLOCKS row`);
+    assert.equal(row.keys.length, node.prompts ? node.prompts.length : 1, `${name}: PNL_CORE_BLOCKS keys per prompt`);
+  }
+  for (const row of rows) {
+    const owners = dispatch.filter(([, node]) => node.promptSource === row.source).map(([name]) => name);
+    assert.equal(owners.length, 1, `PNL_CORE_BLOCKS row '${row.source}' has one dispatch node, found [${owners}]`);
+  }
 });
 
 test('pnl_init refuses an agent with no usable schema file, naming the file', { skip: SKIP }, async (t) => {
