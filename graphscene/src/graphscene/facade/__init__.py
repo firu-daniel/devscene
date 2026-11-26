@@ -15,6 +15,7 @@ from graphscene.adapters.stub_executor import (
 )
 from graphscene.engine.attempts import AttemptBook
 from graphscene.engine.breaker import UndeliveredBreaker
+from graphscene.engine.run_loop import continue_run, start_run
 from graphscene.engine.safety import clear_set
 from graphscene.engine.set_execution import execute_set
 from graphscene.engine.static_check import static_violations
@@ -57,6 +58,7 @@ from graphscene.model.run_control import (
     Recorded,
     Redispatch,
     Retry,
+    RunExit,
     RunSignals,
     SetResult,
     Settlement,
@@ -165,4 +167,7 @@ __all__: list[str] = [
     "UndeliveredBreaker",
     "AttemptBook",
     "execute_set",
+    "RunExit",
+    "start_run",
+    "continue_run",
 ]

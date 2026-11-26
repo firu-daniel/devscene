@@ -7,13 +7,17 @@ The rule:
 - Every pass, the first being the whole set, is cleared by `clear_set` before anything of it goes
   out; a `Halt` from it is returned with the records settled so far, and nothing of that pass is
   launched.
-- Each dispatch of a cleared pass, in set order, takes its `Launch.seq` from
-  `DispatchCounter.increment` and its attempt from `AttemptBook.attempt`, then starts running
-  concurrently with its siblings.
-- With `ExecutionLimits.run_timeout_seconds` set, each run's total time is under that deadline; a
-  run that passes it is cancelled and becomes
-  `Failed("infra", "timed out: no result within <run_timeout_seconds>s")`. A timeout is an `infra`
-  failure.
+- Each dispatch of a cleared pass starts in set order, at most
+  `ExecutionLimits.max_concurrent_dispatches` at once; the next one starts as soon as a running one
+  finishes, after the results found finished with it are handled. A dispatch takes its
+  `Launch.seq` from `DispatchCounter.increment` and its attempt from `AttemptBook.attempt` when it
+  starts, never when its pass is cleared.
+- The whole of a cleared pass goes out: a STOP or PAUSE raised while a pass runs holds back none of
+  its queued dispatches and is honoured by `clear_set` at the next pass.
+- With `ExecutionLimits.run_timeout_seconds` set, each run's total time is under that deadline,
+  which runs from the run's start and never counts the wait for a slot; a run that passes it is
+  cancelled and becomes `Failed("infra", "timed out: no result within <run_timeout_seconds>s")`.
+  A timeout is an `infra` failure.
 - Results are handled in finish order; runs found finished together are taken in set order. Each
   writes one `Launch` row to the `LaunchSink` and is settled: a `Recorded` from a `Completed` joins
   the outcomes, a `Recorded` from a `Failed` joins the held failures, and a `Retry` or `Redispatch`
@@ -31,6 +35,7 @@ The rule:
 - If `execute_set` is cancelled, it cancels its outstanding runs, awaits them and re-raises.
 - An exception out of `Executor.run` is a defect: the outstanding runs are cancelled and awaited,
   then it propagates.
+- On either, a dispatch not yet started is never started: it takes no `seq` and writes no row.
 
 Deliberately not covered:
 
@@ -42,10 +47,11 @@ Deliberately not covered:
 - A `Launch` row for a run cancelled because `execute_set` was cancelled or another run raised:
   such a run has taken its `seq` from `DispatchCounter.increment` but returns no `NodeResult`,
   so it writes no row.
-- The run loop: #484.
+- Recording the records through the walker and driving the walk: graphscene.engine.run_loop.
 """
 
 import asyncio
+from collections import deque
 from collections.abc import Sequence
 
 from graphscene.engine.attempts import AttemptBook
@@ -115,15 +121,20 @@ async def _run_pass(
 ) -> tuple[set[str], bool]:
     again: set[str] = set()
     undelivered = False
+    queued: deque[Dispatch] = deque(current)
     launched: dict[asyncio.Task[NodeResult], tuple[Dispatch, int, int]] = {}
+    outstanding: set[asyncio.Task[NodeResult]] = set()
     try:
-        for dispatch in current:
-            seq = counter.increment()
-            attempt = book.attempt(dispatch.node)
-            task = asyncio.create_task(_run(executor, dispatch, limits.run_timeout_seconds))
-            launched[task] = (dispatch, seq, attempt)
-        outstanding = set(launched)
-        while outstanding:
+        while True:
+            while queued and len(outstanding) < limits.max_concurrent_dispatches:
+                dispatch = queued.popleft()
+                seq = counter.increment()
+                attempt = book.attempt(dispatch.node)
+                task = asyncio.create_task(_run(executor, dispatch, limits.run_timeout_seconds))
+                launched[task] = (dispatch, seq, attempt)
+                outstanding.add(task)
+            if not outstanding:
+                break
             done, outstanding = await asyncio.wait(outstanding, return_when=asyncio.FIRST_COMPLETED)
             for task in [t for t in launched if t in done]:
                 dispatch, seq, attempt = launched[task]

@@ -9,7 +9,10 @@ which steps a loaded graph and saves its position through a `StateStore` such as
 execution rules: `execute_set`, which runs one dispatch set through a caller's `Executor` under the
 per-set safety contract `clear_set`, the per-node attempt rule `AttemptBook` and the
 `UndeliveredBreaker`, with the types they compute over, the host-supplied `ExecutionLimits` and
-the `RunSignals`, `DispatchCounter` and `LaunchSink` protocols the host implements. The surface is
+the `RunSignals`, `DispatchCounter` and `LaunchSink` protocols the host implements. Run mode,
+`start_run` and `continue_run`, drives a walk end to end through a caller's `Executor`, applying
+`execute_set` set by set and returning a `RunExit`, while step mode, `Walker`, stays the
+synchronous route. The surface is
 re-exported from `graphscene.facade`; no module inside the package imports from the package root.
 
 The boundary: this package imports only the standard library, itself and its declared runtime
@@ -66,6 +69,7 @@ from graphscene.facade import (
     RoundPassage,
     RoundResume,
     RouteEdge,
+    RunExit,
     RunSignals,
     Scripted,
     ScriptedFailure,
@@ -90,10 +94,12 @@ from graphscene.facade import (
     Walker,
     WalkState,
     clear_set,
+    continue_run,
     execute_set,
     load_graph,
     load_graph_file,
     return_violations,
+    start_run,
     static_violations,
     vocabulary_violations,
 )
@@ -177,4 +183,7 @@ __all__: list[str] = [
     "UndeliveredBreaker",
     "AttemptBook",
     "execute_set",
+    "RunExit",
+    "start_run",
+    "continue_run",
 ]

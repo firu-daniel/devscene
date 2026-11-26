@@ -1,19 +1,20 @@
 """The rule this file exists to enforce: `execute_set` clears every pass through `clear_set`,
-launches each dispatch concurrently under the optional run timeout, writes one `Launch` row per
+launches each dispatch concurrently under the optional run timeout, at most
+`max_concurrent_dispatches` at once in set order, writes one `Launch` row per
 launched session, settles results in finish order, never cancels a sibling, re-dispatches only the
 retried and undelivered nodes as a new pass, halts through the breaker, and returns the outcomes
 then the held failures; on its own cancellation or a defect out of `run` it cancels and awaits its
 outstanding runs and re-raises (`graphscene.engine.set_execution`).
 
-Each case drives `StubExecutor` through `asyncio.run` with `backoff_seconds=0`. `Signals`,
-`Counter` and `Sink` are in-test classes satisfying `RunSignals`, `DispatchCounter` and
-`LaunchSink` structurally. Order is asserted only through the stub's `started`, `finished` and
-`cancelled` records and the sink's rows, never against the wall clock, and every expected value is
-hand-written from the script.
+Each case drives `StubExecutor` or `Gated` through `asyncio.run` with `backoff_seconds=0`.
+`Signals`, `Counter` and `Sink` are in-test classes satisfying `RunSignals`, `DispatchCounter` and
+`LaunchSink` structurally, and `Gated` satisfies `Executor` the same way. Order is asserted only
+through the stub's `started`, `finished` and `cancelled` records, `Gated`'s log and the sink's
+rows, never against the wall clock, and every expected value is hand-written from the script.
 """
 
 import asyncio
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from types import MappingProxyType
 
 import pytest
@@ -28,7 +29,7 @@ from graphscene.adapters.stub_executor import (
 from graphscene.engine.attempts import AttemptBook
 from graphscene.engine.breaker import UndeliveredBreaker
 from graphscene.engine.set_execution import execute_set
-from graphscene.model.execution import Completed, Failed
+from graphscene.model.execution import Completed, Executor, Failed, NodeResult
 from graphscene.model.run_control import (
     DispatchCounter,
     ExecutionLimits,
@@ -79,6 +80,34 @@ class Sink:
         self.rows.append(launch)
 
 
+class Gated:
+    """Holds each node's run until the test opens that node's gate, logging starts and ends."""
+
+    def __init__(self, nodes: Sequence[str]) -> None:
+        self._gates = {node: asyncio.Event() for node in nodes}
+        self.events: list[tuple[str, str]] = []
+        self.in_flight = 0
+        self.peak = 0
+
+    def open(self, node: str) -> None:
+        self._gates[node].set()
+
+    async def run(self, dispatch: Dispatch) -> NodeResult:
+        node = dispatch.node
+        self.events.append(("start", node))
+        self.in_flight += 1
+        self.peak = max(self.peak, self.in_flight)
+        await self._gates[node].wait()
+        self.in_flight -= 1
+        self.events.append(("end", node))
+        return Completed("pass")
+
+
+async def _until(condition: Callable[[], bool]) -> None:
+    while not condition():
+        await asyncio.sleep(0)
+
+
 def _dispatch(node: str) -> Dispatch:
     return Dispatch(
         node=node,
@@ -103,12 +132,14 @@ def _execute(
     max_attempts: int = 3,
     dispatch_cap: int | None = None,
     run_timeout_seconds: float | None = None,
+    max_concurrent_dispatches: int = 10,
 ) -> SetResult:
     limits = ExecutionLimits(
         max_attempts=max_attempts,
         backoff_seconds=0,
         dispatch_cap=dispatch_cap,
         run_timeout_seconds=run_timeout_seconds,
+        max_concurrent_dispatches=max_concurrent_dispatches,
     )
     return asyncio.run(
         execute_set(
@@ -378,3 +409,158 @@ def test_cancelling_execute_set_cancels_its_runs_and_re_raises() -> None:
 
     asyncio.run(scenario())
     assert stub.cancelled == ("a", "b")
+
+
+def _launch(
+    nodes: Sequence[str],
+    executor: Executor,
+    *,
+    sink: Sink,
+    counter: Counter,
+    limits: ExecutionLimits,
+) -> asyncio.Task[SetResult]:
+    return asyncio.create_task(
+        execute_set(
+            [_dispatch(node) for node in nodes],
+            executor,
+            signals=Signals(),
+            counter=counter,
+            sink=sink,
+            book=AttemptBook(),
+            breaker=UndeliveredBreaker(),
+            limits=limits,
+            failure_outcome=_FAILED,
+        )
+    )
+
+
+def test_a_set_of_eight_under_a_limit_of_five_starts_the_sixth_when_one_finishes() -> None:
+    nodes = ["n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8"]
+    gated = Gated(nodes)
+    sink = Sink()
+
+    async def scenario() -> SetResult:
+        running = _launch(
+            nodes,
+            gated,
+            sink=sink,
+            counter=Counter(),
+            limits=ExecutionLimits(backoff_seconds=0, max_concurrent_dispatches=5),
+        )
+        await _until(lambda: len(gated.events) >= 5)
+        gated.open("n3")
+        await _until(lambda: ("start", "n6") in gated.events)
+        for node in ["n1", "n2", "n4", "n5", "n6", "n7", "n8"]:
+            gated.open(node)
+        return await running
+
+    result = asyncio.run(scenario())
+    assert gated.peak == 5
+    assert gated.events[:7] == [
+        ("start", "n1"),
+        ("start", "n2"),
+        ("start", "n3"),
+        ("start", "n4"),
+        ("start", "n5"),
+        ("end", "n3"),
+        ("start", "n6"),
+    ]
+    assert sorted((row.node, row.seq) for row in sink.rows) == [
+        ("n1", 1),
+        ("n2", 2),
+        ("n3", 3),
+        ("n4", 4),
+        ("n5", 5),
+        ("n6", 6),
+        ("n7", 7),
+        ("n8", 8),
+    ]
+    assert result.halt is None
+    assert len(result.records) == 8
+
+
+def test_the_default_window_is_ten() -> None:
+    nodes = [f"n{i}" for i in range(1, 13)]
+    gated = Gated(nodes)
+
+    async def scenario() -> None:
+        running = _launch(
+            nodes,
+            gated,
+            sink=Sink(),
+            counter=Counter(),
+            limits=ExecutionLimits(backoff_seconds=0),
+        )
+        await _until(lambda: len(gated.events) >= 10)
+        for node in nodes:
+            gated.open(node)
+        await running
+
+    asyncio.run(scenario())
+    assert gated.peak == 10
+
+
+def test_a_queued_dispatch_is_not_charged_the_wait_against_the_run_timeout() -> None:
+    stub = _stub(
+        {
+            "a": [ScriptedOutcome("pass", delay=0.06)],
+            "b": [ScriptedOutcome("pass", delay=0.06)],
+        }
+    )
+    sink = Sink()
+    result = _execute(
+        ["a", "b"], stub, sink=sink, run_timeout_seconds=0.1, max_concurrent_dispatches=1
+    )
+    assert stub.started == ("a", "b")
+    assert result == SetResult((NodeRecord("a", "pass", None), NodeRecord("b", "pass", None)), None)
+    assert sink.rows == [
+        Launch(1, "a", "a-agent", 1, 3, Completed("pass")),
+        Launch(2, "b", "b-agent", 1, 3, Completed("pass")),
+    ]
+
+
+def test_a_stop_raised_mid_pass_still_sends_the_queued_dispatches() -> None:
+    stub = _stub(
+        {
+            "n1": [ScriptedOutcome("pass")],
+            "n2": [ScriptedOutcome("pass")],
+            "n3": [ScriptedOutcome("pass")],
+        }
+    )
+    result = _execute(
+        ["n1", "n2", "n3"], stub, signals=Signals(stop_after=3), max_concurrent_dispatches=1
+    )
+    assert stub.started == ("n1", "n2", "n3")
+    assert result == SetResult(
+        (
+            NodeRecord("n1", "pass", None),
+            NodeRecord("n2", "pass", None),
+            NodeRecord("n3", "pass", None),
+        ),
+        None,
+    )
+
+
+def test_cancelling_execute_set_never_starts_a_queued_dispatch() -> None:
+    stub = _stub({"n1": [ScriptedStall()], "n2": [ScriptedOutcome("pass")]})
+    sink = Sink()
+    counter = Counter()
+
+    async def scenario() -> None:
+        running = _launch(
+            ["n1", "n2"],
+            stub,
+            sink=sink,
+            counter=counter,
+            limits=ExecutionLimits(backoff_seconds=0, max_concurrent_dispatches=1),
+        )
+        await _until(lambda: len(stub.started) >= 1)
+        running.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await running
+
+    asyncio.run(scenario())
+    assert stub.started == ("n1",)
+    assert stub.cancelled == ("n1",)
+    assert counter.total() == 1
+    assert sink.rows == []

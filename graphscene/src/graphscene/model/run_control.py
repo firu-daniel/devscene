@@ -1,12 +1,15 @@
 """The plain types and host protocols the execution rules compute over: the host-supplied
 `ExecutionLimits`, the `RunSignals`, `DispatchCounter` and `LaunchSink` protocols, the `Launch`
 observation row, the run-level `Halt`, a node's `NodeRecord`, its `Settlement` (`Recorded`, `Retry`
-or `Redispatch`) and the `SetResult` of one executed set.
+or `Redispatch`), the `SetResult` of one executed set and the `RunExit`, what a run of a walk ends
+on.
 
 The rule:
 
 - The limits are the host's to pass. The defaults in `ExecutionLimits` are GraphScene's, not any
   host's constants, and a value out of range is refused with `ValueError`.
+- `max_concurrent_dispatches` is how many runs of one set are in flight at once, applied by
+  `graphscene.engine.set_execution`. The graph format sets no limit.
 - An `undelivered` result's re-dispatch uses up no attempt: `Redispatch` carries no attempt number.
 - A halt is returned as a `Halt`, never raised.
 - `NodeResult` carries no usage. A host joins usage to a `Launch` from its own executor's usage
@@ -19,13 +22,14 @@ Deliberately not covered:
 - Where STOP and PAUSE live: the host's, answered through `RunSignals`.
 - What the dispatch counter counts across runs and where it is kept, and where a `Launch` row is
   written: the host's, through `DispatchCounter` and `LaunchSink`.
-- The run loop: #484.
+- Driving a walk with these: graphscene.engine.run_loop (start_run, continue_run).
 """
 
 from dataclasses import dataclass
 from typing import ClassVar, Literal, NoReturn, Protocol, TypeAlias
 
 from graphscene.model.execution import NodeResult
+from graphscene.model.walk_actions import End, Interrupt, Refused, Stop
 
 HaltReason: TypeAlias = Literal["stop", "pause", "cap", "undelivered"]
 
@@ -36,6 +40,7 @@ class ExecutionLimits:
     backoff_seconds: float = 60.0
     dispatch_cap: int | None = None
     run_timeout_seconds: float | None = None
+    max_concurrent_dispatches: int = 10
 
     def __post_init__(self) -> None:
         if not self.max_attempts >= 1:
@@ -46,6 +51,8 @@ class ExecutionLimits:
             _refuse("dispatch_cap", ">= 1", self.dispatch_cap)
         if self.run_timeout_seconds is not None and not self.run_timeout_seconds > 0:
             _refuse("run_timeout_seconds", "> 0", self.run_timeout_seconds)
+        if not self.max_concurrent_dispatches >= 1:
+            _refuse("max_concurrent_dispatches", ">= 1", self.max_concurrent_dispatches)
 
 
 def _refuse(field: str, condition: str, value: object) -> NoReturn:
@@ -130,3 +137,6 @@ Settlement: TypeAlias = Recorded | Retry | Redispatch
 class SetResult:
     records: tuple[NodeRecord, ...]
     halt: Halt | None
+
+
+RunExit: TypeAlias = End | Stop | Interrupt | Halt | Refused
