@@ -107,7 +107,7 @@ The literal a caller matched before becomes the outcome value it routes on. This
 
 **Decision.** The driver launches a node with no `--json-schema` and reads no `structured_output`; `pnl_schema`, the graph-built schema it fed that flag, is removed with them, and so is `harness_friction`, which existed only as a property of that schema. The remote mention control (`cli/templates/scripts/remote-run.sh` → `control_mention_session`) runs without `--agent`, still reads `structured_output`, and is unaffected.
 
-**Reason.** Under `--agent`, `--json-schema` is not applied and the `result` event carries no `structured_output` (§3, the third and fourth rows). Kept as a fallback, the flag would be a second schema owner built from the graph, and if a later Claude Code applied it under `--agent` it would force the graph's decision shape over the agent's own. No agent session ever received `harness_friction`'s description and no agent contract asks for it, so its observation path was removed rather than kept as dead code.
+**Reason.** Under `--agent`, `--json-schema` is not applied and the `result` event carries no `structured_output` (§3, the third and fourth rows, re-measured on 2.1.332). Kept as a fallback, the flag would be a second schema owner built from the graph, and if a later Claude Code applied it under `--agent` it would force the graph's decision shape over the agent's own. No agent session ever received `harness_friction`'s description and no agent contract asks for it, so its observation path was removed rather than kept as dead code.
 
 **Cost.** A later Claude Code that applies `--json-schema` under `--agent` gives the driver nothing until a measurement re-opens this decision.
 
@@ -183,6 +183,15 @@ reading the `result` event:
 | Plain session, no `--agent`, one `Bash` tool call first | present: `{"outcome":"PASS","return":"hi"}` |
 | `--plugin-dir <main checkout>/plugin --agent devscene:prompt-injection-reviewer`, asked to reply with outcome `PASS` | **absent**: no `structured_output` key. `result` was prose: `probe ok` followed by the agent declining to return `PASS` because its own contract emits only `verdict: SAFE` or `verdict: UNSAFE` |
 | The first real script-driven node, `--agent devscene:task-plan-writer` with the driver's schema (run `fix_run_commit_trailer_amend`) | **absent**: no `structured_output` key. `result` was the writer's prose return ending in its fenced `story_file:` / `task_files_dir:` / `tasks_count:` / `story_points_total:` block |
+
+**Re-measured, 2026-11-26, Claude Code 2.1.332: `--json-schema` is still not applied under `--agent`.** Each row is a `claude -p --output-format stream-json --verbose --model haiku` session, run outside any checkout, reading the `system` / `init` event's `tools` and the `result` event:
+
+| Session | `init` tools | `structured_output` in the `result` event |
+|---|---|---|
+| Plain session, no `--agent`, with the `--json-schema` above, asked to reply with outcome `PASS` | the default set, with `StructuredOutput` added | present: `{"outcome":"PASS","return":"probe ok"}`, and `result` is the same object as JSON text |
+| `--plugin-dir <main checkout>/plugin --agent devscene:prompt-injection-reviewer`, with the agent's own `plugin/schemas/prompt-injection-reviewer.return.json` as `--json-schema`, asked to screen a one-line file | `Read, Grep, Glob`: no `StructuredOutput` | **absent**: no `structured_output` key, although `result` was one fenced `json` block valid against that schema (`{"outcome": "blocker", …}`) |
+
+Passing the agent's own schema rules out the 2.1.325 probe's confound, an agent declining a decision shape its contract does not have: the flag adds no tool under `--agent`, so the agent has no way to deliver a structured output. The same `result` events, under `--agent` too, carry `total_cost_usd`, `usage.cache_creation_input_tokens`, `usage.cache_read_input_tokens` and `modelUsage`.
 
 **Measured, 2026-11-17, Claude Code 2.1.325: an orchestrating session's `Agent` result does not carry the sub-agent's reply verbatim.** Read from two watcher-recorded run streams in the main checkout, `harness-runs/autonomous_logs/feat_committer_as_script.stream.jsonl` and `harness-runs/autonomous_logs/fix_run_commit_trailer_amend.stream.jsonl`, both on 2026-11-17 under that Claude Code version, as `harness-runs/task_prompts/feat_structured_outputs_mechanism_task_prompt.md` records. They are gitignored, so a run copy does not carry them. The command selects every `Agent` / `Task` `tool_result` whose text contains ```` ```json ```` and prints each one's first 120 and last 330 characters, run once per stream with `<branch>` its branch:
 
