@@ -1,4 +1,4 @@
-# Flow progress — feat_graphscene_execution_rules   (engine: task)
+# Flow progress — feat_graphscene_execution_rules   (engine: user_review, round 1)
 
 ## Run mode
 Source: harness-runs/task_prompts/feat_graphscene_execution_rules_task_prompt.md → `### Run mode`
@@ -6,25 +6,14 @@ Source: harness-runs/task_prompts/feat_graphscene_execution_rules_task_prompt.md
 - phases: parity=false, qa=false, docs=false
 - remote-skipped: none
 
-## Planning
-- [x] P0. Untrusted input screened (prompt-injection-reviewer SAFE)
+## Fix planning
+- [x] R0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_graphscene_execution_rules_task_prompt.md sha256=9771c9b57b4d24b6594cf14b801ae30bb4bb89009749a3cda948625c914751ce
-- [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
-- [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
-
-## Implementation
-- [x] A.      Tasks implemented (story-index readiness all [x])
-- [-] A1.5g.  Branch parity review resolved (index committed — or PASS with no findings, no file written)
-- [-] A1.5f.  Parity findings fixed (findings index all [x] — or no index, the review having passed clean)
-- [x] A2g.    Branch architecture review resolved (index committed — or PASS with no findings, no file written)
-- [x] A2f.    Architecture findings fixed (findings index all [x] — or no index, the review having passed clean)
-- [x] Bg.     Branch review generated & committed
-- [x] Bm.     Review-plan meta-review PASS (B.2)
-- [x] C.      Code-review findings fixed
-- [x] C2g.    Skeptic review resolved (index committed — or PASS with no net-new findings, no file written)
-- [x] C2m.    Skeptic meta-review PASS — or not owed (C2.1 returned PASS, so C2.2 never ran)
-- [x] C2f.    Skeptic findings fixed (findings index all [x] — or no index, the review having passed clean)
-- [-] E.      QA passed (UI-test index all [x], or only blocked tests left / no_ui)
-- [x] G.      Run gates passed (the Run gates wrapper printed pass: test passed, typecheck passed or not run for <none>)
-- [x] D.      Branch statistics committed & pushed
+  - screened: harness-runs/user_reviews/feat_graphscene_execution_rules_review.md sha256=8dd7419839de849b380094844bac6ada625a81a84a3a6bad3c96e18e3987b277
+- [ ] R1. Fix plan written & converged (parity + architecture gates PASS)
+- [ ] R2. Fix plan + source review committed
+## Fixing
+- [ ] R3. All fix-plan findings implemented (fix-plan index all [x])
+- [-] R4. QA passed (UI-test index all [x], or only blocked tests left / no_ui / no-op augment)
+- [ ] RG. Run gates passed (the Run gates wrapper printed pass: test passed, typecheck passed or not run for <none>)
+- [ ] R5. Post-user-review statistics committed
