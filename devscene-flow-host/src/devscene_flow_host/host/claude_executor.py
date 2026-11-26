@@ -27,13 +27,16 @@ stall's.
   stream and read the return's other fields, which `Completed` cannot carry.
 
 Deliberately not covered:
-- Building the usage-to-`Launch` pairing into a run loop (#484).
+- Building the usage-to-`Launch` pairing: the flow host's script-driven planning driver's,
+  not yet merged. GraphScene's run mode (`graphscene/src/graphscene/engine/run_loop.py`)
+  cannot build it.
 - The per-agent MCP flags and the shared session flags: the host's input. The shared flags
   include `--add-dir <plugin_dir>`, which the executor does not add. The pilot passes it for
   every node (`cli/templates/scripts/lib/planning-node-lib.sh` → `pnl_agent_flags`) unless its
   shared vector already carries it (`PD_PLUGIN_DIR_ADDED`).
 - The findings-file presence rule: `host/round_gates.py` → `record_outcome`.
-- Writing the stream (from `SessionUsage.stream`) or a session manifest: the host's (#484).
+- Writing the stream (from `SessionUsage.stream`) or a session manifest: the flow host's
+  script-driven planning driver's, not yet merged.
 """
 
 import time

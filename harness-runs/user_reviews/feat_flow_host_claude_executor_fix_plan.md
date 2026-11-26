@@ -16,7 +16,7 @@ Each entry resolves to a self-contained `harness-runs/user_reviews/feat_flow_hos
 
 1. [x] **Finding 1** — Name `--add-dir <plugin_dir>` among the host-supplied flags in `claude_executor.py`'s docstring and the README's `## The executor`. _(layer: devscene-flow-host)_
 2. [x] **Finding 2** — State in the pairing rule (docstring and README) that a `Launch` row written by GraphScene's total-run timeout has no usage record and is not a pairing fault. _(layer: devscene-flow-host)_
-3. [ ] **Finding 3** — Replace the five issue-number deferrals (`#484`, `#424`) this branch added with descriptions of the work. _(layer: devscene-flow-host)_
+3. [x] **Finding 3** — Replace the five issue-number deferrals (`#484`, `#424`) this branch added with descriptions of the work. _(layer: devscene-flow-host)_
 4. [ ] **Finding 4** — Give `ClaudeExecutor` a host-supplied `AgentPromptBuilder`, stop passing `Dispatch.prompt` to `claude -p`, and carry `agent_prompt` on `SessionUsage`, with tests and README. _(layer: devscene-flow-host)_
 
 ---
