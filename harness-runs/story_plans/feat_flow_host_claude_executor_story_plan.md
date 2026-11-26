@@ -64,7 +64,7 @@ The matching rule is decided here. The sink is called exactly once for every `ru
 
 Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_flow_host_claude_executor/task_<K>_plan.md`. The entries are in ship order, bottom-up through the package's internal layers (`records`, then `host`), with the package's documentation last.
 
-1. [ ] **Task 1** — Read the plugin's name and each agent's `AgentContract` in `records/plugin_contracts.py` _(layer: devscene-flow-host)_ _(points: 15)_
+1. [x] **Task 1** — Read the plugin's name and each agent's `AgentContract` in `records/plugin_contracts.py` _(layer: devscene-flow-host)_ _(points: 15)_
 2. [ ] **Task 2** — Judge a finished `stream-json` transcript into a `NodeResult` and usage fields in `host/session_stream.py` _(layer: devscene-flow-host)_ _(points: 20)_
 3. [ ] **Task 3** — Supervise one session process with inactivity detection and group kill in `host/session_process.py` _(layer: devscene-flow-host)_ _(points: 20)_
 4. [ ] **Task 4** — Compose `ClaudeExecutor` with its usage sink and inactivity limit in `host/claude_executor.py` _(layer: devscene-flow-host)_ _(points: 20)_
