@@ -60,3 +60,7 @@
 - `bash scripts/python-service.sh --package graphscene lint` and `… typecheck` pass. `mypy` `strict` covers both new files.
 - `git grep -n "graphscene.adapters" -- graphscene/src/graphscene/engine/run_loop.py` prints nothing. The engine never imports adapters (`.claude/context/graphscene.md` → `## The internal layers`).
 - Reading `run_loop.py` finds no `asyncio.timeout`, `wait_for` or `sleep` of its own, because the loop sets no deadline, and no retry or safety check re-implemented outside `execute_set`.
+
+**Deviations from plan:**
+- The `git grep -n "graphscene.adapters" -- graphscene/src/graphscene/engine/run_loop.py` bullet was run and printed nothing, but `run_loop.py` is untracked until the commit step stages it, and `git grep` searches tracked files only, so that empty output is vacuous. The claim rests instead on reading the module's imports (`graphscene.engine.attempts`, `.breaker`, `.set_execution`, `.walker`, `graphscene.model.execution`, `.run_control`, `.walk_actions`, `.walk_state`, `asyncio`) and on the `tests/test_layers.py` tree guard, run through the single-file command and passing (11 passed), whose `graphscene-layers` contract forbids `engine` → `adapters`.
+- The plan's separate `… lint` and `… typecheck` bullets were not run as separate commands: the configured `bash scripts/typecheck.sh` runs both for `graphscene` (`python-service: check: graphscene lint PASS`, `graphscene typecheck PASS`), and that run covers both new files.

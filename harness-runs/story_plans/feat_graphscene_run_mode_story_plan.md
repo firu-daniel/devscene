@@ -28,7 +28,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_graphscene_run_mode/tas
 
 1. [x] **Task 1** — Add `ExecutionLimits.max_concurrent_dispatches` and the `RunExit` alias to the run-control model _(layer: graphscene)_ _(points: 10)_
 2. [x] **Task 2** — Run each `execute_set` pass through a sliding window of `max_concurrent_dispatches` _(layer: graphscene)_ _(points: 20)_
-3. [ ] **Task 3** — Add the run loop `start_run` / `continue_run` in `graphscene.engine.run_loop` _(layer: graphscene)_ _(points: 20)_
+3. [x] **Task 3** — Add the run loop `start_run` / `continue_run` in `graphscene.engine.run_loop` _(layer: graphscene)_ _(points: 20)_
 4. [ ] **Task 4** — Make run mode public, document it in the README and drive it end to end as a caller _(layer: graphscene)_ _(points: 20)_
 
 ## Scope register
