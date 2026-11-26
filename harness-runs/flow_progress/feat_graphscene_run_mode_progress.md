@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/feat_graphscene_run_mode_task_prompt.md → `#
   - screened: harness-runs/task_prompts/feat_graphscene_run_mode_task_prompt.md sha256=abd400c33d6692658ad4a835aed9100d3b9151bffe456b900fdfb2d90ec09b1c
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
