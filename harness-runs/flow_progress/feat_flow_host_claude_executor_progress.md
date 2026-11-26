@@ -9,7 +9,7 @@ Source: harness-runs/task_prompts/feat_flow_host_claude_executor_task_prompt.md 
 ## Planning
 - [x] P0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_flow_host_claude_executor_task_prompt.md sha256=230289b9c48f3b0f5249eb60697204d8ea1a16da3c743c2e4165f86fb23baec2
-- [ ] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
+- [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
 - [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
