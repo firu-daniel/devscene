@@ -81,7 +81,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_graphs
 14. [x] **Task 14** — Port `pd_entry` as `decide_planning_entry`, the host's entry and resume decision _(layer: devscene-flow-host)_ _(points: 20)_
 15. [x] **Task 15** — Hold each prompt source to the planning core as core-agreement check 10 _(layer: devscene-flow-host)_ _(points: 10)_
 16. [x] **Task 16** — Document the prompt builder, the planning hooks and the entry decision in `devscene-flow-host/README.md` _(layer: devscene-flow-host)_ _(points: 10)_
-17. [ ] **Task 17** — Record format 5 and the hook seam in the flow-graph decision record, Gate 3, the schemas README and the roadmap _(layer: general)_ _(points: 15)_
+17. [x] **Task 17** — Record format 5 and the hook seam in the flow-graph decision record, Gate 3, the schemas README and the roadmap _(layer: general)_ _(points: 15)_
 
 ## Scope register
 
