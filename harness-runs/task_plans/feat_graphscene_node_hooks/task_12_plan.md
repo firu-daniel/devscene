@@ -96,3 +96,7 @@ The wrapper's exit status decides the result:
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_commit_points.py` passes.
 - `commit_points.py` builds every argument vector as a list, with no `shell=True` and no string command. Grep the module and find neither.
 - `git grep -nE '"P1"|"- \[ \] "|"- \[x\] "|"- \[-\] "' -- devscene-flow-host/src` has no hit outside `records/ledger.py`.
+
+**Deviations from plan:**
+
+- `flip_ledger_entry` also raises `RecordError(f"{path}: not UTF-8 text")` for a ledger that does not decode as UTF-8, the message `records/ledger.py` → `read_planning_marks` already uses. The contract names no outcome for this shape, and `.claude/context/devscene-flow-host.md` → `## Errors` makes `RecordError` the failure for a record not readable as the harness writes it. No test case covers it.

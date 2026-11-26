@@ -76,7 +76,7 @@ Each entry resolves 1:1 to a self-contained `harness-runs/task_plans/feat_graphs
 9. [x] **Task 9** — Read a branch's top-level answered clarification pairs in `records/clarifications.py` _(layer: devscene-flow-host)_ _(points: 10)_
 10. [x] **Task 10** — Read the ledger's `P1`–`P3` marks in `records/ledger.py` _(layer: devscene-flow-host)_ _(points: 8)_
 11. [x] **Task 11** — Port `pnl_prompt` as `CorePromptBuilder`, the host's `AgentPromptBuilder` _(layer: devscene-flow-host)_ _(points: 20)_
-12. [ ] **Task 12** — Commit through the main checkout's commit wrapper and flip a ledger entry in `host/commit_points.py` _(layer: devscene-flow-host)_ _(points: 15)_
+12. [x] **Task 12** — Commit through the main checkout's commit wrapper and flip a ledger entry in `host/commit_points.py` _(layer: devscene-flow-host)_ _(points: 15)_
 13. [ ] **Task 13** — Implement the planning graph's hooks as `PlanningHooks` and walk the planning graph in run mode with them _(layer: devscene-flow-host)_ _(points: 20)_
 14. [ ] **Task 14** — Port `pd_entry` as `decide_planning_entry`, the host's entry and resume decision _(layer: devscene-flow-host)_ _(points: 20)_
 15. [ ] **Task 15** — Hold each prompt source to the planning core as core-agreement check 10 _(layer: devscene-flow-host)_ _(points: 10)_
