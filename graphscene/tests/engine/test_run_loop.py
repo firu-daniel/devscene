@@ -1,10 +1,10 @@
 """The rule this file exists to enforce: `start_run` and `continue_run` run each step the walker
 returns through `execute_set`, record every record of the result through the walker in order (a
-gate with its detail, a lone dispatch without), and return the first `Refused`, else the
-`SetResult.halt`, else carry on from the last record's step until an `End`, `Stop`, `Interrupt` or
-`Refused`; each call builds its own book and breaker before touching the walker, calls the store
-only off the event loop's thread, and on cancellation re-raises with nothing of the set recorded
-(`graphscene.engine.run_loop`).
+gate with its detail, a lone dispatch without), and return the first `Refused`, having still
+recorded every record after it, else the `SetResult.halt`, else carry on from the last record's
+step until an `End`, `Stop`, `Interrupt` or `Refused`; each call builds its own book and breaker
+before touching the walker, calls the store only off the event loop's thread, and on cancellation
+re-raises with nothing of the set recorded (`graphscene.engine.run_loop`).
 
 Every case drives `StubExecutor` with `backoff_seconds=0` through `asyncio.run`, over a `Walker`
 on a graph planted through `graphscene/tests/engine/walk_support.py` → `planted` and an in-test
@@ -37,6 +37,7 @@ from graphscene.model.walk_actions import (
     Dispatch,
     DispatchSet,
     End,
+    GateRecord,
     Interrupt,
     Refused,
     RoundPassage,
@@ -427,3 +428,31 @@ def test_cancelling_a_stalled_start_run_re_raises_and_leaves_the_dispatch_pendin
     asyncio.run(scenario())
     assert stub.cancelled == ("draft",)
     assert walker.current() == _writer()
+
+
+def test_a_gates_detail_is_recorded_with_its_outcome() -> None:
+    stub = _stub(
+        {
+            "g1": [ScriptedOutcome("approved", "g1.md")],
+            "g2": [ScriptedFailure("infra", "crashed"), ScriptedOutcome("approved")],
+        }
+    )
+    store = MemoryStore()
+    # The first pass's clear asks STOP once per gate; the retry pass's first ask is the third.
+    assert _start(
+        _walker(store), stub, signals=Signals(stop_after=2), entry="review_round"
+    ) == Halt("stop", "stop requested before a set of 1")
+    assert store.state is not None and store.state.open_round is not None
+    assert dict(store.state.open_round.records) == {"g1": GateRecord("g1", "approved", "g1.md")}
+
+
+def test_a_refused_gate_record_does_not_stop_its_siblings_being_recorded() -> None:
+    stub = _stub({"g1": [ScriptedOutcome("done")], "g2": [ScriptedOutcome("approved")]})
+    store = MemoryStore()
+    walker = _walker(store)
+    assert _start(walker, stub, entry="review_round") == Refused(
+        "outcome 'done' is not declared by node 'g1'"
+    )
+    assert store.state is not None and store.state.open_round is not None
+    assert dict(store.state.open_round.records) == {"g2": GateRecord("g2", "approved", None)}
+    assert walker.current() == DispatchSet("review_round", 0, (_gate_dispatch("g1"),), ())

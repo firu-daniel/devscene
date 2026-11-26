@@ -42,7 +42,7 @@ Two probes, run with `bash scripts/python-service.sh --package graphscene probe 
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Add the gate-detail and refusal-keeps-siblings cases to `test_run_loop.py` _(layer: graphscene)_
+1. [x] **Finding 1** — Add the gate-detail and refusal-keeps-siblings cases to `test_run_loop.py` _(layer: graphscene)_
 2. [ ] **Finding 2** — Add a mid-round STOP and `continue_run` resume over a real `FileStateStore` to `test_run_mode.py` _(layer: graphscene)_
 
 ---
