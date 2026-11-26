@@ -289,8 +289,8 @@ run_unit() {
       gate "3a example validates" npm run validate:config
       ;;
     3b) gate_header 3 "configuration and flow-graph schemas"; gate "3b negative fixtures are refused" npm run validate:config:negative ;;
-    3g) gate_header 3 "configuration and flow-graph schemas"; gate "3g format-4 graphs validate against the graphscene schema" npm run validate:graphscene-schema ;;
-    3h) gate_header 3 "configuration and flow-graph schemas"; gate "3h format-4 schema negatives are refused" npm run validate:graphscene-schema:negative ;;
+    3g) gate_header 3 "configuration and flow-graph schemas"; gate "3g format-5 graphs validate against the graphscene schema" npm run validate:graphscene-schema ;;
+    3h) gate_header 3 "configuration and flow-graph schemas"; gate "3h format-5 schema negatives are refused" npm run validate:graphscene-schema:negative ;;
     4)
       gate_header 4 "init against a throwaway fixture"
       gate4_destination="$(gr_tests_destination)"

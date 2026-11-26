@@ -44,7 +44,7 @@ The three findings below are what is left. All three are stale or garbled prose.
 
 1. [x] **Finding 3** — Restore the space after "format 5:" in the flow-graph schema's top-level description _(layer: graphscene)_
 2. [x] **Finding 2** — Say format 5 in the shipped `flow-walker.sh` header and the `WALKER_GRAPH_PATH` doc comment _(layer: cli)_
-3. [ ] **Finding 1** — Print "format-5" in gate legs `3g` and `3h` of `scripts/run-gates.sh` _(layer: general)_
+3. [x] **Finding 1** — Print "format-5" in gate legs `3g` and `3h` of `scripts/run-gates.sh` _(layer: general)_
 
 ---
 
