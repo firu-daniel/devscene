@@ -26,8 +26,9 @@ Every value read from `devscene.config.json` and `.mcp.json` comes through `reco
 
 Deliberately not covered:
 - Acting on the exit — the hand-off narration, the pause files, the partial commit, the parks:
-  `host/run_exits.py` (Task 17).
-- Exit statuses and the observation flush: the command over this module (Task 18).
+  `host/run_exits.py`.
+- Exit statuses and the observation flush: the command over this module,
+  `commands/planning_driver.py`.
 """
 
 import asyncio

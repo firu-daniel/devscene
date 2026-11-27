@@ -43,7 +43,7 @@ Four further items need a decision rather than a fix, so they are returned as qu
 
 Each entry resolves to `harness-runs/code_reviews/feat_planning_driver_python_cutover_code_review/finding_<K>.md` through its `**Finding K**` reference.
 
-1. [ ] **Finding 2** — Replace the plan task numbers in the flow host's docstrings with the files they mean _(layer: devscene-flow-host)_
+1. [x] **Finding 2** — Replace the plan task numbers in the flow host's docstrings with the files they mean _(layer: devscene-flow-host)_
 2. [ ] **Finding 1** — Pair a session whose `Completed` result `PlanningExecutor` turned into `Failed("infra")` with its `Launch` row _(layer: devscene-flow-host)_
 
 ---

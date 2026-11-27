@@ -17,7 +17,7 @@ the retired bash text, never taken from the code under test.
 
 Deliberately not covered:
 - The convergence commits and the `P3` flip: `tests/test_planning_hooks.py`.
-- Exit statuses, the stdout line and the observation flush: Task 18's suite.
+- Exit statuses, the stdout line and the observation flush: `tests/test_planning_driver_command.py`.
 """
 
 import asyncio

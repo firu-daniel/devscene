@@ -29,7 +29,8 @@ Deliberately not covered:
   PAUSE case here, and the driver acts on both through the same `Halt` path.
 - A stalled session: the inactivity limit is `ClaudeExecutor`'s fixed constant, which this suite
   does not shorten; the infrastructure retry is reached through `is_error` instead.
-- A refused round file, and a held gate's return that fails its schema: Task 19's suite.
+- A refused round file, and a held gate's return that fails its schema:
+  `tests/test_planning_driver_walk.py`.
 - An escalation resume with no answered pair: `tests/test_planning_entry.py` decides that entry.
 """
 

@@ -20,8 +20,9 @@ A held case spends GraphScene's two 60-second retry backoffs, as the run does: n
 them.
 
 Deliberately not covered:
-- Parks for questions, stops, retries on their own and observations: Task 20's suite.
-- The return fields the hand-off reads: Task 21's suite.
+- Parks for questions, stops, retries on their own and observations:
+  `tests/test_planning_driver_control.py`.
+- The return fields the hand-off reads: `tests/test_driver_return_fields.py`.
 """
 
 import io

@@ -4,8 +4,8 @@ the planning run's `ExecutionLimits`.
 The rule:
 - `FileRunSignals` answers STOP as `<stateDir>/STOP` existing and PAUSE as `<stateDir>/PAUSE`
   existing, re-read on every call and never cached, as `pd_stop_present` and `pd_run_set` read them
-  (`cli/templates/scripts/lib/planning-driver-lib.sh`, deleted by Task 4 and readable in that
-  file's history).
+  (`cli/templates/scripts/lib/planning-driver-lib.sh`, retired and readable in that file's
+  history).
 - `kill_switch_present` is `<stateDir>/AUTONOMOUS_STOP` existing in the **main** checkout, its
   `stateDir` read from that checkout's `devscene.config.json`, as `pd_main` read
   `hr_state_path "$PD_MAIN_REPO" AUTONOMOUS_STOP`.
@@ -19,7 +19,7 @@ The rule:
 Deliberately not covered:
 - Halting on a signal or on the cap: GraphScene's `clear_set`.
 - What a halt does afterwards — the narration, the pause files, the partial commit:
-  `host/run_exits.py` (Task 17).
+  `host/run_exits.py`.
 
 `MAX_CONCURRENT_DISPATCHES` is a flow-host constant, not a `devscene.config.json` key, because the
 flow host is the harness's own implementation of its flows; GraphScene's default of 10 is for hosts
