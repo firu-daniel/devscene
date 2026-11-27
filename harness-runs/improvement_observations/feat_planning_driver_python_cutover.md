@@ -56,3 +56,19 @@
 - **cost this run:** three conventions sentences left stale with no other record; each owes a supervised `/devscene:analyze` re-run or a hand edit
 
 # Task run (Phase D)
+
+## The plan needed 4 review rounds before every gate passed
+- **category:** optimization
+- **evidence:** convergence churn on the plan unit: round files `review_0.md`–`review_3.md` exist in both `harness-runs/task_plan_reviews/feat_planning_driver_python_cutover/` and `harness-runs/architecture_reviews/feat_planning_driver_python_cutover/` (4 distinct round indices). `verdict: FAIL` lines: round 0 (plan-review, architecture), round 1 (plan-review), round 2 (architecture); round 3 all PASS. The net-new vs re-raised split could not be measured: the round files carry no per-finding headings (only `## Must Fix` / `## Should Fix` / `## Nice to Have`), and the Phase-D exception reads headings only.
+- **cost this run:** 12 planning node sessions across 4 rounds (the driver's session table above)
+
+## Implementers could not run `bash -n` or `bash -c` in the run copy, and one worked around the refusal
+- **category:** tooling-gap
+- **evidence:** Task 1's `layer-implementer` return: "Running `bash -n` on each file directly was refused; the type check's shell-parse step covers it." Task 2's return: "`bash -n`: refused, not run", and "a direct `bash -c` check of bash 3.2 array slicing was refused. I then ran the same check as a `.py` probe through `scripts/scratch-run.sh`", disclosed in `harness-runs/task_plans/feat_planning_driver_python_cutover/task_2_plan.md`; its probe file `harness-runs/scratch/slice_probe.py` was left behind because `rm` was refused.
+- **cost this run:** shell syntax of the two edited watcher scripts was verified only through `bash scripts/typecheck.sh`'s parse step; one refused check was re-run by another route
+- **hypothesis:** a guess — the run copy's profile allows no direct `bash -n <file>` form for shell scripts the unit edits
+
+## Implementers piped targeted test and tree-guard output through `tail` despite the foreground rule
+- **category:** agent-contract
+- **evidence:** Task 2's return: "Two earlier runs were piped through `tail`; the reported pass is the unpiped rerun." Task 4's return: "My first run of the guards piped the output through `tail`, which the foreground rule does not allow." Task 25's return: the two selected tree guards were run "as one command and piped the output through `tail` … so I'm relying on the printed counts … rather than the exit status", with no unpiped rerun. Rule: `plugin/instructions/unit_loop_core.md` → `## The test-run rule` point 6.
+- **cost this run:** Task 25's tree-guard result rests on piped counts rather than an exit status; Tasks 2 and 4 each spent a rerun
