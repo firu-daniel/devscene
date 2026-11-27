@@ -10,7 +10,7 @@
 
 This list is the **single source of truth** for the fix loop. `[ ]` markers anywhere else in this plan or its per-finding files are informational only.
 
-1. [ ] **Finding 1** — Replace the machine path in the user-review fix plan's `## Source observations` lead. _(layer: general)_
+1. [x] **Finding 1** — Replace the machine path in the user-review fix plan's `## Source observations` lead. _(layer: general)_
 
 ## Must Fix
 
