@@ -241,7 +241,7 @@ devscene-planning-driver --branch <branch> --worktree <worktree> --main-repo <ma
 | `--plugin-dir` | The plugin's directory |
 | `--flows` | The main checkout's `<scriptsDir>/flows`, holding `task_plan_writing.graph.json` |
 | `--log` | The run log: the driver appends its `[plan-drive] ` narration and each node's formatted output, and writes the node records beside it (`## What it reads, answers and keeps` → **The planning driver.**) |
-| `--formatter` | The watcher's stream formatter, a path or `cat`, run as one argv word with a node's stream on stdin, its stdout appended to the log |
+| `--formatter` | The watcher's stream formatter, a path or `cat`, run as one argv word: one process per drive takes every node's whole lines on stdin as the sessions write them, its stdout appended to the log |
 | `--plugin-dir-added` | Given when the shared session flags already carry `--add-dir <plugin_dir>` |
 | after `--` | The agent CLI, then the shared session flags: the watcher's session vector without `-p`, `--output-format` and `--verbose`, which the executor sets itself |
 

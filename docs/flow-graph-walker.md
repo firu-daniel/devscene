@@ -237,7 +237,7 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 - **The walk.** The walker is the host's `open_walker`, and where the walk enters is decided by `decide_planning_entry` (`host/planning_entry.py`).
 - **The nodes.** Each node runs through `ClaudeExecutor`, wrapped in `PlanningExecutor`. Its prompt is built by `CorePromptBuilder`.
 - **Commits and ledger flips.** Every round commit and ledger flip runs through `PlanningHooks`.
-- **The limits.** They are `host/run_control.py` → `planning_limits`: `ExecutionLimits(max_concurrent_dispatches=MAX_CONCURRENT_DISPATCHES, max_attempts=MAX_ATTEMPTS, backoff_seconds=BACKOFF_SECONDS, dispatch_cap=…)`. The values are 5, 3 and 60.0, and the cap is the core's `MAX_TOTAL_DISPATCHES` line, read by `records/core_limits.py` → `read_max_total_dispatches`.
+- **The limits.** They are `host/run_control.py` → `planning_limits`: `ExecutionLimits(max_concurrent_dispatches=MAX_CONCURRENT_DISPATCHES, max_attempts=MAX_ATTEMPTS, backoff_seconds=backoff_seconds(), dispatch_cap=…)`. The values are 5, 3 and 60.0; the backoff takes a lower `PD_BACKOFF_SECS`, a test-only override capped at 60 that a real run never sets, and the cap is the core's `MAX_TOTAL_DISPATCHES` line, read by `records/core_limits.py` → `read_max_total_dispatches`.
 - **After the walk stops.** What the driver does then — the hand-off narration, the pause files, the parks and the partial commit before an escalation park — is `host/run_exits.py` → `act_on_exit`'s.
 - **Its answer to the watcher.** `0` with a `consumed:` line, `3` with `stopped: <kind>`, `2` on a fault (`commands/planning_driver.py` → the module docstring).
 
