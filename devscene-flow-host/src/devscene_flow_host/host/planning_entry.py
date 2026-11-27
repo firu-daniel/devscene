@@ -23,7 +23,7 @@ writer. A `RecordError` propagates.
 
 Deliberately not covered:
 - Acting on the decision — `start_run` / `continue_run`, the prompt builder over the pairs: the
-  run driver's (#424).
+  run driver's, `host/planning_run.py`.
 - Creating the ledger and its `P0`: the fork's Setup.
 - Archiving consumed pairs: the watcher's.
 - A flow other than the planning graph.

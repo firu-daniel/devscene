@@ -33,3 +33,7 @@
 - `git grep -nE '#[0-9]+' -- devscene-flow-host/src devscene-flow-host/tests` prints nothing.
 - `git grep -n 'not yet merged' -- devscene-flow-host/src` prints nothing.
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_planning_entry.py` passes, as does `… test tests/test_round_gates.py`. Only their docstrings changed.
+
+**Deviations from plan:**
+- The first `git grep` check still prints five lines: `tests/test_node_sessions.py` (the `"#1 plan_writer …"` and `"#2 plan_review …"` literals) and `tests/test_planning_driver_walk.py` (`"[plan-drive] #1 plan_writer …"`). These are run-log sequence numbers inside expected-value string literals, not issue numbers, so they were kept. Removing them would change what those tests assert. No issue number remains in `devscene-flow-host/src` or `devscene-flow-host/tests`.
+- `host/session_process.py` also deferred stream writing to the planning driver *"not yet merged"*, and it is not in the Targets list. It now names `host/node_sessions.py` → `NodeSessions`, so the second `git grep` check prints nothing.

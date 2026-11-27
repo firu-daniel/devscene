@@ -2,7 +2,7 @@
 enters as `planning-driver-lib.sh` → `pd_entry` does — planning done when `P1`–`P3` are resolved;
 a usable saved dispatch continued, carrying the writer pairs only to a writer; a usable parked
 `<ask>` continued with `answered` only when there are writer pairs, so the writer keeps its saved
-variant (#325); otherwise a start at the first of its six entries that holds — with the pairs
+variant; otherwise a start at the first of its six entries that holds — with the pairs
 `pd_pairs` keeps, the usability `pd_walk_usable` and `pd_block_usable` test, and the ledger loops
 derived from the graph.
 
