@@ -72,3 +72,21 @@
 - **category:** agent-contract
 - **evidence:** Task 2's return: "Two earlier runs were piped through `tail`; the reported pass is the unpiped rerun." Task 4's return: "My first run of the guards piped the output through `tail`, which the foreground rule does not allow." Task 25's return: the two selected tree guards were run "as one command and piped the output through `tail` … so I'm relying on the printed counts … rather than the exit status", with no unpiped rerun. Rule: `plugin/instructions/unit_loop_core.md` → `## The test-run rule` point 6.
 - **cost this run:** Task 25's tree-guard result rests on piped counts rather than an exit status; Tasks 2 and 4 each spent a rerun
+
+# User-review fix round 1 — live node output, undelivered observation, PD_BACKOFF_SECS, tree guards, held-session log check
+
+## The single-file Python test command was refused in some unit sessions and ran in others
+- **category:** tooling-gap
+- **evidence:** refused with "Claude Code is running in don't ask mode": dispatch #3 (`layer-implementer`, Finding 5, `bash scripts/python-service.sh --package devscene-flow-host test tests/test_planning_driver_walk.py`), #4 (`layer-reviewer`, Finding 5, the same command with a `::` test selector), #8 (`layer-reviewer`, Finding 2 graphscene layer, its test run), #10 (`layer-reviewer`, Finding 2 devscene-flow-host layer, three test files) and #18 (`layer-reviewer`, test-fix Finding 1, its shell commands). The same `bash scripts/python-service.sh --package … test <file>` form ran and passed in #5, #6, #7, #9, #11, #12 and #13. The `test-fix-plan-writer` (#15) also reported `printenv HOME` refused.
+- **cost this run:** Finding 5's new assertion was committed with no test run before Run gates; three reviews (#8, #10, #18) passed on reading alone
+- **hypothesis:** a guess — the refusal tracks something per session rather than the command string
+
+## The fix-plan writer put a home-directory path into the fix-plan index, which failed Run gates round 1
+- **category:** agent-contract
+- **evidence:** `harness-runs/test_run_logs/feat_planning_driver_python_cutover/review_1_round_1.log` failed only gate `6a no machine paths` (30 passed, 1 failed). The hit was the `## Source observations` lead sentence of `harness-runs/user_reviews/feat_planning_driver_python_cutover_fix_plan.md`, written by `user-review-fix-plan-writer` (#1 of the fix-plan half), which cited the plugin's `instructions/untrusted_input.md` by absolute path instead of `${CLAUDE_PLUGIN_ROOT}/instructions/untrusted_input.md`. Fixed by test-fix commit 528e643f; round 2 passed.
+- **cost this run:** one extra Run gates round plus 4 dispatches (#15–#18)
+
+## The per-unit layer reviewer passed every unit with no fix iteration
+- **category:** optimization
+- **evidence:** zero-yield phase: `layer-reviewer` ran 8 times across 6 units (Findings 3, 5, 4 single-layer; Finding 2 graphscene + devscene-flow-host; Finding 1 devscene-flow-host + general; test-fix Finding 1), and every return was `PASS` at iteration 0, so no reviewer caused a fix. Three of those reviews wrote a findings file with Should Fix or Nice to Have items that were not acted on: `harness-runs/user_review_fix_plan_point_reviews/feat_planning_driver_python_cutover_fix_plan/item_2/review_0.md`, `…/item_1/review_0.md`, `…/item_1/review_1.md`.
+- **cost this run:** 8 of 19 fix-half dispatches
