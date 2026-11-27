@@ -55,7 +55,7 @@ devscene-planning-driver --branch <branch> --worktree <worktree> --main-repo <ma
 - **They are checked against a stub.** Task 5 pins the watcher's side with a stub `uv` on `PATH`, so neither its verification nor Task 2's needs the Python command to exist yet.
 - **The `devscene-flow-host` tasks implement the contract,** and they `**Depends on:**` the `cli` task that fixed it.
 - **The end-to-end behaviour moves to `pytest`.** The walk, the parks, the stops and the retries are pinned in `devscene-flow-host`'s `pytest` suites (Tasks 19–21). Those suites drive the real command against a fake agent CLI, a planted commit wrapper and the shipped planning graph and core.
-- **The bash suites are retired, not rewritten.** The `cli` suites that sourced the bash libraries pinned those libraries' internals, so Task 4 retires them instead of rewriting them.
+- **The bash suites are retired, not rewritten.** The `cli` suites that sourced the bash libraries pinned those libraries' internals, so Task 3 retires them instead of rewriting them. Task 3 ships ahead of Task 4, which deletes the libraries, because a tree guard Task 4's change selects (`test/agent-return-schemas.test.mjs`) read `planning-driver-lib.sh` until Task 3 removed that read.
 
 **The Python module map, one owner each:**
 
@@ -63,11 +63,14 @@ devscene-planning-driver --branch <branch> --worktree <worktree> --main-repo <ma
 |---|---|---|
 | `records/core_limits.py` | Reads `MAX_TOTAL_DISPATCHES` | 9 |
 | `records/clarifications.py` | The next question index (`max_question_index`) | 9 |
+| `records/config.py` | `scriptsDir`, as `HarnessConfig.scripts_dir` (added beside `stateDir` and `phases`) | 9 |
+| `records/ledger.py` | The `## Run mode` section's `- skipped:` value and `- ignored:` entries (`read_run_mode_entries`) | 10 |
 | `host/run_records.py` | The park and pause files | 10 |
 | `host/observations.py` | The observation blocks and their commit | 11 |
 | `host/run_control.py` | STOP / PAUSE / kill switch, the dispatch counter and the execution limits | 12 |
 | `host/node_sessions.py` | The usage and `Launch` sinks: node streams, manifest, formatted log, session table | 13 |
-| `host/agent_flags.py` | The session args, the per-agent MCP flags and the session environment | 14 |
+| `records/mcp_servers.py` | The worktree's `.mcp.json` servers, read into a plain value | 14 |
+| `host/agent_flags.py` | The session args, the per-agent MCP flags (cut from `records/mcp_servers.py`'s value) and the session environment | 14 |
 | `host/planning_executor.py` | The findings-file and round-file checks, and the kept revision findings, over `ClaudeExecutor` | 15 |
 | `host/planning_run.py` | Composes everything and runs `start_run` / `continue_run` | 16 |
 | `host/run_exits.py` | Acts on each `RunExit` | 17 |
@@ -76,13 +79,13 @@ devscene-planning-driver --branch <branch> --worktree <worktree> --main-repo <ma
 **Issue numbers leave GraphScene and the flow host.** As the task prompt decides, when this branch completes no source, test or README under `graphscene/` or `devscene-flow-host/` names an issue number. Tasks 8, 22 and 23 own the known sites. Each sentence keeps what it says, minus the number. The closing invariant is `git grep -nE '#[0-9]+' -- graphscene devscene-flow-host`: it must print no hit.
 
 **Top risks:**
-1. **Behaviour silently lost.** A behaviour the bash driver had and its suites pinned could be dropped when the suites are deleted. This covers the `<ask>` park's `## Q<k>` sections, the partial commit before an escalation with held gates, the undelivered self-pause, and the node manifest that `run-analytics.sh` reads. Task 4 retires a suite only together with a statement of which of Tasks 19–21 re-pins each behaviour, and Tasks 19 and 20 port the cases one for one.
+1. **Behaviour silently lost.** A behaviour the bash driver had and its suites pinned could be dropped when the suites are deleted. This covers the `<ask>` park's `## Q<k>` sections, the partial commit before an escalation with held gates, the undelivered self-pause, and the node manifest that `run-analytics.sh` reads. Task 3 retires a suite only together with a statement of which of Tasks 19–21 re-pins each behaviour, and Tasks 19 and 20 port the cases one for one.
 2. **The flow host's environment leaking into agent sessions.** The driver runs under `uv run`. Without a scrub, every node session would inherit the flow host's `VIRTUAL_ENV`, `PYTHONPATH` and venv `PATH` entry. Task 14 strips them, and its test asserts their absence.
 3. **The run-mode cutover skipping the host's round-file refusal.** Run mode records through `Walker.next` directly, bypassing `record_outcome`, so a malformed round file would be recorded as a verdict. Task 15's `PlanningExecutor` turns it into an `infra` failure, which is retried alone and held as `error` on the third attempt. Task 19 pins the refusal end to end.
 
 **Manual setup required:**
 - After every task has landed, a person runs a real planning run on a throwaway branch with `execution.scriptDrivenPlanning` on, once locally and once as a remote job, as the task prompt's leads ask. It is the only check that drives a real `claude` through the watcher, the `uv` launch and the Python driver. It depends on Tasks 2, 16, 17 and 18.
-- After the merge, a person re-renders this repository's self-adopted `scripts/` from a fresh self-adopt of `dev`, as #481 and #493 did. This repository runs with `scriptDrivenPlanning` on, and its own `scripts/autonomous-watcher.sh` and `scripts/lib/planning-*-lib.sh` stay the bash pilot until that re-render. It depends on Tasks 1, 2 and 3.
+- After the merge, a person re-renders this repository's self-adopted `scripts/` from a fresh self-adopt of `dev`, as #481 and #493 did. This repository runs with `scriptDrivenPlanning` on, and its own `scripts/autonomous-watcher.sh` and `scripts/lib/planning-*-lib.sh` stay the bash pilot until that re-render. It depends on Tasks 1, 2 and 4.
 
 ## Phase 2 Readiness — Ordered Fix List
 
@@ -96,18 +99,18 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_planning_driver_python_
 
 1. [ ] **Task 1** — Launch a flow-host console script through one library route, and hand `flow-walker.sh` to it _(layer: cli)_ _(points: 15)_
 2. [ ] **Task 2** — Launch the Python planning driver from the watcher's script-driven sequence _(layer: cli)_ _(points: 20)_
-3. [ ] **Task 3** — Retire the bash planning driver's three libraries from the shipped set _(layer: cli)_ _(points: 15)_
-4. [ ] **Task 4** — Retire the `cli` suites that pinned the bash driver's internals _(layer: cli)_ _(points: 10)_
+3. [ ] **Task 3** — Retire the `cli` suites that pinned the bash driver's internals _(layer: cli)_ _(points: 10)_
+4. [ ] **Task 4** — Retire the bash planning driver's three libraries from the shipped set _(layer: cli)_ _(points: 15)_
 5. [ ] **Task 5** — Pin the watcher's side of the driver hand-off against a stub `uv`, locally and in job mode _(layer: cli)_ _(points: 20)_
 6. [ ] **Task 6** — Describe the Python planning driver in the `cli` package's two READMEs _(layer: cli)_ _(points: 8)_
 7. [ ] **Task 7** — Name the Python planning driver in the planning core and the autonomous flow document _(layer: plugin)_ _(points: 8)_
 8. [ ] **Task 8** — Remove the issue numbers from GraphScene's run loop, set execution and command line _(layer: graphscene)_ _(points: 5)_
-9. [ ] **Task 9** — Read the planning core's dispatch cap and a branch's highest question index as records _(layer: devscene-flow-host)_ _(points: 15)_
-10. [ ] **Task 10** — Write the driver's park and pause files in `host/run_records.py` _(layer: devscene-flow-host)_ _(points: 15)_
+9. [ ] **Task 9** — Read the planning core's dispatch cap, a branch's highest question index and the configured `scriptsDir` as records _(layer: devscene-flow-host)_ _(points: 20)_
+10. [ ] **Task 10** — Write the driver's park and pause files in `host/run_records.py`, and read the ledger's run-mode entries _(layer: devscene-flow-host)_ _(points: 20)_
 11. [ ] **Task 11** — Collect, flush and commit the driver's improvement observations in `host/observations.py` _(layer: devscene-flow-host)_ _(points: 15)_
 12. [ ] **Task 12** — Answer STOP, PAUSE and the dispatch counter, and fix the planning limits, in `host/run_control.py` _(layer: devscene-flow-host)_ _(points: 10)_
 13. [ ] **Task 13** — Record each node session's stream, manifest line, formatted log and session-table row in `host/node_sessions.py` _(layer: devscene-flow-host)_ _(points: 20)_
-14. [ ] **Task 14** — Build the session args, per-agent MCP flags and session environment in `host/agent_flags.py` _(layer: devscene-flow-host)_ _(points: 15)_
+14. [ ] **Task 14** — Read the worktree's MCP servers as a record, and build the session args, per-agent MCP flags and session environment in `host/agent_flags.py` _(layer: devscene-flow-host)_ _(points: 20)_
 15. [ ] **Task 15** — Check findings and round files, and keep revision findings, in `host/planning_executor.py` _(layer: devscene-flow-host)_ _(points: 20)_
 16. [ ] **Task 16** — Compose the planning run and drive it with `start_run` / `continue_run` in `host/planning_run.py` _(layer: devscene-flow-host)_ _(points: 20)_
 17. [ ] **Task 17** — Act on each `RunExit` — hand-off, pause, halt, park — in `host/run_exits.py` _(layer: devscene-flow-host)_ _(points: 20)_

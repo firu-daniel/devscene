@@ -2,7 +2,7 @@
 
 **Goal:** `cli/README.md` and `cli/templates/scripts/README.md` stop naming the bash driver's three libraries. They say what the script-driven path runs now: `devscene-planning-driver`, launched by the watcher from `<scriptsDir>/python/` through the library route `hr_flow_host_exec`.
 
-**Depends on:** Tasks 2 and 3. Task 2 launches the driver through `hr_flow_host_exec`, and Task 3 removed the libraries from the shipped set.
+**Depends on:** Tasks 2 and 4. Task 2 launches the driver through `hr_flow_host_exec`, and Task 4 removed the libraries from the shipped set.
 
 **Where this task stops.** Prose only, in this layer's two READMEs. `docs/` is **Task 25's**.
 

@@ -24,7 +24,7 @@
 - [ ] **The round-file rule.** At a round gate, a `detail` for which `records/round_files.py` → `round_file_problem` returns a problem becomes `Failed("infra", "the round file was refused: <problem>")`. The path is read absolute as given, and relative under `repo_root`, as `flow-walker.sh next --findings` reads it.
 - [ ] **The kept-findings rule.** At a node that is not a round gate, a `Completed` `fail` verdict with a `detail` writes `(detail,)` to `RevisionFindingsStore`, under `RefusalStore`'s lock, as `record_outcome` keeps `revision_findings`.
   - `clear_revision_findings(repo_root, state_dir, branch) -> None` clears the store under the same lock. Task 16 calls it when a round closes, as `record_outcome` clears the record on a `RoundPassage`.
-  - The docstring states the rule and names `record_outcome` and `pnl_reap` as the rules it reads as.
+  - **The module docstring** states *"The rule:"* as given above, naming `record_outcome` and `pnl_reap` as the rules it reads as, and a *"Deliberately not covered"* list: retrying a `Failed("infra")`, which is GraphScene's `AttemptBook`; constructing the inner executor, which is Task 16's `host/planning_run.py`; and closing a round, whose `clear_revision_findings` call is Task 16's too.
 - [ ] **`tests/test_planning_executor.py`** drives a stand-in inner executor returning scripted `NodeResult`s over the real planning graph, loaded read-only from `cli/templates/scripts/flows/task_plan_writing.graph.json`. Its cases:
   - its header rule;
   - a non-verdict `Completed` passed through;

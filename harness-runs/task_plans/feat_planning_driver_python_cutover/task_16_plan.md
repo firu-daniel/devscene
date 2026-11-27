@@ -3,11 +3,11 @@
 **Goal:** `run_planning` composes every host piece the task prompt's leads name, decides the entry, and drives the walk once to its `RunExit`. It returns that exit with what Task 17 needs to act on it. This is the step that wires #423's pieces: until now, none of them was called outside its suites.
 
 **Depends on:** Tasks 9, 11, 12, 13, 14 and 15, which produce the pieces this module consumes:
-- **Task 9.** `records/core_limits.py` → `read_max_total_dispatches(plugin_dir) -> int`.
+- **Task 9.** `records/core_limits.py` → `read_max_total_dispatches(plugin_dir) -> int`, and `records/config.py` → `read_config(repo_root).scripts_dir: str`, `scriptsDir` read as `hr_scripts_dir` reads it, repo-relative with no trailing `/`, `devscene-scripts` by default.
 - **Task 11.** `host/observations.py` → `Observations`.
 - **Task 12.** `host/run_control.py` → `FileRunSignals(repo_root, state_dir)`, `FileDispatchCounter(repo_root, state_dir)` with `reset()`, `kill_switch_present(main_repo) -> bool`, `planning_limits(dispatch_cap) -> ExecutionLimits` and `UNDELIVERED_LIMIT = 3`.
 - **Task 13.** `host/node_sessions.py` → `NodeSessions(*, log_path, formatter, observations, narrate)`, which is both the `UsageSink` and the `LaunchSink`, with `rows` and `return_document(node)`.
-- **Task 14.** `host/agent_flags.py` → `session_args(shared, plugin_dir, *, plugin_dir_added)`, `agent_args(contracts, worktree, scratch)` and `session_env(environ, *, venv)`.
+- **Task 14.** `records/mcp_servers.py` → `read_mcp_servers(worktree) -> Mapping[str, object]`, which raises `RecordError` on an unreadable `.mcp.json`; and `host/agent_flags.py` → `session_args(shared, plugin_dir, *, plugin_dir_added)`, `agent_args(contracts, mcp_servers, scratch)` and `session_env(environ, *, venv)`.
 - **Task 15.** `host/planning_executor.py` → `PlanningExecutor(inner, *, graph, repo_root, state_dir, branch)` and `clear_revision_findings(repo_root, state_dir, branch)`.
 
 It also uses the existing #421 / #423 pieces with their present signatures:
@@ -51,11 +51,11 @@ It also uses the existing #421 / #423 pieces with their present signatures:
     - `inactivity_limit_seconds=NODE_INACTIVITY_LIMIT_SECONDS`;
     - `usage_sink=sessions` and `agent_prompt_builder=builder`;
     - `session_args=session_args(shared_args, plugin_dir, plugin_dir_added=…)`;
-    - `agent_args=agent_args(contracts, worktree, scratch)`;
+    - `agent_args=agent_args(contracts, read_mcp_servers(worktree), scratch)`;
     - `env=session_env(environ, venv=venv)`.
 
     It is wrapped in `PlanningExecutor`.
-  - **The hooks.** `PlanningHooks` gets the main checkout's `<scriptsDir>/commit-on-branch.sh`, `scriptsDir` read through `read_config(main_repo)`. The run is handed a `HookHost` wrapper, `_DrivenHooks`. It delegates every call to `PlanningHooks`, and on each `commit_plan_round` call:
+  - **The hooks.** `PlanningHooks` gets the main checkout's commit wrapper, `main_repo / read_config(main_repo).scripts_dir / "commit-on-branch.sh"`, the `scripts_dir` attribute Task 9 adds. This module reads no configuration key itself: every value it takes from `devscene.config.json` comes through `read_config`. The run is handed a `HookHost` wrapper, `_DrivenHooks`. It delegates every call to `PlanningHooks`, and on each `commit_plan_round` call:
     - records the passage's round number as `last_round`;
     - calls `clear_revision_findings`, as `record_outcome` clears on a `RoundPassage`.
 
@@ -88,4 +88,5 @@ It also uses the existing #421 / #423 pieces with their present signatures:
 **Verification:**
 
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_planning_run.py` passes.
+- `grep -nE 'devscene\.config\.json|scriptsDir|\.mcp\.json' devscene-flow-host/src/devscene_flow_host/host/planning_run.py` prints no hit outside its docstring.
 - `planning_run.py` imports from `graphscene` only through its public surface (`from graphscene import …`, never a submodule), and from `devscene_flow_host` only through each name's defining module, never the package root.

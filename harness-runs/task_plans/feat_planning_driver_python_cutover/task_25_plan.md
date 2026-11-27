@@ -4,7 +4,7 @@
 
 **Depends on:**
 - **Task 2.** The watcher's `planning_driver_ready` checks `hr_flow_host_missing … devscene-planning-driver`, and `planning_driver_run` maps `0` / `3` / other.
-- **Task 3.** The three libraries are no longer shipped.
+- **Task 4.** The three libraries are no longer shipped.
 - **Task 13.** `host/node_sessions.py` writes the node streams and the manifest.
 - **Task 15.** `host/planning_executor.py` refuses a verdict with no findings file.
 - **Task 18.** `devscene-planning-driver` is the command.

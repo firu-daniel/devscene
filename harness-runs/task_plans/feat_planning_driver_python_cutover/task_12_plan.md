@@ -23,7 +23,10 @@
   - An unreadable or non-integer file is a `RecordError` naming it.
 - [ ] **The limits.** `MAX_CONCURRENT_DISPATCHES: Final = 5`, `MAX_ATTEMPTS: Final = 3`, `BACKOFF_SECONDS: Final = 60.0` and `UNDELIVERED_LIMIT: Final = 3`.
   - `planning_limits(dispatch_cap: int) -> ExecutionLimits` returns `ExecutionLimits(max_attempts=MAX_ATTEMPTS, backoff_seconds=BACKOFF_SECONDS, dispatch_cap=dispatch_cap, run_timeout_seconds=None, max_concurrent_dispatches=MAX_CONCURRENT_DISPATCHES)`.
-  - The module docstring says why 5 is a flow-host constant, not a `devscene.config.json` key: the flow host is the harness's own implementation of its flows. It also says that GraphScene's default of 10 is for hosts that set none.
+  - **The module docstring** carries the layer's two required parts, then the rationale:
+    - *"The rule:"* — the STOP and PAUSE files are re-read on every call and never cached; the counter is reset to `0` at each drive and written whole on every increment; the kill switch is read from the **main** checkout's `stateDir`. It names the retired bash it reads as: `pd_main`'s counter reset and its `AUTONOMOUS_STOP` read (`hr_state_path "$PD_MAIN_REPO" AUTONOMOUS_STOP`), and the STOP / PAUSE reads `pd_stop_present` and `pd_run_set` made (`cli/templates/scripts/lib/planning-driver-lib.sh`, readable in that file's history once Task 4 deletes it).
+    - *"Deliberately not covered"* — halting on a signal or on the cap, which is GraphScene's `clear_set`; and what a halt does afterwards (the narration, the pause files, the partial commit), which is Task 17's `host/run_exits.py`.
+    - Then why 5 is a flow-host constant, not a `devscene.config.json` key: the flow host is the harness's own implementation of its flows. It also says that GraphScene's default of 10 is for hosts that set none.
 - [ ] **`tests/test_run_control.py`:**
   - its header rule;
   - STOP and PAUSE answered from planted files, and re-read after a file is removed;

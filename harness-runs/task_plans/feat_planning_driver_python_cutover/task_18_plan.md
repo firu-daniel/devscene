@@ -6,7 +6,7 @@
 - **Task 2.** The watcher calls `hr_flow_host_exec "$SCRIPT_DIR" devscene-planning-driver --branch … --worktree … --main-repo … --plugin-dir … --flows … --log … --formatter … [--plugin-dir-added] -- <agent_cli> <shared flags…>`. It reads `0` with `consumed: …`, `3` with `stopped: <kind>`, and anything else as a fault.
 - **Task 1.** It declares `HR_FLOW_HOST_DRIVER='devscene-planning-driver'` in `cli/templates/scripts/lib/harness-run-lib.sh`, whose mirror comment says `devscene-flow-host`'s suite holds it equal. This task's test is that holder.
 - **Task 16.** `host/planning_run.py` → `PlanningRequest` and `async run_planning(request) -> PlanningOutcome`.
-- **Task 17.** `host/run_exits.py` → `async act_on_exit(outcome, …) -> StopKind`, one of `handed_off`, `park`, `pause`, `undelivered`, `stop`, `cap` or `kill_switch`.
+- **Task 17.** `host/run_exits.py` → `async act_on_exit(outcome, *, graph, repo_root, main_repo, state_dir, branch, wrapper, observations, narrate, now) -> StopKind`, one of `handed_off`, `park`, `pause`, `undelivered`, `stop`, `cap` or `kill_switch`. This command passes `graph` as the loaded planning graph, `repo_root` as `--worktree`, `main_repo` as `--main-repo`, `wrapper` as the same `<main_repo>/<scripts_dir>/commit-on-branch.sh` Task 16 builds from `read_config(main_repo).scripts_dir`, and `now` as the current UTC time.
 - **Task 11.** `Observations.flush(…)`.
 
 **Where this layer stops.** Rendering and exit statuses are the `commands` layer's, never a reader's or the host's (`.claude/context/devscene-flow-host.md` → `## Errors`). This module decides no walk step.
@@ -43,7 +43,7 @@
     - any other `Exception`, as `internal error: <type>: <message>`.
 
     The cause is also narrated to the log. Only `KeyboardInterrupt` and `SystemExit` escape.
-  - **The docstring** states this contract under *"The rule:"*, as `commands/flow_walker.py`'s states its own.
+  - **The docstring** states this contract under *"The rule:"*, as `commands/flow_walker.py`'s states its own, and carries a *"Deliberately not covered"* list: deciding any walk step or the run's entry, which is `host/planning_run.py`'s; acting on a `RunExit` — narration, parks, pause files, partial commits — which is `host/run_exits.py`'s; and reading any record, which is `records`'.
 - [ ] **`pyproject.toml`.** Add `devscene-planning-driver = "devscene_flow_host.commands.planning_driver:main"` under `[project.scripts]`, beside `devscene-flow-walker`. No dependency changes and no re-lock.
 - [ ] **`tests/test_planning_driver_command.py`:**
   - its header rule;

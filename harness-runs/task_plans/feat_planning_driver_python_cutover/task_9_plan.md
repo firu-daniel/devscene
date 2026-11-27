@@ -1,17 +1,20 @@
-### Task 9 — Read the planning core's dispatch cap and a branch's highest question index as records
+### Task 9 — Read the planning core's dispatch cap, a branch's highest question index and the configured `scriptsDir` as records
 
-**Goal:** Add two record readers the driver needs, each read the way the bash reader of that record reads it:
+**Goal:** Add the record reads the driver needs, each read the way the bash reader of that record reads it:
 - `read_max_total_dispatches(plugin_dir)`, the `MAX_TOTAL_DISPATCHES` the planning core's `## Setup (once per session)` declares, as `pnl_init` reads it;
-- `max_question_index(repo_root, state_dir, branch)`, the highest `question_<n>.md` index under the branch's clarification directory, as `hr_max_question_index` reads it.
+- `max_question_index(repo_root, state_dir, branch)`, the highest `question_<n>.md` index under the branch's clarification directory, as `hr_max_question_index` reads it;
+- `HarnessConfig.scripts_dir`, the `scriptsDir` key of `devscene.config.json`, read by the existing `read_config` as `hr_scripts_dir` reads it (through `hr_config_dir`, after `hr_config_load`).
 
-**Where this layer stops.** The readers return values and decide nothing (`.claude/context/devscene-flow-host.md` → `## Records, and which one is the truth`). Using the cap as `ExecutionLimits.dispatch_cap` is **Task 12's** and **Task 16's**. Writing a park at `max + 1` is **Task 10's**.
+**Where this layer stops.** The readers return values and decide nothing (`.claude/context/devscene-flow-host.md` → `## Records, and which one is the truth`). Using the cap as `ExecutionLimits.dispatch_cap` is **Task 12's** and **Task 16's**. Writing a park at `max + 1` is **Task 10's**. Building the commit wrapper's path `<main_repo>/<scripts_dir>/commit-on-branch.sh` from `scripts_dir` is **Task 16's**; this task reads the value only.
 
 ### Targets
 
 - `devscene-flow-host/src/devscene_flow_host/records/core_limits.py` (new)
 - `devscene-flow-host/src/devscene_flow_host/records/clarifications.py` — `max_question_index`
+- `devscene-flow-host/src/devscene_flow_host/records/config.py` — `HarnessConfig.scripts_dir`, `DEFAULT_SCRIPTS_DIR`, and the docstring's rule
 - `devscene-flow-host/tests/test_core_limits.py` (new)
 - `devscene-flow-host/tests/test_clarifications.py` — the new reader's cases
+- `devscene-flow-host/tests/test_config.py` — the `scriptsDir` cases
 
 **Work:**
 
@@ -35,9 +38,16 @@
   - `question_1.md` and `question_3.md` give `3`;
   - a `question_9.md` under `answered/` is not counted;
   - a non-matching name is ignored.
+- [ ] `records/config.py` and `tests/test_config.py`: read `scriptsDir`.
+  - **The value.** `HarnessConfig` gains `scripts_dir: str`, repo-relative with no trailing `/`, set by a `_scripts_dir(document, path)` that reads as `_state_dir` does and as `hr_scripts_dir` → `hr_config_dir` reads: an absent or `null` key is `DEFAULT_SCRIPTS_DIR`; every trailing `/` is stripped; a value left empty after stripping is `DEFAULT_SCRIPTS_DIR`.
+  - **The constant.** `DEFAULT_SCRIPTS_DIR: Final = "devscene-scripts"`, commented as the schema's default `devscene-scripts/`, normalised as `hr_config_dir` normalises it.
+  - **Its unreadable shape.** A `scriptsDir` that is not a string is `RecordError(f"{path}: scriptsDir is not a string")`.
+  - **The docstring.** The rule's *"`read_config` reads two keys, `stateDir` and `phases`"* becomes three keys, adding *"`scriptsDir` as `hr_scripts_dir`"* to the list of bash readers. *"Deliberately not checked"* gains *"Whether `scriptsDir` is a safe repo-relative path, which is the schema's"*. Nothing else in the module changes.
+  - **The cases**, in `tests/test_config.py`, one per shape: an absent `scriptsDir` and a `null` one each give `devscene-scripts`; `"tools/scripts/"` gives `tools/scripts`; `"//"` gives `devscene-scripts`; a non-string's `RecordError` text asserted exactly; and the existing full-configuration case asserting `scripts_dir` too.
 
 **Verification:**
 
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_core_limits.py` passes.
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_clarifications.py` passes.
+- `bash scripts/python-service.sh --package devscene-flow-host test tests/test_config.py` passes, every existing case unchanged but the full-configuration one.
 - `records/core_limits.py` imports no `graphscene` (the `devscene-flow-host-graphscene-outside-records` contract).

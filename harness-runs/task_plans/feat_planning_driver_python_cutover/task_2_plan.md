@@ -8,7 +8,7 @@
 
 Task 1 also adds `HR_FLOW_HOST_DRIVER='devscene-planning-driver'`. This task calls both functions with that name.
 
-**Where this task stops.** This task writes the watcher's half of the contract. The command that answers it is **Task 18's**, and it does not exist until then. Pinning this half with a stub `uv` is **Task 5's**. Deleting the bash libraries and their shipped-table rows is **Task 3's**: after this task nothing sources them, but they still ship.
+**Where this task stops.** This task writes the watcher's half of the contract. The command that answers it is **Task 18's**, and it does not exist until then. Pinning this half with a stub `uv` is **Task 5's**. Retiring the `cli` suites that source the bash libraries is **Task 3's**, and deleting the libraries and their shipped-table rows is **Task 4's**: after this task nothing sources them, but they still ship.
 
 ### Targets
 
