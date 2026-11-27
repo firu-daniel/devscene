@@ -31,7 +31,7 @@ One net-new defect remains: a pilot behaviour that was dropped without being mar
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Keep each node's infrastructure-attempt log and list it in an escalation park, as `pd_session_detail` did _(layer: devscene-flow-host)_
+1. [x] **Finding 1** — Keep each node's infrastructure-attempt log and list it in an escalation park, as `pd_session_detail` did _(layer: devscene-flow-host)_
 
 ---
 

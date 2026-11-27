@@ -30,7 +30,11 @@ The rule:
   — `agent`, or `infra` on the last attempt, which the walk records as error — is
   `silent-failure`.
 - The last return document each node's usage carried is kept for `return_document(node)`, and the
-  result of each node's last `Launch` for `launch_result(node)`.
+  result of each node's last `Launch` for `launch_result(node)`. Each node's `Failed("infra", …)`
+  launches are logged as `attempt <k> of <max> (#<seq>): <reason>`, as the retired `pd_reap_one`
+  logged them; a launch that ends the node's attempts keeps the log for `exhausted_attempts(node)`
+  when it was the last `infra` attempt and clears it otherwise, and an undelivered launch touches
+  neither.
 
 Deliberately not covered:
 - What the run does with a `Failed`: GraphScene's `AttemptBook` and the driver's exits.
@@ -107,6 +111,8 @@ class NodeSessions:
         self._returns: dict[str, Mapping[str, object]] = {}
         self._results: dict[str, NodeResult] = {}
         self._rows: list[str] = []
+        self._attempt_log: dict[str, list[str]] = {}
+        self._exhausted: dict[str, tuple[int, tuple[str, ...]]] = {}
 
     @property
     def rows(self) -> tuple[str, ...]:
@@ -117,6 +123,9 @@ class NodeSessions:
 
     def launch_result(self, node: str) -> NodeResult | None:
         return self._results.get(node)
+
+    def exhausted_attempts(self, node: str) -> tuple[int, tuple[str, ...]] | None:
+        return self._exhausted.get(node)
 
     def record(self, item: SessionUsage | Launch) -> None:
         if isinstance(item, Launch):
@@ -187,10 +196,27 @@ class NodeSessions:
             seq_text = str(seq)
             duration = f"{round(usage.duration_seconds)}s"
             cost = UNKNOWN if usage.total_cost_usd is None else str(usage.total_cost_usd)
+        self._track_attempts(launch, seq_text)
         self._rows.append(
             f"{seq_text} {launch.node} {launch.agent} {attempts} {shown} {duration} {cost}"
         )
         self._observe(launch, seq_text, paired)
+
+    def _track_attempts(self, launch: Launch, seq_text: str) -> None:
+        result = launch.result
+        if isinstance(result, Failed) and result.failure == "undelivered":
+            return
+        log = self._attempt_log.setdefault(launch.node, [])
+        if isinstance(result, Failed) and result.failure == "infra":
+            log.append(
+                f"attempt {launch.attempt} of {launch.max_attempts} (#{seq_text}): {result.reason}"
+            )
+            if launch.attempt < launch.max_attempts:
+                return
+            self._exhausted[launch.node] = (launch.max_attempts, tuple(log))
+        else:
+            self._exhausted.pop(launch.node, None)
+        self._attempt_log[launch.node] = []
 
     def _observe(
         self, launch: Launch, seq_text: str, paired: tuple[int, SessionUsage] | None

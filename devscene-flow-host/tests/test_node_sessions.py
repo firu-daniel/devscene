@@ -5,6 +5,7 @@ stream through the formatter into the log; numbers past the `<n>-*.stream.jsonl`
 there; pairs a `Launch` with a pending usage of its node carrying an equal `result`, or, for a
 `Launch` whose result is `Failed("infra", …)`, with one carrying a `Completed`; gives a
 timeout `Launch` with no usage a `-` row and no exception; keeps each node's last `Launch` result;
+keeps a node's attempt log only when its last attempt also failed for an infrastructure reason;
 and adds each per-session observation
 category once for its case.
 
@@ -191,6 +192,40 @@ def test_the_last_launch_result_is_kept_per_node(tmp_path: Path) -> None:
     sessions.record(Launch(2, "plan_review", "plan_review-agent", 2, 3, Failed("agent", "no doc")))
     assert sessions.launch_result("plan_review") == Failed("agent", "no doc")
     assert sessions.launch_result("plan_writer") is None
+
+
+def test_a_node_whose_every_attempt_failed_for_infra_keeps_its_attempt_log(
+    tmp_path: Path,
+) -> None:
+    sessions, _, _ = _sessions(tmp_path)
+    for attempt, reason in (
+        (1, "launch failed"),
+        (2, "PASS carries no findings_file"),
+        (3, "stalled"),
+    ):
+        failed = Failed("infra", reason)
+        sessions.record(_usage("plan_review", failed))
+        sessions.record(Launch(attempt, "plan_review", "plan_review-agent", attempt, 3, failed))
+    assert sessions.exhausted_attempts("plan_review") == (
+        3,
+        (
+            "attempt 1 of 3 (#1): launch failed",
+            "attempt 2 of 3 (#2): PASS carries no findings_file",
+            "attempt 3 of 3 (#3): stalled",
+        ),
+    )
+
+
+def test_a_node_that_recovers_after_an_infra_failure_keeps_no_attempt_log(
+    tmp_path: Path,
+) -> None:
+    sessions, _, _ = _sessions(tmp_path)
+    failed = Failed("infra", "launch failed")
+    sessions.record(_usage("plan_review", failed))
+    sessions.record(Launch(1, "plan_review", "plan_review-agent", 1, 3, failed))
+    sessions.record(_usage("plan_review", Completed("PASS", "r.md")))
+    sessions.record(Launch(2, "plan_review", "plan_review-agent", 2, 3, Completed("PASS", "r.md")))
+    assert sessions.exhausted_attempts("plan_review") is None
 
 
 def test_permission_denials_are_a_tooling_gap(tmp_path: Path) -> None:

@@ -5,7 +5,8 @@ falling back to the ledger, the `qa` phase and the UI-test index when the `End` 
 the kill switch narrate their exact halt text; a pause or an undelivered halt makes the
 `plan-round-partial` commit for the known round, or narrates that none is known, then writes the
 pause files; `<ask>`, `<escalate>` and a `Refused` each write their exact clarification file, the
-escalation committing the partial first only when it holds gates; and `QUESTION_NODES` is every
+escalation committing the partial first only when it holds gates and listing a held gate's
+attempts when every one failed for an infrastructure reason; and `QUESTION_NODES` is every
 node of the planning graph with an outcome bound to `<ask>`.
 
 Every exit is built by hand from GraphScene's public types; the graph is
@@ -94,6 +95,31 @@ class _RecordingObservations(Observations):
         self.added.append((category, problem, evidence, cost))
 
 
+def _usage(
+    node: str, result: NodeResult, document: dict[str, object] | None = None
+) -> SessionUsage:
+    return SessionUsage(
+        node=node,
+        agent=f"{node}-agent",
+        agent_prompt="",
+        session_id=None,
+        started_at=_NOW,
+        duration_seconds=1.0,
+        stalled=False,
+        total_cost_usd=None,
+        cache_creation_input_tokens=None,
+        cache_read_input_tokens=None,
+        model_usage={},
+        permission_denials=0,
+        withheld_tools=(),
+        stream="",
+        stderr_tail="",
+        returncode=0,
+        return_document=document,
+        result=result,
+    )
+
+
 class _Run:
     def __init__(
         self, tmp_path: Path, *, p2: str = "x", qa: bool = False, run_mode: str = ""
@@ -140,28 +166,7 @@ class _Run:
     def session(
         self, node: str, result: NodeResult, document: dict[str, object] | None = None
     ) -> None:
-        self.sessions.record(
-            SessionUsage(
-                node=node,
-                agent=f"{node}-agent",
-                agent_prompt="",
-                session_id=None,
-                started_at=_NOW,
-                duration_seconds=1.0,
-                stalled=False,
-                total_cost_usd=None,
-                cache_creation_input_tokens=None,
-                cache_read_input_tokens=None,
-                model_usage={},
-                permission_denials=0,
-                withheld_tools=(),
-                stream="",
-                stderr_tail="",
-                returncode=0,
-                return_document=document,
-                result=result,
-            )
-        )
+        self.sessions.record(_usage(node, result, document))
         self.sessions.record(Launch(1, node, f"{node}-agent", 1, 3, result))
 
     def act(
@@ -605,6 +610,41 @@ def test_an_escalation_holding_gates_commits_the_partial_then_parks(tmp_path: Pa
             "planning parked",
         )
     ]
+
+
+def test_a_held_gate_whose_every_attempt_failed_for_infra_lists_its_attempts(
+    tmp_path: Path,
+) -> None:
+    run = _Run(tmp_path)
+    failed = Failed("infra", "stalled")
+    for attempt in (1, 2, 3):
+        run.sessions.record(_usage("plan_review", failed))
+        run.sessions.record(Launch(attempt, "plan_review", "plan_review-agent", attempt, 3, failed))
+    stop = Stop(
+        "<escalate>",
+        "plan_review",
+        "task-plan-reviewer",
+        "error",
+        None,
+        None,
+        (),
+        (GateRecord("plan_review", "error", None),),
+        (),
+        (),
+    )
+    assert run.act(stop, dispatched_round=2, last_round=1) == "park"
+    assert (
+        "### `plan_review` — error\n"
+        "\n"
+        "- agent: `task-plan-reviewer`\n"
+        "- reason: stalled\n"
+        "- attempts: all 3 ended for an infrastructure reason, each re-dispatched alone while "
+        "attempts remained:\n"
+        "  - attempt 1 of 3 (#1): stalled\n"
+        "  - attempt 2 of 3 (#2): stalled\n"
+        "  - attempt 3 of 3 (#3): stalled\n"
+        "- return text: not captured in this session\n"
+    ) in run.question(1)
 
 
 def test_an_escalation_with_no_held_gate_commits_nothing(tmp_path: Path) -> None:

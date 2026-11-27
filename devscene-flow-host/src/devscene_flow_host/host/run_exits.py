@@ -13,7 +13,9 @@ in that file's history:
 - `Halt("pause")` and `Halt("undelivered")` make the `plan-round-partial` commit for the pending
   round, else the last committed round, else narrate that none is known; then write the pause.
 - An `Interrupt`, a `Stop` and a `Refused` each write one clarification park; a `Stop` holding
-  gates makes the partial commit first, for the last dispatched round, else the last committed one.
+  gates makes the partial commit first, for the last dispatched round, else the last committed one;
+  each held node's section lists its attempts when all of them ended for an infrastructure reason,
+  as `pd_session_detail` did.
 - Every return-document read names its node and field through the `Final`s below, listed in
   `RETURN_FIELD_READS`.
 It formats the values the `records` readers return and reads no record line itself.
@@ -163,6 +165,11 @@ ESCALATION_OPENING: Final = (
 SESSION_HEADING: Final = "\n### `{node}` — {outcome}\n\n"
 SESSION_AGENT: Final = "- agent: `{agent}`\n"
 SESSION_REASON: Final = "- reason: {reason}\n"
+SESSION_ATTEMPTS: Final = (
+    "- attempts: all {max} ended for an infrastructure reason, each re-dispatched alone "
+    "while attempts remained:\n"
+)
+SESSION_ATTEMPT_ITEM: Final = "  - {line}\n"
 SESSION_RETURN: Final = "- return text:\n\n~~~~text\n{text}\n~~~~\n"
 SESSION_NO_RETURN: Final = "- return text: " + NOT_CAPTURED + "\n"
 REFUSED_OPENING: Final = "The planning walk refused a step:\n\n```text\n{reason}\n```\n"
@@ -480,6 +487,12 @@ class _Actor:
         if isinstance(found, DispatchNode):
             text += SESSION_AGENT.format(agent=found.agent)
         text += SESSION_REASON.format(reason=self._launch_reason(node) or NOT_CAPTURED)
+        sessions = self._outcome.sessions
+        exhausted = None if sessions is None else sessions.exhausted_attempts(node)
+        if exhausted is not None:
+            maximum, lines = exhausted
+            text += SESSION_ATTEMPTS.format(max=maximum)
+            text += "".join(SESSION_ATTEMPT_ITEM.format(line=line) for line in lines)
         document = self._document(node)
         if document is None:
             return text + SESSION_NO_RETURN
