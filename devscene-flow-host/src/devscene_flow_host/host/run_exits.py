@@ -483,7 +483,7 @@ class _Actor:
         document = self._document(node)
         if document is None:
             return text + SESSION_NO_RETURN
-        rendered = json.dumps(document, indent=2, ensure_ascii=False)
+        rendered = json.dumps(dict(document), indent=2, ensure_ascii=False)
         return text + SESSION_RETURN.format(text=rendered)
 
     def _launch_reason(self, node: str) -> str | None:

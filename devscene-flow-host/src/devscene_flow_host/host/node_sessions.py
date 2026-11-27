@@ -15,7 +15,8 @@ The rule:
   run as one argv word with the stream on stdin, its stdout appended to the log; a non-empty
   `stderr_tail` appended to the log. A formatter's exit status is ignored, as the bash pipeline
   ignored it, and a formatter that cannot be started is narrated, never raised. Any other
-  `OSError` propagates.
+  `OSError` propagates. A usage whose `withheld_tools` is non-empty is then narrated as
+  `WITHHELD_LINE`, the retired `pnl_reap`'s text; the session is never refused for it.
 - `record(launch)` pairs the `Launch` with the oldest pending usage of `launch.node` whose
   `result` equals `launch.result`, and appends one row `<seq> <node> <agent>
   <attempt>/<max_attempts> <outcome, else the result kind> <duration>s <cost>`.
@@ -49,6 +50,10 @@ PLANNING_DIRECTORY_SUFFIX: Final = ".planning"
 MANIFEST_NAME: Final = "node-sessions.jsonl"
 RUN_STREAM_SUFFIX: Final = ".stream.jsonl"
 UNKNOWN: Final = "-"
+WITHHELD_LINE: Final = (
+    "#{seq} {node} ({agent}): the init event lacks declared tools [{tools}] "
+    "(a lacking tool is never refused)"
+)
 _SEQ_PATTERN: Final = re.compile(r"([0-9]+)-.*\.stream\.jsonl")
 
 
@@ -134,6 +139,15 @@ class NodeSessions:
         tail = usage.stderr_tail
         if tail:
             _append(self._log_path, (tail if tail.endswith("\n") else tail + "\n").encode("utf-8"))
+        if usage.withheld_tools:
+            self._narrate(
+                WITHHELD_LINE.format(
+                    seq=seq,
+                    node=usage.node,
+                    agent=usage.agent,
+                    tools=", ".join(usage.withheld_tools),
+                )
+            )
         self._pending.setdefault(usage.node, []).append((seq, usage))
         if usage.return_document is not None:
             self._returns[usage.node] = usage.return_document
