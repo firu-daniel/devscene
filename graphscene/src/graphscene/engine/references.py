@@ -1,4 +1,4 @@
-"""The reference check: every name a built format-4 flow graph uses resolves to a declaration.
+"""The reference check: every name a built format-5 flow graph uses resolves to a declaration.
 
 The rule: every node, counter, path, report-slot and prompt name the graph uses exists, `start`
 is listed in `entries`, and each violation's reason opens with its check id (`node-known`,

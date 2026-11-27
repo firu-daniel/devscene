@@ -189,7 +189,7 @@ def _dispatch(
     return Dispatch(
         node=node.id,
         agent=node.agent,
-        prompt=draft.prompts.get(node.id),
+        prompt_variant=draft.prompts.get(node.id),
         counters=MappingProxyType(dict(draft.counters)),
         round_number=round_number,
         converging=converging,

@@ -75,10 +75,10 @@ def test_a_written_state_reads_back_equal(tmp_path: pathlib.Path) -> None:
 
 def test_a_malformed_file_raises_a_value_error_naming_the_file(tmp_path: pathlib.Path) -> None:
     path = tmp_path / "state.json"
-    path.write_text('{"version": 2}', encoding="utf-8")
+    path.write_text('{"version": 1}', encoding="utf-8")
     with pytest.raises(ValueError) as caught:
         FileStateStore(path).read()
-    assert str(caught.value) == f"{path}: version: unsupported version 2"
+    assert str(caught.value) == f"{path}: version: unsupported version 1"
 
 
 def test_a_failed_write_leaves_the_previous_file_and_no_temporary(tmp_path: pathlib.Path) -> None:

@@ -1,17 +1,19 @@
-"""`build_flow_graph`, which builds the typed, immutable form of a declared format-4 flow graph
+"""`build_flow_graph`, which builds the typed, immutable form of a declared format-5 flow graph
 (`graphscene.model.flow_graph`) from a parsed graph that has passed the schema check.
 
 The mapping rules, from the schema's declaration to the model:
 - Attribute names: each attribute is its schema key in snake_case — `formatVersion` →
   `format_version`, `resumeOutcome` → `resume_outcome`, `inRoundCounts` → `in_round_counts`,
   `convergingFrom` → `converging_from`, `revisionNote` → `revision_note`, `findingsFolder` →
-  `findings_folder`, `onCap` → `on_cap`, `roundCounts` → `round_counts`; every other key keeps
-  its own name. The one addition is a node's `id`, its key in `nodes`.
+  `findings_folder`, `onCap` → `on_cap`, `roundCounts` → `round_counts`, `promptSource` →
+  `prompt_source`; every other key keeps its own name. The one addition is a node's `id`, its
+  key in `nodes`.
 - Containers: a JSON array becomes a `tuple`; a JSON object becomes a read-only
   `types.MappingProxyType` over a fresh `dict`, keeping the declaration's key order and never
   aliasing the caller's input.
-- Absent keys: an absent optional key is `None`. The one exception is `held`, which the schema
-  allows only as `true`: it is a `bool`, `False` when absent.
+- Absent keys: an absent optional key is `None` — `vocabulary.hooks`, a node's `promptSource`,
+  `before` and `after` among them. The one exception is `held`, which the schema allows only as
+  `true`: it is a `bool`, `False` when absent.
 - Integers: a number the schema accepts as an integer, `3` or `3.0`, becomes an `int`.
 - Which classes: an edge carrying `binding` is a `BindingEdge` and any other edge a `RouteEdge`,
   as the schema's `edge` `if`/`then` decides; a node's class follows `kind`; a binding's class
@@ -43,6 +45,7 @@ from graphscene.model.flow_graph import (
     Edge,
     EndBinding,
     FlowGraph,
+    HookDeclaration,
     InterruptBinding,
     Node,
     OnCapEdge,
@@ -152,11 +155,21 @@ def _predicate(value: object, path: str) -> PredicateDeclaration:
     )
 
 
+def _hooks(value: object, path: str) -> Mapping[str, HookDeclaration]:
+    fields = _object(value, path)
+    hooks: dict[str, HookDeclaration] = {}
+    for name, declaration in fields.items():
+        _object(declaration, _join(path, name))
+        hooks[name] = HookDeclaration()
+    return MappingProxyType(hooks)
+
+
 def _vocabulary(value: object, path: str) -> Vocabulary:
     fields = _object(value, path)
     outcomes = _object(fields.get("outcomes"), _join(path, "outcomes"))
     bindings = _object(fields.get("bindings"), _join(path, "bindings"))
     predicates = _object(fields.get("predicates"), _join(path, "predicates"))
+    hooks_path = _join(path, "hooks")
     return Vocabulary(
         outcomes=MappingProxyType(
             {name: _outcome(d, _join(path, f"outcomes.{name}")) for name, d in outcomes.items()}
@@ -170,6 +183,7 @@ def _vocabulary(value: object, path: str) -> Vocabulary:
                 for name, d in predicates.items()
             }
         ),
+        hooks=_hooks(fields["hooks"], hooks_path) if "hooks" in fields else None,
     )
 
 
@@ -234,7 +248,11 @@ def _node(node_id: str, value: object, path: str) -> Node:
     fields = _object(value, path)
     kind = fields.get("kind")
     if kind == "terminal":
-        return TerminalNode(id=node_id, binding=_str(fields.get("binding"), _join(path, "binding")))
+        return TerminalNode(
+            id=node_id,
+            binding=_str(fields.get("binding"), _join(path, "binding")),
+            before=_opt_strs(fields, "before", path),
+        )
     if kind == "round":
         return RoundNode(
             id=node_id,
@@ -246,6 +264,8 @@ def _node(node_id: str, value: object, path: str) -> Node:
             plan=_opt_strs(fields, "plan", path),
             revision_note=_opt_str(fields, "revisionNote", path),
             outcomes=_edges(fields.get("outcomes"), _join(path, "outcomes")),
+            before=_opt_strs(fields, "before", path),
+            after=_opt_strs(fields, "after", path),
         )
     if kind == "dispatch":
         return DispatchNode(
@@ -256,20 +276,23 @@ def _node(node_id: str, value: object, path: str) -> Node:
             prompts=_opt_strs(fields, "prompts", path),
             findings_folder=_opt_str(fields, "findingsFolder", path),
             skip=_skip(fields["skip"], _join(path, "skip")) if "skip" in fields else None,
+            prompt_source=_opt_str(fields, "promptSource", path),
+            before=_opt_strs(fields, "before", path),
+            after=_opt_strs(fields, "after", path),
         )
     raise TypeError(f"{_join(path, 'kind')}: expected 'dispatch', 'round' or 'terminal'")
 
 
 def build_flow_graph(graph: Mapping[str, object]) -> FlowGraph:
-    """Build the typed model of `graph`, a parsed format-4 flow graph that already passed the
+    """Build the typed model of `graph`, a parsed format-5 flow graph that already passed the
     schema check."""
     fields = _object(graph, "")
-    if fields.get("formatVersion") != 4 or isinstance(fields.get("formatVersion"), bool):
-        raise TypeError("formatVersion: expected 4")
+    if fields.get("formatVersion") != 5 or isinstance(fields.get("formatVersion"), bool):
+        raise TypeError("formatVersion: expected 5")
     counters = _object(fields.get("counters"), "counters")
     nodes = _object(fields.get("nodes"), "nodes")
     return FlowGraph(
-        format_version=4,
+        format_version=5,
         flow=_str(fields.get("flow"), "flow"),
         description=_str(fields.get("description"), "description"),
         vocabulary=_vocabulary(fields.get("vocabulary"), "vocabulary"),

@@ -1,5 +1,5 @@
 """The rule this module exists to enforce: the harness's planning graph agrees with the plugin
-documents it duplicates. `core_agreement_violations` returns the findings of four checks, in
+documents it duplicates. `core_agreement_violations` returns the findings of five checks, in
 this order:
 
 - 4 `run-mode-id-known`: every skip entry whose `when` matches `RUN_MODE_PREDICATE` names an id
@@ -11,6 +11,9 @@ this order:
   and the whole revision note appears in the core's `## Loop`.
 - 7 `cap-matches-core`: `counters.iteration.cap` equals every integer the core's three cap
   phrases state.
+- 10 `prompt-source-in-core`: every dispatch node's `promptSource` names the flow core, a section
+  and heading `read_prompt_blocks` finds there, and as many fenced blocks as the node's `prompts`
+  (one with no `prompts`).
 
 An owner document, section or phrase that yields nothing is a finding, never an empty pass.
 Within a check, nodes come in key order, and a node's skip entries and outcomes in declaration
@@ -34,6 +37,8 @@ from typing import Final
 from graphscene import DispatchNode, FlowGraph, RoundNode, RouteEdge, Violation
 
 from devscene_flow_host.host.predicates import RUN_MODE_PREDICATE
+from devscene_flow_host.records.errors import RecordError
+from devscene_flow_host.records.prompt_blocks import parse_prompt_source, read_prompt_blocks
 
 RUN_MODE_DOC: Final = "plugin/instructions/run_mode_instructions.md"
 LEDGER_DOC: Final = "plugin/instructions/autonomous_pause_and_ledger.md"
@@ -58,6 +63,7 @@ _STEP4_PHRASE: Final = "MAX_TOTAL_DISPATCHES = "
 _HALT_PHRASE: Final = "Halted: exceeded MAX_TOTAL_DISPATCHES"
 _BACKTICKED: Final = re.compile(r"`[^`]*`")
 _COUNTER: Final = "iteration"
+_PLUGIN_DIRECTORY: Final = "plugin"
 
 # Taken over verbatim from the retired `scripts/check-flow-graph.sh` here-doc `ANCHORS`:
 # label, source text, pattern.
@@ -243,6 +249,48 @@ def _cap_violations(graph: FlowGraph, core: str, core_lines: list[str]) -> list[
     return found
 
 
+def _prompt_source_violations(graph: FlowGraph, core: str, repo_root: Path) -> list[Violation]:
+    plugin_dir = repo_root / _PLUGIN_DIRECTORY
+    found: list[Violation] = []
+    for node_id, node in graph.nodes.items():
+        if not isinstance(node, DispatchNode):
+            continue
+        path = f"nodes.{node_id}.promptSource"
+        if node.prompt_source is None:
+            found.append(
+                Violation(
+                    path,
+                    f"prompt-source-in-core: dispatch node '{node_id}' declares no promptSource",
+                )
+            )
+            continue
+        try:
+            source = parse_prompt_source(node.prompt_source)
+        except ValueError as error:
+            found.append(Violation(path, f"prompt-source-in-core: {error}"))
+            continue
+        if f"{_PLUGIN_DIRECTORY}/{source.document}" != core:
+            found.append(
+                Violation(path, f"prompt-source-in-core: '{source.document}' is not {core}")
+            )
+            continue
+        try:
+            blocks = read_prompt_blocks(plugin_dir, source)
+        except RecordError as error:
+            found.append(Violation(path, f"prompt-source-in-core: {error}"))
+            continue
+        declared = len(node.prompts) if node.prompts is not None else 1
+        if len(blocks) != declared:
+            found.append(
+                Violation(
+                    path,
+                    f"prompt-source-in-core: '{source.heading}' carries {len(blocks)} fenced"
+                    f" block(s) in {core}, node '{node_id}' declares {declared} prompt(s)",
+                )
+            )
+    return found
+
+
 def core_agreement_violations(graph: FlowGraph, repo_root: Path) -> list[Violation]:
     found = _run_mode_violations(graph, repo_root) + _ledger_violations(graph, repo_root)
     core = CORE_FOR_FLOW.get(graph.flow)
@@ -256,10 +304,15 @@ def core_agreement_violations(graph: FlowGraph, repo_root: Path) -> list[Violati
             Violation(
                 "flow", f"cap-matches-core: flow '{graph.flow}' has no core in CORE_FOR_FLOW"
             ),
+            Violation(
+                "flow",
+                f"prompt-source-in-core: flow '{graph.flow}' has no core in CORE_FOR_FLOW",
+            ),
         ]
     core_lines = _read(repo_root, core)
     return (
         found
         + _findings_folder_violations(graph, core, core_lines)
         + _cap_violations(graph, core, core_lines)
+        + _prompt_source_violations(graph, core, repo_root)
     )

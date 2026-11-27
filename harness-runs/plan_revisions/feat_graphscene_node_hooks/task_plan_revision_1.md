@@ -1,0 +1,5 @@
+# Revision note — round 1
+- architecture 1 (harness-runs/architecture_reviews/feat_graphscene_node_hooks/review_0.md) — files: harness-runs/task_plans/feat_graphscene_node_hooks/task_10_plan.md, harness-runs/task_plans/feat_graphscene_node_hooks/task_12_plan.md, harness-runs/task_plans/feat_graphscene_node_hooks/task_13_plan.md — resolved
+- task plan 1 (harness-runs/task_plan_reviews/feat_graphscene_node_hooks/review_0.md) — files: harness-runs/task_plans/feat_graphscene_node_hooks/task_2_plan.md, harness-runs/task_plans/feat_graphscene_node_hooks/task_3_plan.md, harness-runs/task_plans/feat_graphscene_node_hooks/task_17_plan.md, harness-runs/story_plans/feat_graphscene_node_hooks_story_plan.md (`## Scope register` re-derivation note, owed because the target set gained `valid_hooks.json` and `package.json`) — resolved
+- task plan 2 (harness-runs/task_plan_reviews/feat_graphscene_node_hooks/review_0.md) — files: harness-runs/task_plans/feat_graphscene_node_hooks/task_16_plan.md — resolved
+Unrequested changes: none

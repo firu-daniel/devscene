@@ -9,7 +9,7 @@ It also enforces that `start_walk` keeps a started step's printed reads in `Prin
 and a refused start leaves them byte-identical, and that `current_step` returns the kept record
 rather than re-reading the folder, reading it only when no record exists.
 
-The graph is the harness's own format-4 graph,
+The graph is the harness's own format-5 graph,
 `cli/templates/scripts/flows/task_plan_writing.graph.json`. Config, review files and git
 history are planted under `tmp_path` through `round_fixtures`. Every expected set's gates and
 round number are literals written from the `STATE` paragraph and `A REFUSED ROUND FILE`, never
@@ -71,7 +71,7 @@ def _dispatch(node: str, agent: str, round_number: int) -> Dispatch:
     return Dispatch(
         node=node,
         agent=agent,
-        prompt=None,
+        prompt_variant=None,
         counters={"iteration": 0},
         round_number=round_number,
         converging=False,

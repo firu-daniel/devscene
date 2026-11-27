@@ -11,6 +11,7 @@ The rule: every class is a `@dataclass(frozen=True)`, sequences are `tuple`s, ma
 Field meanings:
 
 - `agent` is `None` when `node` is a round node.
+- `Dispatch.prompt_variant` is one of the node's declared `prompts`, or `None`; never prompt text.
 - `evidence` is a `paths` key, never a resolved path.
 - `round_counts` holds node ids, never counts: counting files is the host's.
 - `End.reports` is `(slot, status)` pairs in the graph's `reports` order.
@@ -68,7 +69,7 @@ class Dispatch:
     kind: ClassVar[Literal["dispatch"]] = "dispatch"
     node: str
     agent: str
-    prompt: str | None
+    prompt_variant: str | None
     counters: Mapping[str, int]
     round_number: int | None
     converging: bool | None

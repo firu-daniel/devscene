@@ -4,7 +4,7 @@ the reference violations alone when there are any, and otherwise the violations 
 and 9 (`round-fan-out`), in that order and in the report order `graphscene.engine.static_check`
 states, each reason opening with its check id.
 
-Each planted graph is a complete format-4 mapping built with
+Each planted graph is a complete format-5 mapping built with
 `graphscene.adapters.builder.build_flow_graph`. `_base` is a clean one-round graph; each case
 changes it, or plants its own graph, so that one clause fires, and asserts the exact list
 returned. Each review-loop clause of checks 8 and 9 is planted on both kinds of round: on a review
@@ -147,7 +147,7 @@ def _base() -> dict[str, dict[str, object]]:
 
 def _graph(nodes: dict[str, dict[str, object]], **overrides: object) -> dict[str, object]:
     graph: dict[str, object] = {
-        "formatVersion": 4,
+        "formatVersion": 5,
         "flow": "planted",
         "description": "A planted graph.",
         "vocabulary": _vocabulary(),

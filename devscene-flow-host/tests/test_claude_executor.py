@@ -2,8 +2,8 @@
 each dispatch with the argument vector its module docstring fixes, returns `judge_session`'s result
 — or `Failed("infra", …)` for a launch error or a stall — and calls the usage sink exactly once
 immediately before returning, never for a cancelled run; `run` builds the agent prompt through the
-host's builder, never from `Dispatch.prompt`; its constructor and `run` refuse each caller defect
-with an exact message, a defect in building the agent prompt included; and through
+host's builder, never from `Dispatch.prompt_variant`; its constructor and `run` refuse each caller
+defect with an exact message, a defect in building the agent prompt included; and through
 `graphscene.execute_set` each usage record comes just before that node's `Launch` row, with
 equal `result`.
 
@@ -83,7 +83,7 @@ def _dispatch(variant: str | None = None, agent: str = "reviewer") -> Dispatch:
     return Dispatch(
         node="plan_review",
         agent=agent,
-        prompt=variant,
+        prompt_variant=variant,
         counters={},
         round_number=None,
         converging=None,

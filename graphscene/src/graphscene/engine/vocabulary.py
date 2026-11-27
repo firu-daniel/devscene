@@ -1,16 +1,18 @@
-"""The vocabulary check: the part of a format-4 flow graph's validity JSON Schema cannot express.
+"""The vocabulary check: the part of a format-5 flow graph's validity JSON Schema cannot express.
 
-The rule: every name a flow graph uses is one it declares, and each binding is used where its
-primitive allows. `vocabulary_violations` takes a built `FlowGraph` and returns one `Violation`
+The rule: every name a flow graph uses is one it declares, every hook name a node uses is declared
+in `vocabulary.hooks` (an absent `vocabulary.hooks` declares none), and each binding is used where
+its primitive allows. `vocabulary_violations` takes a built `FlowGraph` and returns one `Violation`
 per violation, whose `str()` is that violation's `<path>: <reason>` line, in document order:
 nodes in key order; within a node, a round's verdict violation, then its `outcomes` in key order
-(each edge, then its `onCap`), then its `skip` entries, then a terminal's `binding`. Paths use the
+(each edge, then its `onCap`), then its `skip` entries, then a terminal's `binding`, then the
+node's `before` hook names and then its `after` hook names, each in list order. Paths use the
 serialized spelling (`onCap`). A binding that is not declared is reported as undeclared alone,
 never also for how it is used.
 
 Deliberately not checked:
 - Schema validity and the build, both the caller's and both run first: the graph is validated
-  against the format-4 schema this package ships as data, `schemas/flow-graph.schema.json` inside
+  against the format-5 schema this package ships as data, `schemas/flow-graph.schema.json` inside
   the `graphscene` package (`graphscene/src/graphscene/schemas/` in this repository), then built.
 - Node-id references, reachability and counter caps: `graphscene.engine.static_check`'s.
 - Reading any file: the graph arrives built.
@@ -26,6 +28,7 @@ from graphscene.model.flow_graph import (
     Edge,
     EndBinding,
     FlowGraph,
+    HookDeclaration,
     InterruptBinding,
     Node,
     OnCapEdge,
@@ -106,12 +109,25 @@ def _round_violation(
     return [Violation(f"{node_path}.outcomes", _VERDICT_RULE)]
 
 
+def _hook_violations(
+    node_path: str, field: str, names: tuple[str, ...] | None, hooks: Mapping[str, HookDeclaration]
+) -> list[Violation]:
+    return [
+        Violation(
+            f"{node_path}.{field}[{index}]", f"hook '{name}' is not declared in vocabulary.hooks"
+        )
+        for index, name in enumerate(names or ())
+        if name not in hooks
+    ]
+
+
 def _node_violations(
     node_id: str,
     node: Node,
     outcomes: Mapping[str, OutcomeDeclaration],
     bindings: Mapping[str, BindingDeclaration],
     predicates: Mapping[str, PredicateDeclaration],
+    hooks: Mapping[str, HookDeclaration],
 ) -> list[Violation]:
     node_path = f"nodes.{node_id}"
     found: list[Violation] = []
@@ -150,6 +166,10 @@ def _node_violations(
             found.append(
                 Violation(f"{node_path}.binding", f"binding '{node.binding}' is not an end")
             )
+
+    found.extend(_hook_violations(node_path, "before", node.before, hooks))
+    if not isinstance(node, TerminalNode):
+        found.extend(_hook_violations(node_path, "after", node.after, hooks))
     return found
 
 
@@ -157,11 +177,17 @@ def vocabulary_violations(graph: FlowGraph) -> list[Violation]:
     """Return one `Violation` per vocabulary violation in `graph`, whose `str()` is its
     `<path>: <reason>` line, in document order; `[]` when it has none."""
     vocabulary = graph.vocabulary
+    hooks: Mapping[str, HookDeclaration] = vocabulary.hooks or {}
     found: list[Violation] = []
     for node_id, node in graph.nodes.items():
         found.extend(
             _node_violations(
-                node_id, node, vocabulary.outcomes, vocabulary.bindings, vocabulary.predicates
+                node_id,
+                node,
+                vocabulary.outcomes,
+                vocabulary.bindings,
+                vocabulary.predicates,
+                hooks,
             )
         )
     return found

@@ -1,4 +1,4 @@
-"""The static check: a built format-4 flow graph's references resolve, and its shape is walkable.
+"""The static check: a built format-5 flow graph's references resolve, and its shape is walkable.
 
 The rule: `static_violations` returns the reference violations
 (`graphscene.engine.references.reference_violations`) alone when there are any. Otherwise it

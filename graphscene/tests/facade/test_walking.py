@@ -6,7 +6,7 @@ only the state file and its lock; `current` re-reads the saved step through a ne
 store on the same path; and when a round's gates are recorded from concurrent threads, each with
 its own `Walker` and store, exactly one call returns the join and every other returns a `Wait`
 naming its own gate; and a round resumed through `RoundResume` dispatches only its unrecorded
-gates, saves a version-1 state, and joins on the rest.
+gates, saves a version-2 state, and joins on the rest.
 
 Every expected value is hand-written from reading `valid_generic.json` and
 `valid_plain_round.json`, never taken from the walker's output.
@@ -69,7 +69,7 @@ def _editor(number: int, converging: bool, attempt: int) -> Dispatch:
     return Dispatch(
         node="edit_check",
         agent="article-editor",
-        prompt=None,
+        prompt_variant=None,
         counters={"attempt": attempt},
         round_number=number,
         converging=converging,
@@ -92,7 +92,7 @@ def test_draft_review_publish(tmp_path: Path) -> None:
     assert walker.start() == Dispatch(
         node="draft",
         agent="article-writer",
-        prompt=None,
+        prompt_variant=None,
         counters={"attempt": 0},
         round_number=0,
         converging=None,
@@ -103,7 +103,7 @@ def test_draft_review_publish(tmp_path: Path) -> None:
     assert walker.next("rejected", node="edit_check", detail="f0") == Dispatch(
         node="draft",
         agent="article-writer",
-        prompt="rework",
+        prompt_variant="rework",
         counters={"attempt": 1},
         round_number=1,
         converging=None,
@@ -173,7 +173,7 @@ def _checker(node: str, agent: str) -> Dispatch:
     return Dispatch(
         node=node,
         agent=agent,
-        prompt=None,
+        prompt_variant=None,
         counters={},
         round_number=0,
         converging=None,
@@ -187,7 +187,7 @@ def test_a_round_with_no_review_loop_stops_on_its_rejected_edge(tmp_path: Path) 
     assert walker.start() == Dispatch(
         node="intake",
         agent="release-intake",
-        prompt=None,
+        prompt_variant=None,
         counters={},
         round_number=None,
         converging=None,
@@ -287,7 +287,7 @@ def _gate(node: str) -> Dispatch:
     return Dispatch(
         node=node,
         agent="article-editor",
-        prompt=None,
+        prompt_variant=None,
         counters={"attempt": 0},
         round_number=2,
         converging=False,
@@ -314,7 +314,7 @@ def test_a_round_resumed_with_recorded_gates_dispatches_the_rest_and_joins(
     )
 
     saved = json.loads(path.read_text(encoding="utf-8"))
-    assert saved["version"] == 1
+    assert saved["version"] == 2
     assert saved["open_round"]["number"] == 2
     assert saved["open_round"]["records"] == {
         "fact_check": {"gate": "fact_check", "outcome": "rejected", "detail": "f/review_2.md"},
@@ -327,7 +327,7 @@ def test_a_round_resumed_with_recorded_gates_dispatches_the_rest_and_joins(
     assert _walker(path, graph).next("approved", node="legal_check") == Dispatch(
         node="draft",
         agent="article-writer",
-        prompt="rework",
+        prompt_variant="rework",
         counters={"attempt": 1},
         round_number=3,
         converging=None,

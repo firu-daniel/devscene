@@ -55,7 +55,7 @@
 #   --skipped  the run mode's skipped ids; read only when no flow-progress
 #              ledger exists, and re-read on every arrival at a gated node.
 #   The graph is `<this script's dir>/flows/<flow>.graph.json`, formatVersion
-#   4; the root is a bare `git rev-parse --show-toplevel` in the working
+#   5; the root is a bare `git rev-parse --show-toplevel` in the working
 #   directory. Each branch keeps its own walk, so a call naming another branch
 #   is not refused; one naming another flow than the branch's saved walk is.
 #

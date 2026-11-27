@@ -154,7 +154,7 @@ def test_arrival_at_a_dispatch_node_dispatches_it_with_its_writer_round_number()
     expected = Dispatch(
         node="draft",
         agent="article-writer",
-        prompt=None,
+        prompt_variant=None,
         counters=MappingProxyType({"attempt": 0}),
         round_number=0,
         converging=None,
@@ -176,7 +176,7 @@ def test_a_plain_round_dispatches_each_gate_with_its_number_and_no_convergence()
             Dispatch(
                 node=gate,
                 agent="worker",
-                prompt=None,
+                prompt_variant=None,
                 counters=MappingProxyType({"attempt": 0}),
                 round_number=0,
                 converging=None,
@@ -195,7 +195,7 @@ def test_a_node_routing_into_a_plain_round_is_dispatched_with_no_round_number() 
     assert step == Dispatch(
         node="intake",
         agent="worker",
-        prompt=None,
+        prompt_variant=None,
         counters=MappingProxyType({"attempt": 0}),
         round_number=None,
         converging=None,
@@ -221,7 +221,7 @@ def test_a_skip_chain_records_each_report_and_passage_and_dispatches_where_it_en
     assert step == Dispatch(
         node="c",
         agent="worker",
-        prompt=None,
+        prompt_variant=None,
         counters=MappingProxyType({"attempt": 0}),
         round_number=None,
         converging=None,
@@ -294,7 +294,7 @@ def test_one_below_the_cap_the_routed_edge_advances_the_round_and_arrives() -> N
     assert step == Dispatch(
         node="draft",
         agent="article-writer",
-        prompt="rework",
+        prompt_variant="rework",
         counters=MappingProxyType({"attempt": 2}),
         round_number=1,
         converging=None,
@@ -450,7 +450,7 @@ def test_open_round_skips_one_gate_without_following_it_and_dispatches_the_other
             Dispatch(
                 node="g2",
                 agent="worker",
-                prompt=None,
+                prompt_variant=None,
                 counters=MappingProxyType({"attempt": 1}),
                 round_number=0,
                 converging=True,
@@ -534,7 +534,7 @@ def test_close_round_on_fail_advances_the_round_and_hands_its_records_to_the_wri
     assert step == Dispatch(
         node="draft",
         agent="article-writer",
-        prompt="rework",
+        prompt_variant="rework",
         counters=MappingProxyType({"attempt": 1}),
         round_number=1,
         converging=None,

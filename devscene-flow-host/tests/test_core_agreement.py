@@ -1,8 +1,8 @@
 """The rule this file exists to enforce: `core_agreement_violations` holds the harness's planning
 graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, to the three plugin documents
-it duplicates — checks 4 `run-mode-id-known`, 5 `ledger-id-known`, 6 `findings-folder-in-core`
-and 7 `cap-matches-core` — and refuses to pass when an owner document, section or phrase yields
-nothing.
+it duplicates — checks 4 `run-mode-id-known`, 5 `ledger-id-known`, 6 `findings-folder-in-core`,
+7 `cap-matches-core` and 10 `prompt-source-in-core` — and refuses to pass when an owner
+document, section or phrase yields nothing.
 
 The suite reads the checkout's graph and the three plugin documents read-only. A graph-side case
 changes one thing in the graph's JSON and loads it through `load_graph`, so the mutant passes
@@ -18,13 +18,14 @@ import json
 from pathlib import Path
 from typing import Any
 
-from graphscene import FlowGraph, Violation, load_graph, load_graph_file
+from graphscene import DispatchNode, FlowGraph, Violation, load_graph, load_graph_file
 
 from core_agreement import CORE_FOR_FLOW, LEDGER_DOC, RUN_MODE_DOC, core_agreement_violations
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _GRAPH = _REPO_ROOT / "cli" / "templates" / "scripts" / "flows" / "task_plan_writing.graph.json"
 _CORE = CORE_FOR_FLOW["task_plan_writing"]
+_SOURCE_PREFIX = "instructions/task_plan_writing_instructions_core.md → "
 
 
 def _graph_json() -> dict[str, Any]:
@@ -52,7 +53,22 @@ def _replace(root: Path, relative: str, old: str, new: str) -> None:
 
 
 def test_the_real_graph_agrees_with_the_real_documents() -> None:
-    assert core_agreement_violations(_real_graph(), _REPO_ROOT) == []
+    graph = _real_graph()
+    sourced = sorted(
+        node_id
+        for node_id, node in graph.nodes.items()
+        if isinstance(node, DispatchNode) and node.prompt_source is not None
+    )
+    assert sourced == [
+        "architecture_review",
+        "business_parity_review",
+        "plan_review",
+        "plan_writer",
+        "ui_review",
+        "ui_writer",
+    ]
+
+    assert core_agreement_violations(graph, _REPO_ROOT) == []
 
 
 def test_an_unknown_run_mode_id_is_found() -> None:
@@ -166,7 +182,109 @@ def test_a_flow_with_no_core_is_found() -> None:
             "flow", "findings-folder-in-core: flow 'other_flow' has no core in CORE_FOR_FLOW"
         ),
         Violation("flow", "cap-matches-core: flow 'other_flow' has no core in CORE_FOR_FLOW"),
+        Violation("flow", "prompt-source-in-core: flow 'other_flow' has no core in CORE_FOR_FLOW"),
     ]
+
+
+def test_a_dispatch_node_with_no_prompt_source_is_found() -> None:
+    graph = _graph_json()
+    del graph["nodes"]["plan_review"]["promptSource"]
+
+    assert core_agreement_violations(load_graph(graph), _REPO_ROOT) == [
+        Violation(
+            "nodes.plan_review.promptSource",
+            "prompt-source-in-core: dispatch node 'plan_review' declares no promptSource",
+        )
+    ]
+
+
+def test_a_malformed_prompt_source_is_found() -> None:
+    graph = _graph_json()
+    graph["nodes"]["plan_review"]["promptSource"] = (
+        "instructions/task_plan_writing_instructions_core.md → ### 4. Spawn `task-plan-reviewer`"
+    )
+
+    assert core_agreement_violations(load_graph(graph), _REPO_ROOT) == [
+        Violation(
+            "nodes.plan_review.promptSource",
+            "prompt-source-in-core: prompt source"
+            " 'instructions/task_plan_writing_instructions_core.md → ### 4. Spawn"
+            " `task-plan-reviewer`' is not '<document> → ## <section> → ### <heading>'",
+        )
+    ]
+
+
+def test_a_prompt_source_in_another_document_is_found() -> None:
+    graph = _graph_json()
+    graph["nodes"]["plan_review"]["promptSource"] = (
+        "instructions/run_mode_instructions.md → ## Loop → ### 4. Spawn `task-plan-reviewer`"
+    )
+
+    assert core_agreement_violations(load_graph(graph), _REPO_ROOT) == [
+        Violation(
+            "nodes.plan_review.promptSource",
+            "prompt-source-in-core: 'instructions/run_mode_instructions.md' is not"
+            " plugin/instructions/task_plan_writing_instructions_core.md",
+        )
+    ]
+
+
+def test_a_prompt_source_section_missing_from_the_core_is_found() -> None:
+    graph = _graph_json()
+    graph["nodes"]["plan_review"]["promptSource"] = (
+        _SOURCE_PREFIX + "## Elsewhere → ### 4. Spawn `task-plan-reviewer`"
+    )
+
+    assert core_agreement_violations(load_graph(graph), _REPO_ROOT) == [
+        Violation(
+            "nodes.plan_review.promptSource",
+            f"prompt-source-in-core: the heading '## Elsewhere' is not in '{_REPO_ROOT / _CORE}'",
+        )
+    ]
+
+
+def test_a_prompt_source_heading_missing_from_its_section_is_found() -> None:
+    graph = _graph_json()
+    graph["nodes"]["plan_review"]["promptSource"] = (
+        _SOURCE_PREFIX + "## UI-test-plan write loop → ### 4. Spawn `task-plan-reviewer`"
+    )
+
+    assert core_agreement_violations(load_graph(graph), _REPO_ROOT) == [
+        Violation(
+            "nodes.plan_review.promptSource",
+            "prompt-source-in-core: the heading '### 4. Spawn `task-plan-reviewer`' is not under"
+            " '## UI-test-plan write loop' in"
+            f" '{_REPO_ROOT / _CORE}'",
+        )
+    ]
+
+
+def test_a_block_count_the_node_does_not_declare_is_found(tmp_path: Path) -> None:
+    _plant(tmp_path)
+    _replace(
+        tmp_path,
+        _CORE,
+        "\n### 5. Parse the reviewer's return",
+        "```\nsecond block\n```\n\n### 5. Parse the reviewer's return",
+    )
+
+    assert core_agreement_violations(_real_graph(), tmp_path) == [
+        Violation(
+            "nodes.plan_review.promptSource",
+            "prompt-source-in-core: '### 4. Spawn `task-plan-reviewer`' carries 2 fenced block(s)"
+            " in plugin/instructions/task_plan_writing_instructions_core.md, node 'plan_review'"
+            " declares 1 prompt(s)",
+        )
+    ]
+
+
+def test_a_prompt_source_moved_to_another_core_heading_with_as_many_blocks_is_clean() -> None:
+    graph = _graph_json()
+    graph["nodes"]["plan_review"]["promptSource"] = (
+        _SOURCE_PREFIX + "## Loop → ### 3. Architecture review (plan-review mode)"
+    )
+
+    assert core_agreement_violations(load_graph(graph), _REPO_ROOT) == []
 
 
 def test_unchanged_planted_documents_yield_no_finding(tmp_path: Path) -> None:

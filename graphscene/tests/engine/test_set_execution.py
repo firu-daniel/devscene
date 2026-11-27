@@ -4,17 +4,20 @@ launches each dispatch concurrently under the optional run timeout, at most
 launched session, settles results in finish order, never cancels a sibling, re-dispatches only the
 retried and undelivered nodes as a new pass, halts through the breaker, and returns the outcomes
 then the held failures; on its own cancellation or a defect out of `run` it cancels and awaits its
-outstanding runs and re-raises (`graphscene.engine.set_execution`).
+outstanding runs and re-raises; a given `before_dispatch` is awaited once per attempt, before
+the run and outside its timeout, and an exception from it propagates like one out of `run`
+(`graphscene.engine.set_execution`).
 
 Each case drives `StubExecutor` or `Gated` through `asyncio.run` with `backoff_seconds=0`.
 `Signals`, `Counter` and `Sink` are in-test classes satisfying `RunSignals`, `DispatchCounter` and
-`LaunchSink` structurally, and `Gated` satisfies `Executor` the same way. Order is asserted only
+`LaunchSink` structurally, and `Gated` satisfies `Executor` the same way. `Hook` is the recording
+`before_dispatch`. Order is asserted only
 through the stub's `started`, `finished` and `cancelled` records, `Gated`'s log and the sink's
 rows, never against the wall clock, and every expected value is hand-written from the script.
 """
 
 import asyncio
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from types import MappingProxyType
 
 import pytest
@@ -30,6 +33,7 @@ from graphscene.engine.attempts import AttemptBook
 from graphscene.engine.breaker import UndeliveredBreaker
 from graphscene.engine.set_execution import execute_set
 from graphscene.model.execution import Completed, Executor, Failed, NodeResult
+from graphscene.model.hooks import BeforeDispatch
 from graphscene.model.run_control import (
     DispatchCounter,
     ExecutionLimits,
@@ -112,7 +116,7 @@ def _dispatch(node: str) -> Dispatch:
     return Dispatch(
         node=node,
         agent=f"{node}-agent",
-        prompt=None,
+        prompt_variant=None,
         counters=MappingProxyType({}),
         round_number=None,
         converging=None,
@@ -133,6 +137,7 @@ def _execute(
     dispatch_cap: int | None = None,
     run_timeout_seconds: float | None = None,
     max_concurrent_dispatches: int = 10,
+    before_dispatch: Callable[[BeforeDispatch], Awaitable[None]] | None = None,
 ) -> SetResult:
     limits = ExecutionLimits(
         max_attempts=max_attempts,
@@ -152,6 +157,7 @@ def _execute(
             breaker=breaker or UndeliveredBreaker(),
             limits=limits,
             failure_outcome=_FAILED,
+            before_dispatch=before_dispatch,
         )
     )
 
@@ -564,3 +570,95 @@ def test_cancelling_execute_set_never_starts_a_queued_dispatch() -> None:
     assert stub.cancelled == ("n1",)
     assert counter.total() == 1
     assert sink.rows == []
+
+
+class Hook:
+    """Records each call with the stub's `started` at that moment; sleeps `delay`, then raises
+    `RuntimeError` for a node in `refuse`."""
+
+    def __init__(
+        self, stub: StubExecutor, *, delay: float = 0.0, refuse: Sequence[str] = ()
+    ) -> None:
+        self._stub = stub
+        self._delay = delay
+        self._refuse = tuple(refuse)
+        self.calls: list[BeforeDispatch] = []
+        self.started_at_call: list[tuple[str, ...]] = []
+
+    async def __call__(self, call: BeforeDispatch) -> None:
+        self.calls.append(call)
+        self.started_at_call.append(self._stub.started)
+        if self._delay > 0:
+            await asyncio.sleep(self._delay)
+        if call.dispatch.node in self._refuse:
+            raise RuntimeError(f"{call.dispatch.node}: hook refused")
+
+
+def test_a_set_of_two_runs_the_hook_once_per_dispatch_with_its_own_seq() -> None:
+    stub = _stub({"a": [ScriptedOutcome("pass")], "b": [ScriptedOutcome("pass")]})
+    hook = Hook(stub)
+    result = _execute(["a", "b"], stub, before_dispatch=hook)
+    assert hook.calls == [
+        BeforeDispatch(_dispatch("a"), 1, 1),
+        BeforeDispatch(_dispatch("b"), 2, 1),
+    ]
+    assert result == SetResult((NodeRecord("a", "pass", None), NodeRecord("b", "pass", None)), None)
+
+
+def test_an_infra_retry_runs_the_hook_again_with_the_next_attempt_and_a_new_seq() -> None:
+    stub = _stub({"a": [ScriptedFailure("infra", "crashed"), ScriptedOutcome("pass")]})
+    hook = Hook(stub)
+    sink = Sink()
+    _execute(["a"], stub, sink=sink, before_dispatch=hook)
+    assert hook.calls == [
+        BeforeDispatch(_dispatch("a"), 1, 1),
+        BeforeDispatch(_dispatch("a"), 2, 2),
+    ]
+    assert [(row.seq, row.attempt) for row in sink.rows] == [(1, 1), (2, 2)]
+
+
+def test_the_hook_is_awaited_before_its_nodes_run_starts() -> None:
+    stub = _stub({"a": [ScriptedOutcome("pass")], "b": [ScriptedOutcome("pass")]})
+    hook = Hook(stub)
+    _execute(["a", "b"], stub, before_dispatch=hook)
+    assert hook.started_at_call == [(), ("a",)]
+    assert stub.started == ("a", "b")
+
+
+def test_a_hook_that_raises_propagates_and_its_dispatch_writes_no_row() -> None:
+    stub = _stub({"a": [ScriptedStall()], "b": [ScriptedOutcome("pass")]})
+    hook = Hook(stub, refuse=["b"])
+    sink = Sink()
+    counter = Counter()
+    with pytest.raises(RuntimeError) as raised:
+        _execute(["a", "b"], stub, sink=sink, counter=counter, before_dispatch=hook)
+    assert str(raised.value) == "b: hook refused"
+    assert stub.started == ("a",)
+    assert stub.cancelled == ("a",)
+    assert counter.total() == 2
+    assert sink.rows == []
+
+
+def test_a_slow_hook_does_not_count_against_the_run_timeout() -> None:
+    stub = _stub({"a": [ScriptedOutcome("pass")]})
+    hook = Hook(stub, delay=0.1)
+    sink = Sink()
+    result = _execute(["a"], stub, sink=sink, run_timeout_seconds=0.05, before_dispatch=hook)
+    assert result == SetResult((NodeRecord("a", "pass", None),), None)
+    assert sink.rows == [Launch(1, "a", "a-agent", 1, 3, Completed("pass"))]
+
+
+def test_with_no_hook_the_rows_are_unchanged() -> None:
+    stub = _stub(
+        {
+            "a": [ScriptedFailure("infra", "crashed"), ScriptedOutcome("pass")],
+            "b": [ScriptedOutcome("pass", delay=0.01)],
+        }
+    )
+    sink = Sink()
+    _execute(["a", "b"], stub, sink=sink, before_dispatch=None)
+    assert sink.rows == [
+        Launch(1, "a", "a-agent", 1, 3, Failed("infra", "crashed")),
+        Launch(2, "b", "b-agent", 1, 3, Completed("pass")),
+        Launch(3, "a", "a-agent", 2, 3, Completed("pass")),
+    ]

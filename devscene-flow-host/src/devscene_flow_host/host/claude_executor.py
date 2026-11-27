@@ -16,10 +16,10 @@ stall's.
   The host's `session_args` and `agent_args` are passed through unchanged, and may carry no
   `EXECUTOR_FLAGS` member, bare or as `<member>=`.
 - Each contract's return schema is checked at construction, so an invalid one never fails mid-run.
-- `dispatch.prompt` is the node's prompt variant (`initial`, `revision`) or `None`, never the text
-  a session is given. The agent prompt comes from the host's `AgentPromptBuilder`, called exactly
-  once per `run` before the launch, with nothing kept between runs; the builder must return the
-  same agent prompt for a repeated run of the same dispatch.
+- `dispatch.prompt_variant` is the node's prompt variant (`initial`, `revision`) or `None`, never
+  the text a session is given. The agent prompt comes from the host's `AgentPromptBuilder`, called
+  exactly once per `run` before the launch, with nothing kept between runs; the builder must
+  return the same agent prompt for a repeated run of the same dispatch.
 - A dispatch whose agent has no contract raises `LookupError`, an exception out of the builder
   propagates unchanged, and a builder that returns no non-blank string raises `ValueError`, each
   before the launch, so nothing is launched and the sink is not called.
@@ -44,12 +44,8 @@ Deliberately not covered:
 - The findings-file presence rule: `host/round_gates.py` → `record_outcome`.
 - Writing the stream (from `SessionUsage.stream`) or a session manifest: the flow host's
   script-driven planning driver's, not yet merged.
-- Building an agent prompt from the instruction core's dispatch blocks and appending answered
-  clarification pairs, as `cli/templates/scripts/lib/planning-node-lib.sh` → `pnl_prompt` and
-  `cli/templates/scripts/lib/planning-driver-lib.sh` do, and refusing a prompt source that
-  cannot be built when the host constructs its builder: the later branch that makes prompt
-  sources and node hooks declarations, not yet merged.
-- Renaming GraphScene's `Dispatch.prompt`: that same later branch's.
+- Building the agent prompt: the harness's builder is `host/agent_prompts.py` →
+  `CorePromptBuilder`.
 """
 
 import time

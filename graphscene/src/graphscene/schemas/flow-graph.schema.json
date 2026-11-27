@@ -1,13 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "flow graph",
-  "description": "The routing of one flow as data, format 4: which agent each node dispatches, where each of its outcomes routes, which round node dispatches a set of gates together, joins them and routes on their recorded verdicts, which counter a revision loop increments and what fires when that counter reaches its cap. The graph declares its own outcomes, bindings and skip predicates under vocabulary, each mapped to an engine primitive, and the engine routes on the primitive, never on the name. This schema checks shape only: that every name a graph uses is one it declares under vocabulary, and that each binding is used where its primitive allows, is checked by graphscene.vocabulary, because JSON Schema cannot take an enum from the document's own data.",
+  "description": "The routing of one flow as data, format 5: which agent each node dispatches, where each of its outcomes routes, which round node dispatches a set of gates together, joins them and routes on their recorded verdicts, which counter a revision loop increments and what fires when that counter reaches its cap. The graph declares its own outcomes, bindings and skip predicates under vocabulary, each mapped to an engine primitive, and the engine routes on the primitive, never on the name. This schema checks shape only: that every name a graph uses is one it declares under vocabulary, and that each binding is used where its primitive allows, is checked by graphscene.vocabulary, because JSON Schema cannot take an enum from the document's own data. A graph may also declare hooks under vocabulary and name them before or after a node: the host runs them in run mode, and GraphScene runs none itself.",
   "type": "object",
   "additionalProperties": false,
   "required": ["formatVersion", "flow", "description", "vocabulary", "start", "entries", "counters", "paths", "reports", "nodes"],
   "properties": {
     "formatVersion": {
-      "const": 4,
+      "const": 5,
       "description": "Version of this graph format. A change to the key set raises it, so a walker never routes on a graph whose shape it does not know."
     },
     "flow": {
@@ -43,6 +43,12 @@
           "propertyNames": { "$ref": "#/definitions/predicateName" },
           "additionalProperties": { "$ref": "#/definitions/predicateDeclaration" },
           "description": "Every predicate a skip entry may name, by name. The host answers each predicate true, false or \"cannot answer\", and \"cannot answer\" refuses: the walk does not guess. The graph never reads configuration; what a predicate means is the host's."
+        },
+        "hooks": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/definitions/hookName" },
+          "additionalProperties": { "type": "object", "additionalProperties": false },
+          "description": "Every hook a node's before or after may name, by name. The host runs each one in run mode; what a hook does is the host's."
         }
       },
       "description": "The names this graph declares and the engine primitive each maps to."
@@ -118,6 +124,17 @@
       "type": "string",
       "pattern": "^[a-z][a-z0-9_-]*$",
       "description": "A key of vocabulary.predicates."
+    },
+    "hookName": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "A key of vocabulary.hooks."
+    },
+    "hookList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/hookName" }
     },
     "reasonName": {
       "type": "string",
@@ -284,6 +301,14 @@
           "propertyNames": { "$ref": "#/definitions/outcomeName" },
           "additionalProperties": { "$ref": "#/definitions/edge" },
           "description": "Where the round routes: on the outcome declaring verdict pass when no gate failed the round, on the one declaring verdict fail otherwise. Exactly these two."
+        },
+        "before": {
+          "$ref": "#/definitions/hookList",
+          "description": "Hooks the host runs in run mode before this node."
+        },
+        "after": {
+          "$ref": "#/definitions/hookList",
+          "description": "Hooks the host runs in run mode after this node."
         }
       }
     },
@@ -293,7 +318,11 @@
       "required": ["kind", "binding"],
       "properties": {
         "kind": { "const": "terminal" },
-        "binding": { "$ref": "#/definitions/bindingName" }
+        "binding": { "$ref": "#/definitions/bindingName" },
+        "before": {
+          "$ref": "#/definitions/hookList",
+          "description": "Hooks the host runs in run mode before this node."
+        }
       }
     },
     "dispatchNode": {
@@ -335,6 +364,19 @@
           "propertyNames": { "$ref": "#/definitions/outcomeName" },
           "additionalProperties": { "$ref": "#/definitions/edge" },
           "description": "Where each outcome routes. An outcome the agent returns that is not listed here is a fault in the graph, never a fallthrough."
+        },
+        "promptSource": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the host reads this node's agent prompt from. GraphScene stores it and reads nothing in it."
+        },
+        "before": {
+          "$ref": "#/definitions/hookList",
+          "description": "Hooks the host runs in run mode before this node."
+        },
+        "after": {
+          "$ref": "#/definitions/hookList",
+          "description": "Hooks the host runs in run mode after this node."
         }
       }
     },

@@ -27,7 +27,7 @@ def _dispatch(node: str, round_number: int | None = None) -> Dispatch:
     return Dispatch(
         node=node,
         agent="reviewer",
-        prompt=None,
+        prompt_variant=None,
         counters=MappingProxyType({}),
         round_number=round_number,
         converging=None,

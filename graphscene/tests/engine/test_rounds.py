@@ -100,7 +100,7 @@ def _gate_dispatch(node: str, number: int = 0) -> Dispatch:
     return Dispatch(
         node=node,
         agent="worker",
-        prompt=None,
+        prompt_variant=None,
         counters=MappingProxyType({"attempt": 0}),
         round_number=number,
         converging=False,
@@ -203,7 +203,7 @@ def test_an_all_verdict_join_closes_fail_with_the_records_in_gates_order_and_det
     assert step == Dispatch(
         node="draft",
         agent="article-writer",
-        prompt="rework",
+        prompt_variant="rework",
         counters=MappingProxyType({"attempt": 1}),
         round_number=1,
         converging=None,
@@ -258,7 +258,7 @@ def test_entering_with_both_verdicts_and_one_fail_closes_fail_and_advances_the_r
     assert step == Dispatch(
         node="draft",
         agent="article-writer",
-        prompt="rework",
+        prompt_variant="rework",
         counters=MappingProxyType({"attempt": 1}),
         round_number=3,
         converging=None,

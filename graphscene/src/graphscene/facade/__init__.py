@@ -32,6 +32,7 @@ from graphscene.model.flow_graph import (
     Edge,
     EndBinding,
     FlowGraph,
+    HookDeclaration,
     InterruptBinding,
     Node,
     NodeKind,
@@ -46,6 +47,15 @@ from graphscene.model.flow_graph import (
     TerminalNode,
     Verdict,
     Vocabulary,
+)
+from graphscene.model.hooks import (
+    AfterDispatch,
+    AfterRound,
+    BeforeDispatch,
+    BeforeEnd,
+    BeforeRound,
+    HookCall,
+    HookHost,
 )
 from graphscene.model.run_control import (
     DispatchCounter,
@@ -108,6 +118,7 @@ __all__: list[str] = [
     "StopBinding",
     "EndBinding",
     "PredicateDeclaration",
+    "HookDeclaration",
     "Vocabulary",
     "CounterDeclaration",
     "OnCapEdge",
@@ -170,4 +181,11 @@ __all__: list[str] = [
     "RunExit",
     "start_run",
     "continue_run",
+    "HookHost",
+    "HookCall",
+    "BeforeDispatch",
+    "AfterDispatch",
+    "BeforeRound",
+    "AfterRound",
+    "BeforeEnd",
 ]

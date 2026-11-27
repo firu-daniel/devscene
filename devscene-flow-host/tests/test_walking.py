@@ -1,4 +1,4 @@
-"""The rule this file exists to enforce: the harness's own format-4 graph,
+"""The rule this file exists to enforce: the harness's own format-5 graph,
 `cli/templates/scripts/flows/task_plan_writing.graph.json`, loads through every library check
 and walks through `open_walker` on records planted under `tmp_path`: phases and the run mode
 decide each skip, an unanswerable predicate refuses without writing, and each branch walks in
@@ -63,7 +63,7 @@ def _graph() -> FlowGraph:
 def _assert_plan_writer(step: object) -> None:
     """A first dispatch has no prompt: the engine sets one only from an arriving edge's `prompt`."""
     assert isinstance(step, Dispatch), step
-    assert (step.node, step.agent, step.prompt) == ("plan_writer", "task-plan-writer", None)
+    assert (step.node, step.agent, step.prompt_variant) == ("plan_writer", "task-plan-writer", None)
 
 
 def test_the_harness_graph_loads_through_every_check() -> None:

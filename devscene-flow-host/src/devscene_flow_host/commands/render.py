@@ -3,9 +3,9 @@
 The rule: every line keeps `flow-walker.sh`'s form — its header's `OUTPUT` grammar, built as its
 `render_block`, `render_set`, `record_in_set`, `take_binding` and `render_terminal` build it —
 in the same keys and the same order, one `\\n`-terminated line each, so a caller parsing bash's
-output reads this unchanged. The findings files a step carries are `HostStep.revision_findings`
-when non-empty, otherwise the `detail` of each `GateRecord` of the action's `closed_round` that
-has one, in that tuple's order. An action or passage type not named here raises `ValueError`
+output reads this unchanged. A dispatch's `prompt:` variant and the findings files a step
+carries are `host/prompt_variants.py`'s, over `HostStep.revision_findings` and the action's
+`closed_round`. An action or passage type not named here raises `ValueError`
 naming it, never a block guessed from its fields; so does a fault bash reports as exit 2.
 The values a step read from disk — a non-round reviewer's `arg.iteration`, a cap's `rounds:`
 counts and its `evidence:` / `evidence.open:` lines — are `HostStep.printed`, read by the host
@@ -24,7 +24,6 @@ from graphscene import (
     DispatchSet,
     End,
     FlowGraph,
-    GateRecord,
     Interrupt,
     LedgerPassage,
     Passage,
@@ -35,6 +34,11 @@ from graphscene import (
 )
 
 from devscene_flow_host.host.paths import render_path
+from devscene_flow_host.host.prompt_variants import (
+    REVISION_VARIANT,
+    dispatch_variant,
+    findings_files,
+)
 from devscene_flow_host.host.refusals import ROUND_FILE_ATTEMPTS, Refusal
 from devscene_flow_host.host.reviewers import round_of_gate, round_of_writer
 from devscene_flow_host.host.round_gates import HostStep, RefusedWait
@@ -113,18 +117,13 @@ def _block(
     if not isinstance(node, DispatchNode):
         raise ValueError(f"graph has no dispatch node '{dispatch.node}'")
     lines = ["action: dispatch", f"node: {dispatch.node}", f"agent: {dispatch.agent}"]
-    variant: str | None = None
-    if node.prompts is not None:
-        variant = dispatch.prompt if dispatch.prompt is not None else "initial"
-        if variant not in node.prompts:
-            raise ValueError(
-                f"graph gives '{dispatch.node}' the unknown prompt variant '{variant}'"
-            )
+    variant = dispatch_variant(node, dispatch)
+    if variant is not None:
         lines.append(f"prompt: {variant}")
     if round_of_writer(graph, dispatch.node) is not None:
         lines.append(f"arg.iteration: {_round_number(dispatch)}")
-    if variant == "revision":
-        files = _findings_files(step, dispatch.closed_round)
+    if variant == REVISION_VARIANT:
+        files = findings_files(step.revision_findings, dispatch.closed_round)
         if not files:
             raise ValueError(
                 f"a revision of '{dispatch.node}' is due and no findings file is recorded"
@@ -168,7 +167,10 @@ def _cap_lines(
     state_dir: str,
     branch: str,
 ) -> list[str]:
-    lines = [f"findings_file: {path}" for path in _findings_files(step, stop.closed_round)]
+    lines = [
+        f"findings_file: {path}"
+        for path in findings_files(step.revision_findings, stop.closed_round)
+    ]
     counts = dict(step.printed.round_counts)
     for counted in stop.round_counts:
         if counted not in counts:
@@ -190,12 +192,6 @@ def _cap_lines(
     if stop.summary is not None:
         lines.append(f"summary: {stop.summary}")
     return lines
-
-
-def _findings_files(step: HostStep, closed_round: tuple[GateRecord, ...]) -> tuple[str, ...]:
-    if step.revision_findings:
-        return step.revision_findings
-    return tuple(record.detail for record in closed_round if record.detail is not None)
 
 
 def _passed(passed: tuple[Passage, ...]) -> list[str]:
