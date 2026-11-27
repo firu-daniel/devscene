@@ -116,7 +116,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_planning_driver_python_
 17. [x] **Task 17** — Act on each `RunExit` — hand-off, pause, halt, park — in `host/run_exits.py` _(layer: devscene-flow-host)_ _(points: 20)_
 18. [x] **Task 18** — Add the `devscene-planning-driver` command over the planning run _(layer: devscene-flow-host)_ _(points: 20)_
 19. [x] **Task 19** — Pin the driver's walk end to end against a fake agent CLI _(layer: devscene-flow-host)_ _(points: 20)_
-20. [ ] **Task 20** — Pin the driver's parks, stops and retries end to end _(layer: devscene-flow-host)_ _(points: 20)_
+20. [x] **Task 20** — Pin the driver's parks, stops and retries end to end _(layer: devscene-flow-host)_ _(points: 20)_
 21. [ ] **Task 21** — Hold every return field the driver reads to its agent's return schema _(layer: devscene-flow-host)_ _(points: 8)_
 22. [ ] **Task 22** — Point the host's docstrings at the run driver and remove their issue numbers _(layer: devscene-flow-host)_ _(points: 10)_
 23. [ ] **Task 23** — Document the planning driver and its command in `devscene-flow-host/README.md` _(layer: devscene-flow-host)_ _(points: 15)_

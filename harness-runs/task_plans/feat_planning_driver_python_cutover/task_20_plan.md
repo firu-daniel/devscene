@@ -42,3 +42,10 @@
 
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_planning_driver_control.py` passes.
 - No case asserts a duration. Ordering is read from the calls log's start and end order only (`.claude/context/devscene-flow-host.md` → `## Tests — what "done" means here`).
+
+**Deviations from plan:**
+- `tests/fake_planning_agent.py` (Task 16's) can neither drop a file nor omit its `result` event. The suite's planted agent CLI does both per scripted call (`touch`, `drop_result`), following Task 19's precedent. The fake is unchanged.
+- *"The state file is not replaced at the `plan_writer` entry"* is observed through a value only the saved walk holds. Between the two drives the test sets `round_numbers.plan_round` to `3` in the saved state, then asserts that the second drive commits `plan-round --round 3`. A fresh start would number that round `0`.
+- For the PAUSE case, the writer's scripted step creates the story index. Without it, the saved revision dispatch is unusable (`planning_entry._required_index`) and the next drive starts fresh at `plan_writer`.
+- The infrastructure retry and the observations bullets share one drive and one case, so the 60-second backoff is spent once.
+- The kill switch is planted in a separate main checkout whose `stateDir` (`state`) differs from the worktree's, so it is shown to be read from the main checkout.
