@@ -32,3 +32,8 @@
 
 - `git grep -nE 'planning-(driver|node|record)-lib|pnl_[a-z_]+|PNL_CORE_BLOCKS' -- docs/flow-graph-walker.md` prints only lines inside an entry marked **Superseded** or naming the code as retired.
 - Every new decision cites a path and symbol that exists after Tasks 1–18, such as `host/run_control.py` → `MAX_CONCURRENT_DISPATCHES`, by symbol and never by line number.
+
+**Deviations from plan:**
+
+- Scope register entry D (`git grep -l -E 'through .flow-walker\.sh|launches it through'`) still lists `docs/flow-graph-walker.md`. Its one hit is `### Item 9`'s sentence that the user-review fix-plan rounds run `flow-walker.sh check-round-file`. That sentence is live and true: `plugin/instructions/user_review_fix_plan_writing_instructions_core.md` still runs that command. It does not say how the planning driver is launched, so it was left unchanged. Entry A still lists the file too, but every hit there is inside an entry carrying a **Superseded** marker or a dated `Changed 2026-11-27` line, or names the code as retired. The `### Item 6` hits sit under that entry's new `Changed 2026-11-27` line, which names both libraries as retired.
+- The new `### Corpus staleness is still dropped` entry cites the task prompt's decision for its deferral. `.claude/context/conventions.md` → `## Documents of record` requires a deferral to cite a numbered roadmap item, and no numbered item or roadmap row exists for the per-run summary follow-up (`ROADMAP.md`, `docs/development.md` → `## 6`, searched for "summary file", "per-run summary" and "corpus staleness"). This task is scoped to this one document, so it adds no row.
