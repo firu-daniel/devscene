@@ -102,7 +102,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_planning_driver_python_
 3. [x] **Task 3** — Retire the `cli` suites that pinned the bash driver's internals _(layer: cli)_ _(points: 10)_
 4. [x] **Task 4** — Retire the bash planning driver's three libraries from the shipped set _(layer: cli)_ _(points: 15)_
 5. [x] **Task 5** — Pin the watcher's side of the driver hand-off against a stub `uv`, locally and in job mode _(layer: cli)_ _(points: 20)_
-6. [ ] **Task 6** — Describe the Python planning driver in the `cli` package's two READMEs _(layer: cli)_ _(points: 8)_
+6. [x] **Task 6** — Describe the Python planning driver in the `cli` package's two READMEs _(layer: cli)_ _(points: 8)_
 7. [ ] **Task 7** — Name the Python planning driver in the planning core and the autonomous flow document _(layer: plugin)_ _(points: 8)_
 8. [ ] **Task 8** — Remove the issue numbers from GraphScene's run loop, set execution and command line _(layer: graphscene)_ _(points: 5)_
 9. [ ] **Task 9** — Read the planning core's dispatch cap, a branch's highest question index and the configured `scriptsDir` as records _(layer: devscene-flow-host)_ _(points: 20)_
