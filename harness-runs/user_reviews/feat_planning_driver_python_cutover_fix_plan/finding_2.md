@@ -71,3 +71,7 @@ Flow host, `devscene-flow-host` layer:
 
   Shape it on `test_an_infrastructure_failure_is_re_dispatched_alone_and_observed`. Also update the module docstring's rule paragraph to name the observation.
 - The edited test files are the unit's own. Run them under that rule.
+
+**Deviations from plan:**
+- `devscene-flow-host/tests/test_run_exits.py` (`NodeSessions(...)` in its fixture class) also constructs `NodeSessions`; the plan did not list it, but the two new required keyword arguments make it fail `mypy` without them. It now passes `backoff_seconds=0, undelivered_limit=3`; its observations and narration are discarded there, so no case changes behaviour.
+- `devscene-flow-host/tests/test_node_sessions.py` → `test_an_undelivered_or_completed_session_adds_no_observation` asserted that an undelivered launch adds no observation, which this fix reverses. It is now `test_a_completed_session_adds_no_observation`; the undelivered cases are the three the plan names.

@@ -28,7 +28,11 @@ The rule:
 - The per-session observations are the retired `pd_reap_one`'s: permission denials are
   `tooling-gap`; a `Failed("infra", …)` with attempts left is `flow-efficiency`; a final `Failed`
   — `agent`, or `infra` on the last attempt, which the walk records as error — is
-  `silent-failure`.
+  `silent-failure`. A `Failed("undelivered", …)` is the retired `pd_undelivered`'s
+  `flow-efficiency` observation, one per undelivered `Launch`, narrated as an immediate
+  re-dispatch or, with a backoff above 0, as backing off first; its consecutive-set count is
+  `Launch.undelivered_strikes + 1`, and the strike that reaches the undelivered limit adds
+  neither, since the set halts and `host/run_exits.py` records the self-pause.
 - The last return document each node's usage carried is kept for `return_document(node)`, and the
   result of each node's last `Launch` for `launch_result(node)`. Each node's `Failed("infra", …)`
   launches are logged as `attempt <k> of <max> (#<seq>): <reason>`, as the retired `pd_reap_one`
@@ -100,11 +104,15 @@ class NodeSessions:
         formatter: str,
         observations: Observations,
         narrate: Callable[[str], None],
+        backoff_seconds: float,
+        undelivered_limit: int,
     ) -> None:
         self._log_path = log_path
         self._formatter = formatter
         self._observations = observations
         self._narrate = narrate
+        self._backoff_seconds = backoff_seconds
+        self._undelivered_limit = undelivered_limit
         self._directory = planning_directory(log_path)
         self._next_seq = _first_seq(self._directory)
         self._pending: dict[str, list[tuple[int, SessionUsage]]] = {}
@@ -231,7 +239,26 @@ class NodeSessions:
                 f"{denials} refused tool call(s)",
             )
         result = launch.result
-        if not isinstance(result, Failed) or result.failure == "undelivered":
+        if not isinstance(result, Failed):
+            return
+        if result.failure == "undelivered":
+            count = launch.undelivered_strikes + 1
+            if count >= self._undelivered_limit:
+                return
+            self._observations.add(
+                "flow-efficiency",
+                "An undelivered planning dispatch was re-dispatched",
+                f"nodes: {launch.node}; consecutive undelivered sets: {count}; "
+                f"reason: {result.reason}",
+                "one re-dispatch per node",
+            )
+            if self._backoff_seconds > 0:
+                self._narrate(
+                    f"undelivered: backing off {self._backoff_seconds:g}s "
+                    f"before re-dispatching {launch.node}"
+                )
+            else:
+                self._narrate(f"undelivered: re-dispatching {launch.node} at once")
             return
         attempts = f"attempt {launch.attempt} of {launch.max_attempts}"
         if result.failure == "infra" and launch.attempt < launch.max_attempts:

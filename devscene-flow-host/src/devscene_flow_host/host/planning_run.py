@@ -190,11 +190,14 @@ async def run_planning(request: PlanningRequest) -> PlanningOutcome:
         pairs=entry.pairs,
     )
     contracts = _contracts(graph, plugin_dir)
+    limits = planning_limits(read_max_total_dispatches(plugin_dir))
     sessions = NodeSessions(
         log_path=request.log_path,
         formatter=request.formatter,
         observations=request.observations,
         narrate=request.narrate,
+        backoff_seconds=limits.backoff_seconds,
+        undelivered_limit=UNDELIVERED_LIMIT,
     )
     claude = ClaudeExecutor(
         command=request.command,
@@ -229,7 +232,6 @@ async def run_planning(request: PlanningRequest) -> PlanningOutcome:
         state_dir=state_dir,
         branch=branch,
     )
-    limits = planning_limits(read_max_total_dispatches(plugin_dir))
 
     exit_: RunExit
     if isinstance(entry, ContinueWalk):

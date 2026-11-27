@@ -1,7 +1,9 @@
 """The rule this file exists to enforce: every stop `devscene-planning-driver` makes is clean,
 checked per set and written to disk before it answers `3` — a STOP file present, the dispatch cap
 and the kill switch send nothing of the next set; a PAUSE raised while a set runs lets the set
-finish and its round commit land; three undelivered sets in a row self-pause — and the next drive
+finish and its round commit land; an undelivered set short of the third is re-dispatched with the
+`An undelivered planning dispatch was re-dispatched` observation and its narration line; three
+undelivered sets in a row self-pause — and the next drive
 continues the saved walk where it stopped rather than starting a fresh one. A node failing for an
 infrastructure reason is re-dispatched alone and the walk goes on; three such failures hold the
 gate as `error`, and the escalation park makes its `plan-round-partial` commit first; an
@@ -500,6 +502,26 @@ def test_three_undelivered_sets_in_a_row_self_pause(tmp_path: Path) -> None:
         " — feat_x paused (script-driven planning)\n- phase: planning (API overload)\n"
     ) in progress, progress
     assert (fixture.repo / "devscene" / "PAUSE_ACK").is_file()
+
+
+def test_an_undelivered_set_is_re_dispatched_and_observed(tmp_path: Path) -> None:
+    fixture = _fixture(tmp_path, steps={"task-plan-reviewer": [{"drop_result": True}]})
+    drive = _drive(fixture)
+    assert (drive.status, drive.stdout) == (0, "consumed:\n"), _show(drive)
+    assert len(_of(drive.calls, "task-plan-reviewer")) == 2, _show(drive)
+    assert "[plan-drive] undelivered: re-dispatching plan_review at once" in drive.log, _show(drive)
+
+    text = _read(fixture, _OBSERVATIONS)
+    redispatch = next(
+        block
+        for block in text.split("\n## ")
+        if block.startswith("An undelivered planning dispatch was re-dispatched\n")
+    )
+    assert (
+        "- **evidence:** nodes: plan_review; consecutive undelivered sets: 1; "
+        "reason: no result event\n"
+    ) in redispatch, redispatch
+    assert "- **cost this run:** one re-dispatch per node\n" in redispatch, redispatch
 
 
 def test_an_infrastructure_failure_is_re_dispatched_alone_and_observed(tmp_path: Path) -> None:

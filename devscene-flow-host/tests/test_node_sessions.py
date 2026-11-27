@@ -6,8 +6,8 @@ there; pairs a `Launch` with a pending usage of its node carrying an equal `resu
 `Launch` whose result is `Failed("infra", …)`, with one carrying a `Completed`; gives a
 timeout `Launch` with no usage a `-` row and no exception; keeps each node's last `Launch` result;
 keeps a node's attempt log only when its last attempt also failed for an infrastructure reason;
-and adds each per-session observation
-category once for its case.
+adds each per-session observation category once for its case; and observes and narrates an
+undelivered `Launch` with its `undelivered_strikes + 1` count, except the one reaching the limit.
 
 Every log path is under `tmp_path`; the formatter is `cat` or `true` on `PATH`; `Observations` is
 a recording stand-in. Every expected value is a literal written from the task plan's contract,
@@ -71,7 +71,7 @@ def _usage(
 
 
 def _sessions(
-    tmp_path: Path, formatter: str = "true"
+    tmp_path: Path, formatter: str = "true", *, backoff_seconds: float = 0
 ) -> tuple[NodeSessions, _RecordingObservations, list[str]]:
     observations = _RecordingObservations()
     narrated: list[str] = []
@@ -80,6 +80,8 @@ def _sessions(
         formatter=formatter,
         observations=observations,
         narrate=narrated.append,
+        backoff_seconds=backoff_seconds,
+        undelivered_limit=3,
     )
     return sessions, observations, narrated
 
@@ -281,11 +283,47 @@ def test_a_final_failure_is_a_silent_failure(tmp_path: Path) -> None:
     ]
 
 
-def test_an_undelivered_or_completed_session_adds_no_observation(tmp_path: Path) -> None:
+def test_a_completed_session_adds_no_observation(tmp_path: Path) -> None:
     sessions, observations, _ = _sessions(tmp_path)
-    undelivered = Failed("undelivered", "no result")
-    sessions.record(_usage("plan_writer", undelivered))
-    sessions.record(Launch(1, "plan_writer", "plan_writer-agent", 1, 3, undelivered))
     sessions.record(_usage("plan_review", Completed("approved")))
-    sessions.record(Launch(2, "plan_review", "plan_review-agent", 1, 3, Completed("approved")))
+    sessions.record(Launch(1, "plan_review", "plan_review-agent", 1, 3, Completed("approved")))
     assert observations.added == []
+
+
+def test_an_undelivered_launch_with_a_backoff_is_observed_and_narrated_as_backing_off(
+    tmp_path: Path,
+) -> None:
+    sessions, observations, narrated = _sessions(tmp_path, backoff_seconds=60)
+    undelivered = Failed("undelivered", "no result event")
+    sessions.record(_usage("plan_review", undelivered))
+    sessions.record(Launch(1, "plan_review", "plan_review-agent", 1, 3, undelivered, 0))
+    assert observations.added == [
+        (
+            "flow-efficiency",
+            "An undelivered planning dispatch was re-dispatched",
+            "nodes: plan_review; consecutive undelivered sets: 1; reason: no result event",
+            "one re-dispatch per node",
+        )
+    ]
+    assert narrated == ["undelivered: backing off 60s before re-dispatching plan_review"]
+
+
+def test_an_undelivered_launch_with_no_backoff_is_narrated_as_re_dispatched_at_once(
+    tmp_path: Path,
+) -> None:
+    sessions, _, narrated = _sessions(tmp_path, backoff_seconds=0)
+    undelivered = Failed("undelivered", "no result event")
+    sessions.record(_usage("plan_review", undelivered))
+    sessions.record(Launch(1, "plan_review", "plan_review-agent", 1, 3, undelivered, 0))
+    assert narrated == ["undelivered: re-dispatching plan_review at once"]
+
+
+def test_the_undelivered_launch_that_reaches_the_limit_is_neither_observed_nor_narrated(
+    tmp_path: Path,
+) -> None:
+    sessions, observations, narrated = _sessions(tmp_path, backoff_seconds=60)
+    undelivered = Failed("undelivered", "no result event")
+    sessions.record(_usage("plan_review", undelivered))
+    sessions.record(Launch(1, "plan_review", "plan_review-agent", 1, 3, undelivered, 2))
+    assert observations.added == []
+    assert narrated == []

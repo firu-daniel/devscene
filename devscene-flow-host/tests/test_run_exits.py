@@ -161,6 +161,8 @@ class _Run:
             formatter="true",
             observations=Observations(),
             narrate=lambda _line: None,
+            backoff_seconds=0,
+            undelivered_limit=3,
         )
 
     def session(
