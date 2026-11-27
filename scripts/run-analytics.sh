@@ -68,8 +68,9 @@
 # alike. Which is which comes only from the driver's manifest,
 # `${stream%.stream.jsonl}.planning/node-sessions.jsonl` — one
 # `{"session_id", "seq", "node"}` line per reaped node session, written by
-# `lib/planning-node-lib.sh` → `pnl_reap` — read when it is a regular,
-# non-symlink file and the stream's name ends `.stream.jsonl`. A line that is
+# the planning driver `devscene-planning-driver` in the shipped
+# `devscene-flow-host` package, which the watcher launches — read when it is a
+# regular, non-symlink file and the stream's name ends `.stream.jsonl`. A line that is
 # not such an object is skipped. Its entries reach mode `sessions` as
 # `--slurpfile nodes`, each node as `<seq>-<node>`; without the file every new
 # session is an engine session. A manifest jq cannot read is an exit 1.

@@ -31,7 +31,8 @@
 # (`hr_test_run_lane_dir`), label
 # pattern and staleness bound (`HR_TEST_RUN_*`) and heartbeat reader
 # (`hr_heartbeat_age`) — syncs the flow walker's Python environment
-# (`hr_flow_host_provision`), places a dropped
+# (`hr_flow_host_provision`) and launches one of its console scripts
+# (`hr_flow_host_missing`, `hr_flow_host_exec`), places a dropped
 # artifact in a working copy and commits and pushes it, and derives the
 # anchors (main checkout, work root, worktree directory, repo slug,
 # state-dir paths) the scripts would otherwise each re-derive slightly
@@ -498,7 +499,7 @@
 # `hr_stream_has_credential`), the push-refusal record's
 # `HR_PUSH_REFUSAL_FILES` and `HR_PUSH_REFUSAL_REASON`
 # (`hr_push_refusals_for_var`), and `HR_REMOTE_WORKFLOWS_DIR` and the flow
-# host's six `HR_FLOW_HOST_*` layout names (assigned at source time).
+# host's `HR_FLOW_HOST_*` names (assigned at source time).
 # Every one of them is assigned
 # before it is read by the function that owns it, so an inherited value from a
 # parent process is overwritten rather than believed — except
@@ -6990,19 +6991,24 @@ EOF
 
 # ---------------------------------------------------------------------------
 # THE FLOW HOST'S ENVIRONMENT — the one route that syncs the walker's Python
-# environment, for `flow-host-provision.sh` and `setup-worktree.sh` alike.
+# environment, for `flow-host-provision.sh` and `setup-worktree.sh` alike, and
+# the one route that launches a console script from it
+# (`hr_flow_host_missing`, `hr_flow_host_exec`), for `flow-walker.sh` and the
+# watcher's planning driver alike.
 #
-# THE LAYOUT NAMES BELOW ARE THE ONE SHELL MIRROR of their owners, set when
-# the library is sourced and read by `hr_flow_host_provision` and by
+# THE NAMES BELOW ARE THE ONE SHELL MIRROR of their owners, set when the
+# library is sourced and read by the functions in this section and by
 # `flow-walker.sh`, which spell none of them. A rename at an owner is an edit
-# here, byte for byte, and `cli/test/flow-host-provision.test.mjs` holds each
-# equal to its owner:
-#   HR_FLOW_HOST_DIRNAME         'python'              mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_DIRNAME
-#   HR_FLOW_HOST_PROJECT         'devscene-flow-host'  mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_PROJECT
-#   HR_FLOW_HOST_GRAPHSCENE      'graphscene'          mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_PACKAGES, its entry other than FLOW_HOST_PROJECT
-#   HR_FLOW_HOST_ENV_DIRNAME     '.venv'               mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_ENV_DIRNAME
-#   HR_FLOW_HOST_SOURCE_DIRNAME  'src'                 mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_SOURCE_DIRNAME
-#   HR_FLOW_HOST_ENV_MARKER      'pyvenv.cfg'          mirrors  cli/src/flowHost/provision.ts → ENV_MARKER_FILE
+# here, byte for byte. `cli/test/flow-host-provision.test.mjs` holds each
+# layout name equal to its owner; `devscene-flow-host`'s own suite holds
+# `HR_FLOW_HOST_DRIVER`:
+#   HR_FLOW_HOST_DIRNAME         'python'                    mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_DIRNAME
+#   HR_FLOW_HOST_PROJECT         'devscene-flow-host'        mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_PROJECT
+#   HR_FLOW_HOST_GRAPHSCENE      'graphscene'                mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_PACKAGES, its entry other than FLOW_HOST_PROJECT
+#   HR_FLOW_HOST_ENV_DIRNAME     '.venv'                     mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_ENV_DIRNAME
+#   HR_FLOW_HOST_SOURCE_DIRNAME  'src'                       mirrors  cli/src/flowHost/layout.ts → FLOW_HOST_SOURCE_DIRNAME
+#   HR_FLOW_HOST_ENV_MARKER      'pyvenv.cfg'                mirrors  cli/src/flowHost/provision.ts → ENV_MARKER_FILE
+#   HR_FLOW_HOST_DRIVER          'devscene-planning-driver'  mirrors  devscene-flow-host/pyproject.toml → [project.scripts], the planning driver's entry
 # ---------------------------------------------------------------------------
 
 HR_FLOW_HOST_DIRNAME='python'
@@ -7011,6 +7017,7 @@ HR_FLOW_HOST_GRAPHSCENE='graphscene'
 HR_FLOW_HOST_ENV_DIRNAME='.venv'
 HR_FLOW_HOST_SOURCE_DIRNAME='src'
 HR_FLOW_HOST_ENV_MARKER='pyvenv.cfg'
+HR_FLOW_HOST_DRIVER='devscene-planning-driver'
 
 # hr_flow_host_provision <source_scripts_dir> <env_scripts_dir> — sync the
 # project `<source_scripts_dir>/python/devscene-flow-host` into the environment
@@ -7057,6 +7064,79 @@ hr_flow_host_provision() {
   fi
   printf 'flow-host: provisioned %s\n' "$environment"
   return 0
+}
+
+# hr_flow_host_missing <scripts_dir_abs> <console_script> — whether the
+# environment `<scripts_dir_abs>/python/.venv` can run `<console_script>`.
+# Checked in this order, the first failure answering:
+#
+#   no `uv` on PATH          stdout `uv is not on PATH`, return 1
+#   no environment marker    stdout `no environment at <env>`, return 1
+#   `bin/<console_script>`   stdout `<env> has no <console_script>`, return 1
+#   not executable
+#   runnable                 prints nothing, return 0
+#
+# The cause is the caller's to wrap in its own refusal line.
+hr_flow_host_missing() {
+  local scripts_dir="${1-}" script="${2-}"
+  local environment="$scripts_dir/$HR_FLOW_HOST_DIRNAME/$HR_FLOW_HOST_ENV_DIRNAME"
+  if ! command -v uv >/dev/null 2>&1; then
+    printf '%s\n' 'uv is not on PATH'
+    return 1
+  fi
+  if [ ! -f "$environment/$HR_FLOW_HOST_ENV_MARKER" ]; then
+    printf 'no environment at %s\n' "$environment"
+    return 1
+  fi
+  if [ ! -x "$environment/bin/$script" ]; then
+    printf '%s has no %s\n' "$environment" "$script"
+    return 1
+  fi
+  return 0
+}
+
+# hr_flow_host_exec <scripts_dir_abs> <console_script> [<arg>…] — unset
+# `VIRTUAL_ENV`, then, with <py> = <scripts_dir_abs>/python:
+#
+#   UV_PROJECT_ENVIRONMENT=<py>/.venv \
+#   PYTHONPATH=<py>/devscene-flow-host/src:<py>/graphscene/src \
+#   PYTHONDONTWRITEBYTECODE=1 \
+#   exec uv run --frozen --no-sync --no-cache --project <py>/devscene-flow-host \
+#     <console_script> <arg>…
+#
+# It never returns: the console script's stdout, stderr and exit status are the
+# caller's answer. Call `hr_flow_host_missing` first.
+#
+# NO ENVIRONMENT VARIABLE CHOOSES WHAT RUNS. The environment, the project and
+# every source path come from `<scripts_dir_abs>`, never from the caller's
+# environment, and an inherited `PYTHONPATH` is replaced: the watcher's planning
+# driver runs outside the sandbox, and an unsandboxed script takes the path of
+# every trust input from a location the session cannot write
+# (`<state_dir>/lessons.md` → `## Trust checks`). Run from the main checkout,
+# everything it executes sits under `<scripts_dir>/python/`, which the
+# generated profile write-protects.
+#
+# THE SHIPPED SOURCES LEAD `PYTHONPATH` because a run copy's environment is
+# built from the main checkout's packages as non-editable wheels; putting the
+# sources beside the caller first makes the code that runs the code `init`
+# shipped there. `PYTHONDONTWRITEBYTECODE=1` keeps Python from writing
+# `__pycache__` beside those sources, which sit in a committed tree no ignore
+# rule covers, so a unit commit's untracked listing would otherwise pick the
+# bytecode up.
+#
+# `--no-cache` IS ALWAYS PASSED because inside Claude Code's sandbox `uv`
+# cannot initialise its cache and exits 2 without it; `--no-sync` builds
+# nothing, so the cache is never needed.
+hr_flow_host_exec() {
+  local scripts_dir="${1-}" script="${2-}"
+  shift 2
+  local py="$scripts_dir/$HR_FLOW_HOST_DIRNAME"
+  local project="$py/$HR_FLOW_HOST_PROJECT"
+  unset VIRTUAL_ENV
+  UV_PROJECT_ENVIRONMENT="$py/$HR_FLOW_HOST_ENV_DIRNAME" \
+    PYTHONPATH="$project/$HR_FLOW_HOST_SOURCE_DIRNAME:$py/$HR_FLOW_HOST_GRAPHSCENE/$HR_FLOW_HOST_SOURCE_DIRNAME" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    exec uv run --frozen --no-sync --no-cache --project "$project" "$script" "$@"
 }
 
 # ---------------------------------------------------------------------------
