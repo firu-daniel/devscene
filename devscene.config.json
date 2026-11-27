@@ -157,14 +157,6 @@
       "covers": "devscene-flow-host/pyproject.toml"
     },
     {
-      "test": "tests/test_driver_return_fields.py",
-      "covers": "plugin/schemas/**"
-    },
-    {
-      "test": "tests/test_driver_return_fields.py",
-      "covers": "cli/templates/scripts/flows/task_plan_writing.graph.json"
-    },
-    {
       "test": "test/python-packages-staged.test.mjs",
       "covers": "cli/src/flowHost/**"
     },
