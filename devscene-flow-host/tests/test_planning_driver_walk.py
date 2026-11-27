@@ -3,8 +3,10 @@ host routes, launching a round's three gates as one concurrent set that closes o
 whose return it cannot take — a return failing its schema, a gate `PASS` whose schema-valid return
 omits the `findings_file` the round needs, no `init` event, or a round file with no verdict line,
 on each of its three attempts — is held as `error` while its siblings run to their end, then
-parks; one whose `init` event merely lacks declared tools is not refused, and is logged. A
-hand-off logs the `tasks_count` the writer's return object carries. This is the rule the retired
+parks; one whose `init` event merely lacks declared tools is not refused, and is logged. A held
+session's `Launch` is paired with its usage record, so the log carries no
+`no usage record for <node> (total-run timeout)` line. A hand-off logs the `tasks_count` the
+writer's return object carries. This is the rule the retired
 `cli/test/planning-driver-walk.test.mjs` held for `pd_drive`, re-said against the Python driver.
 
 Each case runs `main` end to end over `cli/templates/scripts/flows` and a plugin directory built
@@ -399,6 +401,8 @@ def test_a_session_the_driver_cannot_take_is_held_while_its_siblings_finish_then
     assert heading in question, question
     assert question.split(heading, 1)[1].startswith(reason), question
     assert not (drive.repo / "devscene/clarifications/feat_x/question_2.md").exists()
+    timeouts = [line for line in drive.log if "no usage record for" in line]
+    assert timeouts == [], _show(drive)
 
 
 def _withhold_glob_and_grep(plugin: Path) -> None:

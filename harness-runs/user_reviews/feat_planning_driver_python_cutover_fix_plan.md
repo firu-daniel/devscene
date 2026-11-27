@@ -15,7 +15,7 @@
 Each entry resolves to a self-contained `harness-runs/user_reviews/feat_planning_driver_python_cutover_fix_plan/finding_<K>.md` file through its `**Finding K**` reference. The entries are sorted from lowest blast radius to widest refactor. Finding 3 comes before Finding 4 because Finding 4's narration and its control-suite case read the backoff override that Finding 3 adds.
 
 1. [x] **Finding 3** — Drop the two `treeGuards` entries for `tests/test_driver_return_fields.py` from `devscene.config.json`. _(layer: general)_
-2. [ ] **Finding 5** — Assert in the held-session cases of `test_planning_driver_walk.py` that no `no usage record for <node> (total-run timeout)` line reaches the log. _(layer: devscene-flow-host)_
+2. [x] **Finding 5** — Assert in the held-session cases of `test_planning_driver_walk.py` that no `no usage record for <node> (total-run timeout)` line reaches the log. _(layer: devscene-flow-host)_
 3. [ ] **Finding 4** — Restore the test-only `PD_BACKOFF_SECS` override, capped at 60, in `host/run_control.py`, and set it to 0 in the two end-to-end suites. _(layer: devscene-flow-host)_
 4. [ ] **Finding 2** — Restore the undelivered re-dispatch observation and its `[plan-drive]` line. This adds a generic `Launch.undelivered_strikes` field to GraphScene. _(layer: graphscene, devscene-flow-host)_
 5. [ ] **Finding 1** — Stream each node session's output live into its node stream file and, through the formatter, into the run log, with whole lines only. Update `docs/watcher.md`. _(layer: devscene-flow-host, general)_
