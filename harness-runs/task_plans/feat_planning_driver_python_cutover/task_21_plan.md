@@ -5,7 +5,10 @@
 - `tasks_count` from `plan_writer`;
 - `tests_count` and `reason` from `ui_writer`.
 
-**Depends on:** Task 17. `host/run_exits.py` reads those fields from `sessions.return_document(node)`, each field name a module-level `Final` constant there.
+**Depends on:** Task 17. `host/run_exits.py` reads those fields from `sessions.return_document(node)` and exports, as module-level `Final`s:
+- nodes `PLAN_WRITER_NODE` (`"plan_writer"`) and `UI_WRITER_NODE` (`"ui_writer"`), and `QUESTION_NODES = (PLAN_WRITER_NODE, UI_WRITER_NODE)`;
+- fields `QUESTIONS_FIELD`, `TASKS_COUNT_FIELD`, `TESTS_COUNT_FIELD` and `REASON_FIELD`;
+- `RETURN_FIELD_READS: tuple[tuple[str, str], ...]`, every `(node, field)` pair the module reads: `(PLAN_WRITER_NODE, QUESTIONS_FIELD)`, `(UI_WRITER_NODE, QUESTIONS_FIELD)`, `(PLAN_WRITER_NODE, TASKS_COUNT_FIELD)`, `(UI_WRITER_NODE, TESTS_COUNT_FIELD)`, `(UI_WRITER_NODE, REASON_FIELD)`.
 
 **Where this task stops.** It reads and asserts. It changes no schema and no driver code.
 
@@ -15,7 +18,7 @@
 
 **Work:**
 
-- [ ] **The pairs.** `_READS: Final` is a tuple of `(node, field)` pairs, built from `host/run_exits.py`'s field constants and node names, imported rather than retyped. Each node's agent comes from the real planning graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, read-only, through `graphscene.load_graph_file`.
+- [ ] **The pairs.** `_READS: Final = run_exits.RETURN_FIELD_READS`, imported from `devscene_flow_host.host.run_exits` rather than retyped; the suite also asserts `_READS` is non-empty and that every `QUESTIONS_FIELD` pair's node is in `QUESTION_NODES`. Each node's agent comes from the real planning graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, read-only, through `graphscene.load_graph_file`.
 - [ ] **The check.** For each pair, read `plugin/schemas/<agent>.return.json` read-only, and assert that some `oneOf` variant declares `field` under its `properties`. The failure message names the node, the agent and the field.
 - [ ] **The planted cases and the header.** Two planted cases under `tmp_path`:
   - a schema declaring the field passes the check;

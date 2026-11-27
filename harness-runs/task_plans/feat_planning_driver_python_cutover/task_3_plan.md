@@ -26,7 +26,8 @@
   - remove the header's *"`pd_ret_field` call in the driver"* clause;
   - keep every other case unchanged.
   - The driver's field reads are pinned again by Task 21, against the Python driver's names.
-- [ ] Record where each behaviour goes, in the commit body's record line. The commit step builds the subject. Two suites' behaviours go nowhere, for the reasons given here:
+
+**Where each retired behaviour goes.** This map is the record. It lives in this file, which the plan commit lands, and the implementer writes it nowhere else: the commit step builds the subject and the body. Two suites' behaviours go nowhere, for the reasons given here:
   - `planning-subjects-drift` held `prl_*`'s subjects to `ucl_artifact`. The Python driver commits through `commit-on-branch.sh --artifact <kind>`, so the wrapper's own table is the one source, and no drift is possible.
   - `planning-node-lib`'s `PNL_CORE_BLOCKS` agreement is already held by `devscene-flow-host/tests/test_core_agreement.py`, check 10 (the graph's `promptSource` against the core).
   - The session judgement and the per-agent flags are pinned by `devscene-flow-host`'s `test_session_stream.py`, and by Task 14's `test_agent_flags.py`.

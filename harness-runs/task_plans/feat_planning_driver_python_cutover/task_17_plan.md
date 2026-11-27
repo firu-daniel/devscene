@@ -22,9 +22,16 @@
 - `devscene-flow-host/src/devscene_flow_host/host/run_exits.py` (new)
 - `devscene-flow-host/tests/test_run_exits.py` (new)
 
+**The return fields it reads, exported for Task 21.** Every return-document key and every node this module reads one from is a module-level `Final` of `host/run_exits.py`, and the code reads through these names, never an inline key. Task 21 imports them:
+  - nodes: `PLAN_WRITER_NODE: Final = "plan_writer"`, `UI_WRITER_NODE: Final = "ui_writer"` — the planning graph's two `<ask>`-bound nodes (`cli/templates/scripts/flows/task_plan_writing.graph.json`, the `questions` outcomes bound to `<ask>`);
+  - fields: `QUESTIONS_FIELD: Final = "questions"`, `TASKS_COUNT_FIELD: Final = "tasks_count"`, `TESTS_COUNT_FIELD: Final = "tests_count"`, `REASON_FIELD: Final = "reason"`;
+  - `QUESTION_NODES: Final = (PLAN_WRITER_NODE, UI_WRITER_NODE)` — the nodes whose `Interrupt` it reads `QUESTIONS_FIELD` from;
+  - `RETURN_FIELD_READS: Final[tuple[tuple[str, str], ...]]` — every `(node, field)` read the module makes: `(PLAN_WRITER_NODE, QUESTIONS_FIELD)`, `(UI_WRITER_NODE, QUESTIONS_FIELD)`, `(PLAN_WRITER_NODE, TASKS_COUNT_FIELD)`, `(UI_WRITER_NODE, TESTS_COUNT_FIELD)`, `(UI_WRITER_NODE, REASON_FIELD)`. A read added to the module is added here in the same change.
+  - The `Interrupt` body reads `QUESTIONS_FIELD` from `sessions.return_document(exit.node)`; an `exit.node` outside `QUESTION_NODES` is narrated and parked with the not-captured body, never read.
+
 **Work:**
 
-- [ ] **The entry point.** `async act_on_exit(outcome, *, graph, repo_root, main_repo, state_dir, branch, wrapper, observations, narrate, now) -> StopKind`. `graph` is the loaded planning `FlowGraph`. `StopKind` is `Literal["handed_off", "park", "pause", "undelivered", "stop", "cap", "kill_switch"]`.
+- [ ] **The entry point**, with the return-field constants above defined first. `async act_on_exit(outcome, *, graph, repo_root, main_repo, state_dir, branch, wrapper, observations, narrate, now) -> StopKind`. `graph` is the loaded planning `FlowGraph`. `StopKind` is `Literal["handed_off", "park", "pause", "undelivered", "stop", "cap", "kill_switch"]`.
   - **`done` and `End`** return `handed_off`. For an `End`, first narrate the Done-summary lines `pd_handoff` logged, in its order:
     - `CONVERGED: <branch> — planning handed off`;
     - `tasks_count: <plan_writer's tasks_count, or not reported in this session>`;
@@ -65,7 +72,8 @@
   - the `<ask>` park's exact question file for two questions, matching the retired `planning-driver-control` case *"questions park as one Q<k> section per returned item"*;
   - the `<escalate>` park with a held gate committing the partial first;
   - one with no held gate committing nothing;
-  - `Refused`'s park.
+  - `Refused`'s park;
+  - `QUESTION_NODES` equals the set of nodes in the real planning graph with an outcome bound to `<ask>`, so a new `<ask>` node cannot go unread.
 
 **Verification:**
 
