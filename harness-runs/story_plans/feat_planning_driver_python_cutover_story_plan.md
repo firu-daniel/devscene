@@ -121,7 +121,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_planning_driver_python_
 22. [x] **Task 22** — Point the host's docstrings at the run driver and remove their issue numbers _(layer: devscene-flow-host)_ _(points: 10)_
 23. [x] **Task 23** — Document the planning driver and its command in `devscene-flow-host/README.md` _(layer: devscene-flow-host)_ _(points: 15)_
 24. [x] **Task 24** — Record the cutover in `docs/flow-graph-walker.md` _(layer: general)_ _(points: 20)_
-25. [ ] **Task 25** — Bring the watcher, architecture, CLI and structured-return documents to the Python driver _(layer: general)_ _(points: 15)_
+25. [x] **Task 25** — Bring the watcher, architecture, CLI and structured-return documents to the Python driver _(layer: general)_ _(points: 15)_
 
 ## Scope register
 
