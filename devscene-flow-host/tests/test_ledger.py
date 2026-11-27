@@ -4,7 +4,8 @@ are used only when no ledger exists, and neither answering is a `RunModeUnresolv
 reason — and `parse_skipped` reads a list as `fw_id_in_list` does; and `read_planning_marks` reads
 the `P1`-`P3` marks as `pd_ledger_read` does — a line opening with a mark and `<entry>.` sets the
 mark, the last such line wins, no such line is `None`, and an unreadable ledger is a `RecordError`
-with one exact message.
+with one exact message; and `read_run_mode_entries` reads the `## Run mode` section's `- skipped:`
+value and `- ignored:` entries as `pd_run_mode_line` did, and nothing outside that section.
 
 Every ledger is planted under `tmp_path`; every expected value is written from the rules in the
 task plan, never taken from the output of the code under test.
@@ -20,13 +21,16 @@ import pytest
 
 from devscene_flow_host.records.errors import RecordError
 from devscene_flow_host.records.ledger import (
+    IgnoredEntry,
     PlanningMarks,
     RunMode,
+    RunModeEntries,
     RunModeUnresolved,
     ledger_path,
     parse_skipped,
     read_planning_marks,
     read_run_mode,
+    read_run_mode_entries,
 )
 
 _NO_SKIPPED_LINE = RunModeUnresolved(
@@ -170,4 +174,88 @@ def test_a_ledger_that_is_not_utf8_raises_for_the_planning_marks(tmp_path: Path)
     path = _plant(tmp_path, b"- [x] P1. \xff\n")
     with pytest.raises(RecordError) as raised:
         read_planning_marks(tmp_path, "state", "feat_x")
+    assert str(raised.value) == f"{path}: not UTF-8 text"
+
+
+def test_the_skipped_value_is_cut_before_its_comment(tmp_path: Path) -> None:
+    _plant(tmp_path, b"## Run mode\n- skipped: qa, docs   (from the task prompt)\n")
+    assert read_run_mode_entries(tmp_path, "state", "feat_x") == RunModeEntries(
+        skipped="qa, docs", ignored=()
+    )
+
+
+def test_a_skipped_none_is_read_as_none(tmp_path: Path) -> None:
+    _plant(tmp_path, b"## Run mode\n- skipped: none\n")
+    assert read_run_mode_entries(tmp_path, "state", "feat_x") == RunModeEntries(
+        skipped="none", ignored=()
+    )
+
+
+def test_no_skipped_line_reads_as_empty(tmp_path: Path) -> None:
+    _plant(tmp_path, b"## Run mode\n- phases: qa=true\n")
+    assert read_run_mode_entries(tmp_path, "state", "feat_x") == RunModeEntries(
+        skipped="", ignored=()
+    )
+
+
+def test_a_later_skipped_line_overwrites_an_earlier_one(tmp_path: Path) -> None:
+    _plant(tmp_path, b"## Run mode\n- skipped: qa\n- skipped: docs\n")
+    assert read_run_mode_entries(tmp_path, "state", "feat_x") == RunModeEntries(
+        skipped="docs", ignored=()
+    )
+
+
+def test_ignored_entries_split_at_the_last_reason(tmp_path: Path) -> None:
+    _plant(
+        tmp_path,
+        b"## Run mode\n"
+        b"- skipped: none\n"
+        b"- ignored: skip the (whole) review (not a directive (see run-mode))\n"
+        b"- ignored: go fast\n",
+    )
+    assert read_run_mode_entries(tmp_path, "state", "feat_x") == RunModeEntries(
+        skipped="none",
+        ignored=(
+            IgnoredEntry(
+                text="skip the (whole) review (not a directive",
+                reason="see run-mode))",
+            ),
+            IgnoredEntry(text="go fast", reason=None),
+        ),
+    )
+
+
+def test_lines_under_a_later_heading_are_not_read(tmp_path: Path) -> None:
+    _plant(
+        tmp_path,
+        b"- skipped: early\n"
+        b"## Run mode\n"
+        b"- skipped: qa\n"
+        b"## Planning\n"
+        b"- skipped: docs\n"
+        b"- ignored: late\n",
+    )
+    assert read_run_mode_entries(tmp_path, "state", "feat_x") == RunModeEntries(
+        skipped="qa", ignored=()
+    )
+
+
+def test_a_crlf_ledger_is_read_without_its_carriage_returns(tmp_path: Path) -> None:
+    _plant(tmp_path, b"## Run mode\r\n- skipped: qa\r\n- ignored: go fast (vague)\r\n")
+    assert read_run_mode_entries(tmp_path, "state", "feat_x") == RunModeEntries(
+        skipped="qa", ignored=(IgnoredEntry(text="go fast", reason="vague)"),)
+    )
+
+
+def test_a_missing_ledger_raises_for_the_run_mode_entries(tmp_path: Path) -> None:
+    path = tmp_path / "state" / "flow_progress" / "feat_x_progress.md"
+    with pytest.raises(RecordError) as raised:
+        read_run_mode_entries(tmp_path, "state", "feat_x")
+    assert str(raised.value) == f"the flow-progress ledger '{path}' does not exist"
+
+
+def test_a_ledger_that_is_not_utf8_raises_for_the_run_mode_entries(tmp_path: Path) -> None:
+    path = _plant(tmp_path, b"## Run mode\n- skipped: \xff\n")
+    with pytest.raises(RecordError) as raised:
+        read_run_mode_entries(tmp_path, "state", "feat_x")
     assert str(raised.value) == f"{path}: not UTF-8 text"

@@ -106,7 +106,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_planning_driver_python_
 7. [x] **Task 7** — Name the Python planning driver in the planning core and the autonomous flow document _(layer: plugin)_ _(points: 8)_
 8. [x] **Task 8** — Remove the issue numbers from GraphScene's run loop, set execution and command line _(layer: graphscene)_ _(points: 5)_
 9. [x] **Task 9** — Read the planning core's dispatch cap, a branch's highest question index and the configured `scriptsDir` as records _(layer: devscene-flow-host)_ _(points: 20)_
-10. [ ] **Task 10** — Write the driver's park and pause files in `host/run_records.py`, and read the ledger's run-mode entries _(layer: devscene-flow-host)_ _(points: 20)_
+10. [x] **Task 10** — Write the driver's park and pause files in `host/run_records.py`, and read the ledger's run-mode entries _(layer: devscene-flow-host)_ _(points: 20)_
 11. [ ] **Task 11** — Collect, flush and commit the driver's improvement observations in `host/observations.py` _(layer: devscene-flow-host)_ _(points: 15)_
 12. [ ] **Task 12** — Answer STOP, PAUSE and the dispatch counter, and fix the planning limits, in `host/run_control.py` _(layer: devscene-flow-host)_ _(points: 10)_
 13. [ ] **Task 13** — Record each node session's stream, manifest line, formatted log and session-table row in `host/node_sessions.py` _(layer: devscene-flow-host)_ _(points: 20)_
