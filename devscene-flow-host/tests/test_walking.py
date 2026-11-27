@@ -63,7 +63,7 @@ def _graph() -> FlowGraph:
 def _assert_plan_writer(step: object) -> None:
     """A first dispatch has no prompt: the engine sets one only from an arriving edge's `prompt`."""
     assert isinstance(step, Dispatch), step
-    assert (step.node, step.agent, step.prompt) == ("plan_writer", "task-plan-writer", None)
+    assert (step.node, step.agent, step.prompt_variant) == ("plan_writer", "task-plan-writer", None)
 
 
 def test_the_harness_graph_loads_through_every_check() -> None:

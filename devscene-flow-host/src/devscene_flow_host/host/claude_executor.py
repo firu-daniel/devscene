@@ -16,10 +16,10 @@ stall's.
   The host's `session_args` and `agent_args` are passed through unchanged, and may carry no
   `EXECUTOR_FLAGS` member, bare or as `<member>=`.
 - Each contract's return schema is checked at construction, so an invalid one never fails mid-run.
-- `dispatch.prompt` is the node's prompt variant (`initial`, `revision`) or `None`, never the text
-  a session is given. The agent prompt comes from the host's `AgentPromptBuilder`, called exactly
-  once per `run` before the launch, with nothing kept between runs; the builder must return the
-  same agent prompt for a repeated run of the same dispatch.
+- `dispatch.prompt_variant` is the node's prompt variant (`initial`, `revision`) or `None`, never
+  the text a session is given. The agent prompt comes from the host's `AgentPromptBuilder`, called
+  exactly once per `run` before the launch, with nothing kept between runs; the builder must
+  return the same agent prompt for a repeated run of the same dispatch.
 - A dispatch whose agent has no contract raises `LookupError`, an exception out of the builder
   propagates unchanged, and a builder that returns no non-blank string raises `ValueError`, each
   before the launch, so nothing is launched and the sink is not called.
@@ -46,9 +46,6 @@ Deliberately not covered:
   script-driven planning driver's, not yet merged.
 - Building the agent prompt: the harness's builder is `host/agent_prompts.py` →
   `CorePromptBuilder`.
-- Renaming GraphScene's `Dispatch.prompt`: it is kept as GraphScene names it. Renaming it raises
-  GraphScene's walk-state document version, refusing every saved walk, and changes `graphscene`
-  and this package in one change.
 """
 
 import time

@@ -144,7 +144,7 @@ def _dispatch(node: str) -> Dispatch:
     return Dispatch(
         node=node,
         agent=f"{node}-agent",
-        prompt=None,
+        prompt_variant=None,
         counters={},
         round_number=0,
         converging=None,

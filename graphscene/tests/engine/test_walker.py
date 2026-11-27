@@ -121,7 +121,7 @@ def _walker(store: MemoryStore, graph: FlowGraph | None = None) -> Walker:
 
 
 def _writer(
-    prompt: str | None,
+    prompt_variant: str | None,
     attempt: int,
     number: int,
     closed_round: tuple[GateRecord, ...] = (),
@@ -130,7 +130,7 @@ def _writer(
     return Dispatch(
         node="draft",
         agent="article-writer",
-        prompt=prompt,
+        prompt_variant=prompt_variant,
         counters=MappingProxyType({"attempt": attempt}),
         round_number=number,
         converging=None,
@@ -143,7 +143,7 @@ def _gate_dispatch(node: str, number: int = 0) -> Dispatch:
     return Dispatch(
         node=node,
         agent="worker",
-        prompt=None,
+        prompt_variant=None,
         counters=MappingProxyType({"attempt": 0}),
         round_number=number,
         converging=False,

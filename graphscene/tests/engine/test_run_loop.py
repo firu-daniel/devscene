@@ -179,7 +179,7 @@ def _writer() -> Dispatch:
     return Dispatch(
         node="draft",
         agent="article-writer",
-        prompt=None,
+        prompt_variant=None,
         counters=MappingProxyType({"attempt": 0}),
         round_number=0,
         converging=None,
@@ -192,7 +192,7 @@ def _gate_dispatch(node: str) -> Dispatch:
     return Dispatch(
         node=node,
         agent="worker",
-        prompt=None,
+        prompt_variant=None,
         counters=MappingProxyType({"attempt": 0}),
         round_number=0,
         converging=False,

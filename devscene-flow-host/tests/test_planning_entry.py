@@ -142,7 +142,7 @@ def _revision_of_plan_writer(walker: Walker, findings: str) -> Dispatch:
     walker.next("PASS", "architecture_review", _ARCH_REVIEW_0)
     step = walker.next("FAIL", "plan_review", findings)
     assert isinstance(step, Dispatch), step
-    assert (step.node, step.prompt) == ("plan_writer", "revision")
+    assert (step.node, step.prompt_variant) == ("plan_writer", "revision")
     return step
 
 
@@ -182,7 +182,7 @@ def test_an_answered_park_after_a_revision_resumes_the_writer_with_revision(
     assert _decide(walker, tmp_path) == ContinueWalk("answered", (pair,))
     resumed = walker.next("answered")
     assert isinstance(resumed, Dispatch), resumed
-    assert (resumed.node, resumed.prompt) == ("plan_writer", "revision")
+    assert (resumed.node, resumed.prompt_variant) == ("plan_writer", "revision")
 
 
 def test_a_parked_walk_with_no_pairs_falls_through_to_a_start(tmp_path: Path) -> None:

@@ -83,7 +83,7 @@ def _gate_dispatch(node: str, agent: str) -> Dispatch:
     return Dispatch(
         node=node,
         agent=agent,
-        prompt=None,
+        prompt_variant=None,
         counters={"iteration": 0},
         round_number=0,
         converging=False,
@@ -201,7 +201,7 @@ def test_a_refused_file_waits_for_its_siblings_then_is_dispatched_alone(tmp_path
     failed = _file(tmp_path, "state/fail", FAIL_BODY)
     step = _record(walker, tmp_path, "FAIL", "plan_review", failed)
     assert isinstance(step.action, Dispatch), step
-    assert (step.action.node, step.action.prompt, step.action.round_number) == (
+    assert (step.action.node, step.action.prompt_variant, step.action.round_number) == (
         "plan_writer",
         "revision",
         1,
@@ -419,7 +419,7 @@ def test_a_non_round_reviewers_findings_file_is_kept_for_the_revision(tmp_path: 
         Dispatch(
             node="ui_writer",
             agent="ui-tests-plan-writer",
-            prompt="revision",
+            prompt_variant="revision",
             counters={"iteration": 1},
             round_number=None,
             converging=None,
@@ -463,7 +463,7 @@ def test_a_closing_round_clears_an_earlier_kept_file(tmp_path: Path) -> None:
         assert waited.revision_findings == ("state/answers.md",)
     step = _record(walker, tmp_path, "FAIL", "plan_review", _file(tmp_path, _PLAN, FAIL_BODY))
     assert isinstance(step.action, Dispatch), step
-    assert (step.action.node, step.action.prompt) == ("plan_writer", "revision")
+    assert (step.action.node, step.action.prompt_variant) == ("plan_writer", "revision")
     assert step.action.passed == (RoundPassage("plan_round", 0, "fail"),)
     assert step.revision_findings == ()
     assert not _kept_file(tmp_path).exists()

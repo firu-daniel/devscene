@@ -1,8 +1,8 @@
 """The rule this file exists to enforce: a node declaring no `prompts` runs no variant; one that
-does runs the dispatch's `prompt`, or `initial` when it carries none; `dispatch_variant` refuses a
-variant the node does not declare, naming the node and the variant, while `declared_variant` checks
-nothing; and a revision's findings files are the recorded ones when there are any, otherwise the
-closed round's gate details that exist, in order.
+does runs the dispatch's `prompt_variant`, or `initial` when it carries none; `dispatch_variant`
+refuses a variant the node does not declare, naming the node and the variant, while
+`declared_variant` checks nothing; and a revision's findings files are the recorded ones when
+there are any, otherwise the closed round's gate details that exist, in order.
 
 Every expected value is a literal written from that rule, never taken from the output of the code
 under test.
@@ -35,11 +35,11 @@ def _node(prompts: tuple[str, ...] | None) -> DispatchNode:
     )
 
 
-def _dispatch(prompt: str | None) -> Dispatch:
+def _dispatch(prompt_variant: str | None) -> Dispatch:
     return Dispatch(
         node="plan_writer",
         agent="task-plan-writer",
-        prompt=prompt,
+        prompt_variant=prompt_variant,
         counters=MappingProxyType({}),
         round_number=None,
         converging=None,

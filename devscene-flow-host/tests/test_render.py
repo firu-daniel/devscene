@@ -78,7 +78,7 @@ def _text(*lines: str) -> str:
 
 
 def _plan_writer(
-    prompt: str | None,
+    prompt_variant: str | None,
     iteration: int,
     round_number: int,
     closed_round: tuple[GateRecord, ...] = (),
@@ -87,7 +87,7 @@ def _plan_writer(
     return Dispatch(
         node="plan_writer",
         agent="task-plan-writer",
-        prompt=prompt,
+        prompt_variant=prompt_variant,
         counters={"iteration": iteration},
         round_number=round_number,
         converging=None,
@@ -100,7 +100,7 @@ def _gate(node: str, agent: str, iteration: int, round_number: int, converging: 
     return Dispatch(
         node=node,
         agent=agent,
-        prompt=None,
+        prompt_variant=None,
         counters={"iteration": iteration},
         round_number=round_number,
         converging=converging,
@@ -277,7 +277,7 @@ def test_a_ui_writer_revision_carries_the_kept_findings_file(tmp_path: Path) -> 
     dispatch = Dispatch(
         node="ui_writer",
         agent="ui-tests-plan-writer",
-        prompt="revision",
+        prompt_variant="revision",
         counters={"iteration": 1},
         round_number=None,
         converging=None,
@@ -298,7 +298,7 @@ def test_a_ui_writer_revision_carries_the_kept_findings_file(tmp_path: Path) -> 
 _UI_REVIEW: Final = Dispatch(
     node="ui_review",
     agent="ui-tests-plan-reviewer",
-    prompt=None,
+    prompt_variant=None,
     counters={"iteration": 1},
     round_number=None,
     converging=None,

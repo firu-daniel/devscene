@@ -73,7 +73,7 @@ bash scripts/python-service.sh --package graphscene test tests/test_layers.py
 Every command loads the graph first and prints one JSON document on stdout as one ASCII-only line. Both documents are encoded in `adapters`, never by the command module:
 
 - **The check document** (`adapters/check_json.py`), printed by `check` and by any command whose graph is rejected: `{"stage", "violations": [{"path", "check", "reason"}]}`. A graph that loaded is `{"stage": null, "violations": []}`. `path` is the dotted path, `""` for the root. `check` is set only for stage `static`, from the check id the reason opens with, and `reason` is then the text after it; otherwise `check` is `null` and `reason` is verbatim.
-- **The step document** (`adapters/walk_json.py`), printed by `start`, `next` and `current`: the action as the walk-state document encodes `pending`, or `{"kind": "refused", "reason"}`.
+- **The step document** (`adapters/walk_json.py`), printed by `start`, `next` and `current`: the action as the walk-state document encodes `pending`, or `{"kind": "refused", "reason"}`. A dispatch's `prompt_variant` is the prompt variant last routed to the node (`WalkState.prompts`), or `null`; it is never the text of an agent prompt.
 
 **Predicate answers come only through repeated `--answer <predicate>=true|false`**, one per predicate. A predicate left unanswered is refused by the walk, never guessed.
 

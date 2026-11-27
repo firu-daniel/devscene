@@ -1,5 +1,5 @@
 """The rule this file exists to enforce: `graphscene.adapters.walk_json` turns a `WalkState` into
-its version-1 JSON document and back with no loss, and refuses a malformed document with a
+its version-2 JSON document and back with no loss, and refuses a malformed document with a
 `ValueError` naming the dotted path and the reason; its step document of an action is that
 action's `pending` encoding in the state document and of a `Refused` is
 `{"kind": "refused", "reason": …}`; and it reads a round-resume document into a `RoundResume`,
@@ -50,7 +50,7 @@ _PASSED: tuple[Passage, ...] = (
 _DISPATCH_SET_FIELDS = Dispatch(
     node="draft",
     agent="writer",
-    prompt="revise",
+    prompt_variant="revise",
     counters=MappingProxyType({"rounds": 2, "drafts": 1}),
     round_number=2,
     converging=True,
@@ -60,7 +60,7 @@ _DISPATCH_SET_FIELDS = Dispatch(
 _DISPATCH_NULL_FIELDS = Dispatch(
     node="review",
     agent="reviewer",
-    prompt=None,
+    prompt_variant=None,
     counters=MappingProxyType({}),
     round_number=None,
     converging=None,
@@ -70,7 +70,7 @@ _DISPATCH_NULL_FIELDS = Dispatch(
 _DISPATCH_FALSE = Dispatch(
     node="parity",
     agent="parity_reviewer",
-    prompt=None,
+    prompt_variant=None,
     counters=MappingProxyType({"rounds": 1}),
     round_number=1,
     converging=False,
@@ -177,7 +177,7 @@ def test_every_state_round_trips_with_no_loss(
 def test_the_document_is_indented_json_with_a_trailing_newline() -> None:
     text = state_to_json(_state("done", End("done", "finish", (("plan", "written"),), ()), None))
     assert text.endswith("}\n")
-    assert text.startswith('{\n "version": 1,\n "flow": "plan",\n')
+    assert text.startswith('{\n "version": 2,\n "flow": "plan",\n')
     assert '"reports": [\n   [\n    "plan",\n    "written"\n   ]\n  ]' in text
 
 
@@ -198,7 +198,7 @@ def test_the_decoded_state_is_immutable() -> None:
 
 
 _DOCUMENT = """{
- "version": 1,
+ "version": 2,
  "flow": "plan",
  "node": "review_round",
  "awaiting": "set",
@@ -211,7 +211,7 @@ _DOCUMENT = """{
     "kind": "dispatch",
     "node": "review",
     "agent": "reviewer",
-    "prompt": "second",
+    "prompt_variant": "second",
     "counters": {"rounds": 2},
     "round_number": 2,
     "converging": false,
@@ -271,7 +271,7 @@ def test_a_hand_written_document_decodes_field_by_field() -> None:
     dispatch = pending.dispatches[0]
     assert dispatch.node == "review"
     assert dispatch.agent == "reviewer"
-    assert dispatch.prompt == "second"
+    assert dispatch.prompt_variant == "second"
     assert dict(dispatch.counters) == {"rounds": 2}
     assert dispatch.round_number == 2
     assert dispatch.converging is False
@@ -302,15 +302,16 @@ _DISPATCH: dict[str, object] = json.loads(_DOCUMENT)["pending"]["dispatches"][0]
 _REFUSALS: tuple[tuple[str, str, str], ...] = (
     (
         "parse-failure",
-        '{"version": 1,',
+        '{"version": 2,',
         "(root): not valid JSON: Expecting property name enclosed in double quotes"
         " (line 1, column 15)",
     ),
     ("root-not-object", "[]", "(root): expected object"),
     ("version-missing", _planted(version=...), "version: missing key"),
-    ("version-2", _planted(version=2), "version: unsupported version 2"),
+    ("version-1", _planted(version=1), "version: unsupported version 1"),
+    ("version-3", _planted(version=3), "version: unsupported version 3"),
     ("version-true", _planted(version=True), "version: unsupported version true"),
-    ("version-float", _planted(version=1.0), "version: unsupported version 1.0"),
+    ("version-float", _planted(version=2.0), "version: unsupported version 2.0"),
     ("missing-key", _planted(skipped=...), "skipped: missing key"),
     ("extra-key", _planted(history=[]), "history: unexpected key"),
     (

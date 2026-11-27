@@ -22,7 +22,7 @@ def _dispatch(node: str) -> Dispatch:
     return Dispatch(
         node=node,
         agent="writer",
-        prompt=None,
+        prompt_variant=None,
         counters=MappingProxyType({}),
         round_number=None,
         converging=None,

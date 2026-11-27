@@ -235,7 +235,7 @@ def test_a_stop_mid_round_saves_the_recorded_gate_and_continue_run_finishes_from
     lint = Dispatch(
         node="lint",
         agent="lint-checker",
-        prompt=None,
+        prompt_variant=None,
         counters=MappingProxyType({}),
         round_number=0,
         converging=None,

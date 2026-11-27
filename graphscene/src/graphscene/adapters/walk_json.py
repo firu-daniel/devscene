@@ -3,7 +3,7 @@ walk-state document a file store persists a `WalkState` with (`state_to_json`,
 `state_from_json`), the step document a walk `Step` is reported as (`step_document`), and the
 round-resume document a `RoundResume` is read from (`resume_from_json`).
 
-The rule: the walk-state document's top level carries `"version": 1` beside the state's fields;
+The rule: the walk-state document's top level carries `"version": 2` beside the state's fields;
 every key is the attribute's own name, with no case mapping; each action and passage object
 carries its `kind` first; a `tuple` is a JSON array, an `End.reports` pair a 2-element array, a
 `Mapping` a JSON object in key order, and `None` a JSON `null` under a key that is always present.
@@ -13,14 +13,14 @@ differently) raises `_VERSION`, and a document of an older version is refused, n
 step document of an action is that action's encoding inside the state document, as `pending`; a
 refusal's is `{"kind": "refused", "reason": …}`. The round-resume document is
 `{"round", "number", "records"}`, each record the state document's record object; it carries no
-`version`, because it is read only and a `RoundResume` is never saved. Neither addition changes
-the state document's shape, so `_VERSION` stays 1.
+`version`, because it is read only and a `RoundResume` is never saved. Neither changes the state
+document's shape.
 
 Decoding rebuilds the frozen types with `tuple`s and `MappingProxyType`s over fresh `dict`s, as
 `graphscene.adapters.builder` builds the graph. A malformed document raises
 `ValueError("<path>: <reason>")`, the path dotted from the root as
 `graphscene.model.errors.Violation.path` writes one and rendered `(root)` for the root, as
-`Violation.__str__` renders it. Refused: a parse failure, a `version` other than 1, a missing or
+`Violation.__str__` renders it. Refused: a parse failure, a `version` other than 2, a missing or
 extra key, a value of the wrong JSON type (a `bool` is never an integer, and a JSON number with a
 fraction part never one either), an unknown `kind`, and an `awaiting` or `verdict` outside its
 `Literal`.
@@ -59,7 +59,7 @@ from graphscene.model.walk_actions import (
 )
 from graphscene.model.walk_state import Awaiting, OpenRound, RoundResume, WalkState
 
-_VERSION = 1
+_VERSION = 2
 
 _AWAITING: Mapping[str, Awaiting] = {
     "dispatch": "dispatch",
@@ -102,7 +102,7 @@ def _dispatch_out(action: Dispatch) -> dict[str, object]:
         "kind": action.kind,
         "node": action.node,
         "agent": action.agent,
-        "prompt": action.prompt,
+        "prompt_variant": action.prompt_variant,
         "counters": dict(action.counters),
         "round_number": action.round_number,
         "converging": action.converging,
@@ -175,7 +175,7 @@ def _open_round_out(open_round: OpenRound | None) -> dict[str, object] | None:
 
 
 def state_to_json(state: WalkState) -> str:
-    """Return `state` as the version-1 JSON document, ending in a newline."""
+    """Return `state` as the version-2 JSON document, ending in a newline."""
     document: dict[str, object] = {
         "version": _VERSION,
         "flow": state.flow,
@@ -325,7 +325,7 @@ def _dispatch(value: object, path: str) -> Dispatch:
             "kind",
             "node",
             "agent",
-            "prompt",
+            "prompt_variant",
             "counters",
             "round_number",
             "converging",
@@ -336,7 +336,7 @@ def _dispatch(value: object, path: str) -> Dispatch:
     return Dispatch(
         node=_str(fields["node"], _join(path, "node")),
         agent=_str(fields["agent"], _join(path, "agent")),
-        prompt=_optional(_str, fields["prompt"], _join(path, "prompt")),
+        prompt_variant=_optional(_str, fields["prompt_variant"], _join(path, "prompt_variant")),
         counters=_mapping(_int, fields["counters"], _join(path, "counters")),
         round_number=_optional(_int, fields["round_number"], _join(path, "round_number")),
         converging=_optional(_bool, fields["converging"], _join(path, "converging")),
@@ -453,7 +453,7 @@ _STATE_KEYS = (
 
 
 def state_from_json(text: str) -> WalkState:
-    """Rebuild the `WalkState` a version-1 document written by `state_to_json` holds."""
+    """Rebuild the `WalkState` a version-2 document written by `state_to_json` holds."""
     try:
         parsed: object = json.loads(text)
     except json.JSONDecodeError as error:

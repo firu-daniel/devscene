@@ -71,7 +71,7 @@ def _dispatch(node: str, agent: str, round_number: int) -> Dispatch:
     return Dispatch(
         node=node,
         agent=agent,
-        prompt=None,
+        prompt_variant=None,
         counters={"iteration": 0},
         round_number=round_number,
         converging=False,
