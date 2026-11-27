@@ -14,7 +14,11 @@ The rule:
   through a temporary file in the same directory and `os.replace`, and returns it. A missing or
   non-decimal counter file is a `RecordError` naming it.
 - `planning_limits` fixes every limit but the dispatch cap, which the caller reads from the
-  planning core.
+  planning core, and the backoff, which it reads from `PD_BACKOFF_SECS` at call time.
+- `backoff_seconds` reads `PD_BACKOFF_SECS` as `pd_backoff` read it: unset, empty or not a
+  run of decimal digits is 60, a value above 60 is capped to 60, and `0` is no backoff. It is a
+  test-only override, an environment value rather than a `devscene.config.json` key because it
+  exists only so test suites need not sleep; a real run never sets it.
 
 Deliberately not covered:
 - Halting on a signal or on the cap: GraphScene's `clear_set`.
@@ -30,6 +34,7 @@ import contextlib
 import os
 import re
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path, PurePosixPath
 from typing import Final
 
@@ -46,9 +51,11 @@ DISPATCH_COUNTER_FILE: Final = ".dispatch_counter"
 MAX_CONCURRENT_DISPATCHES: Final = 5
 MAX_ATTEMPTS: Final = 3
 BACKOFF_SECONDS: Final = 60.0
+BACKOFF_ENV: Final = "PD_BACKOFF_SECS"
 UNDELIVERED_LIMIT: Final = 3
 
 _COUNTER_LINE: Final = re.compile("([0-9]+)\n")
+_DECIMAL: Final = re.compile("[0-9]+")
 
 
 class FileRunSignals:
@@ -107,10 +114,17 @@ class FileDispatchCounter:
             raise
 
 
+def backoff_seconds(environ: Mapping[str, str] = os.environ) -> float:
+    raw = environ.get(BACKOFF_ENV, "")
+    if _DECIMAL.fullmatch(raw) is None:
+        return BACKOFF_SECONDS
+    return min(float(int(raw, 10)), BACKOFF_SECONDS)
+
+
 def planning_limits(dispatch_cap: int) -> ExecutionLimits:
     return ExecutionLimits(
         max_attempts=MAX_ATTEMPTS,
-        backoff_seconds=BACKOFF_SECONDS,
+        backoff_seconds=backoff_seconds(),
         dispatch_cap=dispatch_cap,
         run_timeout_seconds=None,
         max_concurrent_dispatches=MAX_CONCURRENT_DISPATCHES,

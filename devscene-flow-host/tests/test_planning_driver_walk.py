@@ -18,8 +18,8 @@ fake logging each `--artifact` call. Every expected literal — a wrapper call, 
 line, a `held:` section, a log line — is written here, never read from the graph or the code
 under test.
 
-A held case spends GraphScene's two 60-second retry backoffs, as the run does: no case shortens
-them.
+Every case sets `PD_BACKOFF_SECS=0`, so a held case's retries go out with no backoff; the
+60-second default and ceiling are held by `tests/test_run_control.py`.
 
 Deliberately not covered:
 - Parks for questions, stops, retries on their own and observations:
@@ -94,6 +94,7 @@ _GIT_IDENTITY: Final = (
 def _isolated_git(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("PD_BACKOFF_SECS", "0")
 
 
 @dataclass(frozen=True)

@@ -2,7 +2,8 @@
 `<stateDir>/PAUSE` and re-read on every call; the kill switch is `AUTONOMOUS_STOP` under the main
 checkout's configured `stateDir`; the dispatch counter resets to `0\\n`, writes each increment
 whole as one decimal line and refuses a corrupt file with a `RecordError` naming it; and
-`planning_limits` fixes every limit but the dispatch cap, at 5 concurrent dispatches. Both file
+`planning_limits` fixes every limit but the dispatch cap, at 5 concurrent dispatches, its backoff
+read from `PD_BACKOFF_SECS` at call time with 60 seconds as default and ceiling. Both file
 classes satisfy GraphScene's `RunSignals` and `DispatchCounter` structurally, which `mypy` `strict`
 checks on the typed assignments below.
 
@@ -23,6 +24,7 @@ from graphscene import DispatchCounter, RunSignals
 from devscene_flow_host.host.run_control import (
     FileDispatchCounter,
     FileRunSignals,
+    backoff_seconds,
     kill_switch_present,
     planning_limits,
 )
@@ -110,7 +112,31 @@ def test_a_missing_counter_is_a_record_error_naming_it(tmp_path: Path) -> None:
     assert str(caught.value) == "the dispatch counter 'state/.dispatch_counter' does not exist"
 
 
-def test_planning_limits_fix_every_limit_but_the_cap() -> None:
+@pytest.mark.parametrize(
+    ("environ", "expected"),
+    [
+        ({}, 60.0),
+        ({"PD_BACKOFF_SECS": "0"}, 0.0),
+        ({"PD_BACKOFF_SECS": "5"}, 5.0),
+        ({"PD_BACKOFF_SECS": "61"}, 60.0),
+        ({"PD_BACKOFF_SECS": "-1"}, 60.0),
+        ({"PD_BACKOFF_SECS": "1.5"}, 60.0),
+        ({"PD_BACKOFF_SECS": ""}, 60.0),
+    ],
+)
+def test_the_backoff_is_read_as_pd_backoff_read_it(
+    environ: dict[str, str], expected: float
+) -> None:
+    assert backoff_seconds(environ) == expected
+
+
+def test_planning_limits_read_the_backoff_at_call_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PD_BACKOFF_SECS", "0")
+    assert planning_limits(7).backoff_seconds == 0.0
+
+
+def test_planning_limits_fix_every_limit_but_the_cap(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PD_BACKOFF_SECS", raising=False)
     limits = planning_limits(40)
     assert limits.max_attempts == 3
     assert limits.backoff_seconds == 60.0

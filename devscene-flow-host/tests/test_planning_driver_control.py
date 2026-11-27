@@ -21,8 +21,8 @@ literal â€” a wrapper call, a question file's lines, a pause entry, a log line â
 never read from the graph or the code under test. Ordering is read from the calls log's `start`
 and `end` only.
 
-The retried cases spend GraphScene's 60-second retry backoffs, as the run does: no case shortens
-them.
+Every case sets `PD_BACKOFF_SECS=0`, so the retried cases' retries go out with no backoff; the
+60-second default and ceiling are held by `tests/test_run_control.py`.
 
 Deliberately not covered:
 - A STOP raised while a set runs: GraphScene's `clear_set` honours it exactly as it honours the
@@ -108,6 +108,7 @@ _OBSERVATIONS_CALL: Final = "--artifact observations --push"
 def _isolated_git(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("PD_BACKOFF_SECS", "0")
 
 
 @dataclass(frozen=True)
