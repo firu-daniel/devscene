@@ -78,8 +78,8 @@ class DispatchCounter(Protocol):
 @dataclass(frozen=True)
 class Launch:
     """`undelivered_strikes` is the `UndeliveredBreaker`'s strikes when this launch's pass was
-    cleared — the consecutive passes before it that had an `undelivered` result, 0 when the pass
-    before it delivered or there was none."""
+    cleared: the consecutive passes before it that had an `undelivered` result, as the breaker
+    counts them (a pass that only retried leaves the count unchanged; a delivered one resets it)."""
 
     seq: int
     node: str
