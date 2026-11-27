@@ -90,3 +90,7 @@ It also uses the existing #421 / #423 pieces with their present signatures:
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_planning_run.py` passes.
 - `grep -nE 'devscene\.config\.json|scriptsDir|\.mcp\.json' devscene-flow-host/src/devscene_flow_host/host/planning_run.py` prints no hit outside its docstring.
 - `planning_run.py` imports from `graphscene` only through its public surface (`from graphscene import …`, never a submodule), and from `devscene_flow_host` only through each name's defining module, never the package root.
+
+**Deviations from plan:**
+- `PlanningRequest.command` is typed `tuple[str, ...]`, not a one-tuple: the suite's agent CLI is `(sys.executable, fake_planning_agent.py, <script.json>)`, as the plan's own `fake_planning_agent.py` bullet runs it; production passes a one-tuple through the same field.
+- `tests/test_planning_run.py` adds one case beyond the plan's list, the missing ledger's exact `RecordError` message, which the preflight bullet specifies.
