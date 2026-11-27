@@ -60,3 +60,8 @@
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_planning_driver_command.py` passes.
 - `bash scripts/python-service.sh --package devscene-flow-host lint` and `… typecheck` exit zero.
 - `commands/planning_driver.py` reaches the walk only through `host/planning_run.py` and `host/run_exits.py`, never `Walker`'s own methods.
+
+**Deviations from plan:**
+- `tests/test_flow_walker.py` → `test_the_manifest_declares_the_console_script` asserted that `[project.scripts]` was exactly `{devscene-flow-walker: …}`, so adding `devscene-planning-driver` would have failed it. It now asserts only its own entry. This file is outside the Targets list but inside this layer.
+- The session-table observation's evidence and cost are copied from the retired `pd_finish` (`planning-driver-lib.sh`, before its deletion): `flow-efficiency`, `seq node agent attempt result duration cost: <rows joined by "; ">`, `<n> node session(s)`. `<status>` is the command's exit status, as `pd_finish` used `$rc`. The rows are only available once `run_planning` has returned, so a drive that raises inside `run_planning` adds no session table.
+- A graph that loads but declares a flow other than `task_plan_writing` is also a fault, `graph <path> declares flow '<x>', not 'task_plan_writing'`, matching `commands/flow_walker.py` → `_graph`. The plan did not ask for this check.
