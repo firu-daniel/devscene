@@ -18,7 +18,10 @@ The rule:
   `OSError` propagates. A usage whose `withheld_tools` is non-empty is then narrated as
   `WITHHELD_LINE`, the retired `pnl_reap`'s text; the session is never refused for it.
 - `record(launch)` pairs the `Launch` with the oldest pending usage of `launch.node` whose
-  `result` equals `launch.result`, and appends one row `<seq> <node> <agent>
+  `result` equals `launch.result`; failing that, a `Launch` whose result is `Failed("infra", …)`
+  pairs with the oldest pending usage of that node whose result is a `Completed`, the one
+  transformation `host/planning_executor.py` → `PlanningExecutor` makes after the usage was
+  recorded. It then appends one row `<seq> <node> <agent>
   <attempt>/<max_attempts> <outcome, else the result kind> <duration>s <cost>`.
   A `Launch` with no such usage — a GraphScene total-run timeout, whose cancelled run reports
   none — is no fault: its row carries `-` for seq, duration and cost, and it is narrated.
@@ -164,6 +167,10 @@ class NodeSessions:
         for index, (_, usage) in enumerate(pending):
             if usage.result == launch.result:
                 return pending.pop(index)
+        if isinstance(launch.result, Failed) and launch.result.failure == "infra":
+            for index, (_, usage) in enumerate(pending):
+                if isinstance(usage.result, Completed):
+                    return pending.pop(index)
         return None
 
     def _record_launch(self, launch: Launch) -> None:

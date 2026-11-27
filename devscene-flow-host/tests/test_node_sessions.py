@@ -2,7 +2,8 @@
 `<log stem>.planning/<seq>-<node>.stream.jsonl` and appends it to `<log stem>.stream.jsonl`,
 appends one compact `{"session_id","seq","node"}` manifest line with `seq` a string, pipes the
 stream through the formatter into the log; numbers past the `<n>-*.stream.jsonl` files already
-there; pairs a `Launch` only with a pending usage of its node carrying an equal `result`; gives a
+there; pairs a `Launch` with a pending usage of its node carrying an equal `result`, or, for a
+`Launch` whose result is `Failed("infra", …)`, with one carrying a `Completed`; gives a
 timeout `Launch` with no usage a `-` row and no exception; keeps each node's last `Launch` result;
 and adds each per-session observation
 category once for its case.
@@ -155,6 +156,17 @@ def test_a_mismatched_result_is_not_paired(tmp_path: Path) -> None:
     sessions.record(Launch(1, "plan_writer", "plan_writer-agent", 1, 3, Completed("other")))
     assert sessions.rows == ("- plan_writer plan_writer-agent 1/3 other - -",)
     assert narrated == ["no usage record for plan_writer (total-run timeout)"]
+
+
+def test_a_completed_usage_pairs_with_the_infra_failure_the_planning_executor_made(
+    tmp_path: Path,
+) -> None:
+    sessions, _, narrated = _sessions(tmp_path)
+    sessions.record(_usage("plan_review", Completed("PASS")))
+    refused = Failed("infra", "PASS carries no findings_file")
+    sessions.record(Launch(1, "plan_review", "plan_review-agent", 1, 3, refused))
+    assert sessions.rows == ("1 plan_review plan_review-agent 1/3 failed 12s 0.5",)
+    assert narrated == []
 
 
 def test_a_missing_cost_is_a_dash(tmp_path: Path) -> None:
