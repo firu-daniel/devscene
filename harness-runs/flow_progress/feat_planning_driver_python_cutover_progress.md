@@ -11,7 +11,7 @@ Source: harness-runs/task_prompts/feat_planning_driver_python_cutover_task_promp
   - screened: harness-runs/task_prompts/feat_planning_driver_python_cutover_task_prompt.md sha256=6ca74d228adad87e83effbe2959843bf9f51bc9f23481aef3c5d76fb06cff737
 - [x] P1. Task plan converged (business_parity + architecture + task-plan-reviewer all PASS)
 - [-] P2. UI-test plan converged (ui-tests-plan-reviewer PASS) — or no_ui
-- [ ] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
+- [x] P3. Plans committed & pushed (story index + per-task dir + UI-test plan)
 
 ## Implementation
 - [ ] A.      Tasks implemented (story-index readiness all [x])
