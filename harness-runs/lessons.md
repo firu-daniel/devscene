@@ -108,6 +108,14 @@ _[Add headings of your own as themes emerge — one per recurring theme — and 
 
 - **Name a ported limit by what the new code measures, never by the original's concern it resembles: a deadline on a run's total time is a run timeout, and inactivity is detected only by the component that sees the activity.** _(taught by: feat_graphscene_execution_rules)_
 
+- **A port keeps every output the original produced, and keeps it when the original produced it: live log lines, narration lines and observations included. Moving an output from live to end-of-session, or dropping one, is a divergence the task prompt must name.** _(taught by: feat_planning_driver_python_cutover)_
+
+## Tests and tree guards
+
+- **Register a tree guard only when its test can be run by the single-file command of every layer whose files its `covers` glob matches. A test in another runner's package stays in that package's suite and is never registered as a guard over other layers' paths.** _(taught by: feat_planning_driver_python_cutover)_
+
+- **When a test suite would otherwise wait out a real retry backoff, read that backoff from a test-only environment override capped at the production value, and have the end-to-end suites set the override to 0.** _(taught by: feat_planning_driver_python_cutover)_
+
 ## Agent prose
 
 - **State a new behaviour once, in the section that decides it, and cite it from everywhere else; never re-walk in prose the cases that other arms or sections already route.** _(taught by: fix_run_gates_answered_park_resume, feat_structured_outputs_unit_loop)_ — codified in `.claude/context/plugin.md` §Writing agent prose
