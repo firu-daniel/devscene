@@ -53,3 +53,8 @@
 
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_observations.py` passes.
 - The planted wrapper's log shows exactly `--repo <root> --artifact observations --push` for a committed flush, and no call for a restored one.
+
+**Deviations from plan:**
+- The leading blank line before `# Script-driven planning — <ts>` is written only after kept content, as `prl_observe_flush`'s awk did (`if (last > 0) print ""`); a flush into no file opens with the heading.
+- "Restore the previous file" where none existed removes the newly written file; `prl_observe_flush` left it in place. A residual-needle or failed-commit file is therefore never left uncommitted in the worktree.
+- `rewrite_machine_paths`, `machine_needles` and `Needle` are public so the non-delimiter case is asserted on the rewrite itself: through `flush`, a needle followed by a non-delimiter is also a residual needle and restores the file.
