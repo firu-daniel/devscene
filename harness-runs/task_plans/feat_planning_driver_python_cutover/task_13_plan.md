@@ -61,3 +61,9 @@ It pairs each usage record with GraphScene's `Launch` row into the session table
 
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_node_sessions.py` passes.
 - The manifest lines the suite writes are read correctly by `cli/templates/scripts/run-analytics.sh`'s `NODE SESSIONS` rule as written: one object per line, with string `seq`, `session_id` and `node`.
+
+**Deviations from plan:**
+- The `run-analytics.sh` verification bullet was checked by reading, not by running the script: its manifest filter (`fromjson? | objects | select((.session_id | type) == "string" and (.node | type) == "string")`, then `(.seq // "") | tostring`) was compared with the exact literals `test_two_sessions_write_their_streams_the_run_stream_and_the_manifest` asserts. No suite of this flow runs that script over the written file.
+- The plan leaves `<result kind/outcome>` open. The row shows `Completed.outcome`, else the result's `kind` (`failed`), following the retired `pd_reap_one`'s `${outcome:-$kind}`. Duration is rounded to whole seconds with an `s` suffix, and cost is `str(total_cost_usd)`.
+- The plan does not say what happens when a formatter cannot be started. Such a formatter is narrated (`the formatter '<f>' could not run: …`) rather than raised, and its exit status is ignored, as the bash `tee | "$PD_FORMATTER"` pipeline ignored both.
+- The observation evidence and cost texts copy `pd_reap_one`'s texts without its `round <n>` part, which neither input carries. The seq is `-` when no usage was paired.
