@@ -5,7 +5,9 @@ reason — and `parse_skipped` reads a list as `fw_id_in_list` does; and `read_p
 the `P1`-`P3` marks as `pd_ledger_read` does — a line opening with a mark and `<entry>.` sets the
 mark, the last such line wins, no such line is `None`, and an unreadable ledger is a `RecordError`
 with one exact message; and `read_run_mode_entries` reads the `## Run mode` section's `- skipped:`
-value and `- ignored:` entries as `pd_run_mode_line` did, and nothing outside that section.
+value and `- ignored:` entries as `pd_run_mode_line` did, and nothing outside that section; and
+`require_ledger` passes an existing ledger and raises for a missing one with the message both
+readers give.
 
 Every ledger is planted under `tmp_path`; every expected value is written from the rules in the
 task plan, never taken from the output of the code under test.
@@ -31,6 +33,7 @@ from devscene_flow_host.records.ledger import (
     read_planning_marks,
     read_run_mode,
     read_run_mode_entries,
+    require_ledger,
 )
 
 _NO_SKIPPED_LINE = RunModeUnresolved(
@@ -167,7 +170,7 @@ def test_a_missing_ledger_raises_for_the_planning_marks(tmp_path: Path) -> None:
     path = tmp_path / "state" / "flow_progress" / "feat_x_progress.md"
     with pytest.raises(RecordError) as raised:
         read_planning_marks(tmp_path, "state", "feat_x")
-    assert str(raised.value) == f"no flow-progress ledger at {path}"
+    assert str(raised.value) == f"the flow-progress ledger '{path}' does not exist"
 
 
 def test_a_ledger_that_is_not_utf8_raises_for_the_planning_marks(tmp_path: Path) -> None:
@@ -259,3 +262,15 @@ def test_a_ledger_that_is_not_utf8_raises_for_the_run_mode_entries(tmp_path: Pat
     with pytest.raises(RecordError) as raised:
         read_run_mode_entries(tmp_path, "state", "feat_x")
     assert str(raised.value) == f"{path}: not UTF-8 text"
+
+
+def test_an_existing_ledger_is_required_without_raising(tmp_path: Path) -> None:
+    _plant(tmp_path, b"")
+    require_ledger(tmp_path, "state", "feat_x")
+
+
+def test_a_missing_ledger_raises_when_required(tmp_path: Path) -> None:
+    path = tmp_path / "state" / "flow_progress" / "feat_x_progress.md"
+    with pytest.raises(RecordError) as raised:
+        require_ledger(tmp_path, "state", "feat_x")
+    assert str(raised.value) == f"the flow-progress ledger '{path}' does not exist"

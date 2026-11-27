@@ -1,8 +1,8 @@
 """The rule this file exists to enforce: `write_park` writes `question_<n>.md`, `<n>` one past the
 highest existing question, with the exact bytes `prl_park` wrote — a `## Q1` section added only
-when the body carries no `## Q<digit>` line — at mode `0o644`, and refuses a path already taken;
-`write_pause` appends `prl_pause`'s block to `PAUSE_PROGRESS.md` and writes `PAUSE_ACK`, both with
-exact bytes; and nothing either writes lands outside `<stateDir>`.
+when the body carries no `## Q<digit>` line — at mode `0o644`, and refuses a path already taken
+with a `FileExistsError`; `write_pause` appends `prl_pause`'s block to `PAUSE_PROGRESS.md` and
+writes `PAUSE_ACK`, both with exact bytes; and nothing either writes lands outside `<stateDir>`.
 
 Every record is planted under `tmp_path`; every expected value is a literal written from the task
 plan's rules, never taken from the output of the code under test.
@@ -20,7 +20,6 @@ from pathlib import Path
 import pytest
 
 from devscene_flow_host.host.run_records import write_park, write_pause
-from devscene_flow_host.records.errors import RecordError
 
 _QUESTIONS = Path("state", "clarifications", "feat_x")
 _NOW = datetime(2026, 11, 27, 9, 5, 3, tzinfo=UTC)
@@ -79,7 +78,7 @@ def test_the_question_file_mode_is_0o644(tmp_path: Path) -> None:
 def test_a_taken_question_path_raises(tmp_path: Path) -> None:
     (tmp_path / _QUESTIONS).mkdir(parents=True)
     os.symlink("missing.md", tmp_path / _QUESTIONS / "question_1.md")
-    with pytest.raises(RecordError) as raised:
+    with pytest.raises(FileExistsError) as raised:
         _park(tmp_path, "Pick one.\n")
     assert str(raised.value) == "'state/clarifications/feat_x/question_1.md' already exists"
 

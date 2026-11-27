@@ -6,7 +6,8 @@ The rule: it does what the retired bash driver's `pd_main`, `pd_entry` and `pd_r
 `pd_main`'s order:
 - the kill switch present in the main checkout is `kind="kill_switch"`, and the worktree's
   `<stateDir>/STOP` present is `kind="stop_file"`, each before anything is dispatched or written;
-- a missing flow-progress ledger raises `RecordError`;
+- a missing flow-progress ledger is `records/ledger.py` → `require_ledger`'s `RecordError`, its
+  message followed by `; ` and `SETUP_CREATES_LEDGER`;
 - then the dispatch counter is reset, the walker opened and `decide_planning_entry` asked:
   `PlanningDone` is `kind="done"`; a `StartWalk` runs `start_run` from its entry and resume, a
   `ContinueWalk` runs `continue_run` with its outcome;
@@ -76,7 +77,7 @@ from devscene_flow_host.host.walking import open_walker
 from devscene_flow_host.records.config import read_config
 from devscene_flow_host.records.core_limits import read_max_total_dispatches
 from devscene_flow_host.records.errors import RecordError
-from devscene_flow_host.records.ledger import ledger_path
+from devscene_flow_host.records.ledger import require_ledger
 from devscene_flow_host.records.mcp_servers import read_mcp_servers
 from devscene_flow_host.records.plugin_contracts import (
     AgentContract,
@@ -85,6 +86,7 @@ from devscene_flow_host.records.plugin_contracts import (
 )
 
 FAILURE_OUTCOME: Final = "error"
+SETUP_CREATES_LEDGER: Final = "the setup session creates it"
 
 PlanningKind: TypeAlias = Literal["done", "kill_switch", "stop_file", "run"]
 
@@ -164,12 +166,10 @@ async def run_planning(request: PlanningRequest) -> PlanningOutcome:
     signals = FileRunSignals(worktree, state_dir)
     if signals.stop_requested():
         return PlanningOutcome("stop_file")
-    ledger = ledger_path(worktree, state_dir, branch)
-    if not ledger.is_file():
-        rel = ledger.relative_to(worktree).as_posix()
-        raise RecordError(
-            f"the flow-progress ledger '{rel}' does not exist; the setup session creates it"
-        )
+    try:
+        require_ledger(worktree, state_dir, branch)
+    except RecordError as error:
+        raise RecordError(f"{error}; {SETUP_CREATES_LEDGER}") from None
 
     counter = FileDispatchCounter(worktree, state_dir)
     counter.reset()

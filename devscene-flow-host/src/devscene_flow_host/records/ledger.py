@@ -14,6 +14,8 @@ nothing about what a mark means. `read_run_mode_entries` reads the `## Run mode`
 deleted and readable in its history): a trailing CR stripped, the section opened by a line equal
 to `_RUN_MODE_HEADING` and closed by the next `## ` line, the last `_SKIPPED_PREFIX` line's value
 cut at its first `   (`, and each `IGNORED_PREFIX` line split at its last ` (` into text and reason.
+`require_ledger` is the existence check a caller makes before acting on the ledger. It and both
+readers that need the ledger report a missing ledger with the one `_missing` message.
 
 Deliberately not covered:
 - The ledger's other blocks.
@@ -88,6 +90,16 @@ def ledger_path(repo_root: Path, state_dir: str, branch: str) -> Path:
     return repo_root / state_dir / LEDGER_DIRECTORY / f"{branch}_progress.md"
 
 
+def _missing(path: Path) -> RecordError:
+    return RecordError(f"the flow-progress ledger '{path}' does not exist")
+
+
+def require_ledger(repo_root: Path, state_dir: str, branch: str) -> None:
+    path = ledger_path(repo_root, state_dir, branch)
+    if not path.is_file():
+        raise _missing(path)
+
+
 def parse_skipped(value: str) -> frozenset[str]:
     members = (member.strip() for member in value.split(","))
     return frozenset(member for member in members if member and member != "none")
@@ -133,7 +145,7 @@ def read_planning_marks(repo_root: Path, state_dir: str, branch: str) -> Plannin
     try:
         raw = path.read_bytes()
     except FileNotFoundError:
-        raise RecordError(f"no flow-progress ledger at {path}") from None
+        raise _missing(path) from None
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError:
@@ -152,7 +164,7 @@ def read_run_mode_entries(repo_root: Path, state_dir: str, branch: str) -> RunMo
     try:
         raw = path.read_bytes()
     except FileNotFoundError:
-        raise RecordError(f"the flow-progress ledger '{path}' does not exist") from None
+        raise _missing(path) from None
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError:

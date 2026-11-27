@@ -159,12 +159,12 @@ def test_stop_dispatches_nothing(tmp_path: Path) -> None:
 def test_a_missing_ledger_is_refused(tmp_path: Path) -> None:
     root = tmp_path / "repo"
     _plant_repo(root)
-    (root / "state" / "flow_progress" / "feat_x_progress.md").unlink()
+    ledger = root / "state" / "flow_progress" / "feat_x_progress.md"
+    ledger.unlink()
     with pytest.raises(RecordError) as caught:
         _run(_request(tmp_path, root))
     assert str(caught.value) == (
-        "the flow-progress ledger 'state/flow_progress/feat_x_progress.md' does not exist; "
-        "the setup session creates it"
+        f"the flow-progress ledger '{ledger}' does not exist; the setup session creates it"
     )
 
 
