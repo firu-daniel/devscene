@@ -7,25 +7,51 @@ there; pairs a `Launch` with a pending usage of its node carrying an equal `resu
 timeout `Launch` with no usage a `-` row and no exception; keeps each node's last `Launch` result;
 keeps a node's attempt log only when its last attempt also failed for an infrastructure reason;
 adds each per-session observation category once for its case; and observes and narrates an
-undelivered `Launch` with its `undelivered_strikes + 1` count, except the one reaching the limit.
+undelivered `Launch` with its `undelivered_strikes + 1` count, except the one reaching the limit;
+and, as a stream sink, writes a live session's node file and formatted log lines before the session
+ends, passing the formatter whole lines only when chunks of two streams interleave.
 
 Every log path is under `tmp_path`; the formatter is `cat` or `true` on `PATH`; `Observations` is
-a recording stand-in. Every expected value is a literal written from the task plan's contract,
-never taken from the code under test.
+a recording stand-in; the live session is `fake_claude`, held open by a `wait_for` step. Every
+expected value is a literal written from the task plan's contract, never taken from the code under
+test.
 
 Deliberately not covered:
 - What the driver does with a `Failed` or a row: the driver's suites.
 - Reading the manifest through `run-analytics.sh`: that script's own suite.
 """
 
+import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 
-from graphscene import Completed, Failed, Launch, LaunchSink, NodeResult
+from graphscene import Completed, Dispatch, Failed, Launch, LaunchSink, NodeResult
 
-from devscene_flow_host.host.claude_executor import SessionUsage, UsageSink
+from devscene_flow_host.host.claude_executor import (
+    ClaudeExecutor,
+    SessionUsage,
+    StreamSink,
+    UsageSink,
+)
 from devscene_flow_host.host.node_sessions import NodeSessions
 from devscene_flow_host.host.observations import Observations
+from devscene_flow_host.records.plugin_contracts import AgentContract
+from fake_claude import plant
+from session_events import init_event, result_event, return_block
+
+_TOOLS = ("Read", "Write")
+_CONTRACT = AgentContract(
+    agent="reviewer",
+    tools=_TOOLS,
+    return_schema={
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {"outcome": {"const": "PASS"}},
+        "required": ["outcome"],
+        "additionalProperties": False,
+    },
+)
+_MAX_POLLS = 2000
 
 
 class _RecordingObservations(Observations):
@@ -90,8 +116,95 @@ def test_it_answers_both_sink_protocols(tmp_path: Path) -> None:
     sessions, _, _ = _sessions(tmp_path)
     usage_sink: UsageSink = sessions
     launch_sink: LaunchSink = sessions
+    stream_sink: StreamSink = sessions
     assert usage_sink is sessions
     assert launch_sink is sessions
+    assert stream_sink is sessions
+
+
+def test_a_live_session_reaches_the_node_file_and_the_log_before_it_ends(tmp_path: Path) -> None:
+    sessions, _, _ = _sessions(tmp_path, formatter="cat")
+    release = tmp_path / "release"
+    init_line = init_event(_TOOLS)
+    result_line = result_event(return_block({"outcome": "PASS"}))
+    command = plant(
+        tmp_path,
+        {
+            "steps": [
+                {"stdout": init_line},
+                {"wait_for": str(release)},
+                {"stdout": result_line},
+            ]
+        },
+    )
+    executor = ClaudeExecutor(
+        command=command,
+        plugin_dir=tmp_path / "plugin",
+        plugin_name="devscene",
+        cwd=tmp_path,
+        contracts={"reviewer": _CONTRACT},
+        inactivity_limit_seconds=30.0,
+        usage_sink=sessions,
+        stream_sink=sessions,
+        agent_prompt_builder=lambda dispatch: f"{dispatch.node}: review the plan.",
+        kill_grace_seconds=2.0,
+    )
+    dispatch = Dispatch(
+        node="plan_review",
+        agent="reviewer",
+        prompt_variant=None,
+        counters={},
+        round_number=None,
+        converging=None,
+        closed_round=(),
+        passed=(),
+    )
+    log = tmp_path / "run.log"
+    node_file = tmp_path / "run.planning" / "1-plan_review.stream.jsonl"
+
+    def text(path: Path) -> str:
+        return path.read_text(encoding="utf-8") if path.exists() else ""
+
+    async def drive() -> NodeResult:
+        task = asyncio.create_task(executor.run(dispatch))
+        for _ in range(_MAX_POLLS):
+            if init_line in text(log):
+                break
+            await asyncio.sleep(0.01)
+        else:
+            raise AssertionError("the init line never reached the log while the session ran")
+        assert not task.done()
+        assert result_line not in text(log)
+        assert result_line not in text(node_file)
+        assert init_line in text(node_file)
+        release.write_text("", encoding="utf-8")
+        return await task
+
+    try:
+        result = asyncio.run(drive())
+    finally:
+        sessions.close()
+    assert result == Completed("PASS")
+    assert text(log) == f"{init_line}\n{result_line}\n"
+    assert text(tmp_path / "run.stream.jsonl") == f"{init_line}\n{result_line}\n"
+    assert text(node_file) == f"{init_line}\n{result_line}\n"
+
+
+def test_partial_chunks_of_two_live_streams_reach_the_log_as_whole_lines(tmp_path: Path) -> None:
+    sessions, _, _ = _sessions(tmp_path, formatter="cat")
+    a = sessions.open("plan_writer", "plan_writer-agent")
+    b = sessions.open("plan_review", "plan_review-agent")
+    a.write(b'{"a":')
+    b.write(b'{"b":')
+    a.write(b"1}\n")
+    b.write(b"2}\n")
+    a.close()
+    b.close()
+    sessions.close()
+    planning = tmp_path / "run.planning"
+    assert (tmp_path / "run.log").read_text(encoding="utf-8") == '{"a":1}\n{"b":2}\n'
+    assert (planning / "1-plan_writer.stream.jsonl").read_bytes() == b'{"a":1}\n'
+    assert (planning / "2-plan_review.stream.jsonl").read_bytes() == b'{"b":2}\n'
 
 
 def test_two_sessions_write_their_streams_the_run_stream_and_the_manifest(tmp_path: Path) -> None:

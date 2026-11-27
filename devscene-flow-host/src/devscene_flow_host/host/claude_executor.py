@@ -26,6 +26,11 @@ stall's.
 - A launch error is `Failed("infra", …)` with every usage field empty. A stall is
   `Failed("infra", …)` with the stream's usage fields kept. Otherwise the result is
   `judge_session`'s.
+- With a `StreamSink`, each `run` that reaches the launch opens one `LiveStream` for its dispatch
+  just before it, hands it every stdout chunk as the session writes it, and closes it exactly
+  once on every path out of the launch — a result, a launch error, a cancellation (GraphScene's
+  total-run timeout included), an exception — and before the usage sink is called. A run refused
+  before the launch opens none.
 - `--json-schema` is never passed: on Claude Code 2.1.332 it is not applied under `--agent`, so
   the return is read from the final `json` block.
 - The usage record also carries the agent prompt it was given, the session's whole stdout
@@ -41,8 +46,8 @@ Deliberately not covered:
   every node (`cli/templates/scripts/lib/planning-node-lib.sh` → `pnl_agent_flags`) unless its
   shared vector already carries it (`PD_PLUGIN_DIR_ADDED`).
 - The findings-file presence rule: `host/round_gates.py` → `record_outcome`.
-- Writing the stream (from `SessionUsage.stream`) or a session manifest:
-  `host/node_sessions.py` → `NodeSessions`.
+- Writing the stream (live through the `LiveStream`, whole from `SessionUsage.stream`) or a
+  session manifest: `host/node_sessions.py` → `NodeSessions`.
 - Building the agent prompt: the harness's builder is `host/agent_prompts.py` →
   `CorePromptBuilder`.
 """
@@ -107,6 +112,20 @@ class UsageSink(Protocol):
     def record(self, usage: SessionUsage) -> None: ...
 
 
+class LiveStream(Protocol):
+    """One session's stdout as it is read; `close` is called exactly once, on every path out."""
+
+    def write(self, chunk: bytes) -> None: ...
+
+    def close(self) -> None: ...
+
+
+class StreamSink(Protocol):
+    """Opens one `LiveStream` per session launched."""
+
+    def open(self, node: str, agent: str) -> LiveStream: ...
+
+
 class AgentPromptBuilder(Protocol):
     """Builds the agent prompt, the text a session is given, for one dispatch; the same
     dispatch gives the same agent prompt."""
@@ -132,6 +151,7 @@ class ClaudeExecutor:
         agent_args: Mapping[str, Sequence[str]] | None = None,
         env: Mapping[str, str] | None = None,
         kill_grace_seconds: float = KILL_GRACE_SECONDS,
+        stream_sink: StreamSink | None = None,
     ) -> None:
         self._command = tuple(command)
         self._plugin_dir = plugin_dir
@@ -147,6 +167,7 @@ class ClaudeExecutor:
         )
         self._env: Mapping[str, str] | None = None if env is None else MappingProxyType(dict(env))
         self._kill_grace_seconds = kill_grace_seconds
+        self._stream_sink = stream_sink
         if not self._command:
             raise ValueError("ClaudeExecutor: command must not be empty")
         if not inactivity_limit_seconds > 0:
@@ -191,13 +212,23 @@ class ClaudeExecutor:
         ]
         started_at = datetime.now(UTC)
         started = time.monotonic()
-        session = await run_session(
-            argv,
-            cwd=self._cwd,
-            env=self._env,
-            inactivity_limit_seconds=self._inactivity_limit_seconds,
-            kill_grace_seconds=self._kill_grace_seconds,
+        live = (
+            None
+            if self._stream_sink is None
+            else self._stream_sink.open(dispatch.node, dispatch.agent)
         )
+        try:
+            session = await run_session(
+                argv,
+                cwd=self._cwd,
+                env=self._env,
+                inactivity_limit_seconds=self._inactivity_limit_seconds,
+                kill_grace_seconds=self._kill_grace_seconds,
+                on_stdout=None if live is None else live.write,
+            )
+        finally:
+            if live is not None:
+                live.close()
         duration_seconds = time.monotonic() - started
         if session.launch_error is not None:
             result: NodeResult = Failed("infra", session.launch_error)

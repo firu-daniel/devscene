@@ -1,22 +1,36 @@
-"""The planning driver's node-session records: `NodeSessions`, the `UsageSink` and `LaunchSink` in
-one class, writing each node's stream, the run stream, the `node-sessions.jsonl` manifest and the
-formatted log, and pairing each usage record with its `Launch` row into the session table.
+"""The planning driver's node-session records: `NodeSessions`, the `StreamSink`, `UsageSink` and
+`LaunchSink` in one class, writing each node's stream, the run stream, the `node-sessions.jsonl`
+manifest and the formatted log, and pairing each usage record with its `Launch` row into the
+session table.
 
 The rule:
 - The numbering is the retired `pd_seq_init`'s (`cli/templates/scripts/lib/planning-driver-lib.sh`,
   read in its history before the bash driver's retirement): the first `seq` is one past the largest
   all-digit `<n>` of a `<n>-*.stream.jsonl` already in `${log%.log}.planning/`, else `1`, so a
   second drive never overwrites the first drive's files. `Launch.seq` is not used: the dispatch
-  counter resets per drive.
+  counter resets per drive. A seq is taken by `open`, or by `record(usage)` when no live stream of
+  that node is open.
+- `open(node, agent)` is the live half of the retired `pnl_launch`'s
+  `tee "$stream" | "$PD_FORMATTER" >>"$log_path"`: it creates `<seq>-<node>.stream.jsonl` empty and
+  returns a `LiveStream` whose `write` appends each chunk to it at once and passes only complete
+  lines to the formatter; `close` passes a non-empty unterminated remainder with `\n` appended.
+  One formatter process per `NodeSessions`, started on the first complete line with the log
+  opened for append as its stdout, receives every live line, each block of whole lines in one
+  `write` and `flush` on the event loop's thread, so lines from concurrent nodes are never split.
+  A formatter that cannot be started is narrated once; one whose stdin breaks is dropped
+  silently; either way live formatting stops for the drive and the node files are still
+  written. `close()` closes its stdin and waits for it, so every formatted line is in the log.
 - `record(usage)` is the retired `pnl_launch` / `pnl_reap` (`planning-node-lib.sh`, same history),
   in order: `usage.stream` to `<seq>-<node>.stream.jsonl`; the same bytes appended to
   `${log%.log}.stream.jsonl`; when `session_id` is set, one compact
   `{"session_id", "seq", "node"}` line appended to `MANIFEST_NAME`, `seq` a string; the formatter
   run as one argv word with the stream on stdin, its stdout appended to the log; a non-empty
-  `stderr_tail` appended to the log. A formatter's exit status is ignored, as the bash pipeline
-  ignored it, and a formatter that cannot be started is narrated, never raised. Any other
-  `OSError` propagates. A usage whose `withheld_tools` is non-empty is then narrated as
-  `WITHHELD_LINE`, the retired `pnl_reap`'s text; the session is never refused for it.
+  `stderr_tail` appended to the log. When a live stream of `usage.node` was opened, its seq is
+  used and the node file and the formatter run are skipped, both having happened live. A
+  formatter's exit status is ignored, as the bash pipeline ignored it, and a formatter that
+  cannot be started is narrated, never raised. Any other `OSError` propagates. A usage whose
+  `withheld_tools` is non-empty is then narrated as `WITHHELD_LINE`, the retired `pnl_reap`'s
+  text; the session is never refused for it.
 - `record(launch)` pairs the `Launch` with the oldest pending usage of `launch.node` whose
   `result` equals `launch.result`; failing that, a `Launch` whose result is `Failed("infra", …)`
   pairs with the oldest pending usage of that node whose result is a `Completed`, the one
@@ -45,6 +59,7 @@ Deliberately not covered:
 - Deciding an outcome or running a hook: this module writes and pairs only.
 """
 
+import contextlib
 import json
 import re
 import subprocess
@@ -54,7 +69,7 @@ from typing import Final
 
 from graphscene import Completed, Failed, Launch, NodeResult
 
-from devscene_flow_host.host.claude_executor import SessionUsage
+from devscene_flow_host.host.claude_executor import LiveStream, SessionUsage
 from devscene_flow_host.host.observations import Observations
 
 PLANNING_DIRECTORY_SUFFIX: Final = ".planning"
@@ -96,6 +111,30 @@ def _append(path: Path, data: bytes) -> None:
         handle.write(data)
 
 
+class _NodeStream:
+    def __init__(self, path: Path, format_lines: Callable[[bytes], None]) -> None:
+        self._path = path
+        self._format_lines = format_lines
+        self._partial = b""
+        self._closed = False
+
+    def write(self, chunk: bytes) -> None:
+        _append(self._path, chunk)
+        pending = self._partial + chunk
+        end = pending.rfind(b"\n") + 1
+        self._partial = pending[end:]
+        if end:
+            self._format_lines(pending[:end])
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        if self._partial:
+            self._format_lines(self._partial + b"\n")
+            self._partial = b""
+
+
 class NodeSessions:
     def __init__(
         self,
@@ -121,6 +160,9 @@ class NodeSessions:
         self._rows: list[str] = []
         self._attempt_log: dict[str, list[str]] = {}
         self._exhausted: dict[str, tuple[int, tuple[str, ...]]] = {}
+        self._live: dict[str, int] = {}
+        self._formatter_process: subprocess.Popen[bytes] | None = None
+        self._live_formatting = True
 
     @property
     def rows(self) -> tuple[str, ...]:
@@ -135,18 +177,42 @@ class NodeSessions:
     def exhausted_attempts(self, node: str) -> tuple[int, tuple[str, ...]] | None:
         return self._exhausted.get(node)
 
+    def open(self, node: str, agent: str) -> LiveStream:
+        seq = self._take_seq()
+        self._live[node] = seq
+        self._directory.mkdir(parents=True, exist_ok=True)
+        path = self._directory / f"{seq}-{node}{RUN_STREAM_SUFFIX}"
+        path.write_bytes(b"")
+        return _NodeStream(path, self._format_live)
+
+    def close(self) -> None:
+        process = self._formatter_process
+        if process is None:
+            return
+        self._formatter_process = None
+        if process.stdin is not None:
+            with contextlib.suppress(OSError):
+                process.stdin.close()
+        process.wait()
+
     def record(self, item: SessionUsage | Launch) -> None:
         if isinstance(item, Launch):
             self._record_launch(item)
         else:
             self._record_usage(item)
 
-    def _record_usage(self, usage: SessionUsage) -> None:
+    def _take_seq(self) -> int:
         seq = self._next_seq
         self._next_seq += 1
+        return seq
+
+    def _record_usage(self, usage: SessionUsage) -> None:
+        live_seq = self._live.pop(usage.node, None)
+        seq = self._take_seq() if live_seq is None else live_seq
         data = usage.stream.encode("utf-8")
         self._directory.mkdir(parents=True, exist_ok=True)
-        (self._directory / f"{seq}-{usage.node}{RUN_STREAM_SUFFIX}").write_bytes(data)
+        if live_seq is None:
+            (self._directory / f"{seq}-{usage.node}{RUN_STREAM_SUFFIX}").write_bytes(data)
         _append(run_stream_path(self._log_path), data)
         if usage.session_id:
             line = json.dumps(
@@ -155,7 +221,8 @@ class NodeSessions:
                 ensure_ascii=False,
             )
             _append(self._directory / MANIFEST_NAME, (line + "\n").encode("utf-8"))
-        self._format(data)
+        if live_seq is None:
+            self._format(data)
         tail = usage.stderr_tail
         if tail:
             _append(self._log_path, (tail if tail.endswith("\n") else tail + "\n").encode("utf-8"))
@@ -178,6 +245,27 @@ class NodeSessions:
                 subprocess.run([self._formatter], input=data, stdout=log, check=False)
             except OSError as error:
                 self._narrate(f"the formatter '{self._formatter}' could not run: {error}")
+
+    def _format_live(self, lines: bytes) -> None:
+        if not self._live_formatting:
+            return
+        process = self._formatter_process
+        if process is None:
+            try:
+                with self._log_path.open("ab") as log:
+                    process = subprocess.Popen([self._formatter], stdin=subprocess.PIPE, stdout=log)
+            except OSError as error:
+                self._live_formatting = False
+                self._narrate(f"the formatter '{self._formatter}' could not run: {error}")
+                return
+            self._formatter_process = process
+        assert process.stdin is not None
+        try:
+            process.stdin.write(lines)
+            process.stdin.flush()
+        except OSError:
+            # The formatter exited early (the tests' `true` does at once); its status is ignored.
+            self._live_formatting = False
 
     def _pair(self, launch: Launch) -> tuple[int, SessionUsage] | None:
         pending = self._pending.get(launch.node, [])

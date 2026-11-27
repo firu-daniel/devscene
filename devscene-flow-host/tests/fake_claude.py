@@ -10,7 +10,8 @@ Run as `python fake_claude.py <scenario.json> [args…]`. The scenario is a JSON
   stdout on `DEVNULL` and inherits stderr;
 - `pid_file` (optional): this process's own pid is written there;
 - `steps`: a list of `{"stdout": <text>}` or `{"stderr": <text>}`, each written with a newline and
-  flushed, or `{"sleep": <seconds>}`;
+  flushed, `{"sleep": <seconds>}`, or `{"wait_for": <path>}`, which polls every 0.01 s until that
+  path exists and exits 1 if it has not appeared after 60 s;
 - `exit` (optional, default `0`): the exit status.
 Every file is written whole, through a rename, so a reader that sees it sees all of it.
 
@@ -26,6 +27,8 @@ from collections.abc import Mapping
 from pathlib import Path
 
 _CHILD_SOURCE = "import time; time.sleep(600)"
+_WAIT_FOR_SECONDS = 60.0
+_WAIT_FOR_POLL_SECONDS = 0.01
 
 
 def plant(directory: Path, scenario: Mapping[str, object]) -> tuple[str, ...]:
@@ -43,6 +46,15 @@ def _write_whole(path: str, text: str) -> None:
 def _optional_path(scenario: Mapping[str, object], key: str) -> str | None:
     value = scenario.get(key)
     return value if isinstance(value, str) else None
+
+
+def _wait_for(path: Path) -> bool:
+    deadline = time.monotonic() + _WAIT_FOR_SECONDS
+    while not path.exists():
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(_WAIT_FOR_POLL_SECONDS)
+    return True
 
 
 def main(arguments: list[str]) -> int:
@@ -79,6 +91,8 @@ def main(arguments: list[str]) -> int:
             sys.stderr.flush()
         elif isinstance(step.get("sleep"), int | float):
             time.sleep(step["sleep"])
+        elif isinstance(step.get("wait_for"), str) and not _wait_for(Path(step["wait_for"])):
+            return 1
     status = scenario.get("exit", 0)
     return status if isinstance(status, int) else 0
 

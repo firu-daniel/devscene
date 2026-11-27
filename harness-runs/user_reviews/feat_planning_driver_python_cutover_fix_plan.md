@@ -18,7 +18,7 @@ Each entry resolves to a self-contained `harness-runs/user_reviews/feat_planning
 2. [x] **Finding 5** — Assert in the held-session cases of `test_planning_driver_walk.py` that no `no usage record for <node> (total-run timeout)` line reaches the log. _(layer: devscene-flow-host)_
 3. [x] **Finding 4** — Restore the test-only `PD_BACKOFF_SECS` override, capped at 60, in `host/run_control.py`, and set it to 0 in the two end-to-end suites. _(layer: devscene-flow-host)_
 4. [x] **Finding 2** — Restore the undelivered re-dispatch observation and its `[plan-drive]` line. This adds a generic `Launch.undelivered_strikes` field to GraphScene. _(layer: graphscene, devscene-flow-host)_
-5. [ ] **Finding 1** — Stream each node session's output live into its node stream file and, through the formatter, into the run log, with whole lines only. Update `docs/watcher.md`. _(layer: devscene-flow-host, general)_
+5. [x] **Finding 1** — Stream each node session's output live into its node stream file and, through the formatter, into the run log, with whole lines only. Update `docs/watcher.md`. _(layer: devscene-flow-host, general)_
 
 ---
 

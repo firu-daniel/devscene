@@ -13,7 +13,8 @@ The rule: it does what the retired bash driver's `pd_main`, `pd_entry` and `pd_r
   `ContinueWalk` runs `continue_run` with its outcome;
 - the executor is `ClaudeExecutor` wrapped in `PlanningExecutor`, with one agent contract per
   distinct agent of the graph's dispatch nodes, the entry's pairs given to `CorePromptBuilder`,
-  and `NodeSessions` as both the usage sink and the launch sink;
+  and `NodeSessions` as the stream sink, the usage sink and the launch sink, closed once the run
+  returns or raises so its formatter has written every line to the log;
 - the hooks are `PlanningHooks` over `commit_wrapper_path(main_repo)`,
   wrapped so each `commit_plan_round` call, once it has run, records the passage's round as
   `last_round` and clears the kept revision findings, as `record_outcome` clears on a
@@ -207,6 +208,7 @@ async def run_planning(request: PlanningRequest) -> PlanningOutcome:
         contracts=contracts,
         inactivity_limit_seconds=NODE_INACTIVITY_LIMIT_SECONDS,
         usage_sink=sessions,
+        stream_sink=sessions,
         agent_prompt_builder=builder,
         session_args=session_args(
             request.shared_args, plugin_dir, plugin_dir_added=request.plugin_dir_added
@@ -234,33 +236,36 @@ async def run_planning(request: PlanningRequest) -> PlanningOutcome:
     )
 
     exit_: RunExit
-    if isinstance(entry, ContinueWalk):
-        exit_ = await continue_run(
-            walker,
-            executor,
-            signals=signals,
-            counter=counter,
-            sink=sessions,
-            limits=limits,
-            failure_outcome=FAILURE_OUTCOME,
-            undelivered_limit=UNDELIVERED_LIMIT,
-            outcome=entry.outcome,
-            hooks=hooks,
-        )
-    else:
-        exit_ = await start_run(
-            walker,
-            executor,
-            signals=signals,
-            counter=counter,
-            sink=sessions,
-            limits=limits,
-            failure_outcome=FAILURE_OUTCOME,
-            undelivered_limit=UNDELIVERED_LIMIT,
-            entry=entry.entry,
-            resume=entry.resume,
-            hooks=hooks,
-        )
+    try:
+        if isinstance(entry, ContinueWalk):
+            exit_ = await continue_run(
+                walker,
+                executor,
+                signals=signals,
+                counter=counter,
+                sink=sessions,
+                limits=limits,
+                failure_outcome=FAILURE_OUTCOME,
+                undelivered_limit=UNDELIVERED_LIMIT,
+                outcome=entry.outcome,
+                hooks=hooks,
+            )
+        else:
+            exit_ = await start_run(
+                walker,
+                executor,
+                signals=signals,
+                counter=counter,
+                sink=sessions,
+                limits=limits,
+                failure_outcome=FAILURE_OUTCOME,
+                undelivered_limit=UNDELIVERED_LIMIT,
+                entry=entry.entry,
+                resume=entry.resume,
+                hooks=hooks,
+            )
+    finally:
+        sessions.close()
 
     pending_round: int | None = None
     pending_nodes: tuple[str, ...] = ()
