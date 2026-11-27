@@ -1302,43 +1302,25 @@ test('the flow walker and its graph land verbatim under scriptsDir, and a re-run
 });
 
 /**
- * The planning driver's three libraries, as paths under `scriptsDir`: each is sourced by the
- * watcher's planning driver and never run, so each lands non-executable.
+ * The retired bash planning driver's three libraries, as paths under `scriptsDir`. The planning
+ * driver is `devscene-planning-driver` in the flow host, so `init` ships none of them.
  */
-const PLANNING_LIBRARIES = ['lib/planning-node-lib.sh', 'lib/planning-record-lib.sh', 'lib/planning-driver-lib.sh'];
-const PLANNING_LIBRARY_MODE = 0o644;
+const RETIRED_PLANNING_LIBRARIES = ['lib/planning-node-lib.sh', 'lib/planning-record-lib.sh', 'lib/planning-driver-lib.sh'];
 
-test("the planning driver's three libraries land verbatim under scriptsDir/lib, and a re-run keeps them", async (t) => {
-  for (const [name, scriptsDir, config] of [
-    ["a generated config's scriptsDir", SCRIPTS_DIR, undefined],
-    ['a relocated scriptsDir', RELOCATED_SCRIPTS_DIR, seededConfig({ scriptsDir: RELOCATED_SCRIPTS_DIR })],
+test("init writes none of the retired bash planning driver's three libraries", async (t) => {
+  for (const [name, config] of [
+    ["a generated config's scriptsDir", undefined],
+    ['a relocated scriptsDir', seededConfig({ scriptsDir: RELOCATED_SCRIPTS_DIR })],
   ]) {
     await t.test(name, async (subtest) => {
       const files = config === undefined ? nodeProjectFiles() : { ...nodeProjectFiles(), 'devscene.config.json': config };
       const dir = await fixtureFor(subtest, { files });
 
       await initOk(dir);
-      const first = await snapshotTree(dir);
+      const tree = await snapshotTree(dir);
 
-      for (const relative of PLANNING_LIBRARIES) {
-        const path = `${scriptsDir}/${relative}`;
-        const template = readFileSync(join(TEMPLATE_SCRIPTS, ...relative.split('/')), 'utf8');
-        assert.equal(text(dir, path), template, `${path} is not the template's bytes`);
-        assert.deepEqual(
-          copiesOf(first, relative.split('/').pop()),
-          [path],
-          `${relative} was written somewhere other than ${scriptsDir}/${LIB_SUBDIR}/`,
-        );
-        const mode = (await lstat(join(dir, path))).mode & 0o777;
-        assert.equal(mode, PLANNING_LIBRARY_MODE, `${path} is mode ${mode.toString(8)}, not ${PLANNING_LIBRARY_MODE.toString(8)}`);
-      }
-
-      await initOk(dir);
-
-      const second = await snapshotTree(dir);
-      for (const relative of PLANNING_LIBRARIES) {
-        const path = `${scriptsDir}/${relative}`;
-        assert.equal(second[path], first[path], `a second init rewrote ${path}`);
+      for (const relative of RETIRED_PLANNING_LIBRARIES) {
+        assert.deepEqual(copiesOf(tree, relative.split('/').pop()), [], `init wrote ${relative}`);
       }
     });
   }

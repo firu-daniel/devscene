@@ -37,3 +37,6 @@
 - `npm test --workspace cli -- test/run-analytics-node-overlap.test.mjs` passes. Its header is the only line changed.
 - `git grep -nE 'planning-(driver|node|record)-lib|pnl_reap|prl_artifact_commit' -- cli/src cli/templates` prints nothing.
 - `commands.typecheck` exits zero over the edited `outerLoopScripts.ts`.
+
+**Deviations from plan:**
+- `git grep -nE 'planning-(driver|node|record)-lib|pnl_reap|prl_artifact_commit' -- cli/src cli/templates` does not print nothing: it prints one line, `cli/templates/scripts/README.md:5`, which still lists the three libraries. This task's `**Where this task stops.**` assigns the READMEs to Task 6, so that line was left for it. Over `cli/src` and every non-README file under `cli/templates`, the grep prints nothing.
