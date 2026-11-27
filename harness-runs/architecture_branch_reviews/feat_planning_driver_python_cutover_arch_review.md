@@ -8,7 +8,7 @@ Headline: the layering holds. Every new module sits in the internal layer its wo
 
 ## Phase 2 Readiness — Ordered Fix List
 
-1. [ ] **Finding 1** — Record the three stale conventions sentences the cutover falsified, which no channel carries _(layer: general)_
+1. [x] **Finding 1** — Record the three stale conventions sentences the cutover falsified, which no channel carries _(layer: general)_
 2. [ ] **Finding 4** — Register the driver's return-field check as a tree guard over `plugin/schemas/**` _(layer: general)_
 3. [ ] **Finding 3** — Compose the main checkout's commit-wrapper path in one place, not in `commands` and `host` both _(layer: devscene-flow-host)_
 4. [ ] **Finding 2** — Stop using `RecordError` for a host write collision and a host-side ledger check _(layer: devscene-flow-host)_

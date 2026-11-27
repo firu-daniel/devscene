@@ -297,7 +297,7 @@ GraphScene's `AttemptBook` retries that gate alone after `BACKOFF_SECONDS`, its 
 
 **Reason.** The task prompt decides that the corpus-staleness record is not this branch's. It goes to a follow-up that adds a per-run summary file, the Done summary as a fixed-structure file with its owed-before-merge and owed-after-merge sections (`harness-runs/task_prompts/feat_planning_driver_python_cutover_task_prompt.md`, the bullet *"The corpus-staleness record is not this branch's."*).
 
-**Cost.** Until that follow-up lands, a planning agent's `corpus_staleness` entry on the script-driven path reaches no record.
+**Cost.** Until that follow-up lands, a planning agent's `corpus_staleness` entry on the script-driven path reaches no record. This branch's own three `stale-rule` entries — `.claude/context/conventions.md` → `## The layers` and `## Commit-message policy`, and `.claude/context/devscene-flow-host.md` → `## What this layer is, and what it is not` — are recorded by hand in `harness-runs/improvement_observations/feat_planning_driver_python_cutover.md`, under *"Corpus staleness the script-driven planning dropped: three stale-rule entries"*.
 
 ### How each runs a parallel round
 
