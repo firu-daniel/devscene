@@ -1,6 +1,7 @@
-"""The rule this file exists to enforce: `read_config` reads `stateDir` and `phases` from
-`devscene.config.json` as the bash walker's readers do (`hr_config_dir` / `hr_state_dir`,
-`hr_phase_enabled`), and raises `RecordError` with one exact line for each record it cannot read.
+"""The rule this file exists to enforce: `read_config` reads `stateDir`, `scriptsDir` and `phases`
+from `devscene.config.json` as the bash walker's readers do (`hr_config_dir` / `hr_state_dir`,
+`hr_scripts_dir`, `hr_phase_enabled`), and raises `RecordError` with one exact line for each record
+it cannot read.
 
 Every case plants its configuration under `tmp_path`; every expected value is written from the
 rules in the task plan, never taken from `read_config`'s output.
@@ -32,11 +33,12 @@ def _plant_bytes(root: Path, data: bytes) -> Path:
 def test_a_full_configuration_is_read(tmp_path: Path) -> None:
     root = _plant(
         tmp_path,
-        '{"defaultBranch": "main", "stateDir": "harness-runs/",'
+        '{"defaultBranch": "main", "stateDir": "harness-runs/", "scriptsDir": "scripts/",'
         ' "phases": {"parity": true, "qa": false}}',
     )
     config = read_config(root)
     assert config.state_dir == "harness-runs"
+    assert config.scripts_dir == "scripts"
     assert dict(config.phases) == {"parity": True, "qa": False, "docs": False}
     assert list(config.phases) == ["parity", "qa", "docs"]
 
@@ -128,6 +130,30 @@ def test_a_state_dir_that_is_not_a_string_is_a_record_error(tmp_path: Path) -> N
     with pytest.raises(RecordError) as error:
         read_config(root)
     assert str(error.value) == f"{tmp_path / 'devscene.config.json'}: stateDir is not a string"
+
+
+@pytest.mark.parametrize(
+    "text", ['{"defaultBranch": "main"}', '{"defaultBranch": "main", "scriptsDir": null}']
+)
+def test_an_absent_or_null_scripts_dir_takes_the_default(tmp_path: Path, text: str) -> None:
+    assert read_config(_plant(tmp_path, text)).scripts_dir == "devscene-scripts"
+
+
+def test_every_trailing_slash_is_stripped_from_scripts_dir(tmp_path: Path) -> None:
+    root = _plant(tmp_path, '{"defaultBranch": "main", "scriptsDir": "tools/scripts/"}')
+    assert read_config(root).scripts_dir == "tools/scripts"
+
+
+def test_a_scripts_dir_of_only_slashes_takes_the_default(tmp_path: Path) -> None:
+    root = _plant(tmp_path, '{"defaultBranch": "main", "scriptsDir": "//"}')
+    assert read_config(root).scripts_dir == "devscene-scripts"
+
+
+def test_a_scripts_dir_that_is_not_a_string_is_a_record_error(tmp_path: Path) -> None:
+    root = _plant(tmp_path, '{"defaultBranch": "main", "scriptsDir": ["x"]}')
+    with pytest.raises(RecordError) as error:
+        read_config(root)
+    assert str(error.value) == f"{tmp_path / 'devscene.config.json'}: scriptsDir is not a string"
 
 
 def test_the_config_is_frozen_and_its_phases_cannot_be_assigned(tmp_path: Path) -> None:

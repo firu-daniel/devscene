@@ -8,8 +8,10 @@ file, in ascending numeric `<n>`; no subdirectory is read. Each question's origi
 `Raised by: ` on the first such line before the first `## ` line, a trailing CR stripped, else
 `None`. `read_answered_pairs` opens no answer file: an origin is told from the question alone.
 `read_pair_text` reads one pair file's text as `pd_pairs_text` `cat`s it (the same library), and is
-called only for pairs the caller has kept, so a `Phase G` answer is never opened before Phase D. It
-reads values and decides nothing with them.
+called only for pairs the caller has kept, so a `Phase G` answer is never opened before Phase D.
+`max_question_index` reads the directory as `hr_max_question_index` does (the same harness
+library): the highest `<n>` of an existing `question_<n>.md`, `<n>` all digits read base-10, at the
+top level and under `answered/` together, else `0`. It reads values and decides nothing with them.
 
 Deliberately not covered:
 - Which origins reach a writer, and which writer: `host/planning_entry.py`'s.
@@ -24,6 +26,7 @@ from typing import Final
 from devscene_flow_host.records.errors import RecordError
 
 CLARIFICATIONS_DIRECTORY: Final = "clarifications"
+ANSWERED_DIRECTORY: Final = "answered"
 RAISED_BY_PREFIX: Final = "Raised by: "
 _HEADING_PREFIX: Final = "## "
 _QUESTION_NAME: Final = re.compile(r"question_([0-9]+)\.md")
@@ -76,6 +79,22 @@ def read_answered_pairs(repo_root: Path, state_dir: str, branch: str) -> tuple[A
             )
         )
     return tuple(pairs)
+
+
+def max_question_index(repo_root: Path, state_dir: str, branch: str) -> int:
+    directory = repo_root / PurePosixPath(state_dir, CLARIFICATIONS_DIRECTORY, branch)
+    highest = 0
+    for searched in (directory, directory / ANSWERED_DIRECTORY):
+        try:
+            entries = list(searched.iterdir())
+        except (FileNotFoundError, NotADirectoryError):
+            continue
+        for entry in entries:
+            match = _QUESTION_NAME.fullmatch(entry.name)
+            # `[ -e ]`: any entry that resolves, a dangling symlink not.
+            if match and entry.exists():
+                highest = max(highest, int(match.group(1), 10))
+    return highest
 
 
 def read_pair_text(repo_root: Path, rel: str) -> str:

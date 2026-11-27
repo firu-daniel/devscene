@@ -51,3 +51,8 @@
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_clarifications.py` passes.
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_config.py` passes, every existing case unchanged but the full-configuration one.
 - `records/core_limits.py` imports no `graphscene` (the `devscene-flow-host-graphscene-outside-records` contract).
+
+**Deviations from plan:**
+- Plan said `max_question_index` reads only the top level, "as `hr_max_question_index` reads only the top level", and asked for a case asserting a `question_9.md` under `answered/` is not counted. `cli/templates/scripts/lib/harness-run-lib.sh` → `hr_max_question_index` globs `"$clar_dir"/question_*.md "$clar_dir"/answered/question_*.md` and its comment says "top level and answered/ together"; this layer's conventions require reading as the bash reader does. Implemented as top level plus `answered/`, and the case asserts `answered/question_9.md` gives `9`. This also keeps Task 10's park at `max + 1` from reusing an archived pair's index.
+- Plan said "a regular file named `question_<n>.md`"; the bash reader tests `[ -e "$q" ]`, so any entry that resolves counts (a dangling symlink does not). Implemented as `exists()`.
+- An extra `max_question_index` case reads a zero-padded `question_010.md` as `10`, per the bash reader's forced base 10.
