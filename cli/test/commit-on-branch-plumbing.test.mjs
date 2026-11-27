@@ -185,7 +185,17 @@ test('(d) A deletion is committed by passing its parent directory', async (t) =>
   assert.equal(await f.wtGit('status', '--porcelain', '--', 'dir'), '');
 });
 
-test('(l) A submodule under a passed directory is carried unchanged', async (t) => {
+test('(d2) A deletion is committed by passing the deleted path itself', async (t) => {
+  const f = await fixture(t);
+  await rm(join(f.wt, 'dir', 'gone.txt'));
+  const result = await f.commit(['dir/gone.txt']);
+  assert.equal(result.status, 0, output(result));
+  assert.equal(await changed(f, await f.tip()), 'D\tdir/gone.txt');
+  assert.equal(await f.wtGit('ls-files', 'dir/gone.txt'), '');
+  assert.equal(await f.wtGit('status', '--porcelain', '--', 'dir'), '');
+});
+
+test('(l)A submodule under a passed directory is carried unchanged', async (t) => {
   const f = await fixture(t);
   await runGit(f.wt, ['update-index', '--add', '--cacheinfo', `160000,${await f.tip()},dir/sub`]);
   await runGit(f.wt, ['commit', '--quiet', '--no-verify', '-m', 'fixture: gitlink']);

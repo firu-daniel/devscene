@@ -205,7 +205,7 @@ async function createStallFixture(t, { job = false } = {}) {
 
   const rec = join(w.dir, 'watcher-test');
   const bin = join(rec, 'bin');
-  await mkdir(bin);
+  await mkdir(bin, { recursive: true });
   const ghStub = join(rec, 'gh');
   await writeFile(ghStub, GH_STUB, { mode: 0o755 });
   await w.setStub(HUNG_BODY);

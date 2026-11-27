@@ -48,6 +48,23 @@ You install two things: a Claude Code plugin and a Node CLI.
 
 - **Contributors.** From a clone, the plugin installs as a directory source, and the built CLI is `node cli/dist/cli.js`. Both routes, and the scratch repository step 3 then needs, are [`docs/development.md`](docs/development.md) §1 and §5.
 - **The `.claude/` write wall.** Step 3 writes under `.claude/`, which no permission entry opens to an unattended run. There it exits `0` having written nothing, so run it supervised and check that the conventions documents changed. See [`docs/analyze.md`](docs/analyze.md) §3.
+- **`uv`.** DevScene requires [`uv`](https://docs.astral.sh/uv/) on every machine that runs it, for its Python flow walker. Step 2 copies the walker's packages under `<scriptsDir>/python/`, and `uv` builds their environment beside them, outside the sandbox, because it reaches the network. Without `uv`, `doctor`'s `uv` check fails and a run copy's bootstrap fails at `setup-worktree.sh` step 6. Once `uv` is installed, this command prints its version:
+
+  ```bash
+  uv --version
+  ```
+
+  `uv` must be on `PATH` before step 2, because `init` builds the flow walker's environment with it by default, without asking:
+
+  ```bash
+  npx devscene init
+  ```
+
+  A build that fails is a warning, and never fails `init`; `--no-provision-python` skips it. To build it later, run this from the repository root, with the default `scriptsDir` ([`docs/cli.md`](docs/cli.md) §2):
+
+  ```bash
+  bash devscene-scripts/flow-host-provision.sh
+  ```
 
 ```mermaid
 flowchart TB
@@ -186,6 +203,24 @@ npx devscene doctor
 
 Which keys are written is [`docs/cli.md`](docs/cli.md) §2. `devscene.config.json` is committed; the permission profile is not committed, which is why the teammate runs `init` once.
 
+**G. Update — each time you move to a new release.** Update the plugin first, then restart any open session so it takes effect:
+
+```bash
+claude plugin update devscene@devscene
+```
+
+Then, in the main checkout, bring the outer-loop scripts and the permission profile up to the latest release. Nothing else is written, so the conventions documents `/devscene:analyze` filled stay as they are. What it refuses and what it leaves for you to commit are [`docs/cli.md`](docs/cli.md#updating-an-adopted-repository):
+
+```bash
+npx devscene@latest init --upgrade
+```
+
+`init --upgrade` leaves the GitHub workflows alone, so a repository using remote runs also runs the command below. What to commit and push afterwards is [`docs/remote-execution.md`](docs/remote-execution.md#upgrading):
+
+```bash
+npx devscene@latest init --upgrade-workflows
+```
+
 ### Working from GitHub
 
 Once the setup is done, labelling an issue `devscene` starts a run, and a review that requests changes on a pull request from the run's branch starts a user-review round. Who may start or work a run from GitHub is an allow-list: by default only the owner of a repository a personal account owns, and nobody in an organisation-owned one, and the maintainer names anyone else in the repository variable `DEVSCENE_RUN_ACTORS` ([`docs/github-issue-trigger.md`](docs/github-issue-trigger.md#3-who-can-start-a-run)). With `forge` set to `github` and `execution.target` to `github-actions`, a team member the list admits who uses only this route needs nothing local: no clone, no plugin and no `init`. Anyone may use both routes at once.
@@ -250,6 +285,7 @@ What this harness does not do, in three groups: the shape of the system as desig
 - [`docs/team-accounts-research.md`](docs/team-accounts-research.md) — running the harness on GitHub for a team whose members each have their own Claude account: which credentials may be shared, whose usage each consumes, GitHub's options for per-member credentials, three options for the harness and a recommendation.
 - [`docs/copilot-foundry-research.md`](docs/copilot-foundry-research.md) — adopting the harness in a company whose only AI coding licence is GitHub Copilot: what Copilot CLI, the Claude partner agent and VS Code offer against what the harness needs, why a Copilot-token proxy is not an option, and running Claude Code on Microsoft Foundry — credentials, metering, and the model and effort constraints.
 - [`docs/orchestrator-cost-measurement.md`](docs/orchestrator-cost-measurement.md) — where an autonomous run's cached-context cost goes, by agent and by phase; how often the orchestrator adds knowledge to a dispatch; and whether a session started with `--agent` keeps the agent's `tools:` allowlist.
+- [`docs/converging-plan-reviews.md`](docs/converging-plan-reviews.md) — converging plan reviews' decisions of record, each with its reason and cost; the FAIL-rounds baseline they are measured against; and the four metrics, with their commands, of the comparison a later run owes.
 - [`docs/analyze.md`](docs/analyze.md) — `/devscene:analyze`'s decisions of record: what it fills in from real code, what it refuses to guess, and how the offer to run it reaches a session.
 - [`docs/cli.md`](docs/cli.md) — the five subcommands, their flags and exit codes, the `init` re-run contract, the stack-detection table, and the failure modes the generated permission profile encodes.
 - [`docs/retrieval.md`](docs/retrieval.md) — RAG (docs retrieval): opt-in and local; measured on a real catalog, verdict withdrawn, kept opt-in by maintainer decision; its design, measured facts, when to turn it on, what it buys and what it costs.

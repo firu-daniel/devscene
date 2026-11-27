@@ -1,12 +1,15 @@
 /**
  * Where this harness's plugin lives on **this** machine — both roots of it — read from the records
- * the agent runner keeps.
+ * the agent runner keeps, and the version installed there.
  *
  * **The rule this module exists to enforce: the plugin's roots are resolved here and nowhere else in
- * the CLI, and each is re-derived on every call.** The install root carries the plugin's version in
- * its path, so a value written down once — into a generated permission entry, into a document —
- * stops being true at the next plugin upgrade while still looking right. A caller that wants a root
- * asks for it now; nothing here caches, and nothing here may be persisted.
+ * the CLI's TypeScript, and each is re-derived on every call.** The one other resolver is the
+ * generated watcher's read-only shell mirror of {@link pluginRuntimeRoot}, `hr_plugin_runtime_root_var`
+ * in `cli/templates/scripts/lib/harness-run-lib.sh`, which pins a planning node session's
+ * `--plugin-dir` at launch; change the selection in both places together. The install root carries
+ * the plugin's version in its path, so a value written down once — into a generated permission
+ * entry, into a document — stops being true at the next plugin upgrade while still looking right. A
+ * caller that wants a root asks for it now; nothing here caches, and nothing here may be persisted.
  *
  * **Why there are two.** A helper named in an **instruction file** arrives as bytes and the agent
  * resolves the root itself; a helper named in an **agent definition body** has `${CLAUDE_PLUGIN_ROOT}`
@@ -18,27 +21,30 @@
  *
  * The files are the **agent runner's**, not this CLI's, both under {@link claudeHome}'s `plugins/`:
  * `installed_plugins.json` for the install root, and `known_marketplaces.json` — plus the
- * `.claude-plugin/marketplace.json` its `installLocation` points at — for the runtime root. Two
- * consequences follow and both are deliberate.
+ * `.claude-plugin/marketplace.json` its `installLocation` points at — for the runtime root. Under a
+ * resolved root it also reads the plugin manifest, `.claude-plugin/plugin.json`. Two consequences
+ * follow and both are deliberate.
  *
  * 1. **They are read-only, always.** No function here writes, creates a directory, or repairs
  *    anything. A format this CLI does not recognise is the runner's to change and not ours to
  *    correct.
- * 2. **Their shape is navigated, not validated.** `version` is read past rather than pinned: a bump
- *    that adds a field would otherwise turn every working machine into a finding. Only the fields a
- *    root is navigated for are looked at, and they are checked where they are used: `installPath`
- *    on a plugin row, and `source.source` plus `installLocation` on a marketplace entry together
- *    with the plugin `source` in the manifest that entry locates. That is the opposite of
- *    `machine/registry.ts`'s `schema` handling, and the reason is ownership: that file is this
+ * 2. **Their shape is navigated, not validated.** A record's own `version` is read past rather than
+ *    pinned: a bump that adds a field would otherwise turn every working machine into a finding.
+ *    Only the fields a root is navigated for are looked at, and they are checked where they are
+ *    used: `installPath` on a plugin row, and `source.source` plus `installLocation` on a marketplace
+ *    entry together with the plugin `source` in the manifest that entry locates. The plugin
+ *    manifest's `version` is the one field read for something other than navigating to a root, and
+ *    {@link installedPluginVersion} checks it the same way, where it is used. That is the opposite
+ *    of `machine/registry.ts`'s `schema` handling, and the reason is ownership: that file is this
  *    CLI's own and a version it does not know means a newer CLI wrote it, while these belong to
  *    another program that may change them at any release.
  *
  * **Every failure is `undefined`, never a throw** — file absent, unreadable, unparsable, key
- * absent, no usable row. A machine where the plugin is not installed is an answer a caller has
- * something correct to do with, which is the discipline `core/git.ts`'s `hasCommits` states for the
- * same reason: the one consumer is a `doctor` check, and "not installed" is a state it reports. It
- * is also why {@link pluginRuntimeRoot} falls back to the install root rather than throwing on a
- * record it cannot navigate.
+ * absent, no usable row, no usable version. A machine where the plugin is not installed is an answer
+ * a caller has something correct to do with, which is the discipline `core/git.ts`'s `hasCommits`
+ * states for the same reason: "not installed" is a state a `doctor` check reports. It is also why
+ * {@link pluginRuntimeRoot} falls back to the install root rather than throwing on a record it cannot
+ * navigate.
  */
 
 import { readdirSync, statSync } from 'node:fs';
@@ -65,10 +71,16 @@ const SOURCE_FIELD = 'source';
 const DIRECTORY_SOURCE = 'directory';
 const INSTALL_LOCATION_FIELD = 'installLocation';
 
-/** The marketplace manifest inside an install location, and the field one plugin entry is found by. */
-const MARKETPLACE_MANIFEST_DIRNAME = '.claude-plugin';
+/** The directory holding the marketplace manifest in an install location and the plugin manifest in a root. */
+const MANIFEST_DIRNAME = '.claude-plugin';
+
+/** The marketplace manifest's filename, and the field one plugin entry is found by. */
 const MARKETPLACE_MANIFEST_FILENAME = 'marketplace.json';
 const NAME_FIELD = 'name';
+
+/** The plugin manifest's filename, and the field {@link installedPluginVersion} reads from it. */
+const PLUGIN_MANIFEST_FILENAME = 'plugin.json';
+const VERSION_FIELD = 'version';
 
 /**
  * The directory of helper scripts inside an install root — the segment {@link pluginScriptsDir}
@@ -179,7 +191,7 @@ export function pluginRuntimeRoot(repoRoot?: string): string | undefined {
 
   let manifest: JsonValue | undefined;
   try {
-    manifest = readJsonFile(join(location, MARKETPLACE_MANIFEST_DIRNAME, MARKETPLACE_MANIFEST_FILENAME));
+    manifest = readJsonFile(join(location, MANIFEST_DIRNAME, MARKETPLACE_MANIFEST_FILENAME));
   } catch {
     return fallback();
   }
@@ -193,6 +205,28 @@ export function pluginRuntimeRoot(repoRoot?: string): string | undefined {
   if (typeof relative !== 'string' || relative === '') return fallback();
 
   return join(location, relative);
+}
+
+/** The non-empty string `version` of the plugin manifest under `root`, or `undefined`. */
+function manifestVersion(root: string | undefined): string | undefined {
+  if (root === undefined) return undefined;
+  let manifest: JsonValue | undefined;
+  try {
+    manifest = readJsonFile(join(root, MANIFEST_DIRNAME, PLUGIN_MANIFEST_FILENAME));
+  } catch {
+    return undefined;
+  }
+  if (!isJsonObject(manifest)) return undefined;
+  const version = manifest[VERSION_FIELD];
+  return typeof version === 'string' && version !== '' ? version : undefined;
+}
+
+/**
+ * The plugin version installed on this machine: the manifest's at {@link pluginRuntimeRoot}, then at
+ * {@link pluginInstallRoot} if that answers nothing, otherwise `undefined`.
+ */
+export function installedPluginVersion(repoRoot?: string): string | undefined {
+  return manifestVersion(pluginRuntimeRoot(repoRoot)) ?? manifestVersion(pluginInstallRoot(repoRoot));
 }
 
 /**

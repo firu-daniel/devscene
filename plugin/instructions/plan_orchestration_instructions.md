@@ -81,9 +81,7 @@ The agent's system prompt covers conventions and parity *rules*; your prompt pro
 
 ## Commit conventions
 
-Each item gets its own commit, and its subject prefix comes from a stated source rather than from your reading of the item. Read `committer.md`'s own contract for the `commit_prefix` argument — the same source the dispatching flows' `commit_prefix rule` cells read — and use the prefix it, or the policy it names, designates for the class of commit you are making: a fix to existing work, or new work. Resolve that class from the item you are committing rather than from the kind of file it happens to touch — where the designation distinguishes a code commit from a flow-artifact one, an item off this readiness list is the code one, the flow's own artifact commits being made elsewhere; and never from a category of your own invention, and never a token outside that designation.
-
-Where that designation says such a commit carries no prefix, the subject is the description alone — no prefix and no `: ` separator. Where the policy that contract reads answers neither question, use the value that contract names for that case; it names one for every state the policy can be in, so this rule always resolves and never leaves you inventing a category.
+Each item gets its own commit, and its subject prefix comes from a stated source rather than from your reading of the item: the rule the commit step applies, stated in `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `## Substitution table`'s `commit prefix` column. Use the prefix it designates for the class of commit you are making — the branch-name token for new work, `fix` for a fix to existing work. Resolve that class from the item you are committing rather than from the kind of file it happens to touch, never from a category of your own invention, and never as a token outside that designation.
 
 ```
 <the designated prefix>: <short description of what the item changed>

@@ -7,6 +7,10 @@
  *    `HarnessError` (or by returning an exit code from `run`); the entry point in
  *    `cli.ts` is the single place where a thrown value becomes `process.exitCode`.
  *    Exiting outright can truncate stdout mid-write when it is piped.
+ *    `cli/src/flowHost/stage.ts` is the one build-time entry point under `cli/src/`: it runs from
+ *    `cli/package.json` → `build`, never from `cli.ts`'s dispatch, and its uncaught throw ends the
+ *    build rather than a command, so `cli.ts` remains the only place a thrown value of a
+ *    **command** becomes an exit code.
  * 2. **Every non-zero exit carries a message naming its cause.** A bare non-zero exit
  *    with no explanation is indistinguishable from a crash to the run daemon.
  */

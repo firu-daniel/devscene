@@ -6,7 +6,7 @@ Run `${CLAUDE_PLUGIN_ROOT}/instructions/user_review_fixes_instructions_core.md` 
 
 ## Resolved values
 
-The four tokens below are neither Mode-contract **bindings** (`## Mode contract — bindings`, immediately below) nor ordinary **path placeholders** (`<branch>`, which resolves from the core's `## Setup (once per session)` as every path placeholder this flow uses does): one is derived at runtime and three resolve from the adopting repository's `devscene.config.json`. They are declared here once, and after this table the body uses each one as an ordinary placeholder.
+The six tokens below are neither Mode-contract **bindings** (`## Mode contract — bindings`, immediately below) nor ordinary **path placeholders** (`<branch>`, which resolves from the core's `## Setup (once per session)` as every path placeholder this flow uses does): two are derived at runtime and four resolve from the adopting repository's `devscene.config.json`. They are declared here once, and after this table the body uses each one as an ordinary placeholder.
 
 | Token | Class | How to resolve it |
 |---|---|---|
@@ -14,6 +14,8 @@ The four tokens below are neither Mode-contract **bindings** (`## Mode contract 
 | `<app_dir>` | config value | `appDir` — the app's directory inside the checkout, repo-relative. The **binding** `<app_root>` below is built from it. |
 | `<qa_creds_path>` | config value | `qa.credentialsPath` — the repo-relative path of the gitignored test-account file. Read only when `phases.qa` is `true`. |
 | `<state_dir>` | config value | `stateDir` — the run-artifact tree every artifact path in this file is relative to. Default `devscene/`. It is never dot-named: no path segment of it may begin with a dot. |
+| `<MAIN_REPO>` | derived at runtime | The main checkout — the path a bare `printenv DEVSCENE_MAIN_REPO` prints, else the path `${CLAUDE_PLUGIN_ROOT}/instructions/main_repo_resolution.md` → `## The fallback` resolves, and a stop with its sentence when it resolves none. Spell it as a literal absolute path in the command, never through a substitution or a variable. |
+| `<scripts_dir>` | config value | `scriptsDir` — the repo-relative directory the wrapper scripts live in, `commit-on-branch.sh` among them. It is invoked under `<MAIN_REPO>`. |
 
 ---
 
@@ -26,13 +28,13 @@ One row per binding declared in `user_review_fixes_instructions_core.md` → `##
 | Binding | Value for this flow |
 |---|---|
 | `<escalate>` | Stop, surface the blocker plus whatever path(s) the core's site names (for a non-convergent review loop, the latest findings file and a one-paragraph summary) in your text output, then wait for direction — do not continue. |
-| `<ask>` | Stop and surface the `ui-tests-plan-writer`'s `## Questions` section in your text output; do **not** run the QA loop with an incomplete plan. |
+| `<ask>` | Stop and surface each `` `ui-tests-plan-writer.questions` `` item, verbatim, in your text output; do **not** run the QA loop with an incomplete plan. |
 | `<park_answer_lookup>` | `none` — this flow's `<escalate>` surfaces the blocker and waits, and writes no answer file, so the cited G.0's pending-answer test never holds here. |
 | `<gate_launcher>` | `none` — this flow runs under the session's own settings, in which `init` writes no sandbox block, so the run form's detached worker outlives its call there and the core's G.1 issues the run form directly. A user whose own settings turn the sandbox on under Linux meets `docs/sandbox-verification.md` §5 F10 in this flow too. |
 | `<repo_root>` | The supervised checkout root, resolved as `## Resolved values` above states. On a main-repo run that is the main checkout; a worktree run resolves the same way to that worktree's own root. The core's QA.1+ `test_credentials` clause therefore names `<repo_root>/<qa_creds_path>`. |
 | `<app_root>` | `<repo_root>/<app_dir>`, resolved once at session start. It anchors where the app's source tree sits and is **not** a working directory: every `commands.*` string is repo-relative, so the core's Setup step 3 runs each one from `<repo_root>` — resolving one against this root would resolve a nested `<app_dir>` twice. Take the string from its `commands.*` key and run it as-is unless that call is **refused**, or `commands.typecheck` holds `<none>` and that gate is therefore not run and recorded as not run — the core's `<test_cmd>` / `<typecheck_cmd>` row states both cases — never invoking the underlying package manager directly and never rewriting a configured command into an absolute path. |
-| `<per_unit_review>` | **`on`** — the per-unit `layer-reviewer` step runs between implementer and committer. Its body is `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `### Per-unit review step`, which the unit loop's step 4 enters on this value; that file is its only owner and this fork restates none of it. |
-| `<committer_push>` | *(omitted — append no `push:` line to any `committer` dispatch. This flow deliberately leaves commits unpushed for the human merge step.)* |
+| `<per_unit_review>` | **`on`** — the per-unit `layer-reviewer` step runs between implementer and the commit step. Its body is `${CLAUDE_PLUGIN_ROOT}/instructions/unit_loop_core.md` → `### Per-unit review step`, which the unit loop's step 4 enters on this value; that file is its only owner and this fork restates none of it. |
+| `<commit_call>` | `bash <MAIN_REPO>/<scripts_dir>/commit-on-branch.sh --repo <repo_root>` — the prefix of every commit this flow lands, ahead of the call's `--unit` / `--artifact` arguments. No `--push`: this flow deliberately leaves commits unpushed for the human merge step. |
 | `<reentry_command>` | `/devscene:branch-implement-user-review-semi-autonomous` |
 | `<next_step_note>` | **Optional next round.** If the user has further observations after this fix cycle, they write `<state_dir>/user_reviews/<branch>_review_2.md` (round 2) following `${CLAUDE_PLUGIN_ROOT}/samples/sample_user_review.md`, then run `/devscene:branch-start-user-review-fix-plan` (supervised) to produce `<branch>_fix_plan_2.md`, then re-run `/devscene:branch-implement-user-review-semi-autonomous`. This orchestrator does NOT auto-trigger that next round — the user invokes it out-of-band when (and if) they want it. |
 

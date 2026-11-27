@@ -180,10 +180,10 @@ test('two renders of one document are byte-identical', () => {
   assert.ok(section(markdown(doc), GATE_H).includes('| task_round_1 | proxy | — | 1 | HTTP 403 |'));
 });
 
-test('check_doc refuses gate_logs outside schema 3 and a schema-3 document missing either array', () => {
-  assert.match(failure({ ...schema1([session('s1')]), gate_logs: [] }), /a schema 1 document carries \.gate_logs; only schema 3 may/);
+test('check_doc refuses gate_logs outside schema 3 and 4 and a schema-3 document missing either array', () => {
+  assert.match(failure({ ...schema1([session('s1')]), gate_logs: [] }), /a schema 1 document carries \.gate_logs; only schema 3 and 4 may/);
   assert.match(failure({ ...schema1([session('s1')]), schema: 2, rounds: [], gate_logs: [] }),
-    /a schema 2 document carries \.gate_logs; only schema 3 may/);
+    /a schema 2 document carries \.gate_logs; only schema 3 and 4 may/);
   const { rounds: _r, ...noRounds } = schema3([session('s1')], []);
   assert.match(failure(noRounds), /schema 3 document's \.rounds is not an array/);
   const { gate_logs: _g, ...noLogs } = schema3([session('s1')], []);

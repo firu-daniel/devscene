@@ -10,19 +10,34 @@
  * `Write` included, and a `Write(path)` rule is accepted, never consulted, and warned about at startup
  * (`docs/sandbox-verification.md` → F4).
  *
- * Every path is built through its owner — the outer-loop table and its path builders, the hooks
+ * Every path is built through its owner — the outer-loop table and its path builders, the shipped
+ * Python layout's directory builder, the hooks
  * directory resolver, the MCP wiring's path, the profile's and the settings files' paths, the
  * configuration file's name, the run registry's two segments — never joined by hand, so the file protected is the file the writer wrote. `doctor` grades a profile on disk against
  * {@link protectedPaths} and {@link fileToolDenyRules}, so they are the one statement of the set.
  *
- * The set: the main checkout's outer-loop scripts and their library, the hooks directories, the MCP
- * wiring, the profile and the settings files, the plugin roots, the main checkout's whole `.git`, its
+ * The set: the main checkout's outer-loop scripts and their library, the main checkout's
+ * `<scriptsDir>/python/` (its packages are built outside the sandbox when the flow walker's
+ * environment is provisioned; a run copy's is not, since no unsandboxed step builds from it) and,
+ * where a package there is a symbolic link (the harness's own repository), the directory it resolves
+ * to, the
+ * hooks directories, the MCP wiring, the profile, its local additions file (the main checkout's copy alone: a run loads no
+ * other) and the settings files, the plugin roots, the main checkout's whole `.git`, its
  * configuration file and run registry, a `.git` at each scripts-directory level, and, under the
- * sibling-run-copy glob, the same hooks, MCP and settings paths plus the {@link COPY_GIT_PATHS} rows.
+ * sibling-run-copy glob, the same hooks, MCP and settings paths plus the {@link COPY_GIT_PATHS} rows:
+ * the run copy's trust files and its branch-ref store — `HEAD`, `refs/heads` and `packed-refs`.
  * **A run copy's `.git` must never be covered as a whole, by glob or by exact path:** on a clone that
  * closes it to the run's own sandboxed git (`docs/sandbox-verification.md` CL4), so only the trust
- * files in {@link COPY_GIT_PATHS} are protected under it. {@link retiredProtectedPaths} names the
- * entry an earlier release wrote that broke this.
+ * files and the branch-ref store in {@link COPY_GIT_PATHS} are protected under it.
+ * {@link retiredProtectedPaths} names the entry an earlier release wrote that broke this.
+ *
+ * The branch-ref store is protected so that a run copy's branch moves only through the excluded
+ * commit, push and refresh wrappers, which read and swap that ref outside the sandbox
+ * (`cli/templates/scripts/lib/harness-run-lib.sh` → `hr_copy_sync_in_var`, `hr_copy_ref_swap_var`).
+ * The accepted cost: a sandboxed `git commit`, `git switch`, branch creation and `git stash push` are
+ * refused in a run copy, and no flow issues them. The `git stash push` refusal is derived, not
+ * measured: it runs `git reset --hard`, which locks `refs/heads/<branch>`. The protection is owed a
+ * measurement (`docs/sandbox-verification.md` row CS16).
  *
  * Two relative sets are projections of {@link protectedPaths}, filtered and re-rooted from its answer
  * and never listed again: {@link copySurfacePaths}, the run-copy-relative paths outside `.git` that an
@@ -46,13 +61,15 @@
  * A mirror this header does not declare is a defect.
  */
 
+import { realpathSync } from 'node:fs';
 import { isAbsolute, join, relative, sep } from 'node:path';
 
 import { CONFIG_FILENAME, DEFAULTS, retrievalApplies, type HarnessConfig } from '../config/model.js';
 import { internal } from '../core/errors.js';
 import { appendUnique, listAt, type JsonObject, type JsonValue } from '../core/json.js';
-import { defaultProjectName, worktreeGlob } from '../core/paths.js';
+import { defaultProjectName, lstatOrUndefined, worktreeGlob } from '../core/paths.js';
 import { normalizeRepoDir } from '../core/repoPaths.js';
+import { FLOW_HOST_PACKAGES, flowHostDir } from '../flowHost/layout.js';
 import { resolveGithooksDir } from './githooks.js';
 import {
   DOCS_SEARCH_SERVER_SCRIPT_NAME,
@@ -63,7 +80,7 @@ import {
   RUN_LIBRARY_SCRIPT_NAME,
   type OuterLoopScript,
 } from './outerLoopScripts.js';
-import { appendReadme, assertUsableInEntry, normalizedRoot, PROFILE_PATH } from './profileEntries.js';
+import { appendReadme, assertUsableInEntry, normalizedRoot, PROFILE_LOCAL_PATH, PROFILE_PATH } from './profileEntries.js';
 import { SETTINGS_LOCAL_PATH, SETTINGS_PATH } from './projectSettings.js';
 import { MCP_PATH } from './repoRoot.js';
 import { SANDBOX_KEY } from './sandboxProfile.js';
@@ -103,7 +120,7 @@ export interface WriteProtectionInput {
 
 const GIT_DIR = '.git';
 
-/** One trust file under a run copy's `.git`, protected under the sibling-run-copy glob. */
+/** One trust file or branch-ref path under a run copy's `.git`, protected under the sibling-run-copy glob. */
 export interface CopyGitPath {
   /** Relative to the run copy, `/`-separated. */
   readonly path: string;
@@ -142,9 +159,9 @@ export interface CopyGitPath {
 
 /**
  * The run-copy `.git` paths the profile protects, in order. The runtime already refuses the first
- * three to the cwd repository's sandboxed git and leaves the last three open
+ * three to the cwd repository's sandboxed git and leaves the next three open
  * (`docs/sandbox-verification.md` CL5); the first three are restated so the protection does not rest
- * on an undocumented default.
+ * on an undocumented default. The last three are the branch-ref store (module header).
  */
 export const COPY_GIT_PATHS: readonly CopyGitPath[] = Object.freeze([
   {
@@ -183,10 +200,28 @@ export const COPY_GIT_PATHS: readonly CopyGitPath[] = Object.freeze([
     reason: 'a planted one would point that run copy at objects from another repository',
     bubblewrapDenyWrite: false,
   },
+  {
+    path: `${GIT_DIR}/HEAD`,
+    kind: 'file',
+    reason: 'it names the branch that run copy is on, which only the excluded wrappers may move',
+    bubblewrapDenyWrite: true,
+  },
+  {
+    path: `${GIT_DIR}/refs/heads`,
+    kind: 'directory',
+    reason: "it holds the run branch's ref, which only the excluded commit, push and refresh wrappers may move",
+    bubblewrapDenyWrite: true,
+  },
+  {
+    path: `${GIT_DIR}/packed-refs`,
+    kind: 'file',
+    reason: 'a branch packed there moves when it is rewritten',
+    bubblewrapDenyWrite: true,
+  },
 ]);
 
 /** The main checkout's run registry, under the configured `stateDir`. */
-function runRegistryPath(repoRoot: string, config: HarnessConfig): string {
+export function runRegistryPath(repoRoot: string, config: HarnessConfig): string {
   return join(repoRoot, normalizeRepoDir(config.stateDir ?? DEFAULTS.stateDir), RUN_LOGS_DIR, RUN_REGISTRY_FILENAME);
 }
 
@@ -218,8 +253,8 @@ function libraryDir(): string {
 
 /**
  * The write-protected set, in a fixed order: the main checkout's copy of every top-level outer-loop
- * script (the unsandboxed wrappers first) and the wrappers' library, the hooks
- * directories, the MCP launch surface, the profile and the project settings files, the plugin roots,
+ * script (the unsandboxed wrappers first) and the wrappers' library, the shipped Python packages' directory, the hooks
+ * directories, the MCP launch surface, the profile, its local additions file and the project settings files, the plugin roots,
  * the main checkout's whole `.git`, the {@link COPY_GIT_PATHS} rows under the sibling-run-copy glob,
  * the main checkout's configuration file, the run registry by its exact path, and a `.git` at each
  * level of the scripts directory. The configuration file and the `.git` levels are protected because the wrappers place
@@ -273,6 +308,29 @@ export function protectedPaths({
     kind: 'directory',
     reason: 'the unsandboxed wrappers source their run library from it',
   });
+  paths.push({
+    path: join(repoRoot, flowHostDir(config)),
+    kind: 'directory',
+    reason: "the main checkout's Python packages are built outside the sandbox when the flow walker's environment is provisioned",
+  });
+  // In the harness's own repository each package is a link to the tree at the root; the build
+  // reads the target, so the target is what must be unwritable. A real directory is already
+  // covered by the entry above, and an absent or dangling link has nothing to build.
+  for (const pkg of FLOW_HOST_PACKAGES) {
+    const link = join(repoRoot, flowHostDir(config), pkg);
+    if (lstatOrUndefined(link, ['ENOENT', 'ENOTDIR'])?.isSymbolicLink() !== true) continue;
+    let target: string;
+    try {
+      target = realpathSync(link);
+    } catch {
+      continue;
+    }
+    paths.push({
+      path: target,
+      kind: 'directory',
+      reason: `the main checkout's ${pkg} package, which ${flowHostDir(config)}/${pkg} links to, is built outside the sandbox when the flow walker's environment is provisioned`,
+    });
+  }
 
   paths.push(
     { path: join(repoRoot, githooksDir), kind: 'directory', reason: 'git runs the pre-push hook from it, outside the sandbox' },
@@ -286,6 +344,11 @@ export function protectedPaths({
       path: join(repoRoot, PROFILE_PATH),
       kind: 'file',
       reason: "the run watcher renders every local run's --settings file from it, and a remote job passes it with --settings",
+    },
+    {
+      path: join(repoRoot, PROFILE_LOCAL_PATH),
+      kind: 'file',
+      reason: 'its entries are merged into the permission profile every run is rendered from',
     },
     { path: join(repoRoot, SETTINGS_PATH), kind: 'file', reason: 'Claude Code runs the hooks it declares outside the sandbox' },
     { path: join(glob, SETTINGS_PATH), kind: 'file', reason: "a run copy's session runs the hooks it declares outside the sandbox" },

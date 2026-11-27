@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "test-fix-plan-writer return",
+  "description": "The test-fix-plan-writer's return object.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "The test fix plan was written, revised or answer-mode reconciled.",
+      "properties": {
+        "outcome": { "const": "returned", "description": "The test fix plan was written, revised or answer-mode reconciled." },
+        "fix_plan_file": { "type": "string", "minLength": 1, "description": "The test fix plan index's path." },
+        "fix_plan_dir": { "type": "string", "minLength": 1, "description": "The per-finding folder." },
+        "fixable": { "type": "integer", "minimum": 0, "description": "The number of failures fixable on the branch." },
+        "not_fixable": { "type": "integer", "minimum": 0, "description": "The number of failures not fixable on the branch." }
+      },
+      "required": ["outcome", "fix_plan_file", "fix_plan_dir", "fixable", "not_fixable"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "Only the user can settle a failure, or an answer cannot be acted on; nothing was written.",
+      "properties": {
+        "outcome": { "const": "questions", "description": "Only the user can settle a failure, or an answer cannot be acted on." },
+        "questions": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "description": "One question per item, routed to the user verbatim and answerable without the plan." }
+      },
+      "required": ["outcome", "questions"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A cited input could not be read; nothing was written.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "A cited input could not be read." },
+        "blocker": { "type": "string", "minLength": 1, "description": "The unreadable path and the refusal, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}

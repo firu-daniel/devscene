@@ -21,11 +21,11 @@ import pytest
 from mcp.client.session import ClientSession
 from mcp.shared.memory import MessageStream, create_client_server_memory_streams
 
-from fakes import EMPTY_REFRESH, FakeSession
 from devscene_docs_retrieval import mcp_server
 from devscene_docs_retrieval.refresh import RefreshResult
 from devscene_docs_retrieval.service import Answer, ServiceConfig, answer
 from devscene_docs_retrieval.wire import SEARCH_TOOL_NAME
+from fakes import EMPTY_REFRESH, FakeSession
 
 
 class _BlockingRefreshSession(FakeSession):

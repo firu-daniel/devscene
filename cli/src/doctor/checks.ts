@@ -27,6 +27,12 @@
  *    push-settings precedence is `generators/notifications.ts`'s {@link pushEnvCandidates}, the
  *    repository registry's location, reader and staleness grading are `machine/registry.ts`'s {@link registryPath},
  *    {@link readRegistry} and {@link inspect} — the same three `daemon list` enumerates through — the
+ *    run registry's reader and pid test are `core/runRegistry.ts`'s {@link readRegistryRecords} and
+ *    {@link pidIsAlive}, the permission profile's drift is `generators/profileUpgrade.ts`'s
+ *    {@link profileDrift} and the outer-loop scripts' `generators/outerLoopScripts.ts`'s
+ *    {@link outerLoopScriptDrift}, both the comparison `init --upgrade` acts on, the installed plugin's
+ *    version is `machine/plugins.ts`'s {@link installedPluginVersion} and its comparison with this
+ *    CLI `machine/pluginCliVersion.ts`'s {@link pluginCliMismatch}, the
  *    remote-execution switch is `config/model.ts`'s {@link remoteExecutionApplies} and the
  *    issue-trigger switch its {@link forgeTriggerApplies}, the workflow paths and the binary run as
  *    `gh` are `remote/githubActions.ts`'s ({@link WORKFLOW_RUN_PATH}, {@link WORKFLOW_RESUME_PATH},
@@ -92,8 +98,8 @@
  *   `retrieval-python-index` refreshes the Python backend's index **in its database**, because
  *   `self-check`'s `index` question builds it there — the same write the server's first query makes.
  *   It writes nothing in the repository or the machine cache.
- * - **It repairs nothing.** Every failure names what to run — `init`, `init --force`, an edit to one
- *   config key — and `doctor` stays a command that is safe to run against a repository at any time.
+ * - **It repairs nothing.** Every failure names what to run — `init`, `init --force`,
+ *   `init --upgrade`, an edit to one config key — and `doctor` stays a command that is safe to run against a repository at any time.
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -120,6 +126,7 @@ import {
   remoteExecutionApplies,
   retrievalApplies,
   sandboxOptedOut,
+  scriptDrivenPlanningEnabled,
   STATE_DIR_DOT_PATTERN,
   STATE_DIR_PATTERN,
   type HarnessConfig,
@@ -149,28 +156,34 @@ import {
   WORKFLOW_SCOPE_COMMAND,
   WORKFLOW_SCOPE_REASON,
 } from '../core/defaultBranchPush.js';
-import { internal } from '../core/errors.js';
+import { HarnessError, internal } from '../core/errors.js';
 import { layerCoverage } from '../core/layerCoverage.js';
 import { layerGapRemedy, recordedVerdictClause } from '../core/layerGapRemedy.js';
 import { MAIN_REPO_ANCHOR_READ, MAIN_REPO_ANCHOR_RULE, MAIN_REPO_ANCHOR_VARIABLE } from '../core/mainRepoAnchor.js';
 import { nameList } from '../core/nameList.js';
-import { ownManifestString, readTemplate, workRoot } from '../core/paths.js';
+import { lstatOrUndefined, ownManifestString, readTemplate, workRoot } from '../core/paths.js';
 import { ANALYZE_COMMAND } from '../core/pluginIdentity.js';
 import { normalizeRepoPathStrict } from '../core/repoPaths.js';
+import { pidIsAlive, readRegistryRecords, RUNNING_STATUS } from '../core/runRegistry.js';
 import { probeWritable } from '../core/writer.js';
 import { detectBackend, resolveWatcherPath, watcherMissingMessage } from '../daemon/backend.js';
 import { renderUnit, repoSlug, unitEnvValue } from '../daemon/units.js';
 import { LAYERLESS_BY_DESIGN_PRESETS, SHARED_CONVENTIONS_PATH, TESTS_LAYER_NAME } from '../detect/presets.js';
 import { FORCED_SIGNAL_ID } from '../detect/signals.js';
+import { FLOW_HOST_PACKAGES, flowHostDir, flowHostEnvDir } from '../flowHost/layout.js';
+import { flowHostProvisioned, flowHostProvisionInvocation } from '../flowHost/provision.js';
 import {
   CLAUDE_MD_PATH,
+  isUntouchedSkeletonText,
   RESERVED_ANALYZE_TARGETS,
+  REVIEW_SWEEP_PATH,
   SETUP_PENDING_CLOSE,
   SETUP_PENDING_OPEN,
   SKELETON_GUIDANCE_MARKER,
   TASK_OFFER_PATH,
   UNFILLED_STUB_MARKER,
 } from '../generators/claudeContext.js';
+import { flowHostPackageDrift } from '../generators/flowHostPackages.js';
 import {
   caseLabelMatches,
   isGlobPattern,
@@ -189,6 +202,7 @@ import {
 import { IN_FLIGHT_RUNS_NOTE, pinnedCliCommand, upgradeWorkflowsCommand } from '../generators/githubWorkflows.js';
 import {
   DOCS_SEARCH_SERVER_SCRIPT_NAME,
+  outerLoopScriptDrift,
   outerLoopScriptPath,
   outerLoopScriptsDir,
   TASK_OFFER_CHECK_SCRIPT_NAME,
@@ -209,10 +223,12 @@ import {
 import {
   bashScriptRule,
   normalizedRoot,
+  PROFILE_LOCAL_PATH,
   PROFILE_PATH,
   README_KEY,
   TEMPLATE_PATH as PROFILE_TEMPLATE_PATH,
 } from '../generators/profileEntries.js';
+import { profileDrift, type ProfileDrift, type ProfileEntry } from '../generators/profileUpgrade.js';
 import {
   ALLOW_KEY,
   allowRuleState,
@@ -259,8 +275,10 @@ import {
 } from '../generators/scripts.js';
 import { RUN_LOGS_DIR, RUN_REGISTRY_FILENAME, selectedStateDirs } from '../generators/stateDir.js';
 import { machineConfigDir } from '../machine/paths.js';
+import { pluginCliMismatch, pluginCliMismatchWarning } from '../machine/pluginCliVersion.js';
 import {
   installedPluginsPath,
+  installedPluginVersion,
   knownMarketplacesPath,
   pluginInstallRoot,
   pluginRuntimeRoot,
@@ -617,6 +635,12 @@ const JQ_MIN_MINOR = 5;
  * graded rather than parsed anyway; see {@link JQ_CHECK}.
  */
 const JQ_VERSION_PATTERN = /(\d+)\.(\d+)/;
+
+/** How long `uv --version` may take before it is treated as no answer, as {@link JQ_PROBE_TIMEOUT_MS} is for `jq`. */
+const UV_PROBE_TIMEOUT_MS = 5_000;
+
+/** The version `uv --version` prints after its own name: `uv 0.9.0`, with or without a build suffix. */
+const UV_VERSION_PATTERN = /^uv (\d+\.\d+(?:\.\d+)?)/;
 
 /**
  * The oldest git `refresh-branch.sh` runs on: it builds its merge with `git merge-tree
@@ -1720,6 +1744,55 @@ const JQ_CHECK: Check = {
 };
 
 /**
+ * Is `uv`, which builds the flow walker's Python environment, on this machine?
+ *
+ * **An absent `uv` is a `fail`**: every walker call refuses without it, and a run copy's bootstrap
+ * fails at `setup-worktree.sh` step 6. The two findings where `uv` resolves but `uv --version` gives
+ * no usable answer are `warn`s: `uv` is present and may work.
+ *
+ * {@link JQ_CHECK}'s probe discipline and its two-finding split: existence through
+ * {@link resolvesOnPath}, then `uv --version` with a fixed argument vector and a bounded timeout.
+ * It reads no configuration, so its remedy cannot name the provisioning command; `flow-host` does.
+ */
+const UV_CHECK: Check = {
+  id: 'uv',
+  title: "uv is on PATH, so the flow walker's Python environment can be provisioned",
+  run: () => {
+    if (!resolvesOnPath('uv')) {
+      return fail(
+        "uv does not resolve on PATH: DevScene requires uv to run its flow walker — install uv (https://docs.astral.sh/uv/), then provision the walker's environment with the command the flow-host check names. A failure because every flow-walker call refuses without uv, and a run copy's bootstrap fails at setup-worktree.sh step 6",
+      );
+    }
+
+    let output: string;
+    try {
+      output = execFileSync('uv', ['--version'], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: UV_PROBE_TIMEOUT_MS,
+        windowsHide: true,
+      });
+    } catch (error) {
+      return warn(
+        `uv resolves on PATH but \`uv --version\` did not answer (${messageOf(error)}), so whether it can provision the flow walker's environment is unknown — run \`uv --version\` yourself`,
+      );
+    }
+
+    const printed = firstLine(output);
+    const parsed = UV_VERSION_PATTERN.exec(printed);
+    if (parsed === null) {
+      return warn(
+        `uv resolves on PATH and \`uv --version\` printed ${JSON.stringify(printed)}, which carries no version this check recognises — confirm that it is uv by running \`uv --version\` yourself`,
+      );
+    }
+
+    return pass(
+      `uv ${parsed[1]} is on PATH (\`uv --version\` printed ${JSON.stringify(printed)}), so the flow walker's Python environment can be provisioned`,
+    );
+  },
+};
+
+/**
  * Does `git worktree list` answer here, so the checks that read which checkout has a branch checked
  * out can be made?
  *
@@ -2048,32 +2121,8 @@ const DEFAULT_MAX_PARALLEL_RUNS = '5';
 /** One `MAX_PARALLEL_RUNS=` assignment, `export`ed or not, with the value as it was written. */
 const MAX_PARALLEL_RUNS_ASSIGNMENT = new RegExp(`^[ \\t]*(?:export[ \\t]+)?${MAX_PARALLEL_RUNS_VARIABLE}[ \\t]*=(.*)$`);
 
-/** The record status that counts toward a repository's live runs. Half of the predicate; see below. */
-const RUNNING_STATUS = 'running';
-
 /** What a field reads as when the read that would have answered it faulted. Never a check's grade. */
 const UNKNOWN_FIELD = 'unknown';
-
-/**
- * Is this pid a process that exists, from this account's point of view?
- *
- * `process.kill(pid, 0)` **sends no signal**; it asks the kernel the question `kill -0` asks. `EPERM`
- * is `true` — the process is there and belongs to another account, which is the ordinary answer on a
- * shared machine and the one a naive `catch` would silently turn into "gone". `ESRCH`, and anything
- * else, is `false`.
- *
- * A pid of `0` or a negative one is rejected before the call rather than after: those spellings
- * address a process *group* rather than a process, so a garbage record must not reach the syscall.
- */
-function pidIsAlive(pid: JsonValue | undefined): boolean {
-  if (typeof pid !== 'number' || !Number.isInteger(pid) || pid <= 0) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === 'EPERM';
-  }
-}
 
 /**
  * How many runs one registered repository has in flight: records whose `status` is `running`
@@ -2089,29 +2138,14 @@ function pidIsAlive(pid: JsonValue | undefined): boolean {
  * bare pid walk there would count a `parked`, `paused` or `failed` record whose pid happens to have
  * been reused.
  *
- * An absent, unreadable or unparsable registry counts `0`: this is a report, and a repository whose
- * artifact tree cannot be read is better described as "none observed" than as a fault. It reads one
- * file and writes nothing.
+ * An absent, unreadable or unparsable registry counts `0`, and a record that is not an object is not
+ * counted: this is a report, and a repository whose artifact tree cannot be read is better described
+ * as "none observed" than as a fault. It reads one file and writes nothing.
  */
 function liveRunCount(root: string, stateDir: string): number {
-  let parsed: JsonValue | undefined;
-  try {
-    parsed = readJsonFile(join(root, stateDir, RUN_LOGS_DIR, RUN_REGISTRY_FILENAME));
-  } catch {
-    return 0;
-  }
-  if (!isJsonObject(parsed)) return 0;
-  const runs = parsed['runs'];
-  if (!isJsonObject(runs)) return 0;
-
-  let live = 0;
-  for (const key of Object.keys(runs)) {
-    const record = runs[key];
-    if (!isJsonObject(record)) continue;
-    if (record['status'] !== RUNNING_STATUS) continue;
-    if (pidIsAlive(record['pid'])) live += 1;
-  }
-  return live;
+  const registry = readRegistryRecords(join(root, stateDir, RUN_LOGS_DIR, RUN_REGISTRY_FILENAME));
+  if (registry.state === 'unreadable') return 0;
+  return registry.records.filter(({ record }) => record['status'] === RUNNING_STATUS && pidIsAlive(record['pid'])).length;
 }
 
 /**
@@ -3761,10 +3795,10 @@ function renderListGroup(list: string, entries: readonly string[]): string {
  *
  * **A `warn`, never a `fail`**, for {@link PROFILE_PATHS_CHECK}'s and
  * {@link PLUGIN_PERMISSIONS_CHECK}'s reason: the repository still runs in the foreground, and the
- * profile is a file the adopter owns. **The absent wrapper and the missing entries are two sentences**
- * because they are two repairs — one is `init` writing a file it writes create-if-absent, the other
- * `init --force` regenerating a file an unforced run will not touch — and a merged list prints an
- * instruction that cannot be followed.
+ * profile is generated, so a re-render restores what it lacks. **The absent wrapper and the missing
+ * entries are two sentences** because they are two repairs — one is `init` writing a file it writes
+ * create-if-absent, the other `init --force` regenerating a file an unforced run will not touch — and
+ * a merged list prints an instruction that cannot be followed.
  *
  * **A profile generated for another checkout answers as missing everything**, which is true and is
  * {@link PROFILE_PATHS_CHECK}'s finding stated in the specific. Both name `init --force`, so a reader
@@ -4383,6 +4417,43 @@ function taskOfferCheckFindings(repoRoot: string, config: HarnessConfig, invocat
 
   return findings;
 }
+
+/** The analyze target that fills the review-sweep document, typed against the list for the reason {@link LAYERS_TARGET} is. */
+const SWEEP_TARGET: (typeof RESERVED_ANALYZE_TARGETS)[number] = 'sweep';
+
+/**
+ * Whether the document the end-of-branch reviewer's grep sweep reads its rows from exists and has
+ * been filled in, so a sweep that never runs shows at setup rather than in every review.
+ *
+ * It grades substring facts and never prose, and every state warns and none fails, both for
+ * {@link SETUP_ANALYSIS_CHECK}'s reasons. "Unfilled" is {@link isUntouchedSkeletonText}.
+ *
+ * It reads one file and writes none.
+ */
+const REVIEW_SWEEP_CHECK: Check = {
+  id: 'review-sweep',
+  title: 'the review-sweep document the end-of-branch reviewer reads exists and has been filled in',
+  run: (ctx) => {
+    if (ctx.repoRoot === undefined) return unevaluated('the repository root did not resolve (see the git check)');
+
+    let content: string;
+    try {
+      content = readFileSync(join(ctx.repoRoot, REVIEW_SWEEP_PATH), 'utf8');
+    } catch {
+      return warn(
+        `${REVIEW_SWEEP_PATH} is not there, so the end-of-branch reviewer's grep sweep has no rows to apply: it reports a configuration gap in every review and does not run. Run \`${CLI} init\`, which creates the skeleton and rewrites nothing else, then fill it with \`${ANALYZE_COMMAND} ${SWEEP_TARGET}\` or by hand`,
+      );
+    }
+
+    if (isUntouchedSkeletonText(content)) {
+      return warn(
+        `${REVIEW_SWEEP_PATH} is still an untouched skeleton, so the end-of-branch reviewer's grep sweep has no rows to apply. Fill it with \`${ANALYZE_COMMAND} ${SWEEP_TARGET}\` in a session here, or by hand, replacing the guidance block as the document's own footer says — and commit it on the default branch, which is where the sweep reads its rows`,
+      );
+    }
+
+    return pass(`${REVIEW_SWEEP_PATH} is there and is no longer an untouched skeleton`);
+  },
+};
 
 /**
  * The analyze target that addresses the layer profile, taken from the one list that declares the
@@ -5043,7 +5114,7 @@ function profileUntrackRemedy(ctx: CheckContext): string {
  * The profile is generated with `<repo_root>`, `<work_root>` and the worktree glob resolved at `init`
  * time, so a repository cloned onto another machine — or moved — carries a profile whose rules point
  * at a location that no longer exists. A `warn`, because the fix is a re-run rather than an edit and
- * because a hand-tuned profile is a file the adopter may deliberately have pointed elsewhere.
+ * because an entry from the local additions file may deliberately point elsewhere.
  *
  * **A `fail` under `--remote-job`** ({@link CheckContext.remoteJob}): there the profile was committed
  * from another machine and the job's create-if-absent `init` kept it, so the job cannot regenerate it
@@ -5145,9 +5216,9 @@ const PROFILE_BROWSER_DENY_CHECK: Check = {
  *
  * The floor is the shipped template's own list ({@link shippedDenyFloor}), so this check cannot
  * vouch for a floor by consulting a second copy of it. A `warn` rather than a `fail`: the profile is
- * a file the adopter owns and may deliberately have restructured, and a run missing an entry is
- * worse-defended rather than unable to proceed. It is also the state a profile generated by an
- * earlier release is legitimately in, which is worth a line and not worth a non-zero exit.
+ * generated, so a re-render restores the floor, and a run missing an entry is worse-defended rather
+ * than unable to proceed. It is also the state a profile generated by an earlier release is
+ * legitimately in, which is worth a line and not worth a non-zero exit.
  */
 const PROFILE_DENY_FLOOR_CHECK: Check = {
   id: 'profile-deny-floor',
@@ -5348,10 +5419,10 @@ const PROFILE_SANDBOX_CHECK: Check = {
  * entry protects nothing. The base it grades is the same on every host; only the watcher's per-run
  * copy on a bubblewrap host differs.
  *
- * A `warn` rather than a `fail`, on {@link PROFILE_DENY_FLOOR_CHECK}'s terms: the profile is a file the
- * adopter owns and may deliberately have restructured, a run missing an entry is worse-defended
- * rather than unable to proceed, and a profile an earlier release generated is legitimately in that
- * state. **Under `--remote-job`** ({@link CheckContext.remoteJob}) it is a `fail`, as
+ * A `warn` rather than a `fail`, on {@link PROFILE_DENY_FLOOR_CHECK}'s terms: the profile is generated,
+ * so a re-render restores what it lacks, a run missing an entry is worse-defended rather than unable
+ * to proceed, and a profile an earlier release generated is legitimately in that state. **Under
+ * `--remote-job`** ({@link CheckContext.remoteJob}) it is a `fail`, as
  * {@link PROFILE_SANDBOX_CHECK}'s findings are. Every non-pass names `init --force` as the remedy.
  *
  * Each {@link retiredProtectedPaths} entry still in `denyWrite`, or with a {@link fileToolDenyRules}
@@ -5417,6 +5488,169 @@ const PROFILE_WRITE_PROTECTION_CHECK: Check = {
             COPY_GIT_PATHS.filter(({ bubblewrapDenyWrite }) => bubblewrapDenyWrite === false).map(({ path }) => path),
           )} out of ${denyWritePath}, also drops the base's sibling-glob entries for those paths and re-roots them by exact path at every other sibling run copy whose .git is a directory, and refuses a run copy carrying a commondir, or a config.worktree or http-alternates that is not an empty regular file. On Linux Claude Code enforces the Edit deny rules inside the sandbox too, mounting the same placeholder at an absent path inside a write root (measured 2026-10-30 on Claude Code 2.1.314 with bubblewrap 0.8.0), so the per-run copy there also leaves out the run copy's own Edit rules for those paths, its exact rules and the base's glob rules alike, while each other sibling run copy keeps them by exact path`,
         );
+  },
+};
+
+/** The remedy {@link PROFILE_DRIFT_CHECK} and {@link OUTER_LOOP_SCRIPTS_CHECK} name. */
+const INIT_UPGRADE_COMMAND = `${CLI} init --upgrade`;
+
+/** One drifted entry. JSON-quoted, because an entry in a tampered profile can hold a line break. */
+function driftedEntry({ list, entry }: ProfileEntry): string {
+  return `${list}: ${JSON.stringify(entry)}`;
+}
+
+/**
+ * Does the profile hold what this CLI renders for this configuration, and nothing it cannot answer for?
+ *
+ * Graded at {@link CheckContext.profileRoot}, whose profile and local file are the ones a run loads.
+ * The comparison is {@link profileDrift}'s, so it is the one `init --upgrade` acts on. A finding only
+ * ever warns, `--remote-job` included: a drifted profile still runs. A refused local file or render is
+ * a warning too, because the profile is then ungraded rather than wrong.
+ */
+const PROFILE_DRIFT_CHECK: Check = {
+  id: 'profile-drift',
+  title: 'the permission profile matches what this CLI renders',
+  run: (ctx) => {
+    if (ctx.repoRoot === undefined || ctx.profileRoot === undefined) return unevaluated('the repository root did not resolve (see the git check)');
+    if (ctx.config === undefined) return unevaluated(`${CONFIG_FILENAME} could not be read (see the config check)`);
+    if (ctx.profile === undefined) return unevaluated(`${PROFILE_PATH} could not be read (see the permission-profile check)`);
+
+    const localIgnored = existsSync(join(ctx.profileRoot, PROFILE_LOCAL_PATH))
+      ? pathIsIgnored(ctx.profileRoot, PROFILE_LOCAL_PATH)
+      : true;
+    const findings =
+      localIgnored === false
+        ? [`${PROFILE_LOCAL_PATH} is not ignored by git, so this machine's additions can be committed: a plain \`${CLI} init\` merges the ignore rule`]
+        : [];
+    const unmeasured =
+      localIgnored === undefined ? ` Git did not answer whether ${PROFILE_LOCAL_PATH} is ignored, so that was not measured.` : '';
+
+    let drift: ProfileDrift;
+    try {
+      drift = profileDrift({ repoRoot: ctx.profileRoot, config: ctx.config, onDisk: ctx.profile });
+    } catch (error) {
+      if (!(error instanceof HarnessError)) throw error;
+      findings.push(`${PROFILE_PATH} could not be compared with this CLI's render: ${error.message}`);
+      return warn(`${findings.join('; ')}. Correct that, then run \`${INIT_UPGRADE_COMMAND}\`, which refuses until it is.${unmeasured}`);
+    }
+
+    const { missing, unaccounted, settings } = drift;
+    if (missing.length > 0) {
+      findings.push(
+        `${PROFILE_PATH} is stale: it lacks ${missing.length} ${entryWord(missing.length)} this CLI renders — ${missing.map(driftedEntry).join('; ')}`,
+      );
+    }
+    if (unaccounted.length > 0) {
+      findings.push(
+        `${PROFILE_PATH} carries ${unaccounted.length} ${entryWord(unaccounted.length)} nothing here accounts for, from a hand edit or tampering — ${unaccounted.map(driftedEntry).join('; ')}`,
+      );
+    }
+    if (settings.length > 0) {
+      // JSON-quoted for the reason driftedEntry's are: a key in a tampered profile can hold a line break.
+      findings.push(
+        `${PROFILE_PATH} has settings that differ from this CLI's render, from a hand edit, tampering or an earlier release — ${settings.map((setting) => JSON.stringify(setting)).join(', ')}`,
+      );
+    }
+    if (findings.length === 0) {
+      return pass(`${PROFILE_PATH} holds every entry and setting this CLI renders for this configuration, and no entry or setting it cannot account for.${unmeasured}`);
+    }
+
+    const remedy =
+      missing.length > 0 || unaccounted.length > 0 || settings.length > 0
+        ? `Run \`${INIT_UPGRADE_COMMAND}\`, which replaces the profile with this render after a backup; an entry to keep belongs in ${PROFILE_LOCAL_PATH}, which that command merges`
+        : `Keep the file rather than deleting it: an entry to keep belongs in ${PROFILE_LOCAL_PATH}, which \`${INIT_UPGRADE_COMMAND}\` merges`;
+    return warn(`${findings.join('; ')}. ${remedy}.${unmeasured}`);
+  },
+};
+
+/**
+ * Are the outer-loop scripts the ones this CLI ships?
+ *
+ * {@link outerLoopScriptDrift}'s answer at {@link CheckContext.profileRoot}, the checkout whose copy
+ * the run watcher executes. Every row is named rather than capped by {@link nameList}: each is a file
+ * the remedy will replace.
+ */
+const OUTER_LOOP_SCRIPTS_CHECK: Check = {
+  id: 'outer-loop-scripts',
+  title: 'the outer-loop scripts are the ones this CLI ships',
+  run: (ctx) => {
+    if (ctx.repoRoot === undefined || ctx.profileRoot === undefined) return unevaluated('the repository root did not resolve (see the git check)');
+    if (ctx.config === undefined) return unevaluated(`${CONFIG_FILENAME} could not be read (see the config check)`);
+
+    const directory = outerLoopScriptsDir(ctx.config);
+    const { missing, changed } = outerLoopScriptDrift(ctx.profileRoot, ctx.config);
+    if (missing.length === 0 && changed.length === 0) {
+      return pass(`every outer-loop script under ${directory} is the one this CLI ships`);
+    }
+
+    const named = (rows: readonly string[]): string => rows.map((row) => `${directory}/${row}`).join(', ');
+    const findings = [
+      ...(missing.length > 0 ? [`missing: ${named(missing)}`] : []),
+      ...(changed.length > 0 ? [`changed from what this CLI ships: ${named(changed)}`] : []),
+    ];
+    return warn(
+      `outer-loop scripts differ from this CLI's — ${findings.join('; ')}. Run \`${INIT_UPGRADE_COMMAND}\`, which writes this CLI's copies after a backup; a script you patched deliberately is replaced too`,
+    );
+  },
+};
+
+/**
+ * Are the flow walker's Python packages the ones this CLI ships, and is their environment built?
+ *
+ * Graded at {@link CheckContext.profileRoot}, as {@link OUTER_LOOP_SCRIPTS_CHECK} is: the main
+ * checkout, whose packages a run copy's environment is built from. Package drift is
+ * {@link flowHostPackageDrift}'s answer and is reported first, because an environment built from
+ * drifted packages is rebuilt after `init --upgrade` anyway. In the harness's own repository, where
+ * the packages are links, the remedy is `npm run build` instead: `init --upgrade` writes nothing to
+ * them there. Package drift warns. An unprovisioned environment fails where
+ * {@link scriptDrivenPlanningEnabled} is true, because the planning driver runs the main checkout's
+ * walker and environment; otherwise it warns, because a run copy builds its own at
+ * `setup-worktree.sh` step 6 and a session here is refused by the walker with the same command.
+ * Under {@link CheckContext.remoteJob} it warns in every case, because the job's `Bootstrap the
+ * checkout` step builds the environment after the preflight and fails the job without it.
+ */
+const FLOW_HOST_CHECK: Check = {
+  id: 'flow-host',
+  title: "the flow walker's Python packages are the ones this CLI ships, and their environment is provisioned",
+  run: (ctx) => {
+    if (ctx.repoRoot === undefined || ctx.profileRoot === undefined) return unevaluated('the repository root did not resolve (see the git check)');
+    if (ctx.config === undefined) return unevaluated(`${CONFIG_FILENAME} could not be read (see the config check)`);
+
+    const { missing, changed } = flowHostPackageDrift(ctx.profileRoot, ctx.config);
+    if (missing.length > 0 || changed.length > 0) {
+      const findings = [
+        ...(missing.length > 0 ? [`missing: ${missing.join(', ')}`] : []),
+        ...(changed.length > 0 ? [`changed from what this CLI ships: ${changed.join(', ')}`] : []),
+      ];
+      const packagesDir = join(ctx.profileRoot, ...flowHostDir(ctx.config).split('/'));
+      const linked = FLOW_HOST_PACKAGES.some((pkg) => lstatOrUndefined(join(packagesDir, pkg), ['ENOENT', 'ENOTDIR'])?.isSymbolicLink() === true);
+      const remedy = linked
+        ? 'Run `npm run build` from the repository root, which re-stages dist/python/ from the packages these links point at'
+        : `Run \`${INIT_UPGRADE_COMMAND}\`, which writes this CLI's copies after a backup, then rebuild the environment as it says`;
+      return warn(`the flow walker's Python packages differ from this CLI's — ${findings.join('; ')}. ${remedy}`);
+    }
+
+    const environment = flowHostEnvDir(ctx.config);
+    if (!flowHostProvisioned(ctx.profileRoot, ctx.config)) {
+      const command = flowHostProvisionInvocation(ctx.config);
+      const prerequisite = resolvesOnPath('uv') ? '' : 'install uv first (see the uv check), then ';
+      const finding = `the flow walker's Python environment at ${environment}/ has not been provisioned: ${prerequisite}run \`${command}\` from the repository root, outside the sandbox, since it reaches the network`;
+      if (ctx.remoteJob) {
+        return warn(
+          `${finding}. A warning rather than a failure under --remote-job because the job builds this environment at its \`Bootstrap the checkout\` step (setup-worktree.sh step 6), which runs after this preflight and fails the job without it`,
+        );
+      }
+      if (scriptDrivenPlanningEnabled(ctx.config)) {
+        return fail(
+          `${finding}. A failure because execution.scriptDrivenPlanning is true, so script-driven planning runs this checkout's walker and environment and stops without them`,
+        );
+      }
+      return warn(
+        `${finding}. A warning rather than a failure because a run copy builds its own environment at setup-worktree.sh step 6, and a session in this checkout is refused by the walker with this same command`,
+      );
+    }
+
+    return pass(`every shipped Python package file under ${flowHostDir(ctx.config)} is the one this CLI ships, and the environment at ${environment}/ is provisioned`);
   },
 };
 
@@ -5619,10 +5853,9 @@ function namesHelperScript(entry: string): boolean {
  * the root set is what varies, and the name set stays read from disk.
  *
  * **It never fails outside `--remote-job`**, for {@link REPO_REGISTRY_CHECK}'s reason: this is a
- * machine-local gap with an operator remedy, and the profile is a file the adopter owns. And when no
- * root resolves it invents none — it names the step and the file it read, because a fabricated path is
- * worse than no path: an operator would paste it and get a profile that is wrong in a way nothing
- * reports.
+ * machine-local gap with an operator remedy. And when no root resolves it invents none — it names the
+ * step and the file it read, because a fabricated path is worse than no path: an operator would paste
+ * it and get a profile that is wrong in a way nothing reports.
  *
  * **Under `--remote-job`** ({@link CheckContext.remoteJob}) a missing entry and an unresolved root are
  * each a `fail`, and every directory {@link pluginRootDirectories} returns for the graded roots is
@@ -5642,9 +5875,9 @@ function namesHelperScript(entry: string): boolean {
  *
  * **Where no root resolves, those entries are counted rather than named**, both forms of them: the
  * disposition that grades nothing may not call an entry stale or required, but a count says the
- * check read the file rather than passing over it in silence — and it is the same set `init --force`
- * carries forward unverified on that arm (`generators/permissionProfile.ts`,
- * `carriedPluginRootEntries`).
+ * check read the file rather than passing over it in silence — and it is the set `init --force` and
+ * `init --upgrade` carry forward unverified on that arm, less any entry the local file supplies or the
+ * profile records as local (`generators/permissionProfile.ts`, `carriedPluginRootEntries`).
  */
 const PLUGIN_PERMISSIONS_CHECK: Check = {
   id: 'plugin-permissions',
@@ -5671,7 +5904,8 @@ const PLUGIN_PERMISSIONS_CHECK: Check = {
     if (firstRoot === undefined) {
       // Counted, never named. Both dictated forms are counted — the helper `Bash` and the runtime
       // root's `Read` — because with no root resolved nothing distinguishes them, and they are the
-      // set `init --force` carries forward unverified on this same arm. Naming one would require
+      // set `init --force` and `init --upgrade` carry forward unverified on this same arm, less any
+      // entry the local file supplies or the profile records as local. Naming one would require
       // calling it stale or required, which is a judgement no root answered for; the check's standing
       // rule that it invents nothing holds, so the disposition reports a number and no path.
       const ungraded = allowed.filter((entry) => {
@@ -5796,6 +6030,28 @@ const PLUGIN_PERMISSIONS_CHECK: Check = {
     return pass(
       `${PROFILE_PATH} carries all ${required.length} \`permissions.allow\` ${entryWord(required.length)} this machine's plugin ${split ? 'roots need' : 'root needs'} — ${carried}.${ctx.remoteJob ? ` Under --remote-job its \`permissions.additionalDirectories\` was graded too, and carries every plugin root, so a shell command in a run may read under ${split ? 'them' : 'it'}.` : ''}${why}${partial}${stray}`,
     );
+  },
+};
+
+/**
+ * Is the plugin installed on this machine the version of this CLI?
+ *
+ * A machine with no readable version passes and says so, for the reason `machine/plugins.ts` gives:
+ * "not installed" is {@link PLUGIN_PERMISSIONS_CHECK}'s to report. The remedy updates whichever half
+ * is older, so it never moves this CLI back to an older plugin.
+ */
+const PLUGIN_CLI_VERSION_CHECK: Check = {
+  id: 'plugin-cli-version',
+  title: 'the installed plugin and this CLI are the same version',
+  run: (ctx) => {
+    const cliVersion = ownManifestString('version');
+    const pluginVersion = installedPluginVersion(ctx.repoRoot);
+    if (pluginVersion === undefined) {
+      return pass(`no installed plugin version could be read on this machine, so nothing was compared with this CLI's ${cliVersion}`);
+    }
+    const mismatch = pluginCliMismatch(pluginVersion, cliVersion);
+    if (mismatch === undefined) return pass(`the installed plugin and this CLI are both version ${cliVersion}`);
+    return warn(pluginCliMismatchWarning(mismatch));
   },
 };
 
@@ -6413,7 +6669,8 @@ const RETRIEVAL_PYTHON_INDEX_CHECK: Check = {
  * "what did `init` write": the directories a run puts artifacts in, and the documents the agents it
  * dispatches read their rules from. `task-offer-rules` sits immediately under `setup-analysis`
  * because the two read the same file and grade the same namespace, and an operator reads them
- * together. `layer-profile` follows under those two, because
+ * together. `review-sweep` follows them because it grades one more document `init` writes into
+ * `.claude/`, by the same untouched-skeleton test `setup-analysis` applies. `layer-profile` follows under those, because
  * it asks the remaining question about the same act — whether the profile routing a dispatch to one
  * of those documents was detected or fallen back to — and it is the line a reader whose
  * `setup-analysis` line just passed needs next:
@@ -6448,6 +6705,9 @@ const RETRIEVAL_PYTHON_INDEX_CHECK: Check = {
  * `profile-tracked` sits under `profile-paths` because the two name the same file carried somewhere it
  * does not belong, and a committed profile is the usual reason a job's `profile-paths` fails.
  *
+ * `uv` sits under `jq` because both are host binaries the shipped scripts need. `flow-host` sits under
+ * `outer-loop-scripts` because both grade a shipped set against this CLI's copy at the same root.
+ *
  * `sandbox-prerequisites` sits under `profile-write-protection` because the two profile checks above it
  * grade the sandbox a run asks for, and this one whether the host can start it. `keep-awake` follows
  * it because it is the second host question, asked right after whether the host can start the sandbox.
@@ -6471,6 +6731,7 @@ export const CHECKS: readonly Check[] = Object.freeze([
   PRE_PUSH_GUARD_CHECK,
   PROTECTED_SET_CHECK,
   JQ_CHECK,
+  UV_CHECK,
   WORKTREE_CHECK,
   DAEMON_BACKEND_CHECK,
   WATCHER_CHECK,
@@ -6490,6 +6751,7 @@ export const CHECKS: readonly Check[] = Object.freeze([
   STATE_DIR_TREE_CHECK,
   SETUP_ANALYSIS_CHECK,
   TASK_OFFER_RULES_CHECK,
+  REVIEW_SWEEP_CHECK,
   LAYER_PROFILE_CHECK,
   LAYER_DRIFT_CHECK,
   TREE_GUARDS_CHECK,
@@ -6503,9 +6765,13 @@ export const CHECKS: readonly Check[] = Object.freeze([
   PROFILE_MAIN_ANCHOR_CHECK,
   PROFILE_SANDBOX_CHECK,
   PROFILE_WRITE_PROTECTION_CHECK,
+  PROFILE_DRIFT_CHECK,
+  OUTER_LOOP_SCRIPTS_CHECK,
+  FLOW_HOST_CHECK,
   SANDBOX_PREREQUISITES_CHECK,
   KEEP_AWAKE_CHECK,
   PLUGIN_PERMISSIONS_CHECK,
+  PLUGIN_CLI_VERSION_CHECK,
   BROWSER_WIRING_CHECK,
   RETRIEVAL_DEPENDENCIES_CHECK,
   RETRIEVAL_MODEL_CACHE_CHECK,

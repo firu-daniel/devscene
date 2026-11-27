@@ -430,7 +430,7 @@ test('on a placeholder host a clone\'s per-run copy re-roots the base\'s trio gl
   const omitted = COPY_GIT_PATHS.filter((row) => !row.bubblewrapDenyWrite);
   const kept = COPY_GIT_PATHS.filter((row) => row.bubblewrapDenyWrite);
   assert.equal(omitted.length, 3);
-  assert.equal(kept.length, 3);
+  assert.equal(kept.length, 6);
   for (const row of omitted) {
     const path = `${f.clone}/${row.path}`;
     assert.ok(!denyWrite.includes(path), `${path} is in denyWrite`);

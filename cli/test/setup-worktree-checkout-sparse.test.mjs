@@ -18,15 +18,20 @@
  * its `drop_inert_sparse "$f"` call removed: (a), (c) and both (d) cases fail; (b) and (e) pass.
  *
  * The fixture is built by hand rather than by `init`, as `push-branch-worktree-config.test.mjs`
- * builds its own, so the configuration under test is exactly the one each case sets.
+ * builds its own, so the configuration under test is exactly the one each case sets. The main
+ * checkout carries a flow-host `pyproject.toml` under the default `scriptsDir`, which `CONFIG` leaves
+ * unset, and every bootstrap runs with a stub `uv` exiting 0 first on `PATH`, because step 6 fails a
+ * bootstrap with no `uv` or no project.
  */
 
 import assert from 'node:assert/strict';
 import { chmod, cp, mkdir, mkdtemp, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import test from 'node:test';
 
+import { DEFAULTS } from '../dist/config/model.js';
+import { FLOW_HOST_DIRNAME, FLOW_HOST_PROJECT } from '../dist/flowHost/layout.js';
 import { PACKAGE_ROOT, runBash, runGit } from './helpers/fixture.mjs';
 
 const TEMPLATE_SCRIPTS = join(PACKAGE_ROOT, 'templates', 'scripts');
@@ -52,7 +57,8 @@ const output = (result) => `${result.stdout}\n${result.stderr}`;
 
 /**
  * A bare origin and a main checkout on `feat_main` carrying `devscene.config.json`, a passing
- * `githooks/pre-push` and the three scripts under test, with one seed commit origin has not seen.
+ * `githooks/pre-push`, the three scripts under test and a flow-host `pyproject.toml`, with one seed
+ * commit origin has not seen.
  *
  * @param {import('node:test').TestContext} t
  */
@@ -75,9 +81,17 @@ async function fixture(t) {
   await mkdir(join(main, 'scripts'));
   for (const name of SCRIPTS) await cp(join(TEMPLATE_SCRIPTS, name), join(main, 'scripts', name));
   await cp(join(TEMPLATE_SCRIPTS, 'lib'), join(main, 'scripts', 'lib'), { recursive: true });
-  await runGit(main, ['add', 'devscene.config.json', 'githooks', 'scripts']);
+  const project = join(main, DEFAULTS.scriptsDir, FLOW_HOST_DIRNAME, FLOW_HOST_PROJECT);
+  await mkdir(project, { recursive: true });
+  await writeFile(join(project, 'pyproject.toml'), '');
+  await runGit(main, ['add', 'devscene.config.json', 'githooks', 'scripts', DEFAULTS.scriptsDir]);
   await runGit(main, ['commit', '--quiet', '-m', 'fixture: seed']);
   await runGit(main, ['remote', 'add', 'origin', origin]);
+
+  const bin = join(root, 'bin');
+  await mkdir(bin);
+  await writeFile(join(bin, 'uv'), '#!/usr/bin/env bash\nexit 0\n');
+  await chmod(join(bin, 'uv'), 0o755);
 
   const script = (name) => join(main, 'scripts', name);
   return {
@@ -96,7 +110,8 @@ async function fixture(t) {
     },
     plant: async (file, key, value) => runGit('/', ['config', '--file', file, key, value]),
     list: async (file) => (await runGit('/', ['config', '--file', file, '--list'])).stdout.trim(),
-    setup: (...args) => runBash(root, [script('setup-worktree.sh'), ...args]),
+    setup: (...args) =>
+      runBash(root, [script('setup-worktree.sh'), ...args], { PATH: `${bin}${delimiter}${process.env.PATH ?? ''}` }),
     commit: (repo, file, subject) =>
       runBash(root, [script('commit-on-branch.sh'), '--repo', repo, file, '--', subject]),
     push: (target) => runBash(root, [script('push-branch.sh'), target], { PUSH_RETRY_DELAY_SECS: '0' }),

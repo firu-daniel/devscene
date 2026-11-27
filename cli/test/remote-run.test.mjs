@@ -110,6 +110,7 @@ import { dirname, join } from 'node:path';
 import test from 'node:test';
 
 import { createFixture, INIT_SCRIPTS_DIR, runBash, runCli, runGit, snapshotTree } from './helpers/fixture.mjs';
+import { linkWalkerEnv, walkerStatePath, walkerUnavailable } from './helpers/walker.mjs';
 
 const SCRIPT = `${INIT_SCRIPTS_DIR}/remote-run.sh`;
 const STATE_DIR = 'devscene';
@@ -434,10 +435,10 @@ function ghRun(id, status, minute, title = 'devscene run feat_x', headSha = unde
 }
 
 /** A remote registry record whose mirror is the fixture itself. */
-function remoteRecord(fx, extra = {}) {
+function remoteRecord(fx, extra = {}, branch = 'feat_x') {
   mkdirSync(join(fx.dir, STATE_DIR, 'autonomous_logs'), { recursive: true });
-  const record = { branch: 'feat_x', status: 'running', execution: 'github-actions', worktree: fx.dir, ...extra };
-  writeFileSync(join(fx.dir, REGISTRY), JSON.stringify({ runs: { feat_x: record } }));
+  const record = { branch, status: 'running', execution: 'github-actions', worktree: fx.dir, ...extra };
+  writeFileSync(join(fx.dir, REGISTRY), JSON.stringify({ runs: { [branch]: record } }));
 }
 
 /** A bundle directory in Task 4's format, under the stub's directory, for `run download` to copy. */
@@ -762,14 +763,17 @@ test('sync with a missing mirror working copy exits 2 naming it and writes nothi
 // ---------------------------------------------------------------------------
 
 const REMOTE_STATUS = `${STATE_DIR}/autonomous_logs/remote_status.json`;
-const WALKER = `${STATE_DIR}/.flow_walker_state`;
+const WALKER_DIR = `${STATE_DIR}/.flow_walker_state`;
+/** `feat_x`'s walk; the branch encodes to itself. */
+const WALKER = `${WALKER_DIR}/feat_x.json`;
 
 /** A bundle carrying a walker state too, with `park_loop_cycles` set as given. */
 function jobBundle(fx, name, { parkLoopCycles = '2' } = {}) {
   const dir = bundle(fx, name);
   const status = JSON.parse(readFileSync(join(dir, 'status.json'), 'utf8'));
   writeFileSync(join(dir, 'status.json'), JSON.stringify({ ...status, park_loop_cycles: parkLoopCycles }));
-  writeFileSync(join(dir, 'flow_walker_state'), `${name} walker\n`);
+  mkdirSync(join(dir, 'flow_walker_state'), { recursive: true });
+  writeFileSync(join(dir, 'flow_walker_state', 'feat_x.json'), `${name} walker\n`);
   return dir;
 }
 
@@ -916,7 +920,7 @@ test('restore on a recreated branch skips the earlier lineage\'s run: a first jo
   assert.deepEqual(downloads(fx), []);
   assert.equal(existsSync(join(fx.dir, REMOTE_STATUS)), false);
   assert.equal(existsSync(join(fx.dir, LINEAGE_DRAFT)), false);
-  assert.equal(existsSync(join(fx.dir, WALKER)), false);
+  assert.equal(existsSync(join(fx.dir, WALKER_DIR)), false);
 
   const answer = await remoteRun(fx, ['restore', 'feat_x', '--resume', 'answer'], { ...env, HARNESS_INPUT_ANSWERS: JSON.stringify({ 1: 'x' }) });
   assert.equal(answer.status, 2, answer.stderr);
@@ -1012,7 +1016,7 @@ test('restore --resume pause with the newest bundle expired warns, restores noth
   assert.doesNotMatch(result.stdout, /first job/);
   assert.deepEqual(downloads(fx), []);
   assert.equal(existsSync(join(fx.dir, REMOTE_STATUS)), false);
-  assert.equal(existsSync(join(fx.dir, WALKER)), false);
+  assert.equal(existsSync(join(fx.dir, WALKER_DIR)), false);
   assert.equal(existsSync(mirror(fx, 'question_1.md')), false);
 });
 
@@ -1035,7 +1039,11 @@ test('save after a job-mode status write produces the full layout and a job-summ
   mkdirSync(join(fx.dir, CLARIFY_DIR), { recursive: true });
   writeFileSync(mirror(fx, 'question_1.md'), 'q\n');
   writeFileSync(join(fx.dir, STATE_DIR, 'PAUSE_PROGRESS.md'), 'note\n');
+  mkdirSync(join(fx.dir, WALKER_DIR, 'revision_findings'), { recursive: true });
   writeFileSync(join(fx.dir, WALKER), 'walker\n');
+  writeFileSync(join(fx.dir, WALKER_DIR, 'revision_findings', 'feat_x.json'), 'findings\n');
+  writeFileSync(join(fx.dir, WALKER_DIR, 'feat_y.json'), 'another branch\n');
+  writeFileSync(join(fx.dir, WALKER_DIR, 'feat_x.json.lock'), '');
   writeFileSync(join(fx.dir, STATE_DIR, 'autonomous_logs/feat_x.log'), 'log\n');
 
   const out = join(fx.dir, STATE_DIR, 'stub', 'out');
@@ -1043,6 +1051,8 @@ test('save after a job-mode status write produces the full layout and a job-summ
   const result = await remoteRun(fx, ['save', 'feat_x', out], { GITHUB_STEP_SUMMARY: summary });
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(readdirSync(out).sort(), ['PAUSE_PROGRESS.md', 'clarifications', 'flow_walker_state', 'run.log', 'status.json']);
+  assert.deepEqual(readdirSync(join(out, 'flow_walker_state'), { recursive: true }).sort(), ['feat_x.json', 'revision_findings', 'revision_findings/feat_x.json']);
+  assert.equal(readFileSync(join(out, 'flow_walker_state', 'feat_x.json'), 'utf8'), 'walker\n');
   assert.ok(existsSync(join(out, 'clarifications/feat_x/question_1.md')));
   assert.equal(JSON.parse(readFileSync(join(out, 'status.json'), 'utf8')).decision, 'stop');
   const table = readFileSync(summary, 'utf8');
@@ -1091,8 +1101,12 @@ test('save moves aside a restored status.json whose run_id is not this job\'s, a
 });
 
 const STORY_INDEX = `${STATE_DIR}/story_plans/feat_x_story_plan.md`;
-const TASK_DRAFT = `${STATE_DIR}/task_plans/feat_x/task_1_plan.md`;
-const WALK = ['--flow', 'task_plan_writing', '--branch', 'feat_x'];
+/** A slashed branch, whose walk file name is encoded, for the real-walker round trip. */
+const SLASHED = 'feat/x';
+const SLASHED_STORY_INDEX = `${STATE_DIR}/story_plans/${SLASHED}_story_plan.md`;
+const SLASHED_TASK_DRAFT = `${STATE_DIR}/task_plans/${SLASHED}/task_1_plan.md`;
+const WALK = ['--flow', 'task_plan_writing', '--branch', SLASHED];
+const WALKER_SKIP = walkerUnavailable();
 
 /** The `node:` value of the walker's output. */
 function pendingNode(stdout) {
@@ -1102,47 +1116,52 @@ function pendingNode(stdout) {
 }
 
 /** Save, from `fx`, a job bundle holding a job-mode status and whatever the checkout carries. */
-async function saveJob(fx) {
-  remoteRecord(fx, { status: 'paused', engine: 'task' });
+async function saveJob(fx, branch = 'feat_x') {
+  remoteRecord(fx, { status: 'paused', engine: 'task' }, branch);
   const wrote = await runBash(fx.dir, ['-c',
-    `. ${INIT_SCRIPTS_DIR}/lib/harness-run-lib.sh && hr_remote_status_write "$1" feat_x "$2" stop "paused mid-planning"`,
-    '_', REGISTRY, REMOTE_STATUS]);
+    `. ${INIT_SCRIPTS_DIR}/lib/harness-run-lib.sh && hr_remote_status_write "$1" "$3" "$2" stop "paused mid-planning"`,
+    '_', REGISTRY, REMOTE_STATUS, branch]);
   assert.equal(wrote.status, 0, wrote.stderr);
   const out = join(fx.dir, STATE_DIR, 'stub', 'out');
-  const saved = await remoteRun(fx, ['save', 'feat_x', out]);
+  const saved = await remoteRun(fx, ['save', branch, out]);
   assert.equal(saved.status, 0, saved.stderr);
   return out;
 }
 
 /** Serve `out` as run 401's `harness-state` to `fx`, whose job is run 999, and restore it. */
-function restoreFrom(fx, out, headSha = undefined) {
-  return remoteRun(fx, ['restore', 'feat_x', '--resume', 'pause'], {
-    ...syncEnv({ runs: [ghRun(401, 'completed', 1, 'devscene run feat_x', headSha)], artifacts: { 401: ['harness-state'] }, bundles: { 401: out } }),
+function restoreFrom(fx, out, headSha = undefined, branch = 'feat_x') {
+  return remoteRun(fx, ['restore', branch, '--resume', 'pause'], {
+    ...syncEnv({ runs: [ghRun(401, 'completed', 1, `devscene run ${branch}`, headSha)], artifacts: { 401: ['harness-state'] }, bundles: { 401: out } }),
     GITHUB_RUN_ID: '999',
   });
 }
 
-test('a walk paused mid-planning in one checkout continues in a fresh one, its pending reviewer\'s story index on disk', async (t) => {
+test('a walk paused mid-planning in one checkout continues in a fresh one on a slashed branch, its pending reviewer\'s story index on disk', { skip: WALKER_SKIP }, async (t) => {
   const a = await remoteFixture(t);
+  linkWalkerEnv(a.dir);
   const started = await runBash(a.dir, [`${INIT_SCRIPTS_DIR}/flow-walker.sh`, 'start', ...WALK, '--skipped', 'none']);
   assert.equal(started.status, 0, started.stderr);
   const advanced = await runBash(a.dir, [`${INIT_SCRIPTS_DIR}/flow-walker.sh`, 'next', ...WALK, '--outcome', 'returned', '--skipped', 'none']);
   assert.equal(advanced.status, 0, advanced.stderr);
   const pending = pendingNode(advanced.stdout);
   assert.equal(pending, 'architecture_review');
-  mkdirSync(join(a.dir, STATE_DIR, 'story_plans'), { recursive: true });
-  mkdirSync(join(a.dir, STATE_DIR, 'task_plans', 'feat_x'), { recursive: true });
-  writeFileSync(join(a.dir, STORY_INDEX), '# feat_x story index\n');
-  writeFileSync(join(a.dir, TASK_DRAFT), '### Task 1\n');
-  const out = await saveJob(a);
+  for (const draft of [SLASHED_STORY_INDEX, SLASHED_TASK_DRAFT]) mkdirSync(dirname(join(a.dir, draft)), { recursive: true });
+  writeFileSync(join(a.dir, SLASHED_STORY_INDEX), '# feat/x story index\n');
+  writeFileSync(join(a.dir, SLASHED_TASK_DRAFT), '### Task 1\n');
+  const out = await saveJob(a, SLASHED);
+  assert.ok(existsSync(join(out, 'flow_walker_state', 'feat%2Fx.json')), 'the bundle does not carry the walk at its encoded name');
+  const carried = readdirSync(join(out, 'flow_walker_state'), { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile());
+  assert.deepEqual(carried.map((entry) => entry.name).filter((name) => name !== 'feat%2Fx.json'), [], 'the bundle carries a walker file not named for the encoded branch');
 
   const b = await remoteFixture(t);
-  const restored = await restoreFrom(b, out);
+  linkWalkerEnv(b.dir);
+  const restored = await restoreFrom(b, out, undefined, SLASHED);
   assert.equal(restored.status, 0, restored.stderr);
-  assert.match(restored.stdout, /placed 2 planning file\(s\) for feat_x; kept 0/);
-  for (const draft of [STORY_INDEX, TASK_DRAFT]) {
+  assert.match(restored.stdout, /placed 2 planning file\(s\) for feat\/x; kept 0/);
+  for (const draft of [SLASHED_STORY_INDEX, SLASHED_TASK_DRAFT]) {
     assert.deepEqual(readFileSync(join(b.dir, draft)), readFileSync(join(a.dir, draft)));
   }
+  assert.deepEqual(readFileSync(walkerStatePath(b.dir, SLASHED)), readFileSync(walkerStatePath(a.dir, SLASHED)), 'the walk was not restored at its encoded name');
   const current = await runBash(b.dir, [`${INIT_SCRIPTS_DIR}/flow-walker.sh`, 'current', ...WALK]);
   assert.equal(current.status, 0, current.stderr);
   assert.match(current.stdout, /^action: dispatch$/m);
@@ -1154,16 +1173,17 @@ test('a walk paused mid-planning in one checkout continues in a fresh one, its p
   cpSync(out, bare, { recursive: true });
   rmSync(join(bare, 'planning'), { recursive: true });
   const c = await remoteFixture(t);
-  const control = await restoreFrom(c, bare);
+  linkWalkerEnv(c.dir);
+  const control = await restoreFrom(c, bare, undefined, SLASHED);
   assert.equal(control.status, 0, control.stderr);
   assert.doesNotMatch(control.stdout, /planning file/);
   const controlCurrent = await runBash(c.dir, [`${INIT_SCRIPTS_DIR}/flow-walker.sh`, 'current', ...WALK]);
   assert.equal(controlCurrent.status, 0, controlCurrent.stderr);
   assert.equal(pendingNode(controlCurrent.stdout), pending);
-  assert.equal(existsSync(join(c.dir, STORY_INDEX)), false);
+  assert.equal(existsSync(join(c.dir, SLASHED_STORY_INDEX)), false);
 });
 
-test('restore keeps a planning file the fresh checkout already carries, and reports it kept', async (t) => {
+test('restore withholds a planning draft once the checkout tracks the story index, and reports it withheld', async (t) => {
   const a = await remoteFixture(t);
   mkdirSync(join(a.dir, STATE_DIR, 'story_plans'), { recursive: true });
   writeFileSync(join(a.dir, STORY_INDEX), 'draft from the paused job\n');
@@ -1179,7 +1199,9 @@ test('restore keeps a planning file the fresh checkout already carries, and repo
   const head = (await runGit(b.dir, ['rev-parse', 'HEAD'])).stdout.trim();
   const restored = await restoreFrom(b, out, head);
   assert.equal(restored.status, 0, restored.stderr);
-  assert.match(restored.stdout, /placed 0 planning file\(s\) for feat_x; kept 1/);
+  assert.match(restored.stdout, /withheld 1 planning file\(s\) for feat_x; the checkout tracks its story index/);
+  assert.doesNotMatch(restored.stdout, /remote-run\.sh: placed /);
+  assert.doesNotMatch(restored.stdout, /withheld the saved walk/);
   assert.equal(readFileSync(join(b.dir, STORY_INDEX), 'utf8'), 'committed on the branch\n');
   assert.equal((await runGit(b.dir, ['status', '--porcelain', '--', STORY_INDEX])).stdout, '');
 });

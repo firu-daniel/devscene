@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "layer-reviewer return",
+  "description": "The layer-reviewer's return object for one layer of one unit.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "No Must Fix, whether or not a Should Fix / Nice to Have file was written.",
+      "properties": {
+        "outcome": { "const": "PASS", "description": "No Must Fix." }
+      },
+      "required": ["outcome"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "At least one Must Fix; the findings file was written.",
+      "properties": {
+        "outcome": { "const": "FAIL", "description": "At least one Must Fix." },
+        "findings_file": { "type": "string", "minLength": 1, "description": "The findings file's full path." },
+        "must_fix_count": { "type": "integer", "minimum": 1, "description": "The number of Must Fix findings." }
+      },
+      "required": ["outcome", "findings_file", "must_fix_count"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "A dispatch value was missing or a cited input could not be read; no findings file was written.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "A dispatch value was missing or a cited input could not be read." },
+        "blocker": { "type": "string", "minLength": 1, "description": "The missing value, or the unreadable path and the refusal, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}

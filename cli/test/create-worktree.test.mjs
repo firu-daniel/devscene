@@ -17,7 +17,10 @@
  * Each case builds the script header's REPRO fixture under the system temp directory: a bare
  * `origin`, a committed `devscene.config.json` whose `commands.depInstall` writes `deps.marker`, and
  * `create-worktree.sh`, `setup-worktree.sh` and `lib/` copied in from `cli/templates/scripts/` — the
- * shipped scripts carry no template token, so the copy is what `init` would write. The main
+ * shipped scripts carry no template token, so the copy is what `init` would write. The fixture also
+ * commits a flow-host `pyproject.toml` under `scripts/python/devscene-flow-host`, and every
+ * `create-worktree.sh` call runs with a stub `uv` exiting 0 first on `PATH`, because
+ * `setup-worktree.sh` step 6 fails a bootstrap with no `uv` or no project. The main
  * `.git/config` sets the repo-relative `core.hooksPath` `githooks` that `init` writes, so an unpinned
  * checkout would resolve hooks inside the new copy. Each payload case pushes its own branch carrying
  * one payload, committed through `hash-object` / `update-index` / `commit-tree` without writing the
@@ -43,9 +46,10 @@ import assert from 'node:assert/strict';
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
 import { chmod, cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import test from 'node:test';
 
+import { FLOW_HOST_DIRNAME, FLOW_HOST_PROJECT } from '../dist/flowHost/layout.js';
 import { PACKAGE_ROOT, runBash, runGit } from './helpers/fixture.mjs';
 
 const TEMPLATE_SCRIPTS = join(PACKAGE_ROOT, 'templates', 'scripts');
@@ -88,11 +92,19 @@ async function reproFixture(t) {
   for (const name of ['create-worktree.sh', 'setup-worktree.sh', 'lib/harness-run-lib.sh']) {
     await cp(join(TEMPLATE_SCRIPTS, name), join(d, 'scripts', name));
   }
+  const project = join(d, 'scripts', FLOW_HOST_DIRNAME, FLOW_HOST_PROJECT);
+  await mkdir(project, { recursive: true });
+  await writeFile(join(project, 'pyproject.toml'), '');
   await runGit(d, ['add', '-A']);
   await runGit(d, ['commit', '--quiet', '-m', 'seed']);
   await runGit(d, ['push', '--quiet', '-u', 'origin', 'trunk']);
   const regdir = join(d, 'devscene', 'autonomous_logs');
   const registry = join(regdir, 'registry.json');
+  // Outside `demo`, so no commit and no copy carries it.
+  const bin = join(w, 'bin');
+  await mkdir(bin);
+  await writeFile(join(bin, 'uv'), '#!/usr/bin/env bash\nexit 0\n');
+  await chmod(join(bin, 'uv'), 0o755);
 
   return {
     w,
@@ -102,7 +114,10 @@ async function reproFixture(t) {
     regdir,
     registry,
     copyOf: (branch) => join(w, `demo-${branch.replace(/\//g, '-')}`),
-    create: (args) => runBash(d, [join(d, 'scripts', 'create-worktree.sh'), ...args]),
+    create: (args) =>
+      runBash(d, [join(d, 'scripts', 'create-worktree.sh'), ...args], {
+        PATH: `${bin}${delimiter}${process.env.PATH ?? ''}`,
+      }),
     originHas: async (branch) =>
       (await runBash(b, ['-c', 'git show-ref --verify --quiet "refs/heads/$1"', '_', branch])).status === 0,
     localHas: async (branch) =>

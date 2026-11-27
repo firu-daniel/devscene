@@ -10,7 +10,7 @@
  *
  * `node --test test` loads this file as a test file of its own, so nothing here runs at import time.
  *
- * ## Eight non-obvious choices
+ * ## Nine non-obvious choices
  *
  * 1. **The stub sleeps before its body runs.** Not for the registry: its writes are serialized, so
  *    the pass's post-spawn `pid` write and the session's exit classification both survive whichever
@@ -63,6 +63,18 @@
  * 8. **The fixture's `sandbox.passEnv` lists {@link RECORDER_PASS_ENV}.** A local launch removes
  *    every exported name outside `autonomous-watcher.sh` → `SESSION_ENV_BASE` and that key, so a
  *    stub reading `$CLAR`, `$REC`, `$REGISTRY` or `$PLANT` would otherwise see nothing.
+ * 9. **A stub `uv` leads every pass's `PATH`.** `init` writes the flow host into every fixture, so
+ *    a bootstrap the watcher's cut runs reaches `setup-worktree.sh` step 6. The stub exits 0 there,
+ *    which keeps that step off the network and out of the shared `uv` cache
+ *    (`.claude/context/cli.md` → `## What "done" means here`), and inside the gate sandbox it keeps
+ *    a real `uv sync` from exiting 2 and losing the copy. A first argument of `run` is the
+ *    `flow-walker.sh` hand-off, which builds nothing, so the stub `exec`s the real `uv` resolved on
+ *    the host's `PATH` when the fixture was built — or exits 0 too where the host has none, and the
+ *    suites gated on `walkerUnavailable()` skip. The main checkout carries `linkWalkerEnv`'s
+ *    environment link, so a walker run from it has an environment to hand off to.
+ *    `watcherEnv` composes `PATH` after the caller's `env`, so a suite passing its own `PATH` keeps
+ *    the stub ahead of it. A suite that stands its own `uv` in passes `pathPrefix`, which leads
+ *    even this stub.
  */
 
 import assert from 'node:assert/strict';
@@ -72,6 +84,7 @@ import { delimiter, join } from 'node:path';
 
 import { createFixture, INIT_SCRIPTS_DIR, runBash, runCli } from './fixture.mjs';
 import { scaleBound } from './timing.mjs';
+import { linkWalkerEnv } from './walker.mjs';
 
 const STATE_DIR = 'devscene';
 const WATCHER_PATH = `${INIT_SCRIPTS_DIR}/autonomous-watcher.sh`;
@@ -125,8 +138,9 @@ export const HUNG_RELEASE_BOUND_SECS = scaleBound(90);
 /**
  * The hung session's stub body. First launch: mark `hung`, print until `<REC>/go`, mark `silent`,
  * then wait silently — nothing on stdout or stderr, so the watchdog keeps reading it as silent —
- * for `<REC>/release`, leaving `<REC>/release-missed` if `boundSecs` pass first. Relaunch: copy
- * the registry to `<REC>/resumed-registry.json`. Bash 3.2 forms only.
+ * for `<REC>/release`, leaving `<REC>/release-missed` if `boundSecs` pass first. Relaunch: mark
+ * `relaunched`, then copy the registry to `<REC>/resumed-registry.json`, the copy's stderr to
+ * `<REC>/resumed-cp.err`. Bash 3.2 forms only.
  *
  * @param {number} boundSecs whole seconds, measured on bash's own `SECONDS`.
  * @returns {string}
@@ -146,7 +160,8 @@ export function hungBody(boundSecs) {
     '    sleep 0.2',
     '  done',
     'else',
-    '  cp "$REGISTRY" "$REC/resumed-registry.json"',
+    '  : > "$REC/relaunched"',
+    '  cp "$REGISTRY" "$REC/resumed-registry.json" 2>"$REC/resumed-cp.err" || :',
     'fi',
   ].join('\n');
 }
@@ -227,17 +242,22 @@ function nodeProjectFiles() {
   };
 }
 
-function onPath(name) {
+/** The first executable `name` on this process's `PATH`, or `null`. */
+function resolveOnPath(name) {
   for (const entry of (process.env.PATH ?? '').split(delimiter)) {
     if (entry === '') continue;
     try {
       accessSync(join(entry, name), fsConstants.X_OK);
-      return true;
+      return join(entry, name);
     } catch {
       // Not here; keep looking.
     }
   }
-  return false;
+  return null;
+}
+
+function onPath(name) {
+  return resolveOnPath(name) !== null;
 }
 
 /** A shell single-quoted literal, so a fixture path is one word whatever it contains. */
@@ -259,9 +279,10 @@ async function sortedNames(path, exclude) {
  * return `null` when `bash` or `jq` does not resolve — the watcher refuses to start without either.
  *
  * @param {import('node:test').TestContext} t
- * @param {{ branch?: string, runAnalytics?: boolean }} [options]
+ * @param {{ branch?: string, runAnalytics?: boolean, pathPrefix?: string }} [options]
+ *   `pathPrefix`, a directory placed first on every pass's `PATH` (choice 9).
  */
-export async function createWatcherFixture(t, { branch = 'feat_x', runAnalytics = false } = {}) {
+export async function createWatcherFixture(t, { branch = 'feat_x', runAnalytics = false, pathPrefix = '' } = {}) {
   for (const tool of ['bash', 'jq']) {
     if (!onPath(tool)) {
       t.skip(`${tool} does not resolve on this process's PATH, so ${WATCHER_PATH} cannot be driven here`);
@@ -312,6 +333,15 @@ export async function createWatcherFixture(t, { branch = 'feat_x', runAnalytics 
   await chmod(stubPath, 0o755);
   await writeFile(stubBodyPath, ':\n', 'utf8');
 
+  // Choice 9.
+  linkWalkerEnv(dir);
+  const uvBin = join(recorderDir, 'bin');
+  await mkdir(uvBin, { recursive: true });
+  const realUv = resolveOnPath('uv');
+  const uvRun = realUv === null ? [] : [`if [ "\${1-}" = run ]; then exec ${shellQuote(realUv)} "$@"; fi`];
+  await writeFile(join(uvBin, 'uv'), ['#!/usr/bin/env bash', ...uvRun, 'exit 0', ''].join('\n'), 'utf8');
+  await chmod(join(uvBin, 'uv'), 0o755);
+
   const notifyPath = join(dir, NOTIFY_PATH);
   await writeFile(
     notifyPath,
@@ -336,6 +366,7 @@ export async function createWatcherFixture(t, { branch = 'feat_x', runAnalytics 
     XDG_CONFIG_HOME: join(dir, 'home', '.config'),
     XDG_STATE_HOME: join(dir, 'home', '.local', 'state'),
     ...env,
+    PATH: `${pathPrefix === '' ? '' : `${pathPrefix}${delimiter}`}${uvBin}${delimiter}${env.PATH ?? process.env.PATH ?? ''}`,
   });
 
   return {

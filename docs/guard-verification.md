@@ -1373,6 +1373,50 @@ Seven of those SILENT holds are `&`-borne ride-along shapes that were **already*
 
 **What §1 owes this change.** With §0's shim, payload fed by redirection, all six guards on both trees on `git status && ls`, `ls`, `cd <repo> && git status`, `git -C <repo> status && cd <W> && ls` and m1: every count is unchanged before → after except `allow-safe-compounds.sh` on m1, **3 → 2 `jq`** with 1 `git` and 3 `cat` unchanged — the permit's closing `jq -nc` not run on a payload the fix refuses. §1.3's table carries neither payload that moved and is unchanged; its dated line records the re-drive. The wall-clock §1.2 composite is **not** taken here: it is owed by hand, with the paired recipe under §1.2's table.
 
+#### The commit guard's amend and remit rows (`fix_run_commit_trailer_amend`)
+
+**What this block records.** `git-commit-branch-guard.sh` emitted `allow` for the whole command whenever its first `commit` piece named a repository on an ordinary branch, and judged no other piece, so a `git commit --amend`, or a commit compounded with a ref move, carried that `allow` past the permission profile. The change makes `hc_piece_is_never_safe` refuse a `commit` piece carrying `--amend` in any abbreviation or a `$` or backtick, and makes the guard judge every piece. Whether a piece may ride along on the guard's `allow` is owned by the library's `hc_commit_piece_may_ride_along`, and on an ordinary branch the guard is SILENT when any piece rewrites a commit (`--amend` in any abbreviation, or an unexpanded token), is a git call outside its remit (`commit`, `add`, `status`, `diff`, `log`, `show`, `rev-parse`, `ls-files`), is a non-git command other than a leading `cd` that an arm of `hc_path_anchored_patterns` grants through `hc_matches_any_pattern`, vetoes included, carries a pipe, redirection or substitution, is a git piece that runs in a repository other than the one judged (its own absolute `-C`, else the leading `cd` or the payload cwd), or carries a git global option other than `-C` (`plugin/hooks/git-commit-branch-guard.sh` → the FAIL-CLOSED table). Its `ask` on a protected branch or a detached HEAD is unchanged.
+
+**The fixture.** A throwaway `git init` under the system temp directory, never this checkout: `examples/devscene.config.json` copied in as `devscene.config.json` (`defaultBranch: main`, `protectedBranches: ["main","release/*"]`), one tracked file committed on `main`, then the ordinary branch `feat_probe`. Each row puts HEAD in its branch state first: `git switch feat_probe` (ordinary), `git switch main` (protected), or `git switch --detach feat_probe` (detached). The payload is §0's, `cwd` = the fixture, `<dir>` = the fixture's resolved path, driven by `/bin/bash`. `<b>` in row CG11 is `feat_probe`. `<work>` is the fixture's parent directory and `<project>` the configuration's `projectName`, `acme-shop`; `sub` in CG19 does not exist. `<other>` in CG20 and CG21 is a second throwaway repository built the same way beside the fixture and left on its protected `main`, named by its resolved path. Both were removed after the run.
+
+**The three objects the guard printed**, quoted from the run with `<dir>` substituted:
+
+- **(a)** `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"Auto-allowed commit on branch feat_probe"}}`
+- **(b)** `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"Branch main is protected (main, release/*) or detached — confirm commit manually"}}`
+- **(c)** `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"HEAD is detached — no branch to check against the protected set (main, release/*); confirm commit manually"}}`
+
+| # | Payload command | Branch state | before | after |
+|---|---|---|---|---|
+| CG1 | `git -C <dir> commit -m x` | ordinary | (a), exit 0 | (a), exit 0 |
+| CG2 | `git -C <dir> add f && git -C <dir> commit -m x` | ordinary | (a), exit 0 | (a), exit 0 |
+| CG3 | `cd <dir> && git commit -m x` | ordinary | (a), exit 0 | (a), exit 0 |
+| CG4 | `git -C <dir> commit --fixup=HEAD` | ordinary | (a), exit 0 | (a), exit 0 |
+| CG5 | `git -C <dir> commit --amend -m x` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG6 | `git -C <dir> commit --amen --no-edit` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG7 | `git -C <dir> commit "--amend" -m x` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG8 | `git -C <dir> commit $F -m x` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG9 | `git -C <dir> commit -m x && git -C <dir> commit --amend -m y` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG10 | `git -C <dir> commit -m x && git -C <dir> reset --hard HEAD~1` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG11 | `git -C <dir> commit -m x && git -C <dir> update-ref refs/heads/<b> HEAD~1` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG12 | `git -C <dir> commit -m x && git -C <dir> rebase HEAD~1` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG13 | `git -C <dir> commit -m x && bash ./x.sh` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG14 | `git -C <dir> commit -m x \| cat` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG15 | `git -C <dir> commit --amend -m x` | protected (`main`) | (b), exit 0 | (b), exit 0 |
+| CG16 | `git -C <dir> commit --amend -m x` | detached HEAD | (c), exit 0 | (c), exit 0 |
+| CG17 | `cd <work>/<project>-x/.. && git -C <dir> commit -m x` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG18 | `cd <work>/<project>-x && git -C <dir> commit -m x` | ordinary | (a), exit 0 | (a), exit 0 |
+| CG19 | `cd sub && git -C <dir> commit -m x` | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG20 | `git -C <dir> commit -m x && git -C <other> commit -m y` | ordinary `<dir>`, protected `<other>` | (a), exit 0 | **no output, exit 0** |
+| CG21 | `git -C <dir> commit -m x && git -C <other> add f` | ordinary `<dir>`, protected `<other>` | (a), exit 0 | **no output, exit 0** |
+| CG22 | `git commit -m "$(cat <<'EOF'` / `fix: thing` / `EOF` / `)"` — one command, its four lines joined by newlines | ordinary | (a), exit 0 | **no output, exit 0** |
+| CG23 | `git commit -m "fix: handle <branch> names"` | ordinary | (a), exit 0 | **no output, exit 0** |
+
+**Which two trees these columns are.** As with N23–N154: this plugin's tree immediately before the change and immediately after. "before" is `plugin/hooks` at `52143799`, the commit before this branch's Task 4; "after" is `plugin/hooks` at `dbdd06ec`, the commit that lands the code review's Finding 1 — each taken by `git archive --format=tar` and `tar -xf` into the run's temp directory. Not the pre-extraction baseline, which §3's caveat says cannot be re-taken here. Driven back to back on 2026-11-16, in one session of the branch's implementing agent, on the fixture and `<other>`, through a probe under the run-artifact tree's `scratch/` run by `bash scripts/scratch-run.sh`, with `/bin/bash` 3.2.57(1)-release, `jq` 1.8.2 and git 2.50.1 (Apple Git-155).
+
+**What these rows establish.** CG5–CG14 and CG17, CG19–CG23 are the `allow` → SILENT narrowings: CG17 a leading `cd` whose operand the library's `!cd <wt>*/..` veto withdraws, CG19 a relative `cd`, which no path-anchored arm names, CG20 and CG21 a git piece in a repository other than the one judged, CG22 Claude Code's default commit spelling and CG23 angle-bracket prose in a message, each of which carries a substitution or redirection character. CG1–CG4 and CG18 are the keeper controls: the guard still vouches for a plain commit, a commit behind `add` or a leading `cd` into the repository, a `--fixup`, which makes a new commit and rewrites nothing, and — CG18, CG17's control — a leading `cd` into a sibling worktree, so the arm matches and the veto is what withdraws CG17. CG15 and CG16 show the `ask` arms unchanged. Every row was driven, and none is owed.
+
+**What §1 owes this change: not taken here.** §1.2's latency table is a wall-clock figure taken by hand outside any session (`harness-runs/lessons.md` → `## Evidence and measurement`), and this block neither retakes nor edits it.
+
 ### 3.2 Tightened — SILENT → `deny`
 
 All in the one deny-capable guard.

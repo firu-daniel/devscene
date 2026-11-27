@@ -14,8 +14,8 @@ import { WORKSPACE_ROOT } from './helpers/fixture.mjs';
  *
  * This is a source guard, the last resort `.claude/context/conventions.md` → `## The testing bar`
  * permits. The route is instruction prose an orchestrator session reads, so no behavioural test
- * reaches it: no flow-graph fixture covers Phase G (`scripts/check-flow-graph.sh` checks the task
- * plan-writing graph only), and no other suite quotes G.0 or G.2. A drift between producer and
+ * reaches it: no flow-graph fixture covers Phase G (the planning graph's checks cover the
+ * task-plan-writing graph only), and no other suite quotes G.0 or G.2. A drift between producer and
  * consumer here is silent until a parked run resumes and its answer is never read.
  *
  * Deliberately not covered: whether an orchestrator session actually follows G.0's pending-answer

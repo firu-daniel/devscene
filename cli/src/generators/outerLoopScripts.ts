@@ -1,7 +1,10 @@
 /**
  * Generator: the outer-loop scripts — the run watcher, the git wrappers, the worktree tooling, the
- * flow walker with its gate library and flow graph, the test-suite runner, the gate launcher, the
- * prompt-injection screen, the run-analytics script with its two `jq` programs, the change-request fence's opt-out check, and the shared library
+ * flow host's environment provisioner, the
+ * flow walker's hand-off with its flow graph, the planning driver's three libraries, the
+ * test-suite runner, the gate launcher, the
+ * prompt-injection screen, the run-analytics script with its two `jq` programs, the change-request fence's opt-out check, the
+ * review sweep, and the shared library
  * they all source —
  * written into the adopter's configured `scriptsDir`.
  *
@@ -19,8 +22,10 @@
  *    these scripts reads `<repo_root>/devscene.config.json` at run time through the one shared
  *    library the `lib` row below writes beside them, because a guard whose protected-branch set was
  *    frozen into a file when `init` ran enforces the wrong set the moment `protectedBranches` changes —
- *    and that failure is silent. Verbatim copies are also what makes the `create-if-absent` re-run
- *    contract trivial here: there is no generated content for a second run to disagree about.
+ *    and that failure is silent. Verbatim copies are also what makes both re-run contracts trivial
+ *    here, `create-if-absent` under `init` and `replace-if-changed` under `init --upgrade`: there is
+ *    no generated content for a second run to disagree about, so a row is current exactly when it
+ *    carries its template's bytes and its table mode.
  * 2. **The set is written whatever the repository looks like — there is no selection rule.** The
  *    wrapper set has one (`selectWrapper`) because a wrapper exists only for a command that
  *    resolved. These scripts are the flow's own machinery rather than a view of the adopter's
@@ -34,18 +39,21 @@
  *
  * ## Scope this release
  *
- * This module is the **writer**. The set below grows one row at a time as each script's template
+ * This module is the **writer**, the upgrade planner ({@link planOuterLoopScriptUpgrade}) and the
+ * drift reader ({@link outerLoopScriptDrift}). The wrapper scripts are none of its business: each
+ * holds the adopter's own command. The set below grows one row at a time as each script's template
  * lands, and the ordering rule is the one stated on {@link OUTER_LOOP_SCRIPTS}: a row arrives in
  * the same change as its template, never before it, so a generated permission profile can never
  * allow-list a file that was never written.
  */
 
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { DEFAULTS, type HarnessConfig } from '../config/model.js';
-import { readTemplate } from '../core/paths.js';
+import { lstatOrUndefined, readTemplate } from '../core/paths.js';
 import { normalizeRepoDir } from '../core/repoPaths.js';
-import type { WritePlan } from '../core/writer.js';
+import type { WritePlan, WritePolicy } from '../core/writer.js';
 import { scriptInvocation } from './scripts.js';
 
 /**
@@ -72,7 +80,8 @@ export interface OuterLoopScript {
    * file — the git wrappers an agent is told to commit, push and refresh its branch through, the
    * scratch runner it executes a probe or a mutation check with, the flow walker the
    * orchestrating session steps a flow with, the test-suite runner that session grades a gate
-   * round with, and the prompt-injection screen that session pre-scans task data with. The watcher, the daemon wrappers, the remote-run
+   * round with, the prompt-injection screen that session pre-scans task data with, and the review
+   * sweep the end-of-branch reviewer runs from the main checkout. The watcher, the daemon wrappers, the remote-run
    * script and the worktree and cleanup scripts are run by the watcher process (or the remote job)
    * or by a person, so they are
    * `false`: the flag records which of those two runs a script, and the profile follows it so an
@@ -88,7 +97,7 @@ export interface OuterLoopScript {
    * that carry that entry are `autonomous-watcher.sh`, `restart-watcher.sh`,
    * `cleanup-merged-worktrees.sh` and `remote-run.sh` — the last because a run that could dispatch
    * runs could start runs about itself (the guard is `plugin/hooks/autonomous-script-allowlist-guard.sh`).
-   * For the worktree scripts, the notifier, the stream formatter, the run-analytics script,
+   * For the worktree scripts, the flow host's provisioner, the notifier, the stream formatter, the run-analytics script,
    * the docs-retrieval server launcher — which the agent runner starts from `.mcp.json` — and the
    * change-request fence's opt-out check, which an interactive session runs,
    * `false` is a calling convention rather than a gate: the guard auto-allows them, deliberately.
@@ -127,6 +136,16 @@ export interface OuterLoopScript {
  * nowhere else.
  */
 export const WATCHER_SCRIPT_NAME = 'autonomous-watcher.sh';
+
+/**
+ * The watcher restart script's file name, named on its own for the same reason
+ * {@link WATCHER_SCRIPT_NAME} is: the `init --upgrade` report prints this script's invocation, because
+ * a running watcher keeps the code it already parsed, and a report disagreeing with the writer would
+ * tell the operator to run a file that was never written.
+ *
+ * The row below is built from it, so the file is renamed here and nowhere else.
+ */
+export const RESTART_WATCHER_SCRIPT_NAME = 'restart-watcher.sh';
 
 /**
  * The notifier's file name, named on its own for the same reason {@link WATCHER_SCRIPT_NAME} is:
@@ -168,6 +187,15 @@ export const RUN_LIBRARY_SCRIPT_NAME = 'harness-run-lib.sh';
 export const TASK_OFFER_CHECK_SCRIPT_NAME = 'task-offer-check.sh';
 
 /**
+ * The walker's environment provisioner's file name, named on its own for the same reason
+ * {@link WATCHER_SCRIPT_NAME} is: `flowHost/provision.ts` runs this file and `upgrade/report.ts` prints
+ * its invocation, and either disagreeing with the writer would name a script that was never written.
+ *
+ * The row below is built from it, so the file is renamed here and nowhere else.
+ */
+export const FLOW_HOST_PROVISION_SCRIPT_NAME = 'flow-host-provision.sh';
+
+/**
  * The whole outer-loop set, in the order `init` writes it: the shared library first, because every
  * other row sources it, and each further library or data file before the script that sources or
  * reads it.
@@ -177,6 +205,9 @@ export const TASK_OFFER_CHECK_SCRIPT_NAME = 'task-offer-check.sh';
  */
 export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze([
   Object.freeze({ file: RUN_LIBRARY_SCRIPT_NAME, subdir: 'lib', mode: 0o644, agentInvocable: false }),
+  // Sourced by `commit-on-branch.sh` from its own `lib/`, and by nothing else; never run. Run
+  // directly, it only defines functions, so `false` is a calling convention and no `DENY_SCRIPT_BASENAMES` entry is owed.
+  Object.freeze({ file: 'unit-commit-lib.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
   Object.freeze({ file: 'commit-on-branch.sh', mode: 0o755, agentInvocable: true, runsUnsandboxed: true }),
   Object.freeze({ file: 'push-branch.sh', mode: 0o755, agentInvocable: true, runsUnsandboxed: true }),
   Object.freeze({ file: 'refresh-branch.sh', mode: 0o755, agentInvocable: true, runsUnsandboxed: true }),
@@ -187,8 +218,8 @@ export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze(
   // regenerated, which is the whole point of shipping it as a script rather than as an interpreter
   // allow entry.
   Object.freeze({ file: 'scratch-run.sh', mode: 0o755, agentInvocable: true }),
-  // Sourced and read by `flow-walker.sh` from its own directory, never run.
-  Object.freeze({ file: 'flow-walker-gates.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
+  // The graph `devscene-flow-walker` walks: `flow-walker.sh` passes this directory as `--flows`,
+  // and the watcher hands it as `--flows` to the planning driver `devscene-planning-driver`.
   Object.freeze({ file: 'task_plan_writing.graph.json', subdir: 'flows', mode: 0o644, agentInvocable: false }),
   // Run by the orchestrating session; no `DENY_SCRIPT_BASENAMES` entry, because it must be reachable.
   Object.freeze({ file: 'flow-walker.sh', mode: 0o755, agentInvocable: true }),
@@ -203,6 +234,10 @@ export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze(
   Object.freeze({ file: 'prompt-injection-screen.sh', mode: 0o755, agentInvocable: true }),
   Object.freeze({ file: 'create-worktree.sh', mode: 0o755, agentInvocable: false }),
   Object.freeze({ file: 'setup-worktree.sh', mode: 0o755, agentInvocable: false }),
+  // Run by `init`, a person and `doctor`'s remedy, outside the sandbox; `false` is a calling
+  // convention, and no `DENY_SCRIPT_BASENAMES` entry is owed: it takes no argument and, sandboxed,
+  // fails closed having changed nothing outside `<scriptsDir>/python/.venv`.
+  Object.freeze({ file: FLOW_HOST_PROVISION_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
   // Started by the agent runner from `.mcp.json`, never by a dispatched agent's Bash call, so `false`
   // is a calling convention. No `DENY_SCRIPT_BASENAMES` entry: the guard auto-allowing it runs
   // nothing destructive.
@@ -220,19 +255,28 @@ export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze(
   Object.freeze({ file: 'run-analytics.sh', mode: 0o755, agentInvocable: false }),
   Object.freeze({ file: NOTIFY_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
   Object.freeze({ file: WATCHER_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
-  Object.freeze({ file: 'restart-watcher.sh', mode: 0o755, agentInvocable: false }),
+  Object.freeze({ file: RESTART_WATCHER_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
   // Run by the watcher, the remote job or a person. Carries a `DENY_SCRIPT_BASENAMES` entry: a run that
   // could dispatch runs could start runs about itself.
   Object.freeze({ file: 'remote-run.sh', mode: 0o755, agentInvocable: false }),
   // Run by an interactive session's fence; `false` is a calling convention, and it carries no
   // `DENY_SCRIPT_BASENAMES` entry because it is read-only and prints one path.
   Object.freeze({ file: TASK_OFFER_CHECK_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
+  // Run by `branch-reviewer` from the main checkout; no `DENY_SCRIPT_BASENAMES` entry, because it
+  // must be reachable. No `runsUnsandboxed`: it only reads.
+  Object.freeze({ file: 'review-sweep.sh', mode: 0o755, agentInvocable: true }),
 ] as const);
 
 /** The templates' subdirectory under `cli/templates/`, addressed as {@link readTemplate} wants it. */
 const TEMPLATE_DIR = 'scripts';
 
-/** Everything {@link writeOuterLoopScripts} needs. */
+/**
+ * The one bit {@link outerLoopScriptDrift} compares. Git records only this one, so a checkout under a
+ * stricter umask differs from the table in its group and other bits without having drifted.
+ */
+const OWNER_EXECUTE_BIT = 0o100;
+
+/** Everything {@link writeOuterLoopScripts} and {@link planOuterLoopScriptUpgrade} need. */
 export interface OuterLoopScriptsOptions {
   /** The resolved repository root the scripts are written under. */
   readonly repoRoot: string;
@@ -265,6 +309,14 @@ export interface OuterLoopScriptsResult {
   readonly written: readonly WrittenOuterLoopScript[];
   /** Informational lines, one each, for the reporter's `info` — as `init` drains every generator's. */
   readonly notes: readonly string[];
+}
+
+/** How the scripts on disk differ from the shipped set. Paths are relative to `scriptsDir`, in table order. */
+export interface OuterLoopScriptDrift {
+  /** Rows with nothing at their path. */
+  readonly missing: readonly string[];
+  /** Rows whose bytes or executable bit differ, or whose path holds something other than a regular file. */
+  readonly changed: readonly string[];
 }
 
 /**
@@ -323,18 +375,28 @@ export function outerLoopScriptPath(repoRoot: string, config: HarnessConfig, rel
   return join(repoRoot, outerLoopScriptsDir(config), ...relativePath.split('/'));
 }
 
+/** The scripts a running daemon has already loaded: the watcher and the libraries it sources. */
+export function daemonLoadedScriptPaths(repoRoot: string, config: HarnessConfig): ReadonlySet<string> {
+  return new Set(
+    OUTER_LOOP_SCRIPTS.filter(({ file, subdir }) => file === WATCHER_SCRIPT_NAME || subdir === 'lib').map((script) =>
+      outerLoopScriptPath(repoRoot, config, outerLoopRelativePath(script)),
+    ),
+  );
+}
+
+/** A shipped script's text, addressed by its path relative to `scriptsDir`. */
+function shippedScript(relativePath: string): string {
+  return readTemplate(`${TEMPLATE_DIR}/${relativePath}`);
+}
+
 /**
- * Enqueue the outer-loop scripts for the configured `scriptsDir`: `ensure-dir` on the directory and
- * on every subdirectory a row asks for, then one `create-if-absent` write per row, its content read
- * from the matching template and copied through unchanged.
- *
- * `create-if-absent` is the re-run contract for this artifact, and it means what it says: an adopter
- * who edited a generated script keeps that edit byte-for-byte on the next `init`. `--force`
- * overwrites, and only after the write engine has taken a `.bak` of what was there.
- *
- * Nothing here touches the filesystem: the generator plans, and `init` applies the plan once.
+ * Enqueue `ensure-dir` on the scripts directory and on every subdirectory a row asks for, then one
+ * write per row under `policy`, carrying the row's template unchanged and its mode.
  */
-export function writeOuterLoopScripts({ repoRoot, config, plan }: OuterLoopScriptsOptions): OuterLoopScriptsResult {
+function enqueueOuterLoopScripts(
+  { repoRoot, config, plan }: OuterLoopScriptsOptions,
+  policy: WritePolicy,
+): Pick<OuterLoopScriptsResult, 'scriptsDir' | 'written'> {
   const scriptsDir = outerLoopScriptsDir(config);
   const written: WrittenOuterLoopScript[] = [];
   const ensured = new Set<string>();
@@ -355,13 +417,31 @@ export function writeOuterLoopScripts({ repoRoot, config, plan }: OuterLoopScrip
     const relative = outerLoopRelativePath(script);
     plan.add({
       path: join(repoRoot, scriptsDir, ...relative.split('/')),
-      policy: 'create-if-absent',
-      content: readTemplate(`${TEMPLATE_DIR}/${relative}`),
+      policy,
+      content: shippedScript(relative),
       label: `outer-loop script ${relative}`,
       mode: script.mode,
     });
     written.push({ ...script, invocation: scriptInvocation(scriptsDir, relative) });
   }
+
+  return { scriptsDir, written };
+}
+
+/**
+ * Enqueue the outer-loop scripts for the configured `scriptsDir`: `ensure-dir` on the directory and
+ * on every subdirectory a row asks for, then one `create-if-absent` write per row, its content read
+ * from the matching template and copied through unchanged.
+ *
+ * This artifact has two re-run contracts. `create-if-absent` is `init`'s, and it means what it says:
+ * an adopter who edited a generated script keeps that edit byte-for-byte on the next `init`, and
+ * `--force` overwrites only after the write engine has taken a `.bak` of what was there.
+ * `replace-if-changed` is `init --upgrade`'s, and {@link planOuterLoopScriptUpgrade} enqueues it.
+ *
+ * Nothing here touches the filesystem: the generator plans, and `init` applies the plan once.
+ */
+export function writeOuterLoopScripts(options: OuterLoopScriptsOptions): OuterLoopScriptsResult {
+  const { scriptsDir, written } = enqueueOuterLoopScripts(options, 'create-if-absent');
 
   const notes =
     written.length === 0
@@ -371,4 +451,42 @@ export function writeOuterLoopScripts({ repoRoot, config, plan }: OuterLoopScrip
         ];
 
   return { scriptsDir, written, notes };
+}
+
+/**
+ * Enqueue the same directories and rows as {@link writeOuterLoopScripts} under `replace-if-changed`,
+ * which brings each row to its shipped bytes and mode. It carries no notes: the plain-`init` note
+ * says an edited copy is kept, which this plan does not do.
+ */
+export function planOuterLoopScriptUpgrade(options: OuterLoopScriptsOptions): OuterLoopScriptsResult {
+  return { ...enqueueOuterLoopScripts(options, 'replace-if-changed'), notes: [] };
+}
+
+/** `ENOTDIR` counts as absent: a regular file where a row's directory belongs leaves the row missing. */
+const SCRIPT_ABSENT_CODES: readonly string[] = ['ENOENT', 'ENOTDIR'];
+
+/**
+ * Which rows differ from what this CLI ships. Bytes are compared as buffers, so an invalid UTF-8
+ * sequence cannot decode into a match. Reads only.
+ */
+export function outerLoopScriptDrift(repoRoot: string, config: HarnessConfig): OuterLoopScriptDrift {
+  const missing: string[] = [];
+  const changed: string[] = [];
+
+  for (const script of OUTER_LOOP_SCRIPTS) {
+    const relative = outerLoopRelativePath(script);
+    const path = outerLoopScriptPath(repoRoot, config, relative);
+    const stats = lstatOrUndefined(path, SCRIPT_ABSENT_CODES);
+    if (stats === undefined) {
+      missing.push(relative);
+      continue;
+    }
+    const current =
+      stats.isFile() &&
+      (Number(stats.mode) & OWNER_EXECUTE_BIT) === (script.mode & OWNER_EXECUTE_BIT) &&
+      readFileSync(path).equals(Buffer.from(shippedScript(relative), 'utf8'));
+    if (!current) changed.push(relative);
+  }
+
+  return { missing, changed };
 }

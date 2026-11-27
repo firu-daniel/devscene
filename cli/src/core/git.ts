@@ -41,6 +41,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { devNull } from 'node:os';
+import { resolve } from 'node:path';
 
 import { HarnessError } from './errors.js';
 
@@ -82,6 +83,9 @@ const GIT_WORKTREE_LIST_ARGS: readonly string[] = Object.freeze(['worktree', 'li
  * is the main working copy, with no column formatting to split a path containing a space.
  */
 const GIT_WORKTREE_PORCELAIN_ARGS: readonly string[] = Object.freeze(['worktree', 'list', '--porcelain']);
+
+/** The directory a main checkout and its linked worktrees share. */
+const GIT_COMMON_DIR_ARGS: readonly string[] = Object.freeze(['rev-parse', '--git-common-dir']);
 
 /** The prefix of a porcelain record's path line. */
 const PORCELAIN_WORKTREE_PREFIX = 'worktree ';
@@ -446,6 +450,21 @@ export function mainWorktreeRoot(repoRoot: string): string | undefined {
   const first = output.split('\n').find((line) => line.startsWith(PORCELAIN_WORKTREE_PREFIX));
   const path = first?.slice(PORCELAIN_WORKTREE_PREFIX.length);
   return path === undefined || path === '' ? undefined : path;
+}
+
+/**
+ * The absolute git common directory of the repository `repoRoot` belongs to, or `undefined` when git
+ * does not answer. A linked worktree gets the main checkout's directory. git may print this path
+ * relative to the working directory, so it is resolved against `repoRoot`.
+ */
+export function gitCommonDir(repoRoot: string): string | undefined {
+  let output: string;
+  try {
+    output = runGit(GIT_COMMON_DIR_ARGS, repoRoot);
+  } catch {
+    return undefined;
+  }
+  return output === '' ? undefined : resolve(repoRoot, output);
 }
 
 /**

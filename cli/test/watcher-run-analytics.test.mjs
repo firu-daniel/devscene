@@ -272,7 +272,7 @@ test('the session\'s analytics are committed and pushed on the run\'s branch, an
     await failingResume(
       4,
       'sess-missing',
-      (line) => line.includes('run analytics: ') && line.includes('run-analytics.sh') && line.includes('init --force'),
+      (line) => line.includes('run analytics: ') && line.includes('run-analytics.sh') && line.includes('init --upgrade'),
     );
   });
 });

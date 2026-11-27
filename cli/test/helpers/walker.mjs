@@ -7,24 +7,45 @@
  * the fixture, never the template in this checkout.** A case that ran the template would pass on a
  * walker `init` had failed to write, or had written somewhere else.
  *
+ * That copy hands off to the Python command `devscene-flow-walker`, which runs the sources `init`
+ * copied into the fixture's `<scriptsDir>/python/` from this build's `dist/python/` — staged from
+ * this checkout's `devscene-flow-host/` and `graphscene/` — so a case tests this branch's Python,
+ * not main's. The one thing a fixture borrows is the environment: {@link linkWalkerEnv} makes the
+ * fixture's environment directory a symbolic link to this checkout's provisioned one, and
+ * {@link walkerUnavailable} skips a case on a host where that environment was never built.
+ *
  * `node --test test` loads this file as a test file of its own, so nothing here runs at import time.
  *
- * A findings file is planted **before** the `FAIL` it stands for is fed, because the walker resolves
- * each reviewer's `arg.iteration` and each gate's round count from the folder's real contents.
+ * Every round gate's findings file — its `PASS` as well as its `FAIL` — is planted **before** the
+ * verdict it stands for is fed, because the walker reads the round number, each reviewer's
+ * `arg.iteration` and each gate's `FAIL` count from the folders' real contents.
+ *
+ * A step's `node` is passed as `--node`, which the walker requires while a round's set of gates is
+ * pending. `runConcurrently` issues a step list's calls at once — still against the copy `init`
+ * shipped into the fixture, as the rule above requires — and `blocksOf` splits one action into its
+ * `action:`-headed blocks.
  */
 
 import assert from 'node:assert/strict';
-import { accessSync, constants as fsConstants, readFileSync } from 'node:fs';
+import { accessSync, constants as fsConstants, existsSync, lstatSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 
-import { createFixture, INIT_SCRIPTS_DIR, runBash, runCli } from './fixture.mjs';
+import { flowHostEnvDir } from '../../dist/flowHost/layout.js';
+import { ENV_MARKER_FILE, flowHostProvisionInvocation } from '../../dist/flowHost/provision.js';
+import { createFixture, INIT_SCRIPTS_DIR, runBash, runCli, WORKSPACE_ROOT } from './fixture.mjs';
 
 const WALKER_PATH = `${INIT_SCRIPTS_DIR}/flow-walker.sh`;
 const FLOW = 'task_plan_writing';
 
-/** The fixture's own copy of the graph — the one a mutation check edits, never the template. */
+/**
+ * The fixture's own copy of the format-5 graph the walker loads — the one a mutation check edits,
+ * never the template.
+ */
 export const WALKER_GRAPH_PATH = `${INIT_SCRIPTS_DIR}/flows/${FLOW}.graph.json`;
+
+/** The command the hand-off runs, under the environment's `bin/`. */
+const WALKER_COMMAND = 'devscene-flow-walker';
 
 const CONFIG_PATH = 'devscene.config.json';
 
@@ -56,13 +77,44 @@ function onPath(name) {
 
 /**
  * The reason a walker case cannot run on this host, or `false`: the walker faults without `bash`
- * or `jq`, which is a statement about the host rather than about the walker.
+ * or `jq`, and the hand-off refuses without `uv` or this checkout's provisioned environment, which
+ * {@link linkWalkerEnv} lends every fixture. Each is a statement about the host, not the walker.
  */
 export function walkerUnavailable() {
-  for (const tool of ['bash', 'jq']) {
+  for (const tool of ['bash', 'jq', 'uv']) {
     if (!onPath(tool)) return `${tool} does not resolve on this process's PATH, so ${WALKER_PATH} cannot be driven here`;
   }
+  const config = readConfig(WORKSPACE_ROOT);
+  const env = join(WORKSPACE_ROOT, flowHostEnvDir(config));
+  const remedy = `run \`${flowHostProvisionInvocation(config)}\` from ${WORKSPACE_ROOT}, outside the sandbox`;
+  const marker = join(env, ENV_MARKER_FILE);
+  if (!existsSync(marker)) return `${marker} is absent, so ${WALKER_PATH} has no environment to hand off to: ${remedy}`;
+  const command = join(env, 'bin', WALKER_COMMAND);
+  try {
+    accessSync(command, fsConstants.X_OK);
+  } catch {
+    return `${command} is not executable, so ${WALKER_PATH} has no command to hand off to: ${remedy}`;
+  }
   return false;
+}
+
+/**
+ * Make `<dir>/<flowHostEnvDir>` a symbolic link to this checkout's provisioned environment, each
+ * path built from its own repository's configuration. Creates the parent when `init` left none,
+ * and replaces nothing already there.
+ *
+ * @param {string} dir
+ */
+export function linkWalkerEnv(dir) {
+  const link = join(dir, flowHostEnvDir(readConfig(dir)));
+  try {
+    lstatSync(link);
+    return;
+  } catch {
+    // Nothing there; link it.
+  }
+  mkdirSync(dirname(link), { recursive: true });
+  symlinkSync(join(WORKSPACE_ROOT, flowHostEnvDir(readConfig(WORKSPACE_ROOT))), link);
 }
 
 function readConfig(dir) {
@@ -90,6 +142,7 @@ export async function walkerFixture({ parity, qa, branch = 'feat_x' }) {
   const config = readConfig(dir);
   config.phases = { ...(config.phases ?? {}), parity, qa };
   await writeFile(join(dir, CONFIG_PATH), `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  linkWalkerEnv(dir);
   return { dir, branch, cleanup };
 }
 
@@ -116,18 +169,51 @@ export async function walk(dir, args) {
 }
 
 /**
- * Write the `review_<n>.md` a reviewer's `FAIL` leaves behind.
+ * A `## Must Fix` section holding one entry, with both required fields unless `lacking` names one.
+ *
+ * @param {'Class' | 'Failure'} [lacking]
+ * @returns {string}
+ */
+export function mustFixSection(lacking) {
+  const lines = ['## Must Fix', '1. **fixture finding**'];
+  if (lacking !== 'Class') lines.push('   **Class:** Wrong build');
+  if (lacking !== 'Failure') lines.push('   **Failure:** If the writer follows the plan, then the build fails.');
+  return `${lines.join('\n')}\n`;
+}
+
+async function writeReview(dir, folder, n, verdict, section) {
+  const relative = `${stateDirOf(dir)}/${folder}/review_${n}.md`;
+  await mkdir(join(dir, dirname(relative)), { recursive: true });
+  await writeFile(join(dir, relative), `# review ${n}\nverdict: ${verdict}\nreview_mode: full\n${section}`, 'utf8');
+  return relative;
+}
+
+/**
+ * Write the round file `review_<n>.md` a reviewer leaves behind, in the shape
+ * `plugin/instructions/plan_review_rounds.md` → `## The round file` fixes. A `FAIL` carries a valid
+ * `## Must Fix` entry, because the walker's round-file check refuses a `FAIL` without one.
  *
  * @param {string} dir
  * @param {string} folder the findings folder under `stateDir`, branch segment included.
  * @param {number} n
+ * @param {'PASS' | 'FAIL'} [verdict]
  * @returns {Promise<string>} the file's repo-relative path — the `findings_file` the reviewer returns.
  */
-export async function plantReview(dir, folder, n) {
-  const relative = `${stateDirOf(dir)}/${folder}/review_${n}.md`;
-  await mkdir(join(dir, dirname(relative)), { recursive: true });
-  await writeFile(join(dir, relative), `# review ${n}\n`, 'utf8');
-  return relative;
+export async function plantReview(dir, folder, n, verdict = 'FAIL') {
+  return writeReview(dir, folder, n, verdict, verdict === 'FAIL' ? mustFixSection() : '');
+}
+
+/**
+ * Write a `verdict: FAIL` round file whose one `## Must Fix` entry omits a required field.
+ *
+ * @param {string} dir
+ * @param {string} folder the findings folder under `stateDir`, branch segment included.
+ * @param {number} n
+ * @param {'Class' | 'Failure'} lacking
+ * @returns {Promise<string>} the file's repo-relative path, as `plantReview` returns it.
+ */
+export async function plantMalformedReview(dir, folder, n, lacking) {
+  return writeReview(dir, folder, n, 'FAIL', mustFixSection(lacking));
 }
 
 /**
@@ -158,28 +244,52 @@ export async function plantLedger(dir, branch, skippedCsv) {
 }
 
 /**
- * Drive a scripted sequence and return every action, refusing on the first non-zero exit.
+ * A step is `{ start: true }` or `{ outcome }`; a step carrying `node` passes it as
+ * `--node <node>` before `--outcome`. A `PASS` or `FAIL` step carries `review: [folder, n, verdict?]`,
+ * planted first — with `verdict` defaulting to the step's own outcome — and passed as `--findings`.
  *
- * A step is `{ start: true }` or `{ outcome }`; a `FAIL` step carries `review: [folder, n]`, which
- * is planted first and passed as `--findings`. `skipped` is passed on every call as `--skipped`,
- * and `null` omits the flag so only a ledger can answer the run-mode gates.
+ * @typedef {{ start?: boolean, entry?: string, node?: string, outcome?: string, review?: [string, number, ('PASS' | 'FAIL')?] }} WalkerStep
+ */
+
+/**
+ * One step's argument vector, its findings file planted on the way.
  *
  * @param {string} dir
- * @param {ReadonlyArray<{ start?: boolean, entry?: string, outcome?: string, review?: [string, number] }>} steps
+ * @param {WalkerStep} step
+ * @param {{ branch: string, skipped: string | null }} options
+ */
+async function stepArgs(dir, step, { branch, skipped }) {
+  const args = ['start'];
+  if (!step.start) {
+    args[0] = 'next';
+    if (step.node !== undefined) args.push('--node', step.node);
+    args.push('--outcome', step.outcome);
+  }
+  args.push('--flow', FLOW, '--branch', branch);
+  if (step.entry !== undefined) args.push('--entry', step.entry);
+  if (step.review !== undefined) {
+    const [folder, n, verdict = step.outcome === 'PASS' ? 'PASS' : 'FAIL'] = step.review;
+    args.push('--findings', await plantReview(dir, `${folder}/${branch}`, n, verdict));
+  }
+  if (skipped !== null) args.push('--skipped', skipped);
+  return args;
+}
+
+/**
+ * Drive a scripted sequence and return every action, refusing on the first non-zero exit.
+ *
+ * `skipped` is passed on every call as `--skipped`, and `null` omits the flag so only a ledger can
+ * answer the run-mode gates.
+ *
+ * @param {string} dir
+ * @param {ReadonlyArray<WalkerStep>} steps
  * @param {{ branch?: string, skipped?: string | null }} [options]
  * @returns {Promise<Array<Array<[string, string]>>>}
  */
 export async function run(dir, steps, { branch = 'feat_x', skipped = 'none' } = {}) {
   const actions = [];
   for (const step of steps) {
-    const args = step.start ? ['start'] : ['next', '--outcome', step.outcome];
-    args.push('--flow', FLOW, '--branch', branch);
-    if (step.entry !== undefined) args.push('--entry', step.entry);
-    if (step.review !== undefined) {
-      const [folder, n] = step.review;
-      args.push('--findings', await plantReview(dir, `${folder}/${branch}`, n));
-    }
-    if (skipped !== null) args.push('--skipped', skipped);
+    const args = await stepArgs(dir, step, { branch, skipped });
     const result = await walk(dir, args);
     assert.equal(result.status, 0, `\`${args.join(' ')}\` exited ${result.status}\n${result.stdout}\n${result.stderr}`);
     actions.push(result.action);
@@ -187,9 +297,59 @@ export async function run(dir, steps, { branch = 'feat_x', skipped = 'none' } = 
   return actions;
 }
 
-/** The pending node's state file, for a refusal asserted on the bytes on disk. */
-export function walkerStatePath(dir) {
-  return join(dir, stateDirOf(dir), '.flow_walker_state');
+/**
+ * Issue every step's call at once: each step's file is planted first, then every `next` starts
+ * before any has finished. Asserts no status — which call won the lock is the caller's question.
+ *
+ * @param {string} dir
+ * @param {ReadonlyArray<WalkerStep>} steps
+ * @param {{ branch?: string, skipped?: string | null }} [options]
+ * @returns {Promise<Array<{ status: number, stdout: string, stderr: string, action: Array<[string, string]> }>>}
+ *   one result per step, in step order.
+ */
+export async function runConcurrently(dir, steps, { branch = 'feat_x', skipped = 'none' } = {}) {
+  const argv = [];
+  for (const step of steps) argv.push(await stepArgs(dir, step, { branch, skipped }));
+  return Promise.all(argv.map((args) => walk(dir, args)));
+}
+
+/**
+ * One parsed action split at each `action` pair, every block opening with its own.
+ *
+ * @param {ReadonlyArray<[string, string]>} action
+ * @returns {Array<Array<[string, string]>>}
+ */
+export function blocksOf(action) {
+  const blocks = [];
+  for (const pair of action) {
+    if (pair[0] === 'action' || blocks.length === 0) blocks.push([]);
+    blocks.at(-1).push(pair);
+  }
+  return blocks;
+}
+
+/**
+ * The encoding `urllib.parse.quote(branch, safe="")` produces: `A-Za-z0-9_.-~` kept, every other
+ * UTF-8 byte as uppercase `%XX`.
+ */
+function encodeBranch(branch) {
+  let out = '';
+  for (const byte of Buffer.from(branch, 'utf8')) {
+    const ch = String.fromCharCode(byte);
+    out += /[A-Za-z0-9_.~-]/.test(ch) ? ch : `%${byte.toString(16).toUpperCase().padStart(2, '0')}`;
+  }
+  return out;
+}
+
+/**
+ * One branch's walk-state file, for a refusal asserted on the bytes on disk
+ * (`devscene-flow-host/src/devscene_flow_host/host/store.py` → `walk_state_path`).
+ *
+ * @param {string} dir
+ * @param {string} [branch]
+ */
+export function walkerStatePath(dir, branch = 'feat_x') {
+  return join(dir, stateDirOf(dir), '.flow_walker_state', `${encodeBranch(branch)}.json`);
 }
 
 export { FLOW as WALKER_FLOW };

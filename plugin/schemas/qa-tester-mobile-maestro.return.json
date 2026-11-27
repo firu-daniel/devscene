@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "qa-tester-mobile-maestro return",
+  "description": "The qa-tester-mobile-maestro stub's return object: the blocker subset of qa-tester's return, which it returns on every dispatch.",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "Nothing in the run can proceed; the caller halts.",
+      "properties": {
+        "outcome": { "const": "blocker", "description": "Nothing in the run can proceed." },
+        "blocker": { "type": "string", "minLength": 1, "description": "Why the run cannot proceed, on one line." }
+      },
+      "required": ["outcome", "blocker"],
+      "additionalProperties": false
+    }
+  ]
+}

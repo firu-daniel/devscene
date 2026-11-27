@@ -18,15 +18,17 @@
  *    and returns; no generator touches the filesystem. So `--dry-run` cannot leak a write no matter
  *    what a generator enqueued, and a refusal raised against the last request cannot leave the first
  *    ten on disk — the write engine checks the whole plan before committing any of it
- *    (`core/writer.ts`). **Three mutations sit outside that plan**, and each is confined by a
+ *    (`core/writer.ts`). **Four mutations sit outside that plan**, and each is confined by a
  *    condition of its own rather than by a shared one: `initRepository` before the plan is built
  *    runs only where there is no repository yet ({@link resolveTargetRepository}); `pointHooksPath`
  *    after it has been applied writes `core.hooksPath` only where that setting is unset
  *    (`generators/githooks.ts`); and `commitAll`, after it as well, runs only in a repository with
  *    no commit ({@link commitGeneratedFiles}) — so none of them can reach an established history or
- *    an adopter's own hooks directory. So `--dry-run`'s "cannot leak a write" guarantee no longer
+ *    an adopter's own hooks directory. The fourth, `provisionFlowHost` after the plan, writes only
+ *    `<scriptsDir>/python/.venv`, through `uv`, and only when {@link resolveProvisionPython} answered
+ *    yes (`flowHost/provision.ts`). So `--dry-run`'s "cannot leak a write" guarantee no longer
  *    rests on the plan's structure alone — it rests on that structure **plus one explicit `dryRun`
- *    guard at each of those three calls**, which is three guards to check rather than a structural
+ *    guard at each of those four calls**, which is four guards to check rather than a structural
  *    argument that covers everything. The commit's position is load-bearing for a second reason: the
  *    managed `.gitignore` block arrives with the plan, and it is what keeps the commit's `git add -A`
  *    from staging the run-control artifacts — so a commit made before `plan.apply` would commit
@@ -86,6 +88,10 @@
  *   permission profile both read, so the condition is not restated here to go stale. This command
  *   *calls* that predicate, once, to decide whether the closing report owes the registry sentence
  *   ({@link reportNextSteps}); calling it is not restating it.
+ * - **It does not run the `--upgrade` flow.** {@link run} refuses the flags that cannot accompany
+ *   {@link UPGRADE_FLAG} and hands over before any repository is resolved, so nothing above about the
+ *   wiring run's plan, its refusals or its mutations outside the plan applies to that flow
+ *   (`upgrade/initUpgrade.ts`).
  */
 
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
@@ -142,6 +148,13 @@ import {
   FORCED_SIGNAL_ID,
   type DetectionResult,
 } from '../detect/signals.js';
+import { flowHostDir } from '../flowHost/layout.js';
+import {
+  FLOW_HOST_PROVISION_PROBE_ENV,
+  flowHostProvisioned,
+  flowHostProvisionInvocation,
+  provisionFlowHost,
+} from '../flowHost/provision.js';
 import {
   writeClaudeContext,
   CLAUDE_MD_PATH,
@@ -150,6 +163,7 @@ import {
   isUntouchedSkeletonText,
   type AnalyzeOffer,
 } from '../generators/claudeContext.js';
+import { writeFlowHostPackages } from '../generators/flowHostPackages.js';
 import { pointHooksPath, writeGitHooks } from '../generators/githooks.js';
 import {
   IN_FLIGHT_RUNS_NOTE,
@@ -221,6 +235,7 @@ import {
   WORKFLOW_TRIGGER_FILE,
 } from '../remote/githubActions.js';
 import { setUpRetrieval } from '../retrieval/setup.js';
+import { runInitUpgrade } from '../upgrade/initUpgrade.js';
 import type { CommandContext, Subcommand } from './registry.js';
 
 /** The command's one-line summary, in the usage block and at the head of its own `--help`. */
@@ -411,6 +426,21 @@ const NOTIFICATIONS_FLAG = '--notifications';
 /** The flag that supplies the endpoint the opt-in needs, and without which nothing is written. */
 const PUSH_URL_FLAG = '--push-url';
 
+/** The explicit form of the default build of the walker's environment; kept for scripts written before it was the default. */
+const PROVISION_PYTHON_FLAG = '--provision-python';
+
+/** The flag that skips that build — named in its option row and in the note the skipped run leaves. */
+const NO_PROVISION_PYTHON_FLAG = '--no-provision-python';
+
+/** The flag that brings the outer-loop scripts, the shipped Python packages and the permission profile up to this CLI. */
+const UPGRADE_FLAG = '--upgrade';
+
+/** What {@link UPGRADE_FLAG} may be given with: itself, and the one input its profile render takes. */
+const UPGRADE_COMPATIBLE_FLAG_KEYS: ReadonlySet<keyof InitFlags> = new Set<keyof InitFlags>([
+  'upgrade',
+  'referenceToolchainPath',
+]);
+
 /**
  * The subject of the first commit, which `init` makes in any repository it wires that has no commit
  * yet — the one this run created, and the one it found in that state.
@@ -473,6 +503,14 @@ export interface InitFlags extends HarnessConfigFlags, ProjectSettingsFlags {
    * by `resolvePushDestination` and kept as given; read only when the opt-in was taken.
    */
   readonly pushUrl?: string;
+  /**
+   * `--provision-python`. Asks for the build of the walker's Python environment after the plan, which
+   * {@link resolveProvisionPython} already defaults to, so it changes nothing. Two keys rather than one,
+   * with {@link InitFlags.noProvisionPython}, for {@link InitFlags.analyze}'s reason. Writes no config key.
+   */
+  readonly provisionPython?: boolean;
+  /** `--no-provision-python`. Skips that build, leaving a note naming the command. Writes no config key. */
+  readonly noProvisionPython?: boolean;
   /** `--preset`. Bypasses the detection table entirely; validated at parse time. */
   readonly preset?: string;
   /** `--app-dir`. The tree detection probes, when the repository nests its application. */
@@ -491,6 +529,11 @@ export interface InitFlags extends HarnessConfigFlags, ProjectSettingsFlags {
    * Writes no config key.
    */
   readonly upgradeWorkflows?: boolean;
+  /**
+   * `--upgrade`. Replace only the outer-loop scripts, the shipped Python packages and the permission profile with what this CLI
+   * ships, after a backup (`upgrade/initUpgrade.ts`). Writes no config key.
+   */
+  readonly upgrade?: boolean;
 }
 
 /**
@@ -535,8 +578,8 @@ type ValueFlagKey = Exclude<keyof InitFlags, SwitchFlagKey>;
  * (`generators/projectSettings.ts`) and `--reference-toolchain-path` reaches the permission profile
  * (`generators/permissionProfile.ts`), so both still take effect on a kept run; and the run-shape
  * rows — `--git-init`, `--reset-config`, the {@link ANALYZE_FLAG} / {@link NO_ANALYZE_FLAG} pair,
- * {@link NOTIFICATIONS_FLAG}, {@link PUSH_URL_FLAG}, {@link PLUGIN_ROOT_ENTRIES_FLAG} and
- * {@link UPGRADE_WORKFLOWS_FLAG} — are about
+ * {@link NOTIFICATIONS_FLAG}, {@link PUSH_URL_FLAG}, the {@link PROVISION_PYTHON_FLAG} /
+ * {@link NO_PROVISION_PYTHON_FLAG} pair, {@link PLUGIN_ROOT_ENTRIES_FLAG}, {@link UPGRADE_WORKFLOWS_FLAG} and {@link UPGRADE_FLAG} — are about
  * the shape of the run or about artifacts outside the repository's config.
  *
  * **Marked *and* detection-steering** is the sub-case, and {@link InitOption.steersDetection} is how
@@ -604,8 +647,11 @@ function initOptions<T extends readonly InitOption[]>(
  * answers the offer to analyze this repository — which decides the wording the generated
  * always-loaded file carries — then the pair that decides whether this account gets told when an
  * unattended run finishes, which is the one pair that writes nothing into the repository at all, then
- * the switch that adds this machine's plugin-root entries to a freshly generated profile, and last the
- * switch that re-renders the two remote-execution workflows at this CLI's version.
+ * the pair that decides whether the walker's Python environment is built after the plan, then the switch that adds
+ * this machine's plugin-root entries to a freshly generated profile, then the switch that re-renders
+ * the two remote-execution workflows at this CLI's version, and last the switch that upgrades the
+ * outer-loop scripts, the shipped Python packages and the permission profile instead of wiring
+ * anything.
  *
  * The first two sit together, and ahead of everything else, because they are the rows whose subject
  * is the **shape of the run** rather than a value in the generated file: one settles what `init` is
@@ -773,6 +819,18 @@ const INIT_OPTIONS: readonly InitOption[] = initOptions([
       'Where notifications are posted: an ntfy topic name, or the full http:// or https:// URL of any endpoint that accepts a POST (with --notifications)',
   },
   {
+    key: 'provisionPython',
+    flag: PROVISION_PYTHON_FLAG,
+    kind: 'switch',
+    summary: 'Build the Python environment the flow walker runs in with uv after wiring: the default; accepted for scripts written before it was',
+  },
+  {
+    key: 'noProvisionPython',
+    flag: NO_PROVISION_PYTHON_FLAG,
+    kind: 'switch',
+    summary: 'Skip building the Python environment the flow walker runs in, leaving a note naming the command that builds it',
+  },
+  {
     key: 'pluginRootEntries',
     flag: PLUGIN_ROOT_ENTRIES_FLAG,
     kind: 'switch',
@@ -784,6 +842,12 @@ const INIT_OPTIONS: readonly InitOption[] = initOptions([
     kind: 'switch',
     summary: "Re-render the two remote-execution workflows at this CLI's version, after a .bak, when devscene-run.yml was rendered for another",
   },
+  {
+    key: 'upgrade',
+    flag: UPGRADE_FLAG,
+    kind: 'switch',
+    summary: "Replace only the outer-loop scripts, the shipped Python packages and the permission profile with this CLI's, after a backup (takes --dry-run and --reference-toolchain-path)",
+  },
 ] as const);
 
 /**
@@ -793,6 +857,11 @@ const INIT_OPTIONS: readonly InitOption[] = initOptions([
  */
 function optionSpellings(option: InitOption): readonly string[] {
   return [option.flag, ...(option.aliases ?? [])];
+}
+
+/** A row's flag as a message names it: every accepted spelling, so a reader who typed an alias recognises it. */
+function namedOption(option: InitOption): string {
+  return option.aliases === undefined ? option.flag : `${option.flag} (or ${option.aliases.join(', ')})`;
 }
 
 /**
@@ -834,9 +903,8 @@ function discardedConfigFlagsWarning(flags: InitFlags): string | undefined {
     const configKey = option.configValue;
     if (configKey === undefined) continue;
     const steersDetection = option.steersDetection === true;
-    // The naming carries every accepted spelling, so a reader who typed an alias recognises the line
-    // as theirs; the re-invocation stays on the canonical one, because that half is pasted back.
-    const named = option.aliases === undefined ? option.flag : `${option.flag} (or ${option.aliases.join(', ')})`;
+    // The re-invocation stays on the canonical spelling, because that half is pasted back.
+    const named = namedOption(option);
     if (option.kind === 'switch') {
       if (flags[option.key] === true) {
         dropped.push({ flag: named, configKey, invocation: option.flag, steersDetection });
@@ -969,6 +1037,11 @@ function parseInitFlags(argv: readonly string[]): InitFlags {
       `init: ${ANALYZE_FLAG} and ${NO_ANALYZE_FLAG} answer the same question opposite ways and both were given: pass one, or neither — with neither, the documented default accepts the offer`,
     );
   }
+  if (switches.has('provisionPython') && switches.has('noProvisionPython')) {
+    throw new HarnessError(
+      `init: ${PROVISION_PYTHON_FLAG} and ${NO_PROVISION_PYTHON_FLAG} answer the same question opposite ways and both were given: pass one, or neither — with neither, the default builds the environment`,
+    );
+  }
   // Refused rather than warned, unlike `--qa-driver` without `--qa`: `docs.retrieval: true` without
   // `phases.docs` is a config-check error, so the generated config would fail the write guard.
   if (switches.has('docsRetrieval') && !switches.has('docs')) {
@@ -1002,8 +1075,11 @@ function parseInitFlags(argv: readonly string[]): InitFlags {
     docs: switches.has('docs'),
     docsRetrieval: switches.has('docsRetrieval'),
     parity: switches.has('parity'),
+    provisionPython: switches.has('provisionPython'),
+    noProvisionPython: switches.has('noProvisionPython'),
     pluginRootEntries: switches.has('pluginRootEntries'),
     upgradeWorkflows: switches.has('upgradeWorkflows'),
+    upgrade: switches.has('upgrade'),
   } as InitFlags;
 }
 
@@ -1060,6 +1136,24 @@ function selfAdoptionOf(repoRoot: string): boolean {
 
   throw new HarnessError(
     `refusing to wire the harness's own repository; run \`${INIT_VERB}\` in the repository you want to adopt it. ${repoRoot} carries ${MARKETPLACE_MANIFEST} and a ${CLI_MANIFEST} naming this package, so it is the harness itself rather than an adopting project: wiring it would generate a ${CONFIG_FILENAME}, a run-artifact tree and a permission profile into the tree that ships them. Run ${INIT_VERB} from the adopting repository, or point it at one with --cwd <path>. To wire this repository on purpose — the harness's own self-adoption, a contributor workflow \`docs/development.md\` documents — set ${SELF_ADOPT_ENV}=1`,
+  );
+}
+
+/**
+ * Refuse a {@link UPGRADE_FLAG} command line carrying anything the upgrade would not honour, naming
+ * every such flag. Silently ignoring one would report success for a request that was never carried out.
+ */
+function assertUpgradeFlagsUsable(flags: InitFlags, force: boolean): void {
+  const refused = INIT_OPTIONS.filter((option) => {
+    if (UPGRADE_COMPATIBLE_FLAG_KEYS.has(option.key)) return false;
+    return option.kind === 'switch' ? flags[option.key] === true : flags[option.key] !== undefined;
+  }).map(namedOption);
+  if (force) refused.unshift('--force');
+  if (refused.length === 0) return;
+
+  // Joined rather than `nameList`ed: its cap would leave a refused flag unnamed.
+  throw new HarnessError(
+    `init: ${UPGRADE_FLAG} cannot be combined with ${refused.join(', ')}: it replaces only the outer-loop scripts, the shipped Python packages and the permission profile, and the one init flag it takes is --reference-toolchain-path. Nothing was written; run it again without ${refused.length === 1 ? 'that flag' : 'those flags'}`,
   );
 }
 
@@ -1428,6 +1522,33 @@ function askRetrieval(ctx: CommandContext): boolean | undefined {
     },
     promptCtx,
   );
+}
+
+/**
+ * What skips the default build of the walker's Python environment, in the words the skipped run's note
+ * names it by — or `undefined` when nothing does: {@link NO_PROVISION_PYTHON_FLAG}, or
+ * {@link FLOW_HOST_PROVISION_PROBE_ENV} at `off`, which only the test suite sets.
+ *
+ * Read before `plan.apply`, for init's rule that no answer is taken after anything is written; the
+ * rest of the decision needs the plan's result and is {@link resolveProvisionPython}'s.
+ */
+function provisionPythonOptOut(flags: InitFlags): string | undefined {
+  if (flags.noProvisionPython === true) return `${NO_PROVISION_PYTHON_FLAG} was given`;
+  if (process.env[FLOW_HOST_PROVISION_PROBE_ENV] === 'off') return `${FLOW_HOST_PROVISION_PROBE_ENV} is off`;
+  return undefined;
+}
+
+/**
+ * Whether this run builds the walker's Python environment after the plan: never under an opt-out
+ * ({@link provisionPythonOptOut}); otherwise yes where the environment is not built, or where the plan
+ * changed a shipped package file it was built from; else no. Asks nothing, on a terminal or off one.
+ *
+ * The default is to build, network and all, because the walker is required: a repository left
+ * without its environment cannot plan.
+ */
+function resolveProvisionPython(optOut: string | undefined, provisioned: boolean, flowHostChanged: number): boolean {
+  if (optOut !== undefined) return false;
+  return !provisioned || flowHostChanged > 0;
 }
 
 /** What the analyze offer resolved to, and the pre-plan facts the closing pointer is worded against. */
@@ -2182,13 +2303,22 @@ function hiddenBackupsNote(options: {
  * configured `scriptsDir`; the state tree and the conventions stubs; the profile;
  * the committable project settings; the repository-root files; the account's own push-notification
  * settings, which are the one target outside the repository and are ordered here only because their
- * question is the last one the run puts; and the git hook last, with
+ * question is the last one a generator takes; and the git hook last, with
  * `core.hooksPath` pointed at it only **after** the plan has been applied and the hook it enables
  * therefore exists — and after that, in a repository that has no commit yet, the first commit
- * ({@link commitGeneratedFiles}).
+ * ({@link commitGeneratedFiles}). The provisioning opt-out is read after every generator and before the
+ * plan; the build it governs runs after `core.hooksPath` is pointed and before the commit.
  */
 async function run(ctx: CommandContext): Promise<number> {
   const flags = parseInitFlags(ctx.argv);
+
+  if (flags.upgrade === true) {
+    assertUpgradeFlagsUsable(flags, ctx.flags.force);
+    return runInitUpgrade(ctx, {
+      referenceToolchainPath: flags.referenceToolchainPath,
+      assertRepositoryAllowed: selfAdoptionOf,
+    });
+  }
 
   // Settled from the flags alone, and therefore ahead of the git gate: `resolveTargetRepository` may
   // create a repository, and a refusal raised after it would leave one behind in a directory this run
@@ -2445,6 +2575,16 @@ async function run(ctx: CommandContext): Promise<number> {
   const outerLoop = writeOuterLoopScripts({ repoRoot, config: effective, plan });
   notes.push(...outerLoop.notes);
 
+  // In the harness's own repository the packages live at the root and `<scriptsDir>/python/` links to
+  // them: writing through those links would overwrite the sources, and `--force` would back them up
+  // into `src/`.
+  const flowHostPackages = selfAdopt ? undefined : writeFlowHostPackages({ repoRoot, config: effective, plan });
+  if (flowHostPackages === undefined) {
+    notes.push(
+      `the shipped Python packages were not written into ${flowHostDir(effective)}/: this is the harness's own repository, where they live at the root and that directory links to them`,
+    );
+  }
+
   // After the scripts, which the workflows run, and before the permission profile. Enqueues nothing
   // unless `execution.target` is `github-actions` (`generators/githubWorkflows.ts`).
   const workflows = writeGithubWorkflows({ repoRoot, config: effective, plan, upgrade: flags.upgradeWorkflows === true });
@@ -2541,6 +2681,10 @@ async function run(ctx: CommandContext): Promise<number> {
   warnings.push(...hooks.warnings);
   notes.push(...hooks.notes);
 
+  // Before the plan for init's rule that no answer is taken after anything is written; the step it
+  // governs runs after the plan.
+  const provisionOptOut = provisionPythonOptOut(flags);
+
   ctx.report.step(ctx.flags.dryRun ? 'files (dry run — nothing is written)' : 'files');
   const applied = plan.apply({ repoRoot, report: ctx.report, dryRun: ctx.flags.dryRun, force: ctx.flags.force });
   const profileWrite = applied.find((result) => result.path === permissions.path);
@@ -2549,6 +2693,22 @@ async function run(ctx: CommandContext): Promise<number> {
   if (pluginRootNote !== undefined) notes.push(pluginRootNote);
   const hiddenBackups = hiddenBackupsNote({ repoRoot, stateDir: state.stateDir, applied, dryRun: ctx.flags.dryRun });
   if (hiddenBackups !== undefined) notes.push(hiddenBackups);
+
+  // Counted from what the plan did, not from what the generator enqueued: the generator enqueues every
+  // shipped file on every run, and a re-run under `create-if-absent` keeps them all.
+  const flowHostTargets = new Set(
+    (flowHostPackages?.written ?? []).map((file) => resolve(join(repoRoot, ...file.split('/')))),
+  );
+  const flowHostChanged = applied.filter(
+    (result) =>
+      flowHostTargets.has(resolve(result.path)) &&
+      (result.effect === 'created' || result.effect === 'backed-up-and-replaced'),
+  ).length;
+  if (flowHostChanged > 0) {
+    notes.push(
+      `${flowHostChanged} files of the shipped Python packages ${ctx.flags.dryRun ? 'would be' : 'were'} written into ${flowHostDir(effective)}/, copied verbatim from this CLI: a re-run leaves an edited copy as it is, --force replaces it after copying the current file to <name>.bak, and init --upgrade brings each file to this CLI's bytes after a backup`,
+    );
+  }
 
   // After the plan, deliberately: this is the one git-configuration write, and pointing
   // `core.hooksPath` at a directory whose hook has not landed yet would enable nothing.
@@ -2565,7 +2725,28 @@ async function run(ctx: CommandContext): Promise<number> {
     notes.push(...retrieval.notes);
   }
 
-  // The second post-plan step, and after the plan for a reason of its own: the managed `.gitignore`
+  // Unlike the retrieval step, this one **does** write into the repository: `uv` creates
+  // `<scriptsDir>/python/.venv` in the spawned child. After the plan because the environment is built
+  // from the packages the plan has just written, a sync takes the network and minutes, and it is no
+  // plan artifact — so it is never enqueued and never runs under `--dry-run`. `cli/src/core/writer.ts`'s
+  // header records the exception. Before the commit, which a failure here must not stop.
+  const envProvisioned = flowHostProvisioned(repoRoot, effective);
+  if (resolveProvisionPython(provisionOptOut, envProvisioned, flowHostChanged)) {
+    ctx.report.step('flow walker environment');
+    const provisioned = provisionFlowHost({ repoRoot, config: effective, dryRun: ctx.flags.dryRun });
+    warnings.push(...provisioned.warnings);
+    notes.push(...provisioned.notes);
+  } else if (provisionOptOut !== undefined && !envProvisioned) {
+    notes.push(
+      `the Python environment the flow walker runs in was not built, because ${provisionOptOut}: run ${flowHostProvisionInvocation(effective)} outside the sandbox to build it with uv`,
+    );
+  } else if (provisionOptOut !== undefined && flowHostChanged > 0) {
+    notes.push(
+      `the Python environment the flow walker runs in was built from the previous packages and was not rebuilt, because ${provisionOptOut}: rebuild it by running ${flowHostProvisionInvocation(effective)} outside the sandbox`,
+    );
+  }
+
+  // The last post-plan step, and after the plan for a reason of its own: the managed `.gitignore`
   // block that decides what `git add -A` may stage arrived with the plan. Before the summary, so the
   // commit is reported inside the run's action log rather than after its closing pointer.
   warnings.push(...commitGeneratedFiles(ctx, target));
@@ -2955,7 +3136,7 @@ function analyzeRecordSentence(
  * unresolved arm can offer it only after one of the two routes it names is taken.
  *
  * **Step 2 carries the settled vocabulary** (`docs/analyze.md` §1): the no-argument form, and
- * `<target>` over the configured layer names *plus* {@link RESERVED_ANALYZE_TARGETS} — the three
+ * `<target>` over the configured layer names *plus* {@link RESERVED_ANALYZE_TARGETS} — the four
  * targets that name no layer. It states what the command does in the settled terms, including the
  * one thing it does not do: a layer-profile revision is proposed and reaches
  * `devscene.config.json` only through {@link CONFIG_SET_LAYERS_COMMAND} after an explicit yes

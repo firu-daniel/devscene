@@ -112,9 +112,9 @@ test('with no lane, every refusal reaches both files and a re-run changes no byt
   const f = await adopted(t);
   await recordAll(f);
   const doc = f.doc();
-  assert.equal(doc.schema, 1);
-  assert.equal('gate_logs' in doc, false);
-  assert.equal('rounds' in doc, false);
+  assert.equal(doc.schema, 4);
+  assert.deepEqual(doc.gate_logs, []);
+  assert.deepEqual(doc.rounds, []);
   const refusals = doc.sessions.flatMap((s) => {
     assert.ok(Array.isArray(s.network_refusals), s.session_id);
     return s.network_refusals;
@@ -155,7 +155,7 @@ test('a finished round log is scanned, attributed, redacted, and recorded once',
   f.put(LABEL, 'verdict', ['pass']);
   await recordAll(f);
   const doc = f.doc();
-  assert.equal(doc.schema, 3);
+  assert.equal(doc.schema, 4);
   assert.deepEqual(doc.rounds, []);
   assert.deepEqual(doc.gate_logs, [
     {
@@ -184,13 +184,13 @@ test('a running round log is not scanned until a later call finds its verdict', 
   f.put(LABEL, 'running', []);
   f.put(LABEL, 'log', [CONNECT]);
   await recordAll(f);
-  assert.equal('gate_logs' in f.doc(), false);
-  assert.equal(f.doc().schema, 1);
+  assert.deepEqual(f.doc().gate_logs, []);
+  assert.equal(f.doc().schema, 4);
 
   f.put(LABEL, 'verdict', ['pass']);
   await expectLine(f, `recorded 0 session(s) for ${BRANCH}`);
   const doc = f.doc();
-  assert.equal(doc.schema, 3);
+  assert.equal(doc.schema, 4);
   assert.deepEqual(doc.gate_logs.map((e) => e.log_id), [LABEL]);
 });
 
@@ -218,8 +218,8 @@ test('a symlinked log is not followed and the sessions are still written', async
   f.put(LABEL, 'verdict', ['pass']);
   await recordAll(f);
   const doc = f.doc();
-  assert.equal(doc.schema, 1);
-  assert.equal('gate_logs' in doc, false);
+  assert.equal(doc.schema, 4);
+  assert.deepEqual(doc.gate_logs, []);
   assert.ok(doc.sessions.length > 0);
 });
 
@@ -236,13 +236,13 @@ test('an unreadable round log is one stderr line, and the sessions are still wri
   assert.equal(r.status, 0, output(r));
   assert.ok(r.stderr.includes(`run-analytics: gate logs not read: cannot copy '${LABEL}.log' into the working copy`), output(r));
   const doc = f.doc();
-  assert.equal(doc.schema, 1);
-  assert.equal('gate_logs' in doc, false);
+  assert.equal(doc.schema, 4);
+  assert.deepEqual(doc.gate_logs, []);
   assert.ok(doc.sessions.length > 0);
   assert.equal(r.stdout, `recorded ${doc.sessions.length} session(s) for ${BRANCH}\n`, output(r));
 });
 
-test('round records and a round log together give schema 3 with both arrays', async (t) => {
+test('round records and a round log together give schema 4 with both arrays', async (t) => {
   const f = await adopted(t);
   f.put(LABEL, 'verdict', ['pass']);
   f.put(LABEL, 'gates.tsv', GATES);
@@ -250,7 +250,7 @@ test('round records and a round log together give schema 3 with both arrays', as
   f.put(LABEL, 'log', ['# Subtest: test/a.test.mjs', CONNECT]);
   await recordAll(f, 1);
   const doc = f.doc();
-  assert.equal(doc.schema, 3);
+  assert.equal(doc.schema, 4);
   assert.deepEqual(doc.rounds.map((r) => r.round_id), [LABEL]);
   assert.deepEqual(doc.gate_logs.map((e) => e.log_id), [LABEL]);
   assert.equal(doc.gate_logs[0].matches[0].test_file, 'test/a.test.mjs');

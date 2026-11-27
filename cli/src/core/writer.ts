@@ -9,9 +9,9 @@
  * file it is writing out of the table below; it does not invent one, and it never calls `fs`
  * itself.
  *
- * **Three writes are deliberately outside this engine.** The first is machine state rather than an
+ * **Four writes are deliberately outside this engine.** The first is machine state rather than an
  * adopter's file: the repository registry `machine/registry.ts` owns, which `daemon install`
- * rewrites in place. Its header states why none of the four policies below fits it. The
+ * rewrites in place. Its header states why none of the policies below fits it. The
  * docs-retrieval runtime and model cache under `machineCacheDir()/retrieval/` are machine state of
  * the same class, outside the repository, with both paths owned by `cli/src/retrieval/runtime.ts`:
  * the runtime installation is created by `cli/src/retrieval/setup.ts` → `setUpRuntime` through
@@ -29,33 +29,48 @@
  * variable `cli/src/retrieval/queryLog.ts` owns (`RETRIEVAL_LOG_ENV`) names, so it may land inside or
  * outside the target repository and **no policy in the table below applies to it**.
  * `cli/src/retrieval/queryLog.ts` is the **one** module that makes that write, nothing is opened or
- * created when the variable is unset, and it is no `init` artifact.
- * `.claude/context/conventions.md` → `### Where a new responsibility goes` records neither the index
- * nor the query log; both are raised for a supervised amendment.
+ * created when the variable is unset, and it is no `init` artifact. The fourth is the walker's
+ * environment `<scriptsDir>/python/.venv`, written into the adopting repository by `uv`, in the
+ * `flow-host-provision.sh` child that `cli/src/flowHost/provision.ts` → `provisionFlowHost` spawns:
+ * after the plan and never under `--dry-run`, at the one path `cli/src/flowHost/layout.ts` →
+ * `flowHostEnvDir` gives. `cli/src/flowHost/provision.ts` is the **one** module of this package that
+ * causes that write; it is no `init` artifact and has no re-run policy.
+ * `.claude/context/conventions.md` → `### Where a new responsibility goes` records none of the index,
+ * the query log or the walker's environment; each is raised for a supervised amendment, as a
+ * `stale-rule` entry in the story index, never an edit here.
  *
  * ## The re-run contract, per artifact
  *
  * | Artifact | Policy | Why |
  * |---|---|---|
  * | `devscene.config.json` | `create-if-absent`, **not upgraded by `--force`** | The adopter edits it; a re-run must never rewrite it, and neither may `--force`: config is read-if-present, always. `init --reset-config` is the one path that rebuilds it, after a `.bak`. |
- * | The permission profile (`.claude/settings.autonomous.json`) | `create-if-absent` | Hand-tuned after generation; an overwrite silently drops allow entries. |
+ * | The permission profile (`.claude/settings.autonomous.json`) | `create-if-absent` for `init`; `replace-if-changed` under `init --upgrade` | The file is generated, and an adopter's additions live in `.claude/settings.autonomous.local.json`. |
+ * | `.claude/settings.autonomous.local.json` | None: `init` never writes it | It holds the adopter's own additions, so no re-run may touch it. |
  * | `.claude/CLAUDE.md` | `create-if-absent` | `/devscene:analyze` fills it; a re-run must not undo that. It carries neither the `<!-- devscene:unfilled -->` marker nor the `**What belongs here**` block, so its setup state is the `<!-- devscene:setup-pending -->` banner and `doctor`'s `setup-analysis` check, not the two-part test below. |
  * | `.claude/devscene-task-offer.md` | `create-if-absent` | Nothing fills it — the always-loaded file's `## Where a change request runs` fence points at it by name, so a re-run must keep the adopter's edited copy and `--force` after a `.bak` is the upgrade path. |
  * | `.claude/context/*.md` stubs | `create-if-absent` | `/devscene:analyze` fills them; a re-run must not undo that. Filled is checkable, by the two-part test `init`, `doctor` and the command all apply: a stub still carrying its `<!-- devscene:unfilled -->` marker **and** its `**What belongs here**` block is an untouched skeleton, and anything else was written — by the command or by hand. |
+ * | `.claude/review-sweep.md` | `create-if-absent` | `/devscene:analyze` fills it and the adopter maintains its rows; a re-run must not undo either. Filled is the same two-part test as a conventions stub's, and `--force` keeps it on the same per-request test as a stub's (below). |
  * | `.claude/settings.json`, `.mcp.json` | `merge-json` (missing keys only) | Shared with other tooling; the adopter's own entries survive. |
  * | `.gitignore` | `merge-lines` (a managed block, lines not already present) | Every repo already has one. |
  * | The `stateDir` tree and its per-directory READMEs | `ensure-dir` + `create-if-absent` | Creating what is missing is the whole operation; an adopter may have rewritten a contract sentence. |
  * | The ledgers `lessons.md` / `improvement_suggestions.md` | `create-if-absent`, **not upgraded by `--force`** | Ledgers accumulate and nothing can re-derive one; the engine's `.bak` is single-generation, so `--force` may not touch them. |
  * | `.github/workflows/devscene-run.yml` | `create-if-absent` | Written only when `execution.target` is `github-actions`; the adopter tunes the timeouts and the runner. `init --upgrade-workflows` is the upgrade path: it replaces the file after a `.bak`, only when its rendered CLI-version pin differs from this CLI's, and re-pins it. `--force` after a `.bak` is the blunt alternative. |
  * | `.github/workflows/devscene-resume.yml` | `create-if-absent` | Written only when `execution.target` is `github-actions`; the adopter tunes the cron. `init --upgrade-workflows` is the upgrade path: after a `.bak`, only when `devscene-run.yml`'s rendered pin differs, carrying the file's `- cron:` lines into the re-render. `--force` after a `.bak` is the blunt alternative. |
- * | `.github/workflows/devscene-trigger.yml` | `create-if-absent` | Written only when `forge` is `github` and `execution.target` is `github-actions`; no pin, so `init --upgrade-workflows` leaves it; `--force` after a `.bak` is its upgrade path, as for the scripts it calls. |
- * | `.github/workflows/devscene-control.yml` | `create-if-absent` | Written only when `forge` is `github` and `execution.target` is `github-actions`; no pin, so `init --upgrade-workflows` does not re-render it. `--force` after a `.bak` is its upgrade path, as for the scripts it calls. |
+ * | `.github/workflows/devscene-trigger.yml` | `create-if-absent` | Written only when `forge` is `github` and `execution.target` is `github-actions`; no pin, so `init --upgrade-workflows` leaves it; `--force` after a `.bak` is its upgrade path. |
+ * | `.github/workflows/devscene-control.yml` | `create-if-absent` | Written only when `forge` is `github` and `execution.target` is `github-actions`; no pin, so `init --upgrade-workflows` does not re-render it. `--force` after a `.bak` is its upgrade path. |
+ * | The outer-loop scripts and their `lib/` files | `create-if-absent` for `init`; `replace-if-changed` under `init --upgrade` | Copied from the package, so a re-run keeps a patched copy and `--upgrade` is how a shipped fix arrives, with the old copy backed up. |
+ * | The shipped Python packages under `<scriptsDir>/python/` | `create-if-absent` for `init`; `replace-if-changed` under `init --upgrade` | Copied from the package's `dist/python/`, staged at build from the repository root; `init` skips them in the harness's own self-adopted repository. |
  * | Git hook `pre-push`, wrapper scripts | `create-if-absent` | Adopter may have edited the guard. The hook alone is also replaced, after a `.bak`, by the one run that rebuilt the config it is rendered from (`init --reset-config`) — and only where its rendered `case` label no longer matches the set that config resolves, never where the label cannot be read. |
  *
  * `--force` upgrades **`create-if-absent` only** to overwrite-after-backup, and only where the
  * request has not fixed its own answer with {@link WriteRequest.forceOverride}. It never applies
- * to `merge-json` or `merge-lines` (those are already non-destructive) and never deletes a
- * directory.
+ * to `merge-json` or `merge-lines` (those are already non-destructive) or to `replace-if-changed`
+ * (which replaces on its own test) and never deletes a directory.
+ *
+ * `replace-if-changed` creates an absent target, keeps one whose bytes and permission bits match,
+ * and otherwise renames a complete temporary file over it, so a reader sees the old file or the new
+ * one and a process holding the old file open keeps reading it. Changed bytes are first copied to
+ * `<WriteContext.backupDir>/<repo-relative path>`; a mode-only difference takes no backup.
  *
  * That override is what the two `not upgraded by --force` rows above are written against, and both
  * rows are the contract this engine now supports rather than a generator's private discipline. Two
@@ -63,7 +78,7 @@
  * `devscene.config.json` — `'never'` on an ordinary `init`, `'always'` on `init --reset-config` —
  * and `generators/stateDir.ts` for the two ledgers, `'never'` and nothing else, because no command
  * rebuilds a ledger. **Four more** read the tree and answer **per request**: `generators/claudeContext.ts`
- * sets `'never'` on a conventions stub that is already a skeleton whose `.bak` holds a filled
+ * sets `'never'` on a conventions stub, or the review-sweep document, that is already a skeleton whose `.bak` holds a filled
  * document, because that one write would replace the only surviving copy of the analysis with a
  * skeleton — and on `.claude/CLAUDE.md` when its bytes already are the text that run renders, because
  * that write would put nothing in the `.bak` and destroy what is in the one already there;
@@ -86,31 +101,45 @@
  * ## Two structural guarantees, both grep-checkable
  *
  * 1. **Every mutating filesystem call in this module is inside {@link commitWrite}** — the one
- *    commit boundary — plus {@link probeWritable}, which is `doctor`'s writability probe and is
- *    not part of a plan. `--dry-run` computes every outcome and skips that boundary, so a dry
+ *    commit boundary — or in {@link replaceAtomically}, which only it calls, plus
+ *    {@link probeWritable}, which is `doctor`'s writability probe and is not part of a plan. `--dry-run` computes every outcome and skips that boundary, so a dry
  *    run cannot leak a write no matter what a generator enqueued.
  * 2. **Nothing here shells out** — no child-process import at all, so the never-shell-out-a-
  *    recursive-removal rule stated in `cli.ts`'s header and in `cli/README.md` cannot be
- *    breached from this module. The single removal the engine performs is an in-process
- *    `rmSync` on one file, called without `recursive`, so it cannot remove a directory even if
- *    it were aimed at one.
+ *    breached from this module. The engine's two removals, {@link probeWritable}'s probe file and
+ *    {@link replaceAtomically}'s abandoned temporary file, are in-process `rmSync` calls on one
+ *    file, without `recursive`, so neither can remove a directory even if aimed at one.
  */
 
-import { chmodSync, copyFileSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import {
+  chmodSync,
+  closeSync,
+  constants,
+  copyFileSync,
+  fchmodSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import { HarnessError, internal } from './errors.js';
 import { formatJson, mergeMissing, readJsonFile, type JsonObject } from './json.js';
 import { nameList } from './nameList.js';
-import { insideRepo } from './paths.js';
+import { insideRepo, lstatOrUndefined } from './paths.js';
 import type { ActionKind, Reporter } from './report.js';
 
 /**
- * How a request's target is treated when it already exists. The four values are the whole
+ * How a request's target is treated when it already exists. The five values are the whole
  * vocabulary — a generator that wants different behaviour is asking for a different re-run
  * contract, which is a decision for the table above and not for the call site.
  */
-export type WritePolicy = 'create-if-absent' | 'merge-json' | 'merge-lines' | 'ensure-dir';
+export type WritePolicy = 'create-if-absent' | 'merge-json' | 'merge-lines' | 'ensure-dir' | 'replace-if-changed';
 
 /** One enqueued write. Built by a generator, applied by {@link WritePlan.apply}. */
 export interface WriteRequest {
@@ -138,13 +167,16 @@ export interface WriteRequest {
    * found it. It is a `chmod` of its own in both cases rather than an argument to the creation,
    * because that argument is masked by the process umask and does nothing at all for a target that
    * already exists.
+   *
+   * For `replace-if-changed` it is also part of the comparison, and when absent the existing file's
+   * permission bits are kept.
    */
   readonly mode?: number;
   /**
    * This request's overwrite decision, fixed whatever the run's `--force` says.
    *
    * A narrow exception, and deliberately so: it applies to `create-if-absent` alone, because the
-   * other three policies never consult `--force` at all. `'never'` keeps an existing target even
+   * other four policies never consult `--force` at all. `'never'` keeps an existing target even
    * under `--force`; `'always'` copies an existing target to `<path>.bak` and replaces it even
    * without `--force`; absent — the normal case — leaves the run's flag deciding, as it always
    * has. Neither value changes what happens when the target is absent: that is a `created`
@@ -175,16 +207,17 @@ export interface WriteRequest {
    * that request sets nothing and the hook is kept, rather than spending the one reprieve on the
    * only copy of it. Every one of them stays `create-if-absent` above.
    *
-   * The alternative — a fifth {@link WritePolicy} value — was not taken because a policy is a
+   * The alternative — a further {@link WritePolicy} value — was not taken because a policy is a
    * re-run contract shared by a class of artifacts, and this is a short, enumerated exception to
-   * one flag. A fifth value would have to be handled in every `switch` over the type and described
+   * one flag. A further value would have to be handled in every `switch` over the type and described
    * in both documentation tables, and every generator would have to choose between two policies
    * that differ only in how they read a flag most of them never set.
    */
   readonly forceOverride?: 'never' | 'always';
   /**
    * Permit a target outside the repository root. Reserved for the machine-local paths that are
-   * machine-local by definition rather than by this CLI's choice: the daemon unit — a launchd
+   * machine-local by definition rather than by this CLI's choice, and never valid on
+   * `replace-if-changed`, whose backup path is repo-relative: the daemon unit — a launchd
    * `LaunchAgents` plist, a systemd user unit — and the account's own harness configuration
    * directory with the push-notification settings file in it, whose credential belongs to a person
    * and a machine rather than to a checkout. Every other write **on a plan** is confined to the
@@ -194,7 +227,12 @@ export interface WriteRequest {
   readonly allowOutsideRepo?: boolean;
 }
 
-/** What a request did to its target, or under `--dry-run` what it would have done. */
+/**
+ * What a request did to its target, or under `--dry-run` what it would have done.
+ *
+ * `backed-up-and-replaced` with no {@link WriteResult.backupPath} is `replace-if-changed` correcting
+ * permission bits alone: the file was replaced, and its bytes needed no backup.
+ */
 export type WriteEffect = 'created' | 'merged' | 'kept' | 'ensured' | 'backed-up-and-replaced';
 
 /**
@@ -219,7 +257,7 @@ export interface WriteResult {
   readonly effect: WriteEffect;
   /** `merge-json`: the dotted key paths added. `merge-lines`: the lines added. */
   readonly added?: readonly string[];
-  /** `backed-up-and-replaced`: where the previous content was copied first. */
+  /** `backed-up-and-replaced`: where the previous content was copied first, when it was. */
   readonly backupPath?: string;
 }
 
@@ -235,7 +273,22 @@ export interface WriteContext {
    * request that fixes its own answer with {@link WriteRequest.forceOverride}.
    */
   readonly force: boolean;
+  /**
+   * Absolute directory `replace-if-changed` copies a changed file under, at its repo-relative path.
+   * Created only when the first backup is written. A plan that owes a backup without one is a fault
+   * in its caller.
+   */
+  readonly backupDir?: string;
 }
+
+/** The bits of `st_mode` that `replace-if-changed` compares and sets. */
+const PERMISSION_BITS = 0o777;
+
+/** The mode of a file `replace-if-changed` creates for a request that names none. */
+const DEFAULT_REPLACEMENT_MODE = 0o644;
+
+/** Backup directories hold copies of adopter files, so only the owner may enter them. */
+const BACKUP_DIR_MODE = 0o700;
 
 /** Effect → the action kind recorded on a real run. */
 const EFFECT_ACTION: Readonly<Record<WriteEffect, ActionKind>> = {
@@ -271,16 +324,16 @@ interface PlannedWrite {
   readonly text?: string;
   readonly backupPath?: string;
   readonly added?: readonly string[];
+  /** `replace-if-changed` only: how {@link commitWrite} installs `text`. */
+  readonly replacement?: Replacement;
 }
 
-/** `lstat` without following the link, or `undefined` when nothing is at `path`. */
-function lstatOrUndefined(path: string): ReturnType<typeof lstatSync> | undefined {
-  try {
-    return lstatSync(path);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException | null)?.code === 'ENOENT') return undefined;
-    throw error;
-  }
+/** What an atomic replacement needs beyond the target and its text. */
+interface Replacement {
+  /** The permission bits the installed file carries. */
+  readonly mode: number;
+  /** The root of {@link PlannedWrite.backupPath}, present exactly when a backup is due. */
+  readonly backupDir?: string;
 }
 
 /** Read a text file, or `undefined` when it does not exist. */
@@ -319,6 +372,8 @@ function contentAsObject(request: ResolvedRequest): JsonObject {
  *   write through it to a location none of the checks above ever saw. The `<path>.bak` sibling
  *   gets the same refusal in {@link planWrite}, where the backup is decided;
  * - the request carries content the policy can use;
+ * - a `replace-if-changed` target is inside the repository, because its backup path is the target's
+ *   repo-relative path and one outside would climb out of the backup directory;
  * - no two requests aim at one path, which would make the second report `kept` against the
  *   first's fresh output. Repeated `ensure-dir` on one directory is the exception and is
  *   deduplicated, since more than one generator legitimately ensures the same tree.
@@ -353,6 +408,9 @@ function resolveRequests(requests: readonly WriteRequest[], ctx: WriteContext): 
       if (request.content !== undefined) throw internal(`${request.label}: ensure-dir takes no content`);
     } else if (request.content === undefined) {
       throw internal(`${request.label}: ${request.policy} needs content`);
+    }
+    if (request.policy === 'replace-if-changed' && request.allowOutsideRepo === true) {
+      throw internal(`${request.label}: replace-if-changed cannot target a path outside the repository`);
     }
     if (request.policy === 'merge-json') contentAsObject({ ...request, path });
     if (request.policy === 'merge-lines') {
@@ -423,6 +481,61 @@ function planWrite(request: ResolvedRequest, ctx: WriteContext): PlannedWrite {
 
     case 'merge-lines':
       return planMergeLines(request);
+
+    case 'replace-if-changed':
+      return planReplaceIfChanged(request, ctx);
+  }
+}
+
+/**
+ * `replace-if-changed`: compare the target's bytes and permission bits with what the request wants.
+ *
+ * The comparison is on buffers because decoding would map distinct invalid UTF-8 sequences to one
+ * replacement character, and report a changed file as current. `--force` is not read.
+ */
+function planReplaceIfChanged(request: ResolvedRequest, ctx: WriteContext): PlannedWrite {
+  const text = contentAsText(request);
+  const stats = lstatOrUndefined(request.path);
+  if (stats === undefined) {
+    const mode = (request.mode ?? DEFAULT_REPLACEMENT_MODE) & PERMISSION_BITS;
+    return { request, effect: 'created', text, replacement: { mode } };
+  }
+
+  const currentMode = Number(stats.mode) & PERMISSION_BITS;
+  const mode = (request.mode ?? currentMode) & PERMISSION_BITS;
+  if (readFileSync(request.path).equals(Buffer.from(text, 'utf8'))) {
+    if (mode === currentMode) return { request, effect: 'kept' };
+    return { request, effect: 'backed-up-and-replaced', text, replacement: { mode } };
+  }
+
+  const { backupDir } = ctx;
+  if (backupDir === undefined || !isAbsolute(backupDir)) {
+    throw internal(`${request.label}: replace-if-changed owes a backup and has no absolute backupDir`);
+  }
+  const backupPath = join(backupDir, relative(ctx.repoRoot, request.path));
+  assertBackupPathClear(backupDir, backupPath, request.label);
+  return { request, effect: 'backed-up-and-replaced', text, backupPath, replacement: { mode, backupDir } };
+}
+
+/**
+ * Refuse a backup path that a copy could not land on as a new file: a symlink at the backup
+ * directory or at any segment beneath it, a non-directory where a directory is needed, or anything
+ * already at the path itself. Ancestors of the backup directory are not checked, because the system
+ * temporary directory is itself reached through a symlink on macOS.
+ *
+ * Reads only. It runs while planning, so a refusal costs nothing already written, and again just
+ * before the copy, because an earlier request in the plan may have changed the tree.
+ */
+function assertBackupPathClear(backupDir: string, backupPath: string, label: string): void {
+  let current = backupDir;
+  const segments = relative(backupDir, backupPath).split(sep);
+  for (let index = 0; index <= segments.length; index += 1) {
+    const stats = lstatOrUndefined(current);
+    if (stats === undefined) return;
+    if (stats.isSymbolicLink()) throw new HarnessError(`${label}: refusing to write through a symlink: ${current}`);
+    if (index === segments.length) throw new HarnessError(`${label}: a backup already exists: ${current}`);
+    if (!stats.isDirectory()) throw new HarnessError(`${label}: ${current} exists and is not a directory`);
+    current = join(current, segments[index] as string);
   }
 }
 
@@ -524,8 +637,8 @@ function insertIntoBlock(
  * **The commit boundary — the only place in this module that changes the filesystem**, apart
  * from `doctor`'s {@link probeWritable}. `--dry-run` is implemented by not calling it.
  *
- * `mkdirSync` is `recursive` so a generator never has to create parent directories itself;
- * nothing here removes anything.
+ * `mkdirSync` is `recursive` so a generator never has to create parent directories itself. The
+ * only removal on this path is {@link replaceAtomically}'s abandoned temporary file.
  *
  * An `ensure-dir` request carrying a `mode` gets an explicit `chmodSync` after the creation, the
  * same two steps the shell half's `hr_lane_dir` consumers take (`mkdir -p` then `chmod 700`) and
@@ -543,13 +656,65 @@ function commitWrite(planned: PlannedWrite): void {
   }
   if (planned.effect === 'kept') return;
 
-  if (planned.backupPath !== undefined) copyFileSync(request.path, planned.backupPath);
-
   const text = planned.text;
   if (text === undefined) throw internal(`${request.label}: ${planned.effect} with nothing to write`);
   mkdirSync(dirname(request.path), { recursive: true });
+
+  if (planned.replacement !== undefined) {
+    replaceAtomically(planned, text, planned.replacement);
+    return;
+  }
+
+  if (planned.backupPath !== undefined) copyFileSync(request.path, planned.backupPath);
   writeFileSync(request.path, text, 'utf8');
   if (request.mode !== undefined) chmodSync(request.path, request.mode);
+}
+
+/**
+ * Install `text` at the target by renaming a complete temporary file over it. Called only by
+ * {@link commitWrite}.
+ *
+ * The temporary file sits in the target's directory because `rename` is atomic only within one
+ * filesystem. It is finished before the backup is taken, so a failed write creates no backup
+ * directory, and the backup lands before the rename, so the old bytes always exist somewhere.
+ */
+function replaceAtomically(planned: PlannedWrite, text: string, replacement: Replacement): void {
+  const { request, backupPath } = planned;
+  const temporary = join(
+    dirname(request.path),
+    `.${basename(request.path)}.${randomBytes(8).toString('hex')}.tmp`,
+  );
+  const descriptor = openSync(temporary, 'wx', 0o600);
+  let open = true;
+  try {
+    writeFileSync(descriptor, text, 'utf8');
+    fchmodSync(descriptor, replacement.mode);
+    fsyncSync(descriptor);
+    open = false;
+    closeSync(descriptor);
+
+    if (backupPath !== undefined) {
+      if (replacement.backupDir === undefined) throw internal(`${request.label}: a backup with no backupDir`);
+      assertBackupPathClear(replacement.backupDir, backupPath, request.label);
+      // The umask can only narrow this mode, so it never widens who can read the backup.
+      mkdirSync(dirname(backupPath), { recursive: true, mode: BACKUP_DIR_MODE });
+      copyFileSync(request.path, backupPath, constants.COPYFILE_EXCL);
+    }
+    renameSync(temporary, request.path);
+  } catch (error) {
+    // Cleanup must not replace the failure the caller needs to see.
+    try {
+      if (open) closeSync(descriptor);
+    } catch {
+      // The descriptor is already unusable; the removal below still applies.
+    }
+    try {
+      rmSync(temporary, { force: true });
+    } catch {
+      // The original error is the one worth reporting.
+    }
+    throw error;
+  }
 }
 
 /** `2 keys added: permissions.allow, hooks` — the qualifier on a `merged` action line. */
@@ -562,6 +727,9 @@ function mergedDetail(policy: WritePolicy, added: readonly string[]): string {
 function actionDetail(planned: PlannedWrite): string | undefined {
   if (planned.effect === 'merged' && planned.added !== undefined) {
     return mergedDetail(planned.request.policy, planned.added);
+  }
+  if (planned.request.policy === 'replace-if-changed' && planned.effect === 'backed-up-and-replaced') {
+    return planned.backupPath === undefined ? 'permission bits only' : `backed up to ${planned.backupPath}`;
   }
   if (planned.backupPath !== undefined) return `backed up to ${planned.backupPath.split('/').pop() as string}`;
   return undefined;
@@ -652,9 +820,8 @@ export function displayPath(repoRoot: string, path: string): string {
  * from a `stat`. It is deliberately outside {@link WritePlan} — it is a check, not a generated
  * artifact — and it never runs as part of an `init`.
  *
- * **This is the engine's one removal.** `rmSync` is called on a single file with `force` and
- * **without** `recursive`, so it cannot remove a directory: aimed at one, it fails rather than
- * emptying it. It is in-process rather than shelled out, per guarantee 2 in the module header.
+ * `rmSync` is called on a single file with `force` and **without** `recursive`, so it cannot
+ * remove a directory: aimed at one, it fails rather than emptying it. It is in-process rather than shelled out, per guarantee 2 in the module header.
  */
 export function probeWritable(directory: string): string | undefined {
   const probe = join(directory, `write-probe-${process.pid}.tmp`);
