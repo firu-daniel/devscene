@@ -6,7 +6,7 @@
 - `tests_count` and `reason` from `ui_writer`.
 
 **Depends on:** Task 17. `host/run_exits.py` reads those fields from `sessions.return_document(node)` and exports, as module-level `Final`s:
-- nodes `PLAN_WRITER_NODE` (`"plan_writer"`) and `UI_WRITER_NODE` (`"ui_writer"`), and `QUESTION_NODES = (PLAN_WRITER_NODE, UI_WRITER_NODE)`;
+- nodes `PLAN_WRITER_NODE` and `UI_WRITER_NODE` — re-exports of `PLAN_WRITER_ENTRY` and `UI_WRITER_ENTRY`, which `host/run_exits.py` imports from their owner `devscene_flow_host.host.planning_entry` (no node-id literal is written in `run_exits.py`) — and `QUESTION_NODES = (PLAN_WRITER_NODE, UI_WRITER_NODE)`;
 - fields `QUESTIONS_FIELD`, `TASKS_COUNT_FIELD`, `TESTS_COUNT_FIELD` and `REASON_FIELD`;
 - `RETURN_FIELD_READS: tuple[tuple[str, str], ...]`, every `(node, field)` pair the module reads: `(PLAN_WRITER_NODE, QUESTIONS_FIELD)`, `(UI_WRITER_NODE, QUESTIONS_FIELD)`, `(PLAN_WRITER_NODE, TASKS_COUNT_FIELD)`, `(UI_WRITER_NODE, TESTS_COUNT_FIELD)`, `(UI_WRITER_NODE, REASON_FIELD)`.
 
