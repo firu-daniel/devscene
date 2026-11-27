@@ -1,4 +1,5 @@
-"""The rule this file exists to enforce: `commit_artifact` runs the commit wrapper as one fixed
+"""The rule this file exists to enforce: `commit_wrapper_path` resolves the main checkout's
+`<scriptsDir>/commit-on-branch.sh`; `commit_artifact` runs the commit wrapper as one fixed
 argument vector under the worktree, maps exit `0` to `True`, exit `3` to `False` and any other
 exit to a `CommitPointError` naming the last stdout `error: ` line's cause or `no message`, and
 leaves no child behind when cancelled; `flip_ledger_entry` flips only an open entry's first line,
@@ -26,6 +27,7 @@ import pytest
 from devscene_flow_host.host.commit_points import (
     CommitPointError,
     commit_artifact,
+    commit_wrapper_path,
     flip_ledger_entry,
 )
 from devscene_flow_host.records.errors import RecordError
@@ -76,6 +78,18 @@ def _commit(
     return asyncio.run(
         commit_artifact(wrapper, worktree, kind, round_number=round_number, entry=entry)
     )
+
+
+def test_the_wrapper_path_is_under_the_main_checkouts_scripts_dir(tmp_path: Path) -> None:
+    (tmp_path / "devscene.config.json").write_text(
+        '{"defaultBranch": "main", "scriptsDir": "tools/scripts/"}', encoding="utf-8"
+    )
+    assert commit_wrapper_path(tmp_path) == tmp_path / "tools" / "scripts" / "commit-on-branch.sh"
+
+
+def test_the_wrapper_path_takes_the_default_scripts_dir(tmp_path: Path) -> None:
+    (tmp_path / "devscene.config.json").write_text('{"defaultBranch": "main"}', encoding="utf-8")
+    assert commit_wrapper_path(tmp_path) == tmp_path / "devscene-scripts" / "commit-on-branch.sh"
 
 
 def test_a_plan_round_call_passes_its_round(tmp_path: Path) -> None:

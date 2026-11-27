@@ -13,7 +13,7 @@ The rule: it does what the retired bash driver's `pd_main`, `pd_entry` and `pd_r
 - the executor is `ClaudeExecutor` wrapped in `PlanningExecutor`, with one agent contract per
   distinct agent of the graph's dispatch nodes, the entry's pairs given to `CorePromptBuilder`,
   and `NodeSessions` as both the usage sink and the launch sink;
-- the hooks are `PlanningHooks` over the main checkout's `<scriptsDir>/commit-on-branch.sh`,
+- the hooks are `PlanningHooks` over `commit_wrapper_path(main_repo)`,
   wrapped so each `commit_plan_round` call, once it has run, records the passage's round as
   `last_round` and clears the kept revision findings, as `record_outcome` clears on a
   `RoundPassage`;
@@ -55,6 +55,7 @@ from graphscene import (
 from devscene_flow_host.host.agent_flags import agent_args, session_args, session_env
 from devscene_flow_host.host.agent_prompts import CorePromptBuilder
 from devscene_flow_host.host.claude_executor import NODE_INACTIVITY_LIMIT_SECONDS, ClaudeExecutor
+from devscene_flow_host.host.commit_points import commit_wrapper_path
 from devscene_flow_host.host.node_sessions import NodeSessions
 from devscene_flow_host.host.observations import Observations
 from devscene_flow_host.host.planning_entry import (
@@ -83,7 +84,6 @@ from devscene_flow_host.records.plugin_contracts import (
     read_plugin_name,
 )
 
-COMMIT_WRAPPER: Final = "commit-on-branch.sh"
 FAILURE_OUTCOME: Final = "error"
 
 PlanningKind: TypeAlias = Literal["done", "kill_switch", "stop_file", "run"]
@@ -215,7 +215,7 @@ async def run_planning(request: PlanningRequest) -> PlanningOutcome:
             claude, graph=graph, repo_root=worktree, state_dir=state_dir, branch=branch
         )
     )
-    wrapper = request.main_repo / read_config(request.main_repo).scripts_dir / COMMIT_WRAPPER
+    wrapper = commit_wrapper_path(request.main_repo)
     hooks = _DrivenHooks(
         PlanningHooks(
             graph,

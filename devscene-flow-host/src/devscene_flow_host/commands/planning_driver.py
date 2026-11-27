@@ -39,9 +39,9 @@ from typing import Final, TextIO
 
 from graphscene import FlowGraph, GraphError, load_graph_file
 
-from devscene_flow_host.host.commit_points import CommitPointError
+from devscene_flow_host.host.commit_points import CommitPointError, commit_wrapper_path
 from devscene_flow_host.host.observations import Observations
-from devscene_flow_host.host.planning_run import COMMIT_WRAPPER, PlanningRequest, run_planning
+from devscene_flow_host.host.planning_run import PlanningRequest, run_planning
 from devscene_flow_host.host.run_exits import StopKind, act_on_exit
 from devscene_flow_host.records.config import read_config
 from devscene_flow_host.records.errors import RecordError
@@ -190,8 +190,7 @@ def _narrator(log: Path) -> Callable[[str], None]:
 def _run(invocation: Invocation, narrate: Callable[[str], None]) -> tuple[int, str]:
     graph = _graph(invocation.flows)
     state_dir = read_config(invocation.worktree).state_dir
-    main_repo = invocation.main_repo
-    wrapper = main_repo / read_config(main_repo).scripts_dir / COMMIT_WRAPPER
+    wrapper = commit_wrapper_path(invocation.main_repo)
     scratch = Path(tempfile.mkdtemp(prefix=PROGRAM + "."))
     try:
         return asyncio.run(_drive(invocation, graph, state_dir, wrapper, scratch, narrate))
