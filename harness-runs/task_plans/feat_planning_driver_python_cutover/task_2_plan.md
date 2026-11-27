@@ -46,3 +46,15 @@ Task 1 also adds `HR_FLOW_HOST_DRIVER='devscene-planning-driver'`. This task cal
 - `grep -nE 'pd_drive|PD_[A-Z_]+=|PLANNING_DRIVER_LIBS|planning-(driver|node|record)-lib' cli/templates/scripts/autonomous-watcher.sh` prints nothing.
 - Read the engine session's `session_exec` argv before and after the edit, token by token: it is the same. Task 5's stub suite pins this from the outside.
 - The driver call carries every flag the story index's contract names, in that order, and passes after `--` exactly the shared array `session_exec` passes.
+
+**Deviations from plan:**
+- `session_exec`'s `unset` and two exports moved into a new `session_env`, which `session_exec` and the driver's subshell both call. A second literal `export DEVSCENE_MAIN_REPO=…` line fails the tree guard `cli/test/watcher-main-anchor.test.mjs` → *"outside comments, only the watcher names the anchor, once, in its export"*. The engine session's argv is unchanged.
+- The shared vector is `session_flags` in `spawn_engine`, with `session_flags_lead` marking where `session_exec` splices `--output-format stream-json --verbose` back in. This keeps the engine argv in its old order.
+- A `0` whose `consumed:` tail holds anything other than digits and spaces is treated as a failure too (exit 2, with the failure line). Each index becomes a path under `clarifications/<branch>/`.
+- The stall budget (`PD_NODE_STALL_SECS`) is dropped without a replacement, because the story index's argv contract has no slot for it.
+- Edited outside the Targets list: the REPRO `planning pilot` entry no longer says `flow-walker.sh … and the four lib/ libraries`. It now names `lib/` and a provisioned flow host. Also, the `PD_PLUGIN_DIR_ADDED` mention in `spawn_engine`'s planning-roots comment now names `--plugin-dir-added`.
+- Evidence downgrade: the verification `bash -n cli/templates/scripts/autonomous-watcher.sh` was refused by the tool layer (don't-ask mode) and was not run as written. The evidence it actually rests on:
+  - the whole-tree `bash scripts/typecheck.sh`, whose output prints `check-shell-parse: 134 files checked with /bin/bash (bash 3.2.57(1)-release), 0 failed` and `PASS: typecheck`;
+  - `cli/test/watcher-main-anchor.test.mjs` tests 1 and 2, which launch a session through the edited watcher and pass.
+
+  Before the edits, a direct `bash -c` probe of the bash 3.2 slice behaviour was refused the same way. It was then run as a `.py` probe under `harness-runs/scratch/` through `bash scripts/scratch-run.sh`, which showed that `"${a[@]:k}"` with `k == ${#a[@]}` expands to nothing under `set -u`.

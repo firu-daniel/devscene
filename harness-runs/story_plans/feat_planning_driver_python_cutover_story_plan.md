@@ -98,7 +98,7 @@ devscene-planning-driver --branch <branch> --worktree <worktree> --main-repo <ma
 Each entry resolves 1:1 to `harness-runs/task_plans/feat_planning_driver_python_cutover/task_<K>_plan.md`. The entries follow the configured layer order, with the catch-all layer last.
 
 1. [x] **Task 1** — Launch a flow-host console script through one library route, and hand `flow-walker.sh` to it _(layer: cli)_ _(points: 15)_
-2. [ ] **Task 2** — Launch the Python planning driver from the watcher's script-driven sequence _(layer: cli)_ _(points: 20)_
+2. [x] **Task 2** — Launch the Python planning driver from the watcher's script-driven sequence _(layer: cli)_ _(points: 20)_
 3. [ ] **Task 3** — Retire the `cli` suites that pinned the bash driver's internals _(layer: cli)_ _(points: 10)_
 4. [ ] **Task 4** — Retire the bash planning driver's three libraries from the shipped set _(layer: cli)_ _(points: 15)_
 5. [ ] **Task 5** — Pin the watcher's side of the driver hand-off against a stub `uv`, locally and in job mode _(layer: cli)_ _(points: 20)_
