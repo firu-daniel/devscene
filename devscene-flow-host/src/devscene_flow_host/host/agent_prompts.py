@@ -12,7 +12,8 @@ The rule: it reads as `pnl_init` and `pnl_prompt` build a prompt
 - The tokens are replaced over the whole text in `pnl_prompt`'s order: `<prompt_path>`,
   `<state_dir>`, `<branch>`, `<iteration>`, `<review_mode>`, then — only when findings files exist
   — `<findings_files>` and `<findings_file>`. Every other `<…>` stays literal. The values are
-  derived as `commands/render.py` → `_block` derives its `arg.*` lines.
+  derived as `commands/render.py` → `_block` derives its `arg.*` lines; the variant and the
+  findings files are `host/prompt_variants.py`'s, over `RevisionFindingsStore`'s record.
 - The pairs are spent by the first build that succeeds: appended when that dispatch's node declares
   `prompts`, dropped otherwise, never appended later. Each pair file is read through
   `records/clarifications.py` → `read_pair_text`, and its `RecordError` propagates.
@@ -29,6 +30,11 @@ from typing import Final
 
 from graphscene import Dispatch, DispatchNode, FlowGraph
 
+from devscene_flow_host.host.prompt_variants import (
+    REVISION_VARIANT,
+    dispatch_variant,
+    findings_files,
+)
 from devscene_flow_host.host.reviewers import review_iteration, round_of_gate, round_of_writer
 from devscene_flow_host.host.revision_findings import RevisionFindingsStore
 from devscene_flow_host.records.clarifications import AnsweredPair, read_pair_text
@@ -42,8 +48,6 @@ ITERATION_TOKEN: Final = "<iteration>"
 REVIEW_MODE_TOKEN: Final = "<review_mode>"
 FINDINGS_FILES_TOKEN: Final = "<findings_files>"
 FINDINGS_FILE_TOKEN: Final = "<findings_file>"
-DEFAULT_VARIANT: Final = "initial"
-REVISION_VARIANT: Final = "revision"
 UNTRUSTED_END_MARKER: Final = "=== END UNTRUSTED DATA"
 
 
@@ -99,14 +103,9 @@ class CorePromptBuilder:
         if not isinstance(node, DispatchNode) or blocks is None:
             raise ValueError(f"graph has no dispatch node '{dispatch.node}'")
 
-        variant: str | None = None
+        variant = dispatch_variant(node, dispatch)
         block = blocks[0]
-        if node.prompts is not None:
-            variant = dispatch.prompt if dispatch.prompt is not None else DEFAULT_VARIANT
-            if variant not in node.prompts:
-                raise ValueError(
-                    f"graph gives '{dispatch.node}' the unknown prompt variant '{variant}'"
-                )
+        if variant is not None and node.prompts is not None:
             block = blocks[node.prompts.index(variant)]
 
         gate_round = round_of_gate(self._graph, dispatch.node)
@@ -125,11 +124,10 @@ class CorePromptBuilder:
 
         files: tuple[str, ...] = ()
         if variant == REVISION_VARIANT:
-            files = RevisionFindingsStore(self._repo_root, self._state_dir, self._branch).read()
-            if not files:
-                files = tuple(
-                    record.detail for record in dispatch.closed_round if record.detail is not None
-                )
+            files = findings_files(
+                RevisionFindingsStore(self._repo_root, self._state_dir, self._branch).read(),
+                dispatch.closed_round,
+            )
             if not files:
                 raise ValueError(
                     f"a revision of '{dispatch.node}' is due and no findings file is recorded"

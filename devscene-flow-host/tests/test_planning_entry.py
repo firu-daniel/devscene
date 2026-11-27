@@ -34,7 +34,6 @@ from devscene_flow_host.host.planning_entry import (
     PLAN_WRITER_ENTRY,
     STORY_INDEX_PATH,
     UI_REVIEW_ENTRY,
-    UI_TEST_INDEX_PATH,
     UI_WRITER_ENTRY,
     ContinueWalk,
     PlanningDone,
@@ -42,6 +41,7 @@ from devscene_flow_host.host.planning_entry import (
     _ledger_loop,
     decide_planning_entry,
 )
+from devscene_flow_host.host.planning_hooks import UI_TEST_INDEX_PATH
 from devscene_flow_host.host.walking import open_walker
 from devscene_flow_host.records.clarifications import AnsweredPair
 from round_fixtures import FAIL_BODY, commit, init_repo, plant_review

@@ -7,8 +7,9 @@ file, in ascending numeric `<n>`; no subdirectory is read. Each question's origi
 `pd_raised_by` reads it (`cli/templates/scripts/lib/planning-driver-lib.sh`): the text after
 `Raised by: ` on the first such line before the first `## ` line, a trailing CR stripped, else
 `None`. `read_answered_pairs` opens no answer file: an origin is told from the question alone.
-`read_pair_text` reads one pair file's text and is called only for pairs the caller has kept, so a
-`Phase G` answer is never opened before Phase D. It reads values and decides nothing with them.
+`read_pair_text` reads one pair file's text as `pd_pairs_text` `cat`s it (the same library), and is
+called only for pairs the caller has kept, so a `Phase G` answer is never opened before Phase D. It
+reads values and decides nothing with them.
 
 Deliberately not covered:
 - Which origins reach a writer, and which writer: `host/planning_entry.py`'s.

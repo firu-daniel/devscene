@@ -31,12 +31,15 @@ PLANNING_ENTRIES: Final = ("P1", "P2", "P3")
 OPEN_MARK: Final = "- [ ] "
 DONE_MARK: Final = "- [x] "
 SKIPPED_MARK: Final = "- [-] "
+DONE_VALUE: Final = "x"
+SKIPPED_VALUE: Final = "-"
+RESOLVED_VALUES: Final = (DONE_VALUE, SKIPPED_VALUE)
 
 PlanningMark: TypeAlias = Literal["x", "-", " "] | None
 
 _MARK_VALUES: Final[tuple[tuple[str, PlanningMark], ...]] = (
-    (DONE_MARK, "x"),
-    (SKIPPED_MARK, "-"),
+    (DONE_MARK, DONE_VALUE),
+    (SKIPPED_MARK, SKIPPED_VALUE),
     (OPEN_MARK, " "),
 )
 

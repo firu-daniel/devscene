@@ -48,7 +48,7 @@ from graphscene import (
 
 from devscene_flow_host.host.commit_points import commit_artifact, flip_ledger_entry
 from devscene_flow_host.host.paths import render_path
-from devscene_flow_host.records.ledger import PLANNING_ENTRIES, read_planning_marks
+from devscene_flow_host.records.ledger import DONE_VALUE, PLANNING_ENTRIES, read_planning_marks
 
 COMMIT_PLAN_ROUND: Final = "commit_plan_round"
 FLIP_LEDGER: Final = "flip_ledger"
@@ -58,8 +58,7 @@ HOOKS: Final = (COMMIT_PLAN_ROUND, FLIP_LEDGER, COMMIT_CONVERGENCE)
 UI_TEST_SLOT: Final = "ui_test"
 UI_TEST_WRITTEN_STATUS: Final = "passed"
 UI_TEST_INDEX_PATH: Final = "ui_test_index"
-_DONE: Final = "x"
-_CONVERGENCE_ENTRY: Final = "P3"
+_CONVERGENCE_ENTRY: Final = PLANNING_ENTRIES[2]
 
 
 class PlanningHooks:
@@ -121,7 +120,7 @@ class PlanningHooks:
         marks = await asyncio.to_thread(
             read_planning_marks, self._repo_root, self._state_dir, self._branch
         )
-        if marks.p2 != _DONE:
+        if marks.p2 != DONE_VALUE:
             return False
         index = render_path(self._graph.paths[UI_TEST_INDEX_PATH], self._state_dir, self._branch)
         return (self._repo_root / index).exists()

@@ -47,11 +47,20 @@ from graphscene import (
 )
 
 from devscene_flow_host.host.paths import render_path
+from devscene_flow_host.host.planning_hooks import UI_TEST_INDEX_PATH
+from devscene_flow_host.host.prompt_variants import (
+    INITIAL_VARIANT,
+    REVISION_VARIANT,
+    declared_variant,
+    findings_files,
+)
 from devscene_flow_host.host.re_entry import current_step
 from devscene_flow_host.host.resume import round_resume
 from devscene_flow_host.records.clarifications import AnsweredPair, read_answered_pairs
 from devscene_flow_host.records.ledger import (
+    DONE_VALUE,
     PLANNING_ENTRIES,
+    RESOLVED_VALUES,
     PlanningMark,
     PlanningMarks,
     read_planning_marks,
@@ -63,7 +72,6 @@ UI_WRITER_ENTRY: Final = "ui_writer"
 UI_REVIEW_ENTRY: Final = "ui_review"
 CONVERGENCE_ENTRY: Final = "convergence"
 STORY_INDEX_PATH: Final = "story_index"
-UI_TEST_INDEX_PATH: Final = "ui_test_index"
 PHASE_G_ORIGIN: Final = "Phase G"
 SCREEN_ORIGIN: Final = "prompt-injection-reviewer (prompt-injection screen)"
 UI_WRITER_AGENT: Final = "ui-tests-plan-writer"
@@ -71,11 +79,6 @@ UI_REVIEWER_AGENT: Final = "ui-tests-plan-reviewer"
 
 _P1: Final = PLANNING_ENTRIES[0]
 _P2: Final = PLANNING_ENTRIES[1]
-_DONE: Final = "x"
-_RESOLVED: Final = ("x", "-")
-# `render.py` → `_block` reads an absent variant of a node declaring prompts as `initial`.
-_INITIAL: Final = "initial"
-_REVISION: Final = "revision"
 
 
 @dataclass(frozen=True)
@@ -132,7 +135,7 @@ def decide_planning_entry(
 
 
 def _resolved(mark: PlanningMark) -> bool:
-    return mark in _RESOLVED
+    return mark in RESOLVED_VALUES
 
 
 def _writer_pairs(
@@ -161,7 +164,7 @@ def _start_entry(
 ) -> str:
     if pairs:
         return UI_WRITER_ENTRY if ui_pairs else PLAN_WRITER_ENTRY
-    if marks.p1 == _DONE:
+    if marks.p1 == DONE_VALUE:
         if _resolved(marks.p2):
             return CONVERGENCE_ENTRY
         if _index(graph, repo_root, state_dir, branch, UI_TEST_INDEX_PATH).exists():
@@ -221,12 +224,12 @@ def _usable(
     first = _first_node(action)
     if first is None:
         return True
-    if marks.p1 == _DONE and first in _ledger_loop(graph, _P1):
+    if marks.p1 == DONE_VALUE and first in _ledger_loop(graph, _P1):
         return False
     if first in _ledger_loop(graph, _P2):
         if _resolved(marks.p2):
             return False
-        if marks.p1 != _DONE and LedgerPassage(_P1) not in action.passed:
+        if marks.p1 != DONE_VALUE and LedgerPassage(_P1) not in action.passed:
             return False
     return True
 
@@ -240,16 +243,12 @@ def _dispatch_usable(
     revision_findings: tuple[str, ...],
 ) -> bool:
     node = graph.nodes.get(dispatch.node)
-    variant: str | None = None
-    if isinstance(node, DispatchNode) and node.prompts is not None:
-        variant = dispatch.prompt if dispatch.prompt is not None else _INITIAL
+    variant = declared_variant(node, dispatch) if isinstance(node, DispatchNode) else None
     required = _required_index(graph, dispatch.node, variant)
     if required is not None and not _index(graph, repo_root, state_dir, branch, required).exists():
         return False
-    if variant == _REVISION:
-        files = revision_findings or tuple(
-            record.detail for record in dispatch.closed_round if record.detail is not None
-        )
+    if variant == REVISION_VARIANT:
+        files = findings_files(revision_findings, dispatch.closed_round)
         for file in files:
             if not Path(file).exists() and not (repo_root / file).exists():
                 return False
@@ -265,10 +264,10 @@ def _required_index(graph: FlowGraph, node: str, variant: str | None) -> str | N
     }
     if (
         node in p1_gates
-        or (node == PLAN_WRITER_ENTRY and variant == _REVISION)
-        or (node == UI_WRITER_ENTRY and variant == _INITIAL)
+        or (node == PLAN_WRITER_ENTRY and variant == REVISION_VARIANT)
+        or (node == UI_WRITER_ENTRY and variant == INITIAL_VARIANT)
     ):
         return STORY_INDEX_PATH
-    if node == UI_REVIEW_ENTRY or (node == UI_WRITER_ENTRY and variant == _REVISION):
+    if node == UI_REVIEW_ENTRY or (node == UI_WRITER_ENTRY and variant == REVISION_VARIANT):
         return UI_TEST_INDEX_PATH
     return None
