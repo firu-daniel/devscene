@@ -33,3 +33,9 @@
 - `flow-walker.sh`'s header `REPRO` block, run in a throwaway fixture that `npx devscene init` provisioned, gives each line's stated result. That covers the exit `0` start, the exit `2` unprovisioned refusal with its exact stderr line, and both `check-round-file` lines.
 - `grep -n 'uv run' cli/templates/scripts/flow-walker.sh` prints nothing outside comments. The one `exec uv run` line under `cli/templates/scripts/` is `hr_flow_host_exec`'s.
 - `bash -n` passes on both files, and the library still sets no shell option (`grep -nE '^set ' cli/templates/scripts/lib/harness-run-lib.sh` prints nothing new).
+
+**Deviations from plan:**
+
+- The `REPRO`-block run in an `init`-provisioned fixture was not executed by the unit: it is the behaviour `cli/test/flow-walker-hand-off.test.mjs` drives (exit 2 refusal line, `--flows` only on walk verbs, `check-round-file`), a test file the suite runs and this unit did not edit — deferred to the Run gates phase. The claim rests on reading the diff: the refusal `printf` line and its `exit 2` are unchanged, and the cause strings `hr_flow_host_missing` prints are the former `fw_missing` strings with `$fw_env` built from the same `$fw_dir` and mirror names.
+- `bash -n` on each file directly was refused by the tool layer; the evidence is `bash scripts/typecheck.sh`, whose `check-shell-parse` step reported `134 files checked with /bin/bash (bash 3.2.57(1)-release), 0 failed`, ending `PASS: typecheck`.
+- Library header lines outside the named block that counted "six `HR_FLOW_HOST_*`" names as the source-time assignments were reworded to drop the count, since `HR_FLOW_HOST_DRIVER` is a seventh; `flow-walker.sh` step 1 now says "six layout `HR_FLOW_HOST_*` names", which are still the six it checks.
