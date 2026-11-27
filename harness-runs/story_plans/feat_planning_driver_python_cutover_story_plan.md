@@ -110,7 +110,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_planning_driver_python_
 11. [x] **Task 11** — Collect, flush and commit the driver's improvement observations in `host/observations.py` _(layer: devscene-flow-host)_ _(points: 15)_
 12. [x] **Task 12** — Answer STOP, PAUSE and the dispatch counter, and fix the planning limits, in `host/run_control.py` _(layer: devscene-flow-host)_ _(points: 10)_
 13. [x] **Task 13** — Record each node session's stream, manifest line, formatted log and session-table row in `host/node_sessions.py` _(layer: devscene-flow-host)_ _(points: 20)_
-14. [ ] **Task 14** — Read the worktree's MCP servers as a record, and build the session args, per-agent MCP flags and session environment in `host/agent_flags.py` _(layer: devscene-flow-host)_ _(points: 20)_
+14. [x] **Task 14** — Read the worktree's MCP servers as a record, and build the session args, per-agent MCP flags and session environment in `host/agent_flags.py` _(layer: devscene-flow-host)_ _(points: 20)_
 15. [ ] **Task 15** — Check findings and round files, and keep revision findings, in `host/planning_executor.py` _(layer: devscene-flow-host)_ _(points: 20)_
 16. [ ] **Task 16** — Compose the planning run and drive it with `start_run` / `continue_run` in `host/planning_run.py` _(layer: devscene-flow-host)_ _(points: 20)_
 17. [ ] **Task 17** — Act on each `RunExit` — hand-off, pause, halt, park — in `host/run_exits.py` _(layer: devscene-flow-host)_ _(points: 20)_

@@ -48,3 +48,5 @@ The environment is the driver's own, minus the variables the flow host's `uv` la
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_agent_flags.py` passes.
 - `host/agent_flags.py` names neither `MCP_CONFIG_FILENAME` nor `RecordError`: `grep -nE 'mcp\.json|RecordError' devscene-flow-host/src/devscene_flow_host/host/agent_flags.py` prints no hit outside its docstring.
 - Every file `agent_args` writes sits under `scratch`, asserted by listing `tmp_path`.
+
+**Deviations from plan:** `agent_args` also raises `ValueError` for a `contracts` key carrying a path separator, before writing its `mcp-<agent>.json`, so the plan's "every file sits under `scratch`" holds for a key that is not an agent name; the plan stated no such refusal and no case covers it.
