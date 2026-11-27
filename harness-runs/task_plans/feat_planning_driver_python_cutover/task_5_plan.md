@@ -45,3 +45,7 @@ The driver is now a process the watcher reaches through `uv`. A stub `uv` on `PA
 
 - `npm test --workspace cli -- test/watcher-planning-driver.test.mjs` passes, every case above included.
 - No case starts a real `uv` or Python process. The calls log shows only the stub.
+
+**Deviations from plan:**
+- Four cases the plan does not list are kept from the old suite, rewritten against the stub: the runtime root without `plugin.json`, no runtime root in the records, a non-boolean key, and the placeholder-host manifest naming `<plugin>/.mcp.json`. Each pins a watcher-side behaviour that Task 2 did not change.
+- `cli/test/helpers/watcher.mjs` gains the option `pathPrefix`, which leads even the helper's own `uv` stub on `PATH`. The fixture also removes the helper's link `<scripts_dir>/python/.venv` before it plants its own environment.

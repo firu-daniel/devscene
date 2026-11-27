@@ -73,7 +73,8 @@
  *    suites gated on `walkerUnavailable()` skip. The main checkout carries `linkWalkerEnv`'s
  *    environment link, so a walker run from it has an environment to hand off to.
  *    `watcherEnv` composes `PATH` after the caller's `env`, so a suite passing its own `PATH` keeps
- *    the stub ahead of it.
+ *    the stub ahead of it. A suite that stands its own `uv` in passes `pathPrefix`, which leads
+ *    even this stub.
  */
 
 import assert from 'node:assert/strict';
@@ -278,9 +279,10 @@ async function sortedNames(path, exclude) {
  * return `null` when `bash` or `jq` does not resolve — the watcher refuses to start without either.
  *
  * @param {import('node:test').TestContext} t
- * @param {{ branch?: string, runAnalytics?: boolean }} [options]
+ * @param {{ branch?: string, runAnalytics?: boolean, pathPrefix?: string }} [options]
+ *   `pathPrefix`, a directory placed first on every pass's `PATH` (choice 9).
  */
-export async function createWatcherFixture(t, { branch = 'feat_x', runAnalytics = false } = {}) {
+export async function createWatcherFixture(t, { branch = 'feat_x', runAnalytics = false, pathPrefix = '' } = {}) {
   for (const tool of ['bash', 'jq']) {
     if (!onPath(tool)) {
       t.skip(`${tool} does not resolve on this process's PATH, so ${WATCHER_PATH} cannot be driven here`);
@@ -364,7 +366,7 @@ export async function createWatcherFixture(t, { branch = 'feat_x', runAnalytics 
     XDG_CONFIG_HOME: join(dir, 'home', '.config'),
     XDG_STATE_HOME: join(dir, 'home', '.local', 'state'),
     ...env,
-    PATH: `${uvBin}${delimiter}${env.PATH ?? process.env.PATH ?? ''}`,
+    PATH: `${pathPrefix === '' ? '' : `${pathPrefix}${delimiter}`}${uvBin}${delimiter}${env.PATH ?? process.env.PATH ?? ''}`,
   });
 
   return {
