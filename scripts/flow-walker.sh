@@ -152,55 +152,36 @@
 #
 #   1. Sources lib/harness-run-lib.sh from beside itself. Every layout name
 #      below comes from that library's declared mirror (THE FLOW HOST'S
-#      ENVIRONMENT, its six `HR_FLOW_HOST_*` names); this script spells none.
-#      A library that cannot be sourced, defines no `hr_repo_root` or
-#      `hr_state_dir`, or leaves one of the six names unset or empty predates
-#      this walker: exit 2, for every verb.
+#      ENVIRONMENT, its six layout `HR_FLOW_HOST_*` names); this script spells
+#      none. A library that cannot be sourced, defines no `hr_repo_root`,
+#      `hr_state_dir`, `hr_flow_host_missing` or `hr_flow_host_exec`, or leaves
+#      one of the six names unset or empty predates this walker: exit 2, for
+#      every verb.
 #   2. For `start`, `next` and `current`: deletes
 #      `<root>/<stateDir>/.flow_walker_state` when it is a regular file and not
 #      a symbolic link — the bash walker's flat state, which would stand where
 #      the command keeps its per-branch directory — and prints nothing about
 #      it. When the root or `stateDir` does not resolve, deletes nothing and
 #      leaves the cause to the command.
-#   3. Refuses with exit 2, running nothing, when `uv` is not on PATH, the
+#   3. Refuses with exit 2, running nothing, when the library's
+#      `hr_flow_host_missing` names a cause — `uv` is not on PATH, the
 #      environment's marker file is absent, or its `bin/devscene-flow-walker`
 #      is not executable; the one stderr line names
 #      `bash <scripts_dir>/flow-host-provision.sh`, run outside the sandbox —
 #      the same remedy the provisioning line and `doctor`'s `flow-host` check
 #      print.
-#   4. Unsets `VIRTUAL_ENV`, then, with <py> = <this script's dir>/python:
+#   4. Is the library's: `hr_flow_host_exec` execs, under `uv` from the
+#      environment beside this script,
 #
-#        UV_PROJECT_ENVIRONMENT=<py>/.venv \
-#        PYTHONPATH=<py>/devscene-flow-host/src:<py>/graphscene/src \
-#        PYTHONDONTWRITEBYTECODE=1 \
-#        exec uv run --frozen --no-sync --no-cache --project <py>/devscene-flow-host \
-#          devscene-flow-walker <arguments> [--flows <this script's dir>/flows]
+#        devscene-flow-walker <arguments> [--flows <this script's dir>/flows]
+#
+#      Why no environment variable chooses what runs, and why `--no-cache` is
+#      always passed, is that function's header.
 #
 #      `--flows` is appended for `start`, `next` and `current` only, because
 #      `check-round-file` refuses a flag it does not take; every other argument
 #      passes through unchanged, and the command's stdout, stderr and exit
 #      status are the caller's answer.
-#
-#   NO ENVIRONMENT VARIABLE CHOOSES WHAT RUNS. The environment, the project and
-#   every source path come from this script's own directory, never from the
-#   caller's environment, and an inherited `PYTHONPATH` is replaced: the
-#   watcher's planning driver runs this script outside the sandbox, and an
-#   unsandboxed script takes the path of every trust input from a location the
-#   session cannot write (`<state_dir>/lessons.md` → `## Trust checks`). Run
-#   from the main checkout, everything it executes sits under
-#   `<scripts_dir>/python/`, which the generated profile write-protects.
-#
-#   THE SHIPPED SOURCES LEAD `PYTHONPATH` because a run copy's environment is
-#   built from the main checkout's packages as non-editable wheels; putting
-#   the sources beside this script first makes the code that runs the code
-#   `init` shipped here. `PYTHONDONTWRITEBYTECODE=1` keeps Python from writing
-#   `__pycache__` beside those sources, which sit in a committed tree no
-#   ignore rule covers, so a unit commit's untracked listing would otherwise
-#   pick the bytecode up.
-#
-#   `--no-cache` IS ALWAYS PASSED because inside Claude Code's sandbox `uv`
-#   cannot initialise its cache and exits 2 without it; `--no-sync` builds
-#   nothing, so the cache is never needed.
 #
 #   THE WALK'S STATE, LOCKS AND RECORDS ARE THE COMMAND'S, under
 #   `<state_dir>/.flow_walker_state/` (`devscene-flow-host/README.md` →
@@ -239,18 +220,13 @@ fw_predates() {
 
 # shellcheck source=/dev/null
 { [ -r "$fw_lib" ] && . "$fw_lib"; } || fw_predates "it cannot be sourced"
-for fw_fn in hr_repo_root hr_state_dir; do
+for fw_fn in hr_repo_root hr_state_dir hr_flow_host_missing hr_flow_host_exec; do
   declare -F "$fw_fn" >/dev/null || fw_predates "it defines no $fw_fn"
 done
 for fw_name in HR_FLOW_HOST_DIRNAME HR_FLOW_HOST_PROJECT HR_FLOW_HOST_GRAPHSCENE \
   HR_FLOW_HOST_ENV_DIRNAME HR_FLOW_HOST_SOURCE_DIRNAME HR_FLOW_HOST_ENV_MARKER; do
   [ -n "${!fw_name-}" ] || fw_predates "it sets no $fw_name"
 done
-
-fw_py="$fw_dir/$HR_FLOW_HOST_DIRNAME"
-fw_env="$fw_py/$HR_FLOW_HOST_ENV_DIRNAME"
-fw_project="$fw_py/$HR_FLOW_HOST_PROJECT"
-fw_sources="$fw_project/$HR_FLOW_HOST_SOURCE_DIRNAME:$fw_py/$HR_FLOW_HOST_GRAPHSCENE/$HR_FLOW_HOST_SOURCE_DIRNAME"
 
 fw_flows=()
 case "${1-}" in
@@ -265,20 +241,9 @@ case "${1-}" in
     ;;
 esac
 
-fw_missing=""
-if ! command -v uv >/dev/null 2>&1; then
-  fw_missing="uv is not on PATH"
-elif [ ! -f "$fw_env/$HR_FLOW_HOST_ENV_MARKER" ]; then
-  fw_missing="no environment at $fw_env"
-elif [ ! -x "$fw_env/bin/devscene-flow-walker" ]; then
-  fw_missing="$fw_env has no devscene-flow-walker"
-fi
-if [ -n "$fw_missing" ]; then
+if ! fw_missing="$(hr_flow_host_missing "$fw_dir" devscene-flow-walker)"; then
   printf 'flow-walker: the flow host is not provisioned (%s): run bash %s/flow-host-provision.sh outside the sandbox\n' "$fw_missing" "$fw_given" >&2
   exit 2
 fi
 
-unset VIRTUAL_ENV
-UV_PROJECT_ENVIRONMENT="$fw_env" PYTHONPATH="$fw_sources" PYTHONDONTWRITEBYTECODE=1 \
-  exec uv run --frozen --no-sync --no-cache --project "$fw_project" \
-  devscene-flow-walker "$@" ${fw_flows[@]+"${fw_flows[@]}"}
+hr_flow_host_exec "$fw_dir" devscene-flow-walker "$@" ${fw_flows[@]+"${fw_flows[@]}"}

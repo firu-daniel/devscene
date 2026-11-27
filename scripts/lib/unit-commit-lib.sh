@@ -7,8 +7,7 @@
 # never from a caller's text.
 #
 # SOURCED, NEVER EXECUTED, by `commit-on-branch.sh` (its `--unit` and
-# `--artifact` front end) and by the watcher for the script-driven planning
-# driver, ahead of `lib/planning-record-lib.sh`. It sets no shell option, makes
+# `--artifact` front end). It sets no shell option, makes
 # no git call and reads no configuration: the caller does the git reads and
 # passes their output in as a file.
 #
@@ -22,8 +21,9 @@
 # THE ARTIFACT TABLE is `ucl_artifact`'s `case`, the single declaration of
 # every artifact kind's subject and path set. Each subject spells the branch as
 # `$branch`, so the fixed-form-subject probe of `## Commit-message policy`
-# reaches it. `lib/planning-record-lib.sh` → `prl_artifact_commit` reads it for
-# every planning-driver commit.
+# reaches it. `devscene-flow-host`'s commit points read it through the wrapper,
+# as `commit-on-branch.sh --artifact <kind>`
+# (`devscene_flow_host/host/commit_points.py` → `commit_artifact`).
 #
 # THE STAGE-SET LISTING `ucl_stage_set` reads: the NUL-separated output of
 # `git diff --name-status -z --no-renames <old_tip>`, one `--others` record,
