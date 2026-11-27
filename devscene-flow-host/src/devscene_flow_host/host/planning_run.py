@@ -17,7 +17,10 @@ The rule: it does what the retired bash driver's `pd_main`, `pd_entry` and `pd_r
   wrapped so each `commit_plan_round` call, once it has run, records the passage's round as
   `last_round` and clears the kept revision findings, as `record_outcome` clears on a
   `RoundPassage`;
-- a `Halt` exit carries the round of the walk's pending dispatch, the first dispatch's for a set.
+- a `Halt` exit carries the round of the walk's pending dispatch, the first dispatch's for a set,
+  and the pending nodes: a dispatch's node, a set's nodes, a wait's pending gates;
+- every `run` outcome carries the dispatch cap, and the round number of the last dispatch that
+  carried one, as `dispatched_round`.
 Every value read from `devscene.config.json` and `.mcp.json` comes through `records`.
 
 Deliberately not covered:
@@ -37,10 +40,13 @@ from graphscene import (
     Dispatch,
     DispatchNode,
     DispatchSet,
+    Executor,
     FlowGraph,
     Halt,
     HookCall,
+    NodeResult,
     RunExit,
+    Wait,
     Walker,
     continue_run,
     start_run,
@@ -113,6 +119,20 @@ class PlanningOutcome:
     last_round: int | None = None
     pending_round: int | None = None
     sessions: NodeSessions | None = None
+    pending_nodes: tuple[str, ...] = ()
+    dispatched_round: int | None = None
+    dispatch_cap: int | None = None
+
+
+class _RoundRecorder:
+    def __init__(self, inner: Executor) -> None:
+        self._inner = inner
+        self.last_round: int | None = None
+
+    async def run(self, dispatch: Dispatch) -> NodeResult:
+        if dispatch.round_number is not None:
+            self.last_round = dispatch.round_number
+        return await self._inner.run(dispatch)
 
 
 class _DrivenHooks:
@@ -190,8 +210,10 @@ async def run_planning(request: PlanningRequest) -> PlanningOutcome:
         agent_args=agent_args(contracts, read_mcp_servers(worktree), request.scratch),
         env=session_env(request.environ, venv=request.venv),
     )
-    executor = PlanningExecutor(
-        claude, graph=graph, repo_root=worktree, state_dir=state_dir, branch=branch
+    executor = _RoundRecorder(
+        PlanningExecutor(
+            claude, graph=graph, repo_root=worktree, state_dir=state_dir, branch=branch
+        )
     )
     wrapper = request.main_repo / read_config(request.main_repo).scripts_dir / COMMIT_WRAPPER
     hooks = _DrivenHooks(
@@ -237,7 +259,10 @@ async def run_planning(request: PlanningRequest) -> PlanningOutcome:
             hooks=hooks,
         )
 
-    pending_round = await _pending_round(walker) if isinstance(exit_, Halt) else None
+    pending_round: int | None = None
+    pending_nodes: tuple[str, ...] = ()
+    if isinstance(exit_, Halt):
+        pending_round, pending_nodes = await _pending(walker)
     return PlanningOutcome(
         "run",
         exit=exit_,
@@ -245,6 +270,9 @@ async def run_planning(request: PlanningRequest) -> PlanningOutcome:
         last_round=hooks.last_round,
         pending_round=pending_round,
         sessions=sessions,
+        pending_nodes=pending_nodes,
+        dispatched_round=executor.last_round,
+        dispatch_cap=limits.dispatch_cap,
     )
 
 
@@ -256,10 +284,13 @@ def _contracts(graph: FlowGraph, plugin_dir: Path) -> dict[str, AgentContract]:
     return contracts
 
 
-async def _pending_round(walker: Walker) -> int | None:
+async def _pending(walker: Walker) -> tuple[int | None, tuple[str, ...]]:
     step = await asyncio.to_thread(walker.current)
     if isinstance(step, Dispatch):
-        return step.round_number
-    if isinstance(step, DispatchSet) and step.dispatches:
-        return step.dispatches[0].round_number
-    return None
+        return step.round_number, (step.node,)
+    if isinstance(step, DispatchSet):
+        nodes = tuple(dispatch.node for dispatch in step.dispatches)
+        return (step.dispatches[0].round_number if step.dispatches else None), nodes
+    if isinstance(step, Wait):
+        return None, step.pending
+    return None, ()

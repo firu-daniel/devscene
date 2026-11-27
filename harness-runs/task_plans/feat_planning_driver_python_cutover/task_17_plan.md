@@ -79,3 +79,9 @@
 
 - `bash scripts/python-service.sh --package devscene-flow-host test tests/test_run_exits.py` passes.
 - Every literal the module narrates or writes is a module-level `Final` string or format, and the suite asserts each against a literal written in the test.
+
+**Deviations from plan:**
+- The pause's `dispatch <pending nodes>`, the cap's `MAX_TOTAL_DISPATCHES (<n>)` and a held `Stop`'s round had no source in the planned `PlanningOutcome`, and no `Halt` or `Stop` field carries them. `host/planning_run.py` now also returns `pending_nodes` (read from the same `walker.current()` call as `pending_round`), `dispatch_cap`, and `dispatched_round` (the round number of the last dispatch that carried one, recorded by a `_RoundRecorder` executor wrapper). All three default, so earlier callers are unchanged. A held `Stop` commits for `dispatched_round`, falling back to `last_round`. `tests/test_planning_run.py` asserts the new fields.
+- A held gate's reason comes from its last `Launch` result, and `NodeSessions` had no way to read one. It now has `launch_result(node)`, asserted in `tests/test_node_sessions.py`.
+- These follow the retired bash, which the plan does not list. Every park narrates `PARKED: …` and every pause narrates `PAUSED: <branch> — <phase>`, as `prl_park` and `prl_pause` logged them. The kill switch narrates `halted: the global kill switch <path> is present`, as `pd_main` did. A `Stop` adds `pd_escalate_park`'s observation *"A walker escalation parked script-driven planning"*. A `Stop` with no held gate and reason `error` or `blocker` carries the stop node's own session section, as `pd_escalate_park` did.
+- The `Refused` body opens `The planning walk refused a step:` above its `text` fence. A `Stop`'s fence lists `summary:`, `evidence:` (the rendered path) and `round_counts:`, with `none` when a value is absent.

@@ -2,7 +2,8 @@
 checkout's kill switch or the worktree's STOP is present, refuses a missing ledger with its exact
 message, reports `done` when `P1`–`P3` are resolved, and otherwise drives the planning walk once
 to its `RunExit`: a fresh walk reaches the convergence `End` with the commit wrapper called in
-Override 6's order, a planted PAUSE halts with the pending dispatch's round, an answered pair is
+Override 6's order, a planted PAUSE halts with the pending dispatch's round and node and the
+planning core's cap of 40, the last dispatched round is reported, an answered pair is
 spent on the writer and reported in `consumed`, no node session inherits `VIRTUAL_ENV` or
 `PYTHONPATH`, and no more than 5 node sessions run at once.
 
@@ -194,6 +195,8 @@ def test_a_fresh_walk_runs_to_the_end_committing_in_order(tmp_path: Path) -> Non
     ]
     assert outcome.last_round == 0
     assert outcome.pending_round is None
+    assert outcome.pending_nodes == ()
+    assert outcome.dispatched_round == 0
     assert outcome.consumed == ()
     assert [call["agent"] for call in _agent_calls(tmp_path)][0] == "task-plan-writer"
     assert sorted(str(call["agent"]) for call in _agent_calls(tmp_path)[1:]) == [
@@ -215,6 +218,9 @@ def test_a_planted_pause_halts_with_the_pending_round(tmp_path: Path) -> None:
     assert isinstance(outcome.exit, Halt), outcome.exit
     assert outcome.exit.reason == "pause"
     assert outcome.pending_round == 0
+    assert outcome.pending_nodes == ("plan_writer",)
+    assert outcome.dispatched_round is None
+    assert outcome.dispatch_cap == 40
     assert outcome.last_round is None
     assert _agent_calls(tmp_path) == []
     assert _wrapper_calls(root) == []

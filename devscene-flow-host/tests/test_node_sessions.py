@@ -3,7 +3,8 @@
 appends one compact `{"session_id","seq","node"}` manifest line with `seq` a string, pipes the
 stream through the formatter into the log; numbers past the `<n>-*.stream.jsonl` files already
 there; pairs a `Launch` only with a pending usage of its node carrying an equal `result`; gives a
-timeout `Launch` with no usage a `-` row and no exception; and adds each per-session observation
+timeout `Launch` with no usage a `-` row and no exception; keeps each node's last `Launch` result;
+and adds each per-session observation
 category once for its case.
 
 Every log path is under `tmp_path`; the formatter is `cat` or `true` on `PATH`; `Observations` is
@@ -170,6 +171,14 @@ def test_the_last_return_document_is_kept_per_node(tmp_path: Path) -> None:
     sessions.record(_usage("plan_writer", Completed("done")))
     assert sessions.return_document("plan_writer") == {"n": 2}
     assert sessions.return_document("plan_review") is None
+
+
+def test_the_last_launch_result_is_kept_per_node(tmp_path: Path) -> None:
+    sessions, _, _ = _sessions(tmp_path)
+    sessions.record(Launch(1, "plan_review", "plan_review-agent", 1, 3, Failed("infra", "crash")))
+    sessions.record(Launch(2, "plan_review", "plan_review-agent", 2, 3, Failed("agent", "no doc")))
+    assert sessions.launch_result("plan_review") == Failed("agent", "no doc")
+    assert sessions.launch_result("plan_writer") is None
 
 
 def test_permission_denials_are_a_tooling_gap(tmp_path: Path) -> None:

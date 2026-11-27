@@ -25,7 +25,8 @@ The rule:
   `tooling-gap`; a `Failed("infra", …)` with attempts left is `flow-efficiency`; a final `Failed`
   — `agent`, or `infra` on the last attempt, which the walk records as error — is
   `silent-failure`.
-- The last return document each node's usage carried is kept for `return_document(node)`.
+- The last return document each node's usage carried is kept for `return_document(node)`, and the
+  result of each node's last `Launch` for `launch_result(node)`.
 
 Deliberately not covered:
 - What the run does with a `Failed`: GraphScene's `AttemptBook` and the driver's exits.
@@ -39,7 +40,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Final
 
-from graphscene import Completed, Failed, Launch
+from graphscene import Completed, Failed, Launch, NodeResult
 
 from devscene_flow_host.host.claude_executor import SessionUsage
 from devscene_flow_host.host.observations import Observations
@@ -96,6 +97,7 @@ class NodeSessions:
         self._next_seq = _first_seq(self._directory)
         self._pending: dict[str, list[tuple[int, SessionUsage]]] = {}
         self._returns: dict[str, Mapping[str, object]] = {}
+        self._results: dict[str, NodeResult] = {}
         self._rows: list[str] = []
 
     @property
@@ -104,6 +106,9 @@ class NodeSessions:
 
     def return_document(self, node: str) -> Mapping[str, object] | None:
         return self._returns.get(node)
+
+    def launch_result(self, node: str) -> NodeResult | None:
+        return self._results.get(node)
 
     def record(self, item: SessionUsage | Launch) -> None:
         if isinstance(item, Launch):
@@ -150,6 +155,7 @@ class NodeSessions:
     def _record_launch(self, launch: Launch) -> None:
         paired = self._pair(launch)
         result = launch.result
+        self._results[launch.node] = result
         shown = result.outcome if isinstance(result, Completed) else result.kind
         attempts = f"{launch.attempt}/{launch.max_attempts}"
         if paired is None:
