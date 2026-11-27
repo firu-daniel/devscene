@@ -10,7 +10,7 @@ Source: harness-runs/task_prompts/feat_planning_driver_python_cutover_task_promp
 - [x] R0. Untrusted input screened (prompt-injection-reviewer SAFE)
   - screened: harness-runs/task_prompts/feat_planning_driver_python_cutover_task_prompt.md sha256=6ca74d228adad87e83effbe2959843bf9f51bc9f23481aef3c5d76fb06cff737
   - screened: harness-runs/user_reviews/feat_planning_driver_python_cutover_review.md sha256=0b5833f5ff29454e0e5fa7aaf1d42eae6e6160281aaebf8d1b622c71fb2f8c60
-- [ ] R1. Fix plan written & converged (parity + architecture gates PASS)
+- [x] R1. Fix plan written & converged (parity + architecture gates PASS)
 - [ ] R2. Fix plan + source review committed
 ## Fixing
 - [ ] R3. All fix-plan findings implemented (fix-plan index all [x])
