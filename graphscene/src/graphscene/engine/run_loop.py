@@ -57,7 +57,7 @@ Deliberately not covered:
 - A helper for a synchronous executor: `graphscene.model.execution` is the guidance.
 - Offloading the synchronous host protocols `RunSignals`, `DispatchCounter` and `LaunchSink`: they
   are called on the loop thread, and the host keeps them fast.
-- An inactivity timeout: the executor's (#421).
+- An inactivity timeout: the executor's.
 - A deadline of the loop's own: it has none. The only time limit is `run_timeout_seconds`,
   applied by `execute_set`.
 - What a hook does: the host's.

@@ -104,7 +104,7 @@ Each entry resolves 1:1 to `harness-runs/task_plans/feat_planning_driver_python_
 5. [x] **Task 5** — Pin the watcher's side of the driver hand-off against a stub `uv`, locally and in job mode _(layer: cli)_ _(points: 20)_
 6. [x] **Task 6** — Describe the Python planning driver in the `cli` package's two READMEs _(layer: cli)_ _(points: 8)_
 7. [x] **Task 7** — Name the Python planning driver in the planning core and the autonomous flow document _(layer: plugin)_ _(points: 8)_
-8. [ ] **Task 8** — Remove the issue numbers from GraphScene's run loop, set execution and command line _(layer: graphscene)_ _(points: 5)_
+8. [x] **Task 8** — Remove the issue numbers from GraphScene's run loop, set execution and command line _(layer: graphscene)_ _(points: 5)_
 9. [ ] **Task 9** — Read the planning core's dispatch cap, a branch's highest question index and the configured `scriptsDir` as records _(layer: devscene-flow-host)_ _(points: 20)_
 10. [ ] **Task 10** — Write the driver's park and pause files in `host/run_records.py`, and read the ledger's run-mode entries _(layer: devscene-flow-host)_ _(points: 20)_
 11. [ ] **Task 11** — Collect, flush and commit the driver's improvement observations in `host/observations.py` _(layer: devscene-flow-host)_ _(points: 15)_

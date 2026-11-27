@@ -49,7 +49,7 @@ Deliberately not covered:
 - Persisting the book, the breaker and the counter across processes: the host's.
 - Usage: the host's, through its executor's usage sink.
 - Detecting a stalled (inactive) session: the executor's, since only the executor sees the
-  session's activity, and it returns that stall as `Failed("infra", …)` (#421).
+  session's activity, and it returns that stall as `Failed("infra", …)`.
 - A `Launch` row for a run cancelled because `execute_set` was cancelled or another run raised:
   such a run has taken its `seq` from `DispatchCounter.increment` but returns no `NodeResult`,
   so it writes no row.
