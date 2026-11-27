@@ -205,9 +205,8 @@ export const FLOW_HOST_PROVISION_SCRIPT_NAME = 'flow-host-provision.sh';
  */
 export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze([
   Object.freeze({ file: RUN_LIBRARY_SCRIPT_NAME, subdir: 'lib', mode: 0o644, agentInvocable: false }),
-  // Sourced by `commit-on-branch.sh` from its own `lib/`, and by the watcher for the planning
-  // driver ahead of `planning-record-lib.sh`; never run. Run directly, it only defines
-  // functions, so `false` is a calling convention and no `DENY_SCRIPT_BASENAMES` entry is owed.
+  // Sourced by `commit-on-branch.sh` from its own `lib/`, and by nothing else; never run. Run
+  // directly, it only defines functions, so `false` is a calling convention and no `DENY_SCRIPT_BASENAMES` entry is owed.
   Object.freeze({ file: 'unit-commit-lib.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
   Object.freeze({ file: 'commit-on-branch.sh', mode: 0o755, agentInvocable: true, runsUnsandboxed: true }),
   Object.freeze({ file: 'push-branch.sh', mode: 0o755, agentInvocable: true, runsUnsandboxed: true }),
@@ -220,7 +219,7 @@ export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze(
   // allow entry.
   Object.freeze({ file: 'scratch-run.sh', mode: 0o755, agentInvocable: true }),
   // The graph `devscene-flow-walker` walks: `flow-walker.sh` passes this directory as `--flows`,
-  // and `lib/planning-node-lib.sh` and `lib/planning-driver-lib.sh` read its node list.
+  // and the watcher hands it as `--flows` to the planning driver `devscene-planning-driver`.
   Object.freeze({ file: 'task_plan_writing.graph.json', subdir: 'flows', mode: 0o644, agentInvocable: false }),
   // Run by the orchestrating session; no `DENY_SCRIPT_BASENAMES` entry, because it must be reachable.
   Object.freeze({ file: 'flow-walker.sh', mode: 0o755, agentInvocable: true }),
@@ -255,12 +254,6 @@ export const OUTER_LOOP_SCRIPTS: ReadonlyArray<OuterLoopScript> = Object.freeze(
   // entry.
   Object.freeze({ file: 'run-analytics.sh', mode: 0o755, agentInvocable: false }),
   Object.freeze({ file: NOTIFY_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
-  // Sourced by the watcher's planning driver from its own `lib/`, never run. Run directly, each only
-  // defines functions, so `false` is a calling convention and no `DENY_SCRIPT_BASENAMES` entry is
-  // owed: the watcher that runs the driver is withheld.
-  Object.freeze({ file: 'planning-node-lib.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
-  Object.freeze({ file: 'planning-record-lib.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
-  Object.freeze({ file: 'planning-driver-lib.sh', subdir: 'lib', mode: 0o644, agentInvocable: false }),
   Object.freeze({ file: WATCHER_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
   Object.freeze({ file: RESTART_WATCHER_SCRIPT_NAME, mode: 0o755, agentInvocable: false }),
   // Run by the watcher, the remote job or a person. Carries a `DENY_SCRIPT_BASENAMES` entry: a run that

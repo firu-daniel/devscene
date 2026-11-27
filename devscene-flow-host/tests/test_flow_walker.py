@@ -409,9 +409,10 @@ def test_failure_maps_each_error_type_to_status_2() -> None:
 
 def test_the_manifest_declares_the_console_script() -> None:
     manifest = tomllib.loads(_MANIFEST.read_text(encoding="utf-8"))
-    assert manifest["project"]["scripts"] == {
-        "devscene-flow-walker": "devscene_flow_host.commands.flow_walker:main"
-    }
+    assert (
+        manifest["project"]["scripts"]["devscene-flow-walker"]
+        == "devscene_flow_host.commands.flow_walker:main"
+    )
 
 
 def test_the_module_runs_as_a_program_writing_to_the_real_stdout(tmp_path: Path) -> None:

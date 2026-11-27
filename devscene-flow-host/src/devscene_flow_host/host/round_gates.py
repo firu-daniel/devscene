@@ -12,8 +12,8 @@ The rule: `record_outcome` reads as `flow-walker.sh`'s `next` (*"outcome FAIL re
   refused gates are re-dispatched as one set in the same round, and the held gate escalates at
   the round's next join, once every re-dispatched gate has a verdict or is held, so the
   escalation carries the whole round's verdicts. `flow-walker.sh` → `record_in_set` escalates at
-  once instead ("With none out: a held gate escalates"); this order is the host's, chosen in
-  #472, and GraphScene is not changed for it.
+  once instead ("With none out: a held gate escalates"); this order is the host's, and
+  GraphScene is not changed for it.
 - The third refusal of one gate in a round records the held outcome `error`.
 - A findings file given outside an open set (a non-round reviewer's `FAIL`, or `answered`) is
   kept in `RevisionFindingsStore`, as `next` keeps `revision_findings`; a held outcome at a gate

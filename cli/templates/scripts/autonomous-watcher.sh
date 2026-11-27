@@ -186,15 +186,31 @@
 #     installs from the tag clone.
 #   * THE SEQUENCE, in one launch subshell: a setup session — the engine, its
 #     prompt carrying the `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH` clause —
-#     then lib/planning-driver-lib.sh's `pd_drive`, then, on its hand-off, the
-#     engine session with the fresh-launch prompt. The driver runs only after a
-#     zero setup exit with no PAUSE_ACK, no unanswered top-level question and a
-#     ledger on disk. On the hand-off the watcher archives exactly the answered
-#     pairs the driver appended to a writer's prompt (PD_CONSUMED_SET) and drops
-#     them from the record's consumed set; every other pair is the engine
-#     session's, archived by classify_run_exit as today.
-#   * READY only when the key is `true`, the engine is `task`, the three
-#     planning libraries sit under lib/ beside this script, the runtime root
+#     then the flow host's `devscene-planning-driver`, run through
+#     `hr_flow_host_exec` from the main checkout's <scripts_dir>/python/, then,
+#     on its hand-off, the engine session with the fresh-launch prompt. The
+#     driver runs only after a zero setup exit with no PAUSE_ACK, no unanswered
+#     top-level question and a ledger on disk. On the hand-off the watcher
+#     archives exactly the answered pairs the driver appended to a writer's
+#     prompt (its `consumed:` line) and drops them from the record's consumed
+#     set; every other pair is the engine session's, archived by
+#     classify_run_exit as today.
+#   * THE DRIVER'S ARGV, stdout captured, stderr appended to the run log:
+#       devscene-planning-driver --branch <branch> --worktree <worktree>
+#         --main-repo <MAIN_REPO> --plugin-dir <root> --flows <scripts_dir>/flows
+#         --log <log> --formatter <formatter> [--plugin-dir-added]
+#         -- <agent cli> <shared session flags>
+#     `--plugin-dir-added` when the shared flags already carry
+#     `--add-dir <root>`. The shared flags are session_exec's vector without
+#     `-p`, `--output-format` and `--verbose`. It runs after session_exec's
+#     `unset` and two exports. Its statuses: `0`, handed off, stdout
+#     `consumed:` then ` <i>` per consumed pair index; `3`, a clean stop with
+#     its files written, stdout `stopped: <kind>` (`park`, `pause`,
+#     `undelivered`, `stop`, `cap`, `kill-switch`); `2`, a fault, stdout empty.
+#     Any other status, or a `0` without a `consumed:` line, is a failed run.
+#   * READY only when the key is `true`, the engine is `task`, the flow host's
+#     environment can run `devscene-planning-driver` (`hr_flow_host_missing`;
+#     `flow-host-provision.sh` builds it), the runtime root
 #     resolves, <root>/.claude-plugin/plugin.json and
 #     <root>/instructions/task_plan_writing_instructions_core.md are readable,
 #     and the run's ledger is absent or its first phase is pending
@@ -1128,8 +1144,9 @@
 #                 with the mirror's PAUSE -> each tick sends no `gh` call, does
 #                 NOT launch the stub, and leaves every mirror file and the
 #                 record's status as they were
-#   planning pilot `a launch`'s fixture on a feat_x branch, with flow-walker.sh,
-#                 flows/ and the four lib/ libraries under devscene-scripts/,
+#   planning pilot `a launch`'s fixture on a feat_x branch, with flows/ and
+#                 lib/ under devscene-scripts/, the flow host provisioned by
+#                 `bash "$d/devscene-scripts/flow-host-provision.sh"`,
 #                 `"execution": {"scriptDrivenPlanning": true}` in
 #                 "$d/devscene.config.json", a plugin directory "$p" holding
 #                 .claude-plugin/plugin.json, the planning agents, their
@@ -3249,8 +3266,9 @@ session_env_kept() {
 #     --add-dir <MAIN_REPO>/<state_dir> \
 #     [--add-dir <dir> ...]
 #
-# session_exec is this vector's one producer. A planning node session's per-node
-# flags, the ones lib/planning-node-lib.sh appends, follow the shared vector.
+# spawn_engine's session_flags array is this vector's one producer, minus `-p`,
+# `--output-format` and `--verbose`: session_exec launches an engine session
+# from it, and the planning driver receives it after its `--`.
 #
 # `<per-run copy>` is `hr_run_profile_file`'s path,
 # `${XDG_STATE_HOME:-$HOME/.local/state}/devscene/run-profiles/<repo slug>/<sanitized branch>.json`,
@@ -3621,10 +3639,21 @@ EOF
     [ -z "$extra_dirs_logged" ] || log "job mode: '$branch' also gets --add-dir from the profile's additionalDirectories:${extra_dirs_logged}"
   fi
 
+  # The shared session vector: the flag string above spawn_engine minus `-p`,
+  # `--output-format` and `--verbose`. session_exec splices those back in
+  # after the first session_flags_lead words; the planning driver takes the
+  # whole array after its `--`.
+  local session_flags session_flags_lead
+  session_flags=(--settings "$settings_file" --permission-mode "$launch_permission_mode"
+    ${model_args[@]+"${model_args[@]}"} ${effort_args[@]+"${effort_args[@]}"})
+  session_flags_lead=${#session_flags[@]}
+  session_flags+=(--add-dir "$worktree" --add-dir "$main_state"
+    ${extra_dir_args[@]+"${extra_dir_args[@]}"})
+
   # With the pilot on, the plugin's runtime root is a session root too. Where
   # the profile already lists it — a job's `init --plugin-root-entries` grants
   # it — every session carries it through extra_dir_args, so a node session
-  # does not pass it again (PD_PLUGIN_DIR_ADDED) and it is no second
+  # does not pass it again (the driver's `--plugin-dir-added`) and it is no second
   # placeholder root.
   local planning_roots planning_root_added="" listed_dir
   planning_roots=()
@@ -3776,28 +3805,30 @@ EOF
   registry_set "$branch" pid "$!"
 }
 
-# session_exec <prompt> [extra flag…]
-#
-# The launch pipe head's `unset`, two exports and `exec` — the flag string above
-# spawn_engine, in its order — followed by the extra flags, for an engine
-# session (none) and a planning node session (lib/planning-node-lib.sh's) alike.
-# Defined at top level and called only inside spawn_engine's launch subshell:
-# it reads that function's locals session_unset_names, launch_agent_cli,
-# settings_file, launch_permission_mode, model_args, effort_args, worktree,
-# main_state, extra_dir_args and log_path by dynamic scope. It never returns.
-session_exec() {
+# session_env — the flag string's `unset` and two exports, for session_exec
+# and the planning driver's subshell alike; it reads session_unset_names from
+# spawn_engine by dynamic scope. Run it only in a subshell that launches a
+# session: it changes the caller's environment.
+session_env() {
   unset -v ${session_unset_names[@]+"${session_unset_names[@]}"} 2>/dev/null
   export DEVSCENE_MAIN_REPO="$MAIN_REPO"
   export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0
+}
+
+# session_exec <prompt> [extra flag…]
+#
+# The launch pipe head's `unset`, two exports and `exec` — the flag string above
+# spawn_engine, in its order — followed by the extra flags (none for an engine
+# session). Defined at top level and called only inside spawn_engine's launch
+# subshell: it reads that function's locals session_unset_names,
+# launch_agent_cli, session_flags, session_flags_lead and log_path by dynamic
+# scope. It never returns.
+session_exec() {
+  session_env
   exec "$launch_agent_cli" -p "$1" \
-    --settings "$settings_file" \
-    --permission-mode "$launch_permission_mode" \
-    ${model_args[@]+"${model_args[@]}"} \
-    ${effort_args[@]+"${effort_args[@]}"} \
+    "${session_flags[@]:0:session_flags_lead}" \
     --output-format stream-json --verbose \
-    --add-dir "$worktree" \
-    --add-dir "$main_state" \
-    ${extra_dir_args[@]+"${extra_dir_args[@]}"} "${@:2}" 2>>"$log_path"
+    "${session_flags[@]:session_flags_lead}" "${@:2}" 2>>"$log_path"
 }
 
 # engine_pipeline <prompt> — one engine session through the launch pipe, inside
@@ -3813,10 +3844,6 @@ engine_pipeline() {
   return "${PIPESTATUS[0]}"
 }
 
-# The pilot's libraries under "$SCRIPT_DIR/lib/", in sourcing order;
-# planning-record-lib reads unit-commit-lib's artifact table.
-PLANNING_DRIVER_LIBS="planning-node-lib unit-commit-lib planning-record-lib planning-driver-lib"
-
 # planning_driver_ready <branch> <worktree> <state_rel> <engine_kind>
 #
 # 0 when this launch takes the pilot's sequence (READY, under SCRIPT-DRIVEN
@@ -3824,19 +3851,18 @@ PLANNING_DRIVER_LIBS="planning-node-lib unit-commit-lib planning-record-lib plan
 # PLANNING_DRIVER_PLUGIN_ROOT; otherwise 1, with the reason in
 # PLANNING_DRIVER_OFF_REASON. The caller has already read the key as on.
 planning_driver_ready() {
-  local branch="$1" worktree="$2" state_rel="$3" engine_kind="$4" lib f ledger phases
+  local branch="$1" worktree="$2" state_rel="$3" engine_kind="$4" missing="" f ledger phases
   PLANNING_DRIVER_OFF_REASON=""
   PLANNING_DRIVER_PLUGIN_ROOT=""
   if [ "$engine_kind" != "task" ]; then
     PLANNING_DRIVER_OFF_REASON="the engine is '$engine_kind', not 'task'"
     return 1
   fi
-  for lib in $PLANNING_DRIVER_LIBS; do
-    if [ ! -r "$SCRIPT_DIR/lib/$lib.sh" ]; then
-      PLANNING_DRIVER_OFF_REASON="'$SCRIPT_DIR/lib/$lib.sh' is not readable (\`devscene init --upgrade\` rewrites it)"
-      return 1
-    fi
-  done
+  missing="$(hr_flow_host_missing "$SCRIPT_DIR" "$HR_FLOW_HOST_DRIVER")" || :
+  if [ -n "$missing" ]; then
+    PLANNING_DRIVER_OFF_REASON="the flow host cannot run $HR_FLOW_HOST_DRIVER ($missing): run bash $SCRIPT_DIR/flow-host-provision.sh outside the sandbox"
+    return 1
+  fi
   if ! hr_plugin_runtime_root_var "$MAIN_REPO"; then
     PLANNING_DRIVER_OFF_REASON="the plugin's runtime root could not be resolved from the agent runner's records"
     return 1
@@ -3878,20 +3904,23 @@ indices_without() {
 
 # planning_driver_run <setup_rc>
 #
-# Steps 2 and 3 of the pilot's sequence, after the setup session: run `pd_drive`
-# and map its return. Called inside spawn_engine's launch subshell (its locals
-# by dynamic scope, its cwd the worktree); returns the rc classify_run_exit is
-# handed. pd_drive's 3 is 0, so the park, pause or ledger it wrote is read from
-# disk as after an engine session; its 2 is 2. On its 0 the pairs it consumed
-# are archived and dropped from the record's consumed set BEFORE the engine
-# session, so Override 2(a) cannot hand them to a writer again; the pairs it
-# left out stay for that session and classify_run_exit. A 3 after three
-# consecutive undelivered sets sets PLANNING_DRIVER_PAUSE_DETAIL, which
+# Steps 2 and 3 of the pilot's sequence, after the setup session: run
+# devscene-planning-driver under the argv contract in the header and map its
+# status and stdout line. Called inside spawn_engine's launch subshell (its
+# locals by dynamic scope, its cwd the worktree); returns the rc
+# classify_run_exit is handed. The driver's 3 is 0, so the park, pause or
+# ledger it wrote is read from disk as after an engine session; any other
+# non-zero, or a 0 without a well-formed `consumed:` line, is 2. On its 0 the
+# pairs it consumed are archived and dropped from the record's consumed set
+# BEFORE the engine session, so Override 2(a) cannot hand them to a writer
+# again; the pairs it left out stay for that session and classify_run_exit.
+# `stopped: undelivered` sets PLANNING_DRIVER_PAUSE_DETAIL, which
 # classify_run_exit prefixes to its local `paused` notification so that the one
 # notification names the error.
 planning_driver_run() {
-  local setup_rc="$1" state_abs="$worktree/$state_rel" clar q n lib stall pd_rc consumed i
+  local setup_rc="$1" state_abs="$worktree/$state_rel" clar q n pd_rc pd_out consumed="" i
   local ledger="$state_abs/flow_progress/${branch}_progress.md"
+  local driver_args
   PLANNING_DRIVER_PAUSE_DETAIL=""
   clar="$state_abs/clarifications/$branch"
   [ "$setup_rc" -eq 0 ] || return "$setup_rc"
@@ -3909,60 +3938,55 @@ planning_driver_run() {
     return 0
   fi
 
-  # The libraries set no shell option and are not written for `set -u`: an
-  # empty array expanded as "${a[@]}" aborts bash 3.2 under it, and the launch
-  # subshell with it. nounset is off from their sourcing to pd_drive's return.
-  set +u
-  for lib in $PLANNING_DRIVER_LIBS; do
-    # shellcheck source=/dev/null
-    if ! . "$SCRIPT_DIR/lib/$lib.sh"; then
-      set -u
-      log "planning driver failed for '$branch': lib/$lib.sh could not be sourced"
-      return 2
-    fi
-  done
-  # A node the driver judges stalled is killed and recorded before the next
-  # pass could judge the whole run stalled from the shared run log.
-  stall=0
-  if [ "$STALL_CHECK_ENABLED" = "1" ]; then
-    stall=$((STALL_KILL_SECS - POLL_INTERVAL_SECS))
-    [ "$STALL_WARN_SECS" -le "$stall" ] || stall="$STALL_WARN_SECS"
+  driver_args=(--branch "$branch" --worktree "$worktree" --main-repo "$MAIN_REPO"
+    --plugin-dir "$PLANNING_DRIVER_PLUGIN_ROOT" --flows "$SCRIPT_DIR/flows"
+    --log "$log_path" --formatter "$formatter")
+  if [ "$planning_root_added" = "1" ]; then
+    driver_args+=(--plugin-dir-added)
   fi
-  PD_PLUGIN_DIR="$PLANNING_DRIVER_PLUGIN_ROOT"
-  PD_PLUGIN_DIR_ADDED="$planning_root_added"
-  PD_MAIN_REPO="$MAIN_REPO"
-  PD_SESSION_EXEC=session_exec
-  PD_FORMATTER="$formatter"
-  PD_NODE_STALL_SECS="$stall"
 
   log "planning driver: '$branch' set up; driving its planning with $PLANNING_DRIVER_PLUGIN_ROOT"
   # The hold the engine head takes, taken for this subshell across the driver
   # and released after it; the engine session takes its own.
   HR_KEEP_AWAKE_PID=""
   keep_awake_start "$branch" "$(exec sh -c 'echo "$PPID"')" </dev/null >/dev/null 2>&1
-  pd_drive "$branch" "$worktree" "$log_path" 2>>"$log_path"
+  pd_out="$(
+    exec 2>>"$log_path"
+    session_env
+    hr_flow_host_exec "$SCRIPT_DIR" "$HR_FLOW_HOST_DRIVER" "${driver_args[@]}" \
+      -- "$launch_agent_cli" "${session_flags[@]}"
+  )"
   pd_rc=$?
-  set -u
   if [ -n "$HR_KEEP_AWAKE_PID" ]; then
     kill "$HR_KEEP_AWAKE_PID" 2>/dev/null || :
   fi
 
-  case "$pd_rc" in
-    0) ;;
-    3)
+  # A consumed index becomes a path under clar, so anything but digits and
+  # spaces after `consumed:` fails the hand-off before a word is expanded.
+  local handed_off=""
+  case "$pd_rc:$pd_out" in
+    "0:consumed:" | "0:consumed: "*)
+      case "${pd_out#consumed:}" in
+        *[!0-9\ ]*) ;;
+        *)
+          handed_off=1
+          consumed="$(indices_without "${pd_out#consumed:}" "")"
+          ;;
+      esac
+      ;;
+    3:*)
       log "planning driver stopped '$branch' cleanly; classifying from its park, pause or ledger"
-      if [ "${PD_STRIKES:-0}" -ge 3 ]; then
+      if [ "$pd_out" = "stopped: undelivered" ]; then
         PLANNING_DRIVER_PAUSE_DETAIL="paused itself on API overload: three consecutive planning dispatches undelivered — "
       fi
       return 0
       ;;
-    *)
-      log "planning driver failed for '$branch' (pd_drive exit $pd_rc) — see $log_path"
-      return 2
-      ;;
   esac
+  if [ -z "$handed_off" ]; then
+    log "planning driver failed for '$branch' ($HR_FLOW_HOST_DRIVER exit $pd_rc) — see $log_path"
+    return 2
+  fi
 
-  consumed="${PD_CONSUMED_SET-}"
   if [ -n "$consumed" ]; then
     for i in $consumed; do
       archive_answered_pair "$clar" "$i"

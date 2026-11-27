@@ -9,6 +9,7 @@ dependencies = [
 
 [project.scripts]
 devscene-flow-walker = "devscene_flow_host.commands.flow_walker:main"
+devscene-planning-driver = "devscene_flow_host.commands.planning_driver:main"
 
 [tool.uv.sources]
 graphscene = { path = "../graphscene", editable = true }

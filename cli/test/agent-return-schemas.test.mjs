@@ -7,8 +7,8 @@
  * under its `(array of objects)` field — in its `### Return fields`, carries the canonical
  * return-block sentence, never re-inlines the schema in its definition, and is cited — by the
  * planning graph, by every `` `<agent>.<field>` `` and `` `<agent>.<field>.<property>` `` across the
- * plugin's Markdown and the outer-loop scripts under `cli/templates/scripts/`, and by every
- * `pd_ret_field` call in the driver — only for outcomes, fields and item properties it declares.**
+ * plugin's Markdown and the outer-loop scripts under `cli/templates/scripts/` — only for outcomes,
+ * fields and item properties it declares.**
  * The sentence is read from `docs/structured-agent-returns.md`
  * → `### The return block` and the roster from `plugin/instructions/agent_return_contract.md` →
  * `## Who may cite this`, never restated here.
@@ -42,7 +42,6 @@ const SCHEMAS_DIR = 'plugin/schemas';
 const SCHEMA_SUFFIX = '.return.json';
 const SCRIPTS_DIR = 'cli/templates/scripts';
 const GRAPH = 'cli/templates/scripts/flows/task_plan_writing.graph.json';
-const DRIVER = 'cli/templates/scripts/lib/planning-driver-lib.sh';
 const PLUGIN_ROOT_TOKEN = '${CLAUDE_PLUGIN_ROOT}/';
 
 const DRAFT_07 = 'http://json-schema.org/draft-07/schema#';
@@ -483,19 +482,6 @@ export function checkGraph(graph, schemas) {
   return problems;
 }
 
-/** Every literal `pd_ret_field <node> <field>` call names a property of that node's agent's schema. */
-export function checkDriverCalls(driverText, graph, schemas) {
-  const problems = [];
-  const calls = [...driverText.matchAll(/\bpd_ret_field[ \t]+([a-z_][a-z0-9_]*)[ \t]+([a-z_][a-z0-9_]*)/g)];
-  for (const [, node, field] of calls) {
-    const agent = graph.nodes[node]?.kind === 'dispatch' ? graph.nodes[node].agent : undefined;
-    const schema = schemas.get(agent);
-    if (!schema) problems.push(`pd_ret_field ${node} ${field}: ${node} is no dispatch node of a schema-carrying agent`);
-    else if (!propertyNames(schema).has(field)) problems.push(`pd_ret_field ${node} ${field}: ${agent} declares no ${field}`);
-  }
-  return { calls: calls.length, problems };
-}
-
 /**
  * Every `` `<agent>.<field>` `` naming a schema-carrying agent names one of its properties, and every
  * `` `<agent>.<field>.<property>` `` one of that field's object-item properties. A file name — one
@@ -551,7 +537,6 @@ const schemaTexts = new Map(schemaFiles.map((f) => [schemaName(f.path), f.text])
 const agentFiles = allAgentFiles.filter((f) => schemaTexts.has(agentName(f.path)));
 const scriptFiles = walk(SCRIPTS_DIR).map((path) => ({ path, text: read(path) }));
 const graph = JSON.parse(read(GRAPH));
-const driverText = read(DRIVER);
 
 const SCHEMAS = new Map();
 for (const [name, text] of schemaTexts) {
@@ -590,12 +575,6 @@ for (const file of agentFiles) {
 
 test('the planning graph dispatches only schema-carrying agents, for outcomes they declare', () => {
   assert.deepEqual(checkGraph(graph, SCHEMAS), []);
-});
-
-test('every pd_ret_field call in the driver names a declared field', () => {
-  const { calls, problems } = checkDriverCalls(driverText, graph, SCHEMAS);
-  assert.ok(calls > 0, `${DRIVER} carries no literal pd_ret_field call`);
-  assert.deepEqual(problems, []);
 });
 
 test('every `<agent>.<field>` citation across plugin/**/*.md names a declared field', () => {
@@ -901,14 +880,6 @@ test('bad samples: a round gate whose agent declares no findings_file on PASS is
   s.oneOf[0].required = ['outcome'];
   const problems = checkGraph(sampleGraph(), new Map([['sample-reviewer', s]])).join('\n');
   assert.match(problems, /declares no findings_file on PASS/);
-});
-
-test('bad samples: a pd_ret_field call naming an undeclared field is rejected', () => {
-  const schemas = new Map([['sample-reviewer', goodSchema()]]);
-  const ok = checkDriverCalls('pd_ret_field review findings_file\n', sampleGraph(), schemas);
-  assert.deepEqual(ok, { calls: 1, problems: [] });
-  const bad = checkDriverCalls('if pd_ret_field review review_file; then :; fi\n', sampleGraph(), schemas);
-  assert.match(bad.problems.join('\n'), /sample-reviewer declares no review_file/);
 });
 
 test('bad samples: a citation of an undeclared field is rejected; a .md file name is not a citation', () => {

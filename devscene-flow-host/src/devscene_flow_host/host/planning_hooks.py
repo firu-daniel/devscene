@@ -22,8 +22,8 @@ The rule:
   `LookupError`. `CommitPointError` and `RecordError` propagate.
 
 Deliberately not covered:
-- A pause's `plan-round-partial` commit and the `<ask>` / `<escalate>` parks: the run driver's
-  (#424), because each is a `RunExit` and not a node or round event.
+- A pause's `plan-round-partial` commit and the `<ask>` / `<escalate>` parks: the run driver's,
+  `host/run_exits.py`, because each is a `RunExit` and not a node or round event.
 - `P0` and the ledger's creation: the fork's Setup acts.
 - Resolving `commit_wrapper`: the caller's.
 """

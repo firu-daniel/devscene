@@ -30,7 +30,7 @@
  *   10/100/1000/50, 30/300/3000/70, 20/200/2000/60, 40/400/4000/80 → 100 / 1000 / 10 000 / 260.
  *
  * The stream holds the sessions in reap order — engine, then `n-arch`, `n-bpr`, `n-plan` — as
- * `pnl_reap` appends each node's stream when it ends.
+ * the planning driver, `devscene-planning-driver`, appends each node's stream when it ends.
  */
 
 import assert from 'node:assert/strict';

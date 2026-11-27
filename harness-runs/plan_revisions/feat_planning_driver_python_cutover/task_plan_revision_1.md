@@ -1,0 +1,10 @@
+# Revision note — round 1
+- architecture 1 (harness-runs/architecture_reviews/feat_planning_driver_python_cutover/review_0.md) — files: task_14_plan.md, task_16_plan.md, feat_planning_driver_python_cutover_story_plan.md — resolved
+- architecture 2 (harness-runs/architecture_reviews/feat_planning_driver_python_cutover/review_0.md) — files: task_9_plan.md, task_16_plan.md, feat_planning_driver_python_cutover_story_plan.md — resolved
+- architecture 3 (harness-runs/architecture_reviews/feat_planning_driver_python_cutover/review_0.md) — files: task_10_plan.md, task_17_plan.md, feat_planning_driver_python_cutover_story_plan.md — resolved
+- architecture 4 (harness-runs/architecture_reviews/feat_planning_driver_python_cutover/review_0.md) — files: task_12_plan.md — resolved
+- architecture 5 (harness-runs/architecture_reviews/feat_planning_driver_python_cutover/review_0.md) — files: task_15_plan.md — resolved
+- architecture 6 (harness-runs/architecture_reviews/feat_planning_driver_python_cutover/review_0.md) — files: task_17_plan.md — resolved
+- architecture 7 (harness-runs/architecture_reviews/feat_planning_driver_python_cutover/review_0.md) — files: task_18_plan.md — resolved
+- task-plan 1 (harness-runs/task_plan_reviews/feat_planning_driver_python_cutover/review_0.md) — files: task_3_plan.md, task_4_plan.md, task_6_plan.md, task_25_plan.md, feat_planning_driver_python_cutover_story_plan.md — resolved
+Unrequested changes: task_2_plan.md (its "Where this task stops" now names Task 3 for the suites and Task 4 for the libraries, after the swap); task_10_plan.md's docstring bullet ("which Task 3 deletes" → Task 4, after the swap); task_18_plan.md's Task 17 `**Depends on:**` bullet (restates `act_on_exit`'s full keyword list, including the `graph` keyword architecture 3's `ui_test:` fallback added, and the wrapper path). The scope register's derivation entries A–D were re-run and entry E re-walked after the target set changed; no row changed, since every added target is source code.

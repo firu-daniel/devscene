@@ -1,33 +1,34 @@
 /**
- * The script-driven planning pilot, end to end through the `autonomous-watcher.sh` that `init`
- * writes: the `execution.scriptDrivenPlanning` key, the plugin runtime root derived by
- * `hr_plugin_runtime_root_var`, `planning_driver_ready`, `session_exec` and the
- * setup → driver → engine sequence in `spawn_engine`'s launch subshell, locally and in job mode.
+ * The watcher's half of the script-driven planning hand-off, end to end through the
+ * `autonomous-watcher.sh` that `init` writes: the `execution.scriptDrivenPlanning` key,
+ * `planning_driver_ready`, and the setup → driver → engine sequence in `spawn_engine`'s launch
+ * subshell, locally and in job mode.
  *
- * **The rule this suite enforces: with the key off or absent a launch is one engine session, as
- * today; with it on and a runtime root that resolves to a usable plugin directory a task launch is a
- * setup session carrying the `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH` clause, then node sessions
- * on the setup session's own flag vector plus `--plugin-dir <derived root>` and their other per-node
- * flags, then — only on the driver's hand-off — one engine session without the clause; a job launch
- * runs the same three steps; and the hand-off archives exactly the answered pairs the driver
- * consumed, leaving every other pair to the engine session and `classify_run_exit`.**
+ * **The rule this suite enforces: with the key off or absent a launch is one engine session; with
+ * it on and the launch ready, a task launch is a setup session carrying the
+ * `PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH` clause, then one `uv run … devscene-planning-driver`
+ * call, then — only on the driver's hand-off — one engine session without the clause, in local and
+ * job mode alike; and the hand-off archives exactly the answered pairs the driver's `consumed:` line
+ * names.**
+ *
+ * The driver is a stub `uv` placed first on the watcher's `PATH` (`createWatcherFixture`'s
+ * `pathPrefix`), beside an environment planted at `<scripts_dir>/python/.venv` in place of the
+ * borrowed one: a `pyvenv.cfg` marker and an executable `bin/devscene-planning-driver` that nothing
+ * runs. The stub records its argv and four environment values to the calls log, then plays the
+ * case's scripted answer — an exit status, a stdout line and the files the driver would have left
+ * on disk. No case runs Python: the driver's own walk, parks and stops are `devscene-flow-host`'s
+ * `pytest` suites'.
  *
  * The runtime root is planted in the agent runner's records under a `CLAUDE_CONFIG_DIR` each case
- * creates under the system temp directory, never the real account home: an `installed_plugins.json`
- * `user` row by default, and a `directory`-sourced marketplace — the job's own install shape — for
- * the job case.
- *
- * Every local pass is one `tick` of `cli/test/helpers/watcher.mjs`, launched through the
- * pause-resume or park-resume pass. The stub agent CLI is written here and imports nothing from
- * `cli/test/helpers/planning-driver.mjs`: it tells the three session kinds apart, records each argv
- * to a calls log, answers a node session the way a real one does — a `result` whose text ends in a
- * return block, the return objects written out here rather than built from a schema — and every
+ * creates under the system temp directory: an `installed_plugins.json` `user` row by default, and a
+ * `directory`-sourced marketplace — the job's own install shape — for the job case. The stub agent
+ * CLI tells the setup session from the engine session by the clause and records each argv. Every
  * literal this suite asserts on is spelled in this file.
  */
 
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, realpath, rm, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -41,79 +42,38 @@ const STATE_DIR = 'devscene';
 const CLAUSE = 'PLANNING IS SCRIPT-DRIVEN ON THIS LAUNCH';
 const PLUGIN_NAME = 'devscene';
 const CORE = 'task_plan_writing_instructions_core.md';
+const DRIVER = 'devscene-planning-driver';
+const FORMATTER = 'autonomous-format-stream.sh';
 const LEDGER = `${STATE_DIR}/flow_progress/${BRANCH}_progress.md`;
-const STORY = `${STATE_DIR}/story_plans/${BRANCH}_story_plan.md`;
 const TASK_PROMPT = `${STATE_DIR}/task_prompts/${BRANCH}_task_prompt.md`;
 const CLAR = `${STATE_DIR}/clarifications/${BRANCH}`;
+const RUN_LOG = `${STATE_DIR}/autonomous_logs/${BRANCH}.log`;
+const UNDELIVERED_DETAIL = 'paused itself on API overload: three consecutive planning dispatches undelivered — ';
 
-/** One pass that launches a setup session, several node sessions and an engine session. */
+/** One pass that launches a setup session, the driver and an engine session. */
 const PASS_TIMEOUT_MS = scaleBound(180_000);
 
 /**
- * The stub. argv[2] is its own directory; the rest is the watcher's argv. A node session (an
- * `--agent` flag) prints an `init` event with the agent file's `tools:` list and a `success` result
- * whose `result` text ends in a ```` ```json ```` return block valid against the agent's `## Return
- * schema` and no other field carrying the return;
- * a setup session (the clause in its `-p` prompt) writes the task ledger with only `P0` closed; any
- * other session is the engine, which records the channel's top level and closes every ledger entry.
+ * The agent CLI stub. argv[2] is its own directory; the rest is the watcher's argv. A setup session
+ * (the clause in its `-p` prompt) writes the task ledger with only `P0` closed; any other session is
+ * the engine, which records the channel's top level and closes every ledger entry.
  */
-const STUB_SOURCE = String.raw`
+const AGENT_STUB_SOURCE = String.raw`
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 const dir = process.argv[2];
 const argv = process.argv.slice(3);
-const flag = (name) => { const at = argv.indexOf(name); return at === -1 ? '' : argv[at + 1]; };
-const prompt = flag('-p');
+const at = argv.indexOf('-p');
+const prompt = at === -1 ? '' : argv[at + 1];
 const cwd = process.cwd();
-const mode = JSON.parse(readFileSync(join(dir, 'mode.json'), 'utf8'));
 const record = (entry) => appendFileSync(join(dir, 'calls.log'), JSON.stringify({ ...entry, argv }) + '\n');
 const put = (rel, text) => { mkdirSync(dirname(join(cwd, rel)), { recursive: true }); writeFileSync(join(cwd, rel), text); };
 const names = (rel) => (existsSync(join(cwd, rel)) ? readdirSync(join(cwd, rel)).filter((n) => n !== 'answered').sort() : []);
 // helpers/watcher.mjs → choice 1: a session launched in a pass stays running for the rest of it.
 const linger = () => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 300);
 
-const qualified = flag('--agent');
-if (qualified !== '') {
-  const agent = qualified.slice(qualified.indexOf(':') + 1);
-  record({ kind: 'node', agent });
-  const text = readFileSync(join(flag('--plugin-dir'), 'agents', agent + '.md'), 'utf8');
-  const toolsLine = text.split('\n').find((l) => l.startsWith('tools:'));
-  const tools = toolsLine.slice('tools:'.length).split(',').map((t) => t.trim()).filter(Boolean);
-  if (mode.undelivered === true) {
-    process.stdout.write(JSON.stringify({ type: 'system', subtype: 'init', session_id: 'stub', tools }) + '\n');
-    process.exit(0);
-  }
-  const lines = prompt.split('\n');
-  const value = (key) => { const line = lines.find((l) => l.startsWith(key)); return line === undefined ? '' : line.slice(key.length); };
-  let ret;
-  const folder = value('findings_folder: ');
-  if (agent === 'ui-tests-plan-writer') {
-    ret = { outcome: 'no_ui', reason: 'The branch delivers no user-facing surface.' };
-  } else if (folder !== '') {
-    const findings = folder + 'review_' + value('iteration: ') + '.md';
-    put(findings, '# review\nverdict: PASS\nreview_mode: ' + value('review_mode: ') + '\n');
-    ret = { outcome: 'PASS', findings_file: findings };
-  } else if (mode.park === true) {
-    ret = { outcome: 'questions', questions: ['Which storage key does the feature use?'] };
-  } else {
-    let story = value('Story index: ');
-    let tasks = value('Per-task files: ');
-    const initial = /^Outputs: story index at (\S+) and per-task files at (\S+)task_<N>_plan\.md$/m.exec(prompt);
-    if (initial !== null) [, story, tasks] = initial;
-    put(story, '# Story plan\n\nwritten by the stub\n');
-    put(tasks + 'task_1_plan.md', '### Task 1\n\nwritten by the stub\n');
-    const note = value('Revision note: ');
-    if (note !== '') put(note, '# Revision\n\nwritten by the stub\n');
-    ret = { outcome: 'returned', story_file: story, task_files_dir: tasks, tasks_count: 1, story_points_total: 3 };
-  }
-  const result = 'Done.\n\n' + '\x60\x60\x60json\n' + JSON.stringify(ret, null, 2) + '\n\x60\x60\x60';
-  const events = [
-    { type: 'system', subtype: 'init', session_id: 'stub', tools },
-    { type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0.01, permission_denials: [], result },
-  ];
-  process.stdout.write(events.map((e) => JSON.stringify(e)).join('\n') + '\n');
-} else if (prompt.includes('${CLAUSE}')) {
+if (prompt.includes('${CLAUSE}')) {
   record({ kind: 'setup', prompt });
   linger();
   const config = JSON.parse(readFileSync(join(cwd, 'devscene.config.json'), 'utf8'));
@@ -147,16 +107,40 @@ if (qualified !== '') {
 }
 `;
 
-/** The planning agents the fixture's own graph names, read off the copy `init` wrote. */
-function graphAgents(dir) {
-  const graph = JSON.parse(readFileSync(join(dir, INIT_SCRIPTS_DIR, 'flows', 'task_plan_writing.graph.json'), 'utf8'));
-  return [...new Set(Object.values(graph.nodes).map((node) => node.agent).filter(Boolean))];
+/**
+ * The `uv` stub. argv[2] is its own directory; the rest is the watcher's argv. Every call is
+ * recorded with the four environment values; a `run` call then plays `mode.json`'s `driver` answer:
+ * `files` (paths relative to the working copy) written, `stdout` printed as one line, `status`
+ * returned. Any other call exits 0.
+ */
+const UV_STUB_SOURCE = String.raw`
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+const dir = process.argv[2];
+const argv = process.argv.slice(3);
+const env = {};
+for (const name of ['DEVSCENE_MAIN_REPO', 'CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS', 'UV_PROJECT_ENVIRONMENT', 'PYTHONPATH']) {
+  env[name] = process.env[name] ?? null;
 }
+appendFileSync(join(dir, 'calls.log'), JSON.stringify({ kind: 'uv', argv, env }) + '\n');
+if (argv[0] !== 'run') process.exit(0);
+const { driver } = JSON.parse(readFileSync(join(dir, 'mode.json'), 'utf8'));
+for (const [rel, text] of Object.entries(driver.files ?? {})) {
+  mkdirSync(dirname(join(process.cwd(), rel)), { recursive: true });
+  writeFileSync(join(process.cwd(), rel), text);
+}
+if (driver.stdout !== '') process.stdout.write(driver.stdout + '\n');
+process.exit(driver.status);
+`;
+
+/** The hand-off with nothing consumed: the default answer. */
+const HANDOFF = { status: 0, stdout: 'consumed:' };
 
 /**
- * A watcher fixture on `feat_x`, a plugin directory under the system temp directory holding each
- * graph agent's `agents/<agent>.md` and `schemas/<agent>.return.json`, the agent runner's records
- * naming it under a temp `CLAUDE_CONFIG_DIR`, and the stub.
+ * A watcher fixture on `feat_x`, a plugin directory under the system temp directory holding
+ * `plugin.json` and the planning core, the agent runner's records naming it under a temp
+ * `CLAUDE_CONFIG_DIR`, the two stubs, and the flow host's environment replaced by a planted one.
  *
  * `key` is `execution.scriptDrivenPlanning`, committed with the fixture; `null` leaves it out.
  * `layout` is how the records name the plugin: `installed`, an `installed_plugins.json` `user` row
@@ -165,14 +149,20 @@ function graphAgents(dir) {
  * exist; `none`, no records at all.
  *
  * @param {import('node:test').TestContext} t
- * @param {{ pluginJson?: boolean, key?: boolean | null, layout?: 'installed' | 'directory' | 'none', qa?: boolean }} [options]
- *   `pluginJson: false` leaves `plugin.json` out; `qa: true` turns `phases.qa` on.
+ * @param {{ pluginJson?: boolean, key?: boolean | null, layout?: 'installed' | 'directory' | 'none', qa?: boolean, driverScript?: boolean }} [options]
+ *   `pluginJson: false` leaves `plugin.json` out; `qa: true` turns `phases.qa` on;
+ *   `driverScript: false` leaves `bin/devscene-planning-driver` out of the planted environment.
  */
-async function pilotFixture(t, { pluginJson = true, key = true, layout = 'installed', qa = false } = {}) {
-  const f = await createWatcherFixture(t, { branch: BRANCH });
-  if (f === null) return null;
+async function pilotFixture(t, { pluginJson = true, key = true, layout = 'installed', qa = false, driverScript = true } = {}) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'watcher-planning-driver-')));
   t.after(() => rm(root, { recursive: true, force: true }));
+  const stubDir = join(root, 'stub');
+  const uvBin = join(root, 'uv-bin');
+  await mkdir(stubDir);
+  await mkdir(uvBin);
+
+  const f = await createWatcherFixture(t, { branch: BRANCH, pathPrefix: uvBin });
+  if (f === null) return null;
 
   const configPath = join(f.dir, 'devscene.config.json');
   const config = JSON.parse(readFileSync(configPath, 'utf8'));
@@ -185,6 +175,16 @@ async function pilotFixture(t, { pluginJson = true, key = true, layout = 'instal
   await runGit(f.dir, ['checkout', '--quiet', '-b', BRANCH]);
   await runGit(f.dir, ['add', '--', 'devscene.config.json', TASK_PROMPT]);
   await runGit(f.dir, ['commit', '--quiet', '-m', 'fixture: seed']);
+
+  // The fixture's environment is a link to this checkout's real one; the planted one replaces it.
+  const scripts = join(f.dir, INIT_SCRIPTS_DIR);
+  const venv = join(scripts, 'python', '.venv');
+  await unlink(venv);
+  await mkdir(join(venv, 'bin'), { recursive: true });
+  await writeFile(join(venv, 'pyvenv.cfg'), 'home = /nonexistent\n', 'utf8');
+  if (driverScript) {
+    await writeFile(join(venv, 'bin', DRIVER), '#!/usr/bin/env bash\nexit 99\n', { mode: 0o755 });
+  }
 
   const claudeHome = join(root, 'claude-home');
   const records = join(claudeHome, 'plugins');
@@ -212,25 +212,22 @@ async function pilotFixture(t, { pluginJson = true, key = true, layout = 'instal
 
   const source = join(WORKSPACE_ROOT, 'plugin');
   await mkdir(join(plugin, '.claude-plugin'), { recursive: true });
-  await mkdir(join(plugin, 'agents'));
-  await mkdir(join(plugin, 'schemas'));
   await mkdir(join(plugin, 'instructions'));
   if (pluginJson) await copyFile(join(source, '.claude-plugin', 'plugin.json'), join(plugin, '.claude-plugin', 'plugin.json'));
-  for (const agent of graphAgents(f.dir)) {
-    await copyFile(join(source, 'agents', `${agent}.md`), join(plugin, 'agents', `${agent}.md`));
-    const schemaFile = `${agent}.return.json`;
-    await copyFile(join(source, 'schemas', schemaFile), join(plugin, 'schemas', schemaFile));
-  }
   await copyFile(join(source, 'instructions', CORE), join(plugin, 'instructions', CORE));
 
-  const stubDir = join(root, 'stub');
-  await mkdir(stubDir);
-  await writeFile(join(stubDir, 'stub.mjs'), STUB_SOURCE, 'utf8');
-  await writeFile(join(stubDir, 'mode.json'), '{}', 'utf8');
+  await writeFile(join(stubDir, 'agent-stub.mjs'), AGENT_STUB_SOURCE, 'utf8');
+  await writeFile(join(stubDir, 'uv-stub.mjs'), UV_STUB_SOURCE, 'utf8');
+  await writeFile(join(stubDir, 'mode.json'), JSON.stringify({ driver: HANDOFF }), 'utf8');
   const cli = join(stubDir, 'agent-cli');
-  await writeFile(cli, `#!/usr/bin/env bash\nexec '${process.execPath}' '${join(stubDir, 'stub.mjs')}' '${stubDir}' "$@"\n`, {
+  await writeFile(cli, `#!/usr/bin/env bash\nexec '${process.execPath}' '${join(stubDir, 'agent-stub.mjs')}' '${stubDir}' "$@"\n`, {
     mode: 0o755,
   });
+  await writeFile(
+    join(uvBin, 'uv'),
+    `#!/usr/bin/env bash\nexec '${process.execPath}' '${join(stubDir, 'uv-stub.mjs')}' '${stubDir}' "$@"\n`,
+    { mode: 0o755 },
+  );
 
   const callsPath = join(stubDir, 'calls.log');
   const runnerTemp = join(root, 'runner-temp');
@@ -250,14 +247,18 @@ async function pilotFixture(t, { pluginJson = true, key = true, layout = 'instal
   });
   return {
     ...f,
+    cli,
     plugin,
+    scripts,
+    venv,
     /**
      * A machine state directory outside `f.dir`: the pilot runs in place, so the default one under
      * `f.dir` lies under the session-writable worktree and the watcher writes no manifest there.
      */
     stateHome: join(root, 'state'),
-    setMode: (mode) => writeFile(join(stubDir, 'mode.json'), JSON.stringify(mode), 'utf8'),
-    /** Each session the stub saw, in launch order: `{ kind, agent?, prompt?, argv, topLevel?, answered? }`. */
+    /** The `uv` stub's answer to a `run` call: `{ status, stdout, files? }`. */
+    setDriver: (driver) => writeFile(join(stubDir, 'mode.json'), JSON.stringify({ driver }), 'utf8'),
+    /** Each call the stubs saw, in order: `{ kind: 'setup' | 'engine' | 'uv', argv, prompt?, env?, topLevel?, answered? }`. */
     calls: () =>
       existsSync(callsPath)
         ? readFileSync(callsPath, 'utf8')
@@ -265,8 +266,8 @@ async function pilotFixture(t, { pluginJson = true, key = true, layout = 'instal
             .filter(Boolean)
             .map((line) => JSON.parse(line))
         : [],
-    /** One pass with the stub as the agent CLI and the fixture's own `CLAUDE_CONFIG_DIR`. */
     passStderr: '',
+    /** One pass with the stub as the agent CLI and the fixture's own `CLAUDE_CONFIG_DIR`. */
     async pass({ env = {}, placeholderHost = false } = {}) {
       const result = await f.tick(sessionEnv(env), { timeoutMs: PASS_TIMEOUT_MS, placeholderHost });
       this.passStderr = result.stderr;
@@ -314,13 +315,60 @@ async function pilotFixture(t, { pluginJson = true, key = true, layout = 'instal
     async manifestFile(env = {}) {
       const printed = await runBash(
         f.dir,
-        ['-c', '. "$1"; hr_run_profile_absent_file "$(hr_repo_slug "$2")" "$3"', '_', join(f.dir, INIT_SCRIPTS_DIR, 'lib', 'harness-run-lib.sh'), f.dir, BRANCH],
+        ['-c', '. "$1"; hr_run_profile_absent_file "$(hr_repo_slug "$2")" "$3"', '_', join(scripts, 'lib', 'harness-run-lib.sh'), f.dir, BRANCH],
         f.watcherEnv(env),
         { timeoutMs: TICK_TIMEOUT_MS, signal: t.signal },
       );
       assert.equal(printed.status, 0, printed.stderr);
       return printed.stdout.trim();
     },
+  };
+}
+
+/** `argv` without `-p <prompt>`, `--output-format <format>` and `--verbose`. */
+function sharedFlags(argv) {
+  const out = [];
+  for (let at = 0; at < argv.length; at += 1) {
+    if (argv[at] === '-p' || argv[at] === '--output-format') {
+      at += 1;
+    } else if (argv[at] !== '--verbose') {
+      out.push(argv[at]);
+    }
+  }
+  return out;
+}
+
+/**
+ * The `uv` argv the watcher owes the driver, by the story index's contract, for the engine session
+ * `engine` launched after it; `pluginDirAdded` when the shared flags already carry the plugin root.
+ */
+function expectedUvArgv(f, engine, { pluginDirAdded = false } = {}) {
+  const py = join(f.scripts, 'python');
+  return [
+    'run', '--frozen', '--no-sync', '--no-cache', '--project', join(py, 'devscene-flow-host'),
+    DRIVER,
+    '--branch', BRANCH,
+    '--worktree', f.dir,
+    '--main-repo', f.dir,
+    '--plugin-dir', f.plugin,
+    '--flows', join(f.scripts, 'flows'),
+    '--log', join(f.dir, RUN_LOG),
+    '--formatter', join(f.scripts, FORMATTER),
+    ...(pluginDirAdded ? ['--plugin-dir-added'] : []),
+    '--',
+    f.cli,
+    ...sharedFlags(engine.argv),
+  ];
+}
+
+/** The environment the `uv` stub must have seen. */
+function expectedUvEnv(f) {
+  const py = join(f.scripts, 'python');
+  return {
+    DEVSCENE_MAIN_REPO: f.dir,
+    CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '0',
+    UV_PROJECT_ENVIRONMENT: join(py, '.venv'),
+    PYTHONPATH: `${join(py, 'devscene-flow-host', 'src')}:${join(py, 'graphscene', 'src')}`,
   };
 }
 
@@ -333,16 +381,17 @@ function values(argv, name) {
   return out;
 }
 
+/** The lines of the watcher log carrying `text`. */
+function watcherLines(f, text) {
+  return f.watcherLog().split('\n').filter((l) => l.includes(text));
+}
+
 function show(f) {
-  const runLog = join(f.dir, STATE_DIR, 'autonomous_logs', `${BRANCH}.log`);
+  const runLog = join(f.dir, RUN_LOG);
   return [
-    `--- calls\n${f.calls().map((c) => `${c.kind} ${c.agent ?? ''}`).join('\n')}`,
+    `--- calls\n${f.calls().map((c) => `${c.kind} ${c.kind === 'uv' ? c.argv.join(' ') : ''}`).join('\n')}`,
     `--- watcher log\n${f.watcherLog().split('\n').filter((l) => !l.includes('session environment for')).join('\n')}`,
-    `--- run log, plan-drive and planning-driver lines\n${(existsSync(runLog) ? readFileSync(runLog, 'utf8') : '')
-      .split('\n')
-      .filter((l) => l.startsWith('[plan-drive]') || l.startsWith('planning-driver:') || l.includes('unbound'))
-      .slice(-12)
-      .join('\n')}`,
+    `--- run log tail\n${(existsSync(runLog) ? readFileSync(runLog, 'utf8') : '').split('\n').slice(-12).join('\n')}`,
     `--- pass stderr\n${f.passStderr}`,
   ].join('\n');
 }
@@ -351,105 +400,128 @@ for (const [name, key] of [
   ['key absent', null],
   ['key false', false],
 ]) {
-  test(`${name}: one engine session, with no clause and no --agent, though the runtime root resolves`, async (t) => {
+  test(`${name}: no uv call and one engine session, with no clause, though the launch would be ready`, async (t) => {
     const f = await pilotFixture(t, { key });
     if (f === null) return;
     await f.armPauseResume();
     await f.pass();
     const calls = f.calls();
-    assert.equal(calls.length, 1, show(f));
-    assert.equal(calls[0].kind, 'engine', show(f));
+    assert.deepEqual(calls.map((c) => c.kind), ['engine'], show(f));
     assert.equal(calls[0].prompt.includes(CLAUSE), false);
-    assert.equal(calls[0].argv.includes('--agent'), false);
     assert.equal(f.watcherLog().includes('planning driver'), false, f.watcherLog());
   });
 }
 
-test('key on: the setup session, then node sessions on its vector, then one engine session', async (t) => {
+test('key on and ready: the setup session, one uv call on the contract argv, then the engine session; the hand-off archives only the consumed pair', async (t) => {
   const f = await pilotFixture(t);
   if (f === null) return;
-  await f.armPauseResume();
+  await f.writeQuestion(
+    1,
+    '# Questions from task-plan-writer\n\nRaised by: task-plan-writer (script-driven planning)\n\n## Q1 — Which storage key?\n\nWhich storage key?\n',
+  );
+  await f.writeAnswer(1, 'Use `fixture.storage`.\n');
+  await f.writeQuestion(2, '# Questions from Phase G\n\nRaised by: Phase G — Run gates (test-fix-plan-writer)\n\n## Questions\n1. Which gate?\n');
+  await f.writeAnswer(2, 'The typecheck gate.\n');
+  await f.seedRecord({ status: 'parked' });
+  await f.setDriver({ status: 0, stdout: 'consumed: 1' });
+
   await f.pass();
   const calls = f.calls();
-  assert.ok(calls.length >= 3, show(f));
-  const [setup] = calls;
-  assert.equal(setup.kind, 'setup', show(f));
-  assert.equal(setup.argv.includes('--agent'), false);
+  assert.deepEqual(calls.map((c) => c.kind), ['setup', 'uv', 'engine'], show(f));
+  const [setup, uv, engine] = calls;
+  assert.ok(setup.prompt.includes(CLAUSE), show(f));
+  assert.equal(engine.prompt.includes(CLAUSE), false);
+  assert.deepEqual(sharedFlags(setup.argv), sharedFlags(engine.argv));
+  assert.deepEqual(uv.argv, expectedUvArgv(f, engine), show(f));
+  assert.deepEqual(uv.env, expectedUvEnv(f));
 
-  const nodes = calls.filter((c) => c.kind === 'node');
-  assert.ok(nodes.length > 0, show(f));
-  assert.deepEqual(calls.slice(1, 1 + nodes.length).map((c) => c.kind), nodes.map(() => 'node'), show(f));
-  assert.equal(nodes[0].agent, 'task-plan-writer', show(f));
-  assert.deepEqual(values(nodes[0].argv, '--agent'), [`${PLUGIN_NAME}:task-plan-writer`]);
-  for (const node of nodes) {
-    assert.deepEqual(values(node.argv, '--settings'), values(setup.argv, '--settings'), node.agent);
-    assert.deepEqual(values(node.argv, '--permission-mode'), values(setup.argv, '--permission-mode'), node.agent);
-    const dirs = values(node.argv, '--add-dir');
-    for (const dir of values(setup.argv, '--add-dir')) assert.ok(dirs.includes(dir), `${node.agent} lacks --add-dir ${dir}`);
-    assert.deepEqual(values(node.argv, '--plugin-dir'), [f.plugin], node.agent);
-  }
-
-  const engines = calls.filter((c) => c.kind === 'engine');
-  assert.equal(engines.length, 1, show(f));
-  assert.equal(calls.at(-1).kind, 'engine', show(f));
-  assert.equal(engines[0].prompt.includes(CLAUSE), false);
-  assert.equal(engines[0].argv.includes('--agent'), false);
+  assert.deepEqual(engine.answered, ['answer_1.md', 'question_1.md'], show(f));
+  assert.deepEqual(engine.topLevel, ['answer_2.md', 'question_2.md'], show(f));
+  assert.equal(watcherLines(f, `planning driver handed off '${BRANCH}' (archived the answered pair(s) it consumed: 1)`).length, 1, show(f));
   assert.equal(f.record().status, 'completed', show(f));
 });
 
-test('key on, and the driver parks: no engine session follows, and the record is parked', async (t) => {
+test('the driver stops on a park: no engine session, and the run is parked from the question on disk', async (t) => {
   const f = await pilotFixture(t);
   if (f === null) return;
-  await f.setMode({ park: true });
+  await f.setDriver({
+    status: 3,
+    stdout: 'stopped: park',
+    files: { [`${CLAR}/question_1.md`]: '# Questions from task-plan-writer\n\n## Q1 — Which storage key does the feature use?\n' },
+  });
   await f.armPauseResume();
   await f.pass();
-  const calls = f.calls();
-  assert.equal(calls[0]?.kind, 'setup', show(f));
-  assert.ok(calls.some((c) => c.kind === 'node' && c.agent === 'task-plan-writer'), show(f));
-  assert.equal(calls.filter((c) => c.kind === 'engine').length, 0, show(f));
+  assert.deepEqual(f.calls().map((c) => c.kind), ['setup', 'uv'], show(f));
   assert.equal(f.record().status, 'parked', show(f));
-  const question = readFileSync(join(f.dir, CLAR, 'question_1.md'), 'utf8');
-  const sections = question.split('\n').filter((l) => l.startsWith('## '));
-  assert.deepEqual(sections, ['## Q1 — Which storage key does the feature use?'], question);
 });
 
-test('key on, and every node dispatch is undelivered: the run pauses and its one paused notification names the overload', async (t) => {
+test('the driver stops undelivered: the run pauses and its one paused notification names the overload', async (t) => {
   const f = await pilotFixture(t);
   if (f === null) return;
-  await f.setMode({ undelivered: true });
+  await f.setDriver({ status: 3, stdout: 'stopped: undelivered', files: { [`${STATE_DIR}/PAUSE_ACK`]: '' } });
   await f.armPauseResume();
-  await f.pass({ env: { PD_BACKOFF_SECS: '0' } });
+  await f.pass();
+  assert.deepEqual(f.calls().map((c) => c.kind), ['setup', 'uv'], show(f));
   assert.equal(f.record().status, 'paused', show(f));
   const paused = f.notifications().filter((n) => n.event === 'paused' && n.branch === BRANCH);
   assert.equal(paused.length, 1, `${JSON.stringify(f.notifications())}\n${show(f)}`);
-  assert.ok(paused[0].detail.includes('three consecutive planning dispatches undelivered'), `${paused[0].detail}\n${show(f)}`);
-  assert.equal(f.calls().some((c) => c.kind === 'engine'), false, show(f));
+  assert.ok(paused[0].detail.startsWith(UNDELIVERED_DETAIL), `${paused[0].detail}\n${show(f)}`);
 });
 
-test('key on, and the runtime root has no plugin.json: one session, no clause, and the off line', async (t) => {
+for (const [name, driver, code] of [
+  ['exits 2', { status: 2, stdout: '' }, 2],
+  ['exits 0 with no consumed: line', { status: 0, stdout: '' }, 0],
+]) {
+  test(`the driver ${name}: no engine session, the run is failed, and the log names the exit`, async (t) => {
+    const f = await pilotFixture(t);
+    if (f === null) return;
+    await f.setDriver(driver);
+    await f.armPauseResume();
+    await f.pass();
+    assert.deepEqual(f.calls().map((c) => c.kind), ['setup', 'uv'], show(f));
+    assert.equal(f.record().status, 'failed', show(f));
+    assert.equal(watcherLines(f, `planning driver failed for '${BRANCH}' (${DRIVER} exit ${code})`).length, 1, show(f));
+  });
+}
+
+test('key on, and the environment has no devscene-planning-driver: no uv run, one engine session, and the off line with its cause', async (t) => {
+  const f = await pilotFixture(t, { driverScript: false });
+  if (f === null) return;
+  await f.armPauseResume();
+  await f.pass();
+  const calls = f.calls();
+  assert.deepEqual(calls.map((c) => c.kind), ['engine'], show(f));
+  assert.equal(calls[0].prompt.includes(CLAUSE), false);
+  const off = watcherLines(f, `planning driver off for '${BRANCH}': `);
+  assert.equal(off.length, 1, f.watcherLog());
+  assert.ok(
+    off[0].includes(`planning driver off for '${BRANCH}': the flow host cannot run ${DRIVER} (${f.venv} has no ${DRIVER})`),
+    off[0],
+  );
+});
+
+test('key on, and the runtime root has no plugin.json: one engine session, no clause, and the off line', async (t) => {
   const f = await pilotFixture(t, { pluginJson: false });
   if (f === null) return;
   await f.armPauseResume();
   await f.pass();
   const calls = f.calls();
-  assert.equal(calls.length, 1, show(f));
-  assert.equal(calls[0].kind, 'engine', show(f));
+  assert.deepEqual(calls.map((c) => c.kind), ['engine'], show(f));
   assert.equal(calls[0].prompt.includes(CLAUSE), false);
-  const off = f.watcherLog().split('\n').filter((l) => l.includes(`planning driver off for '${BRANCH}': `));
+  const off = watcherLines(f, `planning driver off for '${BRANCH}': `);
   assert.equal(off.length, 1, f.watcherLog());
   assert.ok(off[0].includes(`'${f.plugin}/.claude-plugin/plugin.json' is not readable`), off[0]);
 });
 
-test('key on, and no runtime root resolves from the records: one session, no clause, and one off line naming it', async (t) => {
+test('key on, and no runtime root resolves from the records: one engine session, no clause, and one off line naming it', async (t) => {
   const f = await pilotFixture(t, { layout: 'none' });
   if (f === null) return;
   await f.armPauseResume();
   await f.pass();
   const calls = f.calls();
-  assert.equal(calls.length, 1, show(f));
-  assert.equal(calls[0].kind, 'engine', show(f));
+  assert.deepEqual(calls.map((c) => c.kind), ['engine'], show(f));
   assert.equal(calls[0].prompt.includes(CLAUSE), false);
-  const off = f.watcherLog().split('\n').filter((l) => l.includes(`planning driver off for '${BRANCH}': `));
+  const off = watcherLines(f, `planning driver off for '${BRANCH}': `);
   assert.equal(off.length, 1, f.watcherLog());
   assert.ok(
     off[0].endsWith(`planning driver off for '${BRANCH}': the plugin's runtime root could not be resolved from the agent runner's records`),
@@ -457,7 +529,7 @@ test('key on, and no runtime root resolves from the records: one session, no cla
   );
 });
 
-test('key not a boolean: one session, no clause, and one off line naming the key', async (t) => {
+test('key not a boolean: one engine session, no clause, and one off line naming the key', async (t) => {
   const f = await pilotFixture(t, { key: null });
   if (f === null) return;
   const configPath = join(f.dir, 'devscene.config.json');
@@ -468,14 +540,14 @@ test('key not a boolean: one session, no clause, and one off line naming the key
   await f.armPauseResume();
   await f.pass();
   const calls = f.calls();
-  assert.equal(calls.length, 1, show(f));
+  assert.deepEqual(calls.map((c) => c.kind), ['engine'], show(f));
   assert.equal(calls[0].prompt.includes(CLAUSE), false);
-  const off = f.watcherLog().split('\n').filter((l) => l.includes(`planning driver off for '${BRANCH}': `));
+  const off = watcherLines(f, `planning driver off for '${BRANCH}': `);
   assert.equal(off.length, 1, f.watcherLog());
   assert.ok(off[0].includes('execution.scriptDrivenPlanning is not a boolean'), off[0]);
 });
 
-test('a job with the key on: the setup session, node sessions pinned to the installed runtime root, then the engine session', async (t) => {
+test('a job with the key on: the setup session, one uv call on the contract argv, then the engine session', async (t) => {
   const f = await pilotFixture(t, { layout: 'directory', qa: true });
   if (f === null) return;
   // The job's `init --plugin-root-entries` lists the runtime root in the base profile.
@@ -490,51 +562,14 @@ test('a job with the key on: the setup session, node sessions pinned to the inst
   assert.equal(result.stdout.trimEnd().split('\n').at(-1), 'job: completed stop', detail);
 
   const calls = f.calls();
-  const [setup] = calls;
-  assert.equal(setup?.kind, 'setup', detail);
+  assert.deepEqual(calls.map((c) => c.kind), ['setup', 'uv', 'engine'], detail);
+  const [setup, uv, engine] = calls;
   assert.ok(setup.prompt.includes(CLAUSE), detail);
   assert.match(setup.prompt, /executes in a GitHub Actions job \(execution: github-actions\), where the interactive-test phase is unsupported/);
   assert.equal(values(setup.argv, '--add-dir').filter((d) => d === f.plugin).length, 1, setup.argv.join(' '));
-
-  const nodes = calls.filter((c) => c.kind === 'node');
-  assert.ok(nodes.length > 0, detail);
-  assert.deepEqual(calls.slice(1, 1 + nodes.length).map((c) => c.kind), nodes.map(() => 'node'), detail);
-  for (const node of nodes) {
-    assert.deepEqual(values(node.argv, '--plugin-dir'), [f.plugin], node.agent);
-    assert.equal(values(node.argv, '--add-dir').filter((d) => d === f.plugin).length, 1, `${node.agent}: ${node.argv.join(' ')}`);
-    assert.deepEqual(values(node.argv, '--settings'), values(setup.argv, '--settings'), node.agent);
-  }
-
-  const engines = calls.filter((c) => c.kind === 'engine');
-  assert.equal(engines.length, 1, detail);
-  assert.equal(calls.at(-1).kind, 'engine', detail);
-  assert.equal(engines[0].prompt.includes(CLAUSE), false);
-  assert.ok(existsSync(join(f.dir, STATE_DIR, 'autonomous_logs', `${BRANCH}.planning`)), detail);
-});
-
-test('the hand-off archives only what the driver consumed', async (t) => {
-  const f = await pilotFixture(t);
-  if (f === null) return;
-  await f.writeQuestion(
-    1,
-    '# Questions from task-plan-writer\n\nRaised by: task-plan-writer (script-driven planning)\n\n## Q1 — Which storage key?\n\nWhich storage key?\n',
-  );
-  await f.writeAnswer(1, 'Use `fixture.storage`.\n');
-  await f.writeQuestion(2, '# Questions from Phase G\n\nRaised by: Phase G — Run gates (test-fix-plan-writer)\n\n## Questions\n1. Which gate?\n');
-  await f.writeAnswer(2, 'The typecheck gate.\n');
-  await mkdir(join(f.dir, STATE_DIR, 'story_plans'), { recursive: true });
-  await writeFile(join(f.dir, STORY), '# Story plan\n\nan existing draft\n', 'utf8');
-  await f.seedRecord({ status: 'parked' });
-
-  await f.pass();
-  const calls = f.calls();
-  assert.equal(calls[0]?.kind, 'setup', show(f));
-  const engines = calls.filter((c) => c.kind === 'engine');
-  assert.equal(engines.length, 1, show(f));
-  assert.deepEqual(engines[0].answered, ['answer_1.md', 'question_1.md'], show(f));
-  assert.deepEqual(engines[0].topLevel, ['answer_2.md', 'question_2.md'], show(f));
-  assert.deepEqual(await f.topLevel(), []);
-  assert.deepEqual(await f.archived(), ['answer_1.md', 'answer_2.md', 'question_1.md', 'question_2.md']);
+  assert.equal(engine.prompt.includes(CLAUSE), false);
+  assert.deepEqual(uv.argv, expectedUvArgv(f, engine, { pluginDirAdded: true }), detail);
+  assert.deepEqual(uv.env, expectedUvEnv(f));
 });
 
 test('on a placeholder host the pilot launch records the plugin directory .mcp.json in the manifest, and a launch with the key absent records none', async (t) => {

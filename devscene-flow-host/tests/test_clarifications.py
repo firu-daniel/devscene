@@ -1,8 +1,9 @@
 """The rule this file exists to enforce: `read_answered_pairs` returns a branch's top-level
 answered clarification pairs as `hr_top_level_answered_pairs` selects and orders them, each with the
 `Raised by: ` origin `pd_raised_by` reads off its question, and never opens an answer file;
-`read_pair_text` returns one pair file's text unchanged. Each unreadable shape raises `RecordError`
-with one exact line.
+`read_pair_text` returns one pair file's text unchanged; `max_question_index` returns the highest
+question number at the top level and under `answered/` together, as `hr_max_question_index` reads
+it. Each unreadable shape raises `RecordError` with one exact line.
 
 Every case plants files under `tmp_path`. Every expected value is written from the task plan's
 rules, never taken from the reader's output.
@@ -18,6 +19,7 @@ import pytest
 
 from devscene_flow_host.records.clarifications import (
     AnsweredPair,
+    max_question_index,
     read_answered_pairs,
     read_pair_text,
 )
@@ -101,6 +103,35 @@ def test_an_answer_with_unreadable_bytes_still_yields_its_pair(tmp_path: Path) -
     _plant(tmp_path, "question_1.md", b"Raised by: Phase G\n")
     _plant(tmp_path, "answer_1.md", b"\xff\xfe\xfd\n")
     assert read_answered_pairs(tmp_path, _STATE, _BRANCH) == (_pair(1, "Phase G"),)
+
+
+def test_max_question_index_with_no_directory_is_zero(tmp_path: Path) -> None:
+    assert max_question_index(tmp_path, _STATE, _BRANCH) == 0
+
+
+def test_max_question_index_is_the_highest_number(tmp_path: Path) -> None:
+    _plant(tmp_path, "question_1.md", b"q\n")
+    _plant(tmp_path, "question_3.md", b"q\n")
+    assert max_question_index(tmp_path, _STATE, _BRANCH) == 3
+
+
+def test_max_question_index_counts_a_question_under_answered(tmp_path: Path) -> None:
+    _plant(tmp_path, "question_3.md", b"q\n")
+    _plant(tmp_path, "answered/question_9.md", b"q\n")
+    assert max_question_index(tmp_path, _STATE, _BRANCH) == 9
+
+
+def test_max_question_index_ignores_a_name_that_does_not_match(tmp_path: Path) -> None:
+    _plant(tmp_path, "question_2.md", b"q\n")
+    _plant(tmp_path, "question_x.md", b"q\n")
+    _plant(tmp_path, "answer_7.md", b"a\n")
+    _plant(tmp_path, "question_8.md.bak", b"q\n")
+    assert max_question_index(tmp_path, _STATE, _BRANCH) == 2
+
+
+def test_max_question_index_reads_a_zero_padded_number_base_10(tmp_path: Path) -> None:
+    _plant(tmp_path, "question_010.md", b"q\n")
+    assert max_question_index(tmp_path, _STATE, _BRANCH) == 10
 
 
 def test_read_pair_text_returns_the_file_text_unchanged(tmp_path: Path) -> None:

@@ -2,6 +2,8 @@
 checkout's commit wrapper, and one ledger-entry flip.
 
 The rule:
+- `commit_wrapper_path` is the one place the main checkout's commit wrapper is resolved:
+  `<main_repo>/<scriptsDir>/commit-on-branch.sh`, `scriptsDir` read through `read_config`.
 - `commit_artifact` is `prl_artifact_commit` (`cli/templates/scripts/lib/planning-record-lib.sh`)
   in the call spelling the autonomous fork gives
   (`plugin/instructions/task_plan_writing_instructions_autonomous.md` → `## Override 4 — commit
@@ -18,7 +20,8 @@ The rule:
   file only; the `ledger-flip` commit is the caller's next `commit_artifact` call.
 
 Deliberately not covered:
-- Resolving the wrapper's path: the caller's, which passes the main checkout's copy.
+- Which checkout's wrapper is called: the caller passes `commit_wrapper_path`'s result for the
+  main checkout.
 - Which artifact a step owes: `host/planning_hooks.py`'s.
 - The wrapper's own subjects and path sets (`unit-commit-lib.sh` → `ucl_artifact`), its re-sync
   of a commit that landed with exit 1, and its push.
@@ -31,6 +34,7 @@ import tempfile
 from pathlib import Path
 from typing import Final
 
+from devscene_flow_host.records.config import read_config
 from devscene_flow_host.records.errors import RecordError
 from devscene_flow_host.records.ledger import (
     DONE_MARK,
@@ -40,6 +44,7 @@ from devscene_flow_host.records.ledger import (
     ledger_path,
 )
 
+COMMIT_WRAPPER: Final = "commit-on-branch.sh"
 COMMITTED_EXIT: Final = 0
 NOTHING_TO_COMMIT_EXIT: Final = 3
 _ERROR_PREFIX: Final = "error: "
@@ -49,6 +54,10 @@ _LEDGER_MODE: Final = 0o644
 
 class CommitPointError(Exception):
     """A commit point's call failed; the message is one line naming the call and its cause."""
+
+
+def commit_wrapper_path(main_repo: Path) -> Path:
+    return main_repo / read_config(main_repo).scripts_dir / COMMIT_WRAPPER
 
 
 async def commit_artifact(
@@ -90,7 +99,7 @@ async def commit_artifact(
     if rc == NOTHING_TO_COMMIT_EXIT:
         return False
     cause = _last_error(stdout.decode("utf-8", errors="replace"))
-    raise CommitPointError(f"commit-on-branch.sh --artifact {kind} exited {rc}: {cause}")
+    raise CommitPointError(f"{COMMIT_WRAPPER} --artifact {kind} exited {rc}: {cause}")
 
 
 def _last_error(stdout: str) -> str:

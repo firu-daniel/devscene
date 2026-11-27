@@ -7,6 +7,8 @@ The rule:
 - Stdout is read in chunks of `READ_CHUNK_BYTES`, never by line, so a line longer than the
   reader's default limit is neither refused nor cut; every byte is kept and decoded as UTF-8 with
   `errors="replace"`.
+- Each non-empty stdout chunk is handed to `on_stdout`, when given, as it is read and before it is
+  kept. An exception from `on_stdout` propagates, and the group is killed on the way out.
 - Stderr is drained concurrently in its own task, keeping its last `STDERR_TAIL_BYTES`, so a
   chatty stderr never blocks the process.
 - Each stdout read is bounded by the inactivity limit, so any chunk resets the clock. A read that
@@ -29,8 +31,8 @@ The rule:
 Deliberately not covered:
 - A platform without `os.killpg`: POSIX only, as GraphScene's `FileStateStore` is POSIX-only
   through `fcntl`.
-- Writing the stream anywhere: the flow host's script-driven planning driver's, not yet merged,
-  which receives it through `ClaudeExecutor`'s `SessionUsage.stream`.
+- Writing the stream anywhere: the caller writes it, live through `on_stdout` and whole at the end
+  through `ClaudeExecutor`'s `SessionUsage.stream` (`host/node_sessions.py` → `NodeSessions`).
 - What a stall or an exit status means for the node: `host/claude_executor.py`.
 """
 
@@ -38,7 +40,7 @@ import asyncio
 import contextlib
 import os
 import signal
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
@@ -64,6 +66,7 @@ async def run_session(
     env: Mapping[str, str] | None,
     inactivity_limit_seconds: float,
     kill_grace_seconds: float,
+    on_stdout: Callable[[bytes], None] | None = None,
 ) -> SessionRun:
     try:
         process = await asyncio.create_subprocess_exec(
@@ -100,6 +103,8 @@ async def run_session(
                 break
             if not chunk:
                 break
+            if on_stdout is not None:
+                on_stdout(chunk)
             chunks.append(chunk)
         if not stalled:
             try:

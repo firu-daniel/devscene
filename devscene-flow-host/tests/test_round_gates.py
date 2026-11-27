@@ -13,7 +13,7 @@ open set keeps nothing, and that the returned step's printed reads are kept in
 byte-identical by a `Refused` result, whether refused before the lock or by the walk inside
 it.
 
-It pins the host's held-gate order, chosen over bash's in #472: a held gate whose only siblings
+It pins the host's held-gate order, chosen over bash's: a held gate whose only siblings
 out are refused ones waits while they are re-dispatched in the same round, and escalates at the
 round's next join.
 

@@ -1,12 +1,12 @@
 """The rule this file exists to enforce: `execute_set` clears every pass through `clear_set`,
 launches each dispatch concurrently under the optional run timeout, at most
 `max_concurrent_dispatches` at once in set order, writes one `Launch` row per
-launched session, settles results in finish order, never cancels a sibling, re-dispatches only the
-retried and undelivered nodes as a new pass, halts through the breaker, and returns the outcomes
-then the held failures; on its own cancellation or a defect out of `run` it cancels and awaits its
-outstanding runs and re-raises; a given `before_dispatch` is awaited once per attempt, before
-the run and outside its timeout, and an exception from it propagates like one out of `run`
-(`graphscene.engine.set_execution`).
+launched session carrying the breaker's strikes as its pass was cleared, settles results in
+finish order, never cancels a sibling, re-dispatches only the retried and undelivered nodes as a
+new pass, halts through the breaker, and returns the outcomes then the held failures; on its own
+cancellation or a defect out of `run` it cancels and awaits its outstanding runs and re-raises; a
+given `before_dispatch` is awaited once per attempt, before the run and outside its timeout, and
+an exception from it propagates like one out of `run` (`graphscene.engine.set_execution`).
 
 Each case drives `StubExecutor` or `Gated` through `asyncio.run` with `backoff_seconds=0`.
 `Signals`, `Counter` and `Sink` are in-test classes satisfying `RunSignals`, `DispatchCounter` and
@@ -317,6 +317,24 @@ def test_an_infra_retry_pass_between_undelivered_passes_leaves_the_strikes_uncha
     assert result == SetResult(
         (), Halt("undelivered", "3 consecutive sets had an undelivered result")
     )
+
+
+def test_each_row_carries_the_strikes_its_pass_was_cleared_with() -> None:
+    breaker = UndeliveredBreaker()
+    first = Sink()
+    _execute(
+        ["a"],
+        _stub({"a": [ScriptedFailure("undelivered", "x"), ScriptedOutcome("pass")]}),
+        sink=first,
+        breaker=breaker,
+    )
+    second = Sink()
+    _execute(["a"], _stub({"a": [ScriptedOutcome("pass")]}), sink=second, breaker=breaker)
+    assert first.rows == [
+        Launch(1, "a", "a-agent", 1, 3, Failed("undelivered", "x"), 0),
+        Launch(2, "a", "a-agent", 1, 3, Completed("pass"), 1),
+    ]
+    assert second.rows == [Launch(1, "a", "a-agent", 1, 3, Completed("pass"), 0)]
 
 
 def test_the_hosts_breaker_limit_takes_effect() -> None:

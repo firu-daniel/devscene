@@ -21,7 +21,7 @@ Deliberately not covered:
 - `RoundResume` validity, which is `Walker.start`'s.
 - Configuration, which the CLI reads none of.
 - Platforms without `fcntl`, which `FileStateStore` does not cover.
-- DevScene's `key: value` wire, which is #418's.
+- DevScene's `key: value` wire, which is its flow host's command's.
 """
 
 import argparse

@@ -20,7 +20,7 @@ The rule: it reads as `pnl_init` and `pnl_prompt` build a prompt
 
 Deliberately not covered:
 - Where `pairs` come from: `host/planning_entry.py`'s.
-- Keeping `RevisionFindingsStore` filled in run mode: the run driver's (#424).
+- Keeping `RevisionFindingsStore` filled in run mode: `host/planning_executor.py`'s.
 - A builder for a flow whose prompt sources are not fenced blocks.
 """
 

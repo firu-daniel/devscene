@@ -27,6 +27,8 @@ The rule:
   writes one `Launch` row to the `LaunchSink` and is settled: a `Recorded` from a `Completed` joins
   the outcomes, a `Recorded` from a `Failed` joins the held failures, and a `Retry` or `Redispatch`
   sends its node to the next pass.
+- Each `Launch` row carries `Launch.undelivered_strikes`, the breaker's strikes as they stood when
+  its pass was cleared, so every row of one pass carries the same value.
 - A failing node never cancels a sibling; a pass ends when every run of it has finished.
 - After a pass that had a `Redispatch`, `UndeliveredBreaker.observe(True)` is called, and once the
   breaker is tripped `Halt("undelivered", "<strikes> consecutive sets had an undelivered result")`
@@ -49,7 +51,7 @@ Deliberately not covered:
 - Persisting the book, the breaker and the counter across processes: the host's.
 - Usage: the host's, through its executor's usage sink.
 - Detecting a stalled (inactive) session: the executor's, since only the executor sees the
-  session's activity, and it returns that stall as `Failed("infra", …)` (#421).
+  session's activity, and it returns that stall as `Failed("infra", …)`.
 - A `Launch` row for a run cancelled because `execute_set` was cancelled or another run raised:
   such a run has taken its `seq` from `DispatchCounter.increment` but returns no `NodeResult`,
   so it writes no row.
@@ -112,6 +114,7 @@ async def execute_set(
             outcomes,
             held,
             before_dispatch,
+            breaker.strikes,
         )
         if undelivered:
             breaker.observe(True)
@@ -138,6 +141,7 @@ async def _run_pass(
     outcomes: list[NodeRecord],
     held: list[NodeRecord],
     before_dispatch: Callable[[BeforeDispatch], Awaitable[None]] | None,
+    strikes: int,
 ) -> tuple[set[str], bool]:
     again: set[str] = set()
     undelivered = False
@@ -169,7 +173,15 @@ async def _run_pass(
                 dispatch, seq, attempt = launched[task]
                 result = task.result()
                 sink.record(
-                    Launch(seq, dispatch.node, dispatch.agent, attempt, limits.max_attempts, result)
+                    Launch(
+                        seq,
+                        dispatch.node,
+                        dispatch.agent,
+                        attempt,
+                        limits.max_attempts,
+                        result,
+                        strikes,
+                    )
                 )
                 settlement = book.settle(dispatch.node, result, limits, failure_outcome)
                 if isinstance(settlement, Recorded):

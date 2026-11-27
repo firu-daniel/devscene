@@ -1,14 +1,15 @@
 """Reads `devscene.config.json` into a `HarnessConfig`.
 
-The rule: `read_config` reads two keys, `stateDir` and `phases`, and refuses a configuration with
-no `defaultBranch`, as `hr_config_load` does; each key is read as the bash walker's reader reads
-it in `cli/templates/scripts/lib/harness-run-lib.sh`: `stateDir` as `hr_config_dir` /
-`hr_state_dir`, `phases` as `hr_phase_enabled`. It reads values and decides nothing about what
-they mean to the walk.
+The rule: `read_config` reads three keys, `stateDir`, `scriptsDir` and `phases`, and refuses a
+configuration with no `defaultBranch`, as `hr_config_load` does; each key is read as the bash
+walker's reader reads it in `cli/templates/scripts/lib/harness-run-lib.sh`: `stateDir` as
+`hr_config_dir` / `hr_state_dir`, `scriptsDir` as `hr_scripts_dir`, `phases` as
+`hr_phase_enabled`. It reads values and decides nothing about what they mean to the walk.
 
 Deliberately not checked:
 - Every other key.
 - Whether `stateDir` is a safe repo-relative path, which is the schema's.
+- Whether `scriptsDir` is a safe repo-relative path, which is the schema's.
 """
 
 import json
@@ -23,16 +24,19 @@ from devscene_flow_host.records.errors import RecordError
 CONFIG_FILENAME: Final = "devscene.config.json"
 # The schema's default `devscene/`, normalised as `hr_state_dir` normalises it.
 DEFAULT_STATE_DIR: Final = "devscene"
+# The schema's default `devscene-scripts/`, normalised as `hr_config_dir` normalises it.
+DEFAULT_SCRIPTS_DIR: Final = "devscene-scripts"
 # The phases `hr_phase_enabled` accepts.
 PHASES: Final = ("parity", "qa", "docs")
 
 
 @dataclass(frozen=True)
 class HarnessConfig:
-    """`state_dir` is repo-relative with no trailing `/`. `phases` holds exactly the `PHASES`
-    keys, in that order: `True` on, `False` off, `None` unresolvable."""
+    """`state_dir` and `scripts_dir` are repo-relative with no trailing `/`. `phases` holds
+    exactly the `PHASES` keys, in that order: `True` on, `False` off, `None` unresolvable."""
 
     state_dir: str
+    scripts_dir: str
     phases: Mapping[str, bool | None]
 
 
@@ -53,6 +57,7 @@ def read_config(repo_root: Path) -> HarnessConfig:
         raise RecordError(f"{path}: no defaultBranch")
     return HarnessConfig(
         state_dir=_state_dir(document, path),
+        scripts_dir=_scripts_dir(document, path),
         phases=_phases(document),
     )
 
@@ -64,6 +69,15 @@ def _state_dir(document: dict[str, object], path: Path) -> str:
     if not isinstance(value, str):
         raise RecordError(f"{path}: stateDir is not a string")
     return value.rstrip("/") or DEFAULT_STATE_DIR
+
+
+def _scripts_dir(document: dict[str, object], path: Path) -> str:
+    value = document.get("scriptsDir")
+    if value is None:
+        return DEFAULT_SCRIPTS_DIR
+    if not isinstance(value, str):
+        raise RecordError(f"{path}: scriptsDir is not a string")
+    return value.rstrip("/") or DEFAULT_SCRIPTS_DIR
 
 
 def _phases(document: dict[str, object]) -> Mapping[str, bool | None]:

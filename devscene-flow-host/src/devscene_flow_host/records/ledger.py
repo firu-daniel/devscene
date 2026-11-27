@@ -9,10 +9,17 @@ no ledger exists are the caller's skipped ids used. When neither answers, the re
 nothing with it. `read_planning_marks` reads the `P1`-`P3` marks as `pd_ledger_read` does
 (`cli/templates/scripts/lib/planning-driver-lib.sh`): a line opening with a mark followed by
 `<entry>.` sets that entry's mark, the last such line wins, and no such line is `None`. It decides
-nothing about what a mark means.
+nothing about what a mark means. `read_run_mode_entries` reads the `## Run mode` section's
+`- skipped:` value and `- ignored:` entries as `pd_run_mode_line` did (the same library, now
+deleted and readable in its history): a trailing CR stripped, the section opened by a line equal
+to `_RUN_MODE_HEADING` and closed by the next `## ` line, the last `_SKIPPED_PREFIX` line's value
+cut at its first `   (`, and each `IGNORED_PREFIX` line split at its last ` (` into text and reason.
+`require_ledger` is the existence check a caller makes before acting on the ledger. It and both
+readers that need the ledger report a missing ledger with the one `_missing` message.
 
 Deliberately not covered:
 - The ledger's other blocks.
+- Formatting the `📌 Run mode:` line, which is the host's.
 - Whether an id is in the run mode's closed directive set, which the run-mode instructions own.
 """
 
@@ -25,6 +32,9 @@ from devscene_flow_host.records.errors import RecordError
 LEDGER_DIRECTORY: Final = "flow_progress"
 _RUN_MODE_HEADING: Final = "## Run mode"
 _SKIPPED_PREFIX: Final = "- skipped: "
+IGNORED_PREFIX: Final = "- ignored: "
+_SKIPPED_COMMENT: Final = "   ("
+_IGNORED_REASON: Final = " ("
 _TRAILING: Final = " \t\r"
 
 PLANNING_ENTRIES: Final = ("P1", "P2", "P3")
@@ -56,6 +66,20 @@ class RunModeUnresolved:
 
 
 @dataclass(frozen=True)
+class IgnoredEntry:
+    """`reason` keeps its closing parenthesis; `None` when the entry carries no ` (`."""
+
+    text: str
+    reason: str | None
+
+
+@dataclass(frozen=True)
+class RunModeEntries:
+    skipped: str
+    ignored: tuple[IgnoredEntry, ...]
+
+
+@dataclass(frozen=True)
 class PlanningMarks:
     p1: PlanningMark
     p2: PlanningMark
@@ -64,6 +88,16 @@ class PlanningMarks:
 
 def ledger_path(repo_root: Path, state_dir: str, branch: str) -> Path:
     return repo_root / state_dir / LEDGER_DIRECTORY / f"{branch}_progress.md"
+
+
+def _missing(path: Path) -> RecordError:
+    return RecordError(f"the flow-progress ledger '{path}' does not exist")
+
+
+def require_ledger(repo_root: Path, state_dir: str, branch: str) -> None:
+    path = ledger_path(repo_root, state_dir, branch)
+    if not path.is_file():
+        raise _missing(path)
 
 
 def parse_skipped(value: str) -> frozenset[str]:
@@ -111,7 +145,7 @@ def read_planning_marks(repo_root: Path, state_dir: str, branch: str) -> Plannin
     try:
         raw = path.read_bytes()
     except FileNotFoundError:
-        raise RecordError(f"no flow-progress ledger at {path}") from None
+        raise _missing(path) from None
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError:
@@ -123,3 +157,39 @@ def read_planning_marks(repo_root: Path, state_dir: str, branch: str) -> Plannin
                 if line.startswith(prefix + f"{entry}."):
                     marks[entry] = value
     return PlanningMarks(p1=marks["P1"], p2=marks["P2"], p3=marks["P3"])
+
+
+def read_run_mode_entries(repo_root: Path, state_dir: str, branch: str) -> RunModeEntries:
+    path = ledger_path(repo_root, state_dir, branch)
+    try:
+        raw = path.read_bytes()
+    except FileNotFoundError:
+        raise _missing(path) from None
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        raise RecordError(f"{path}: not UTF-8 text") from None
+    skipped = ""
+    ignored: list[IgnoredEntry] = []
+    in_run_mode = False
+    for raw_line in text.split("\n"):
+        line = raw_line.removesuffix("\r")
+        if line == _RUN_MODE_HEADING:
+            in_run_mode = True
+            continue
+        if line.startswith("## "):
+            if in_run_mode:
+                break
+            continue
+        if not in_run_mode:
+            continue
+        if line.startswith(_SKIPPED_PREFIX):
+            skipped = line[len(_SKIPPED_PREFIX) :].split(_SKIPPED_COMMENT, 1)[0]
+        elif line.startswith(IGNORED_PREFIX):
+            rest = line[len(IGNORED_PREFIX) :]
+            before, found, after = rest.rpartition(_IGNORED_REASON)
+            if found:
+                ignored.append(IgnoredEntry(text=before, reason=after))
+            else:
+                ignored.append(IgnoredEntry(text=rest, reason=None))
+    return RunModeEntries(skipped=skipped, ignored=tuple(ignored))

@@ -2,7 +2,7 @@
 
 **Who reads this:** a maintainer deciding whether a second orchestrated flow adopts the walker, or debugging a planning run's routing.
 
-**What it owns.** The decisions of record for the pilot that moved the task-plan-writing loop's **routing** out of `plugin/instructions/task_plan_writing_instructions_core.md` and into a declared graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, walked by `cli/templates/scripts/flow-walker.sh`; the core's measured size before and after; and the walker's second driver, the watcher's opt-in planning driver (`cli/templates/scripts/lib/planning-driver-lib.sh` and its two sibling libraries), which walks the same graph with one headless session per node and no orchestrator — which driver runs when, how each runs a round, what a resume after an escalation park re-runs, and what of the second is not yet measured (`## 5. The two drivers`). It does not restate how to call the walker (its own header, and the core's `## The walker — routing is its, judgement is yours`), the graph's shape (the generic format-4 schema the graph is authored in, `graphscene/src/graphscene/schemas/flow-graph.schema.json`), the static checks (`graphscene.static_violations`, and `devscene-flow-host/tests/core_agreement.py` → `core_agreement_violations`) or the outer-loop file table (`docs/watcher.md` → `## 2. The scripts`).
+**What it owns.** The decisions of record for the pilot that moved the task-plan-writing loop's **routing** out of `plugin/instructions/task_plan_writing_instructions_core.md` and into a declared graph, `cli/templates/scripts/flows/task_plan_writing.graph.json`, walked by `cli/templates/scripts/flow-walker.sh`; the core's measured size before and after; and the walker's second driver, the watcher's opt-in planning driver (`devscene-flow-host`'s `devscene-planning-driver`, `devscene-flow-host/src/devscene_flow_host/commands/planning_driver.py`), which walks the same graph with one headless session per node and no orchestrator — which driver runs when, how each runs a round, what a resume after an escalation park re-runs, and what of the second is not yet measured (`## 5. The two drivers`). It does not restate how to call the walker (its own header, and the core's `## The walker — routing is its, judgement is yours`), the graph's shape (the generic format-4 schema the graph is authored in, `graphscene/src/graphscene/schemas/flow-graph.schema.json`), the static checks (`graphscene.static_violations`, and `devscene-flow-host/tests/core_agreement.py` → `core_agreement_violations`) or the outer-loop file table (`docs/watcher.md` → `## 2. The scripts`).
 
 ---
 
@@ -89,6 +89,8 @@ Each one restates an outcome the tasks that built it settled, with its reason an
 
 **On the script-driven path.** There the three are the driver's, per set, exactly as **A set.** words them: before anything of the set goes out, the STOP check runs per block, the PAUSE check once, and the cap against the whole set; the counter is then incremented and the heartbeat logged per block (`cli/templates/scripts/lib/planning-driver-lib.sh` → `pd_run_set`). The halt messages are the core's, with `<reentry_command>` resolved to the autonomous fork's value, `/devscene:branch-start-plan-autonomous` (`planning-driver-lib.sh` → `PD_REENTRY_COMMAND`; `task_plan_writing_instructions_autonomous.md` → its `<reentry_command>` row).
 
+**Superseded 2026-11-27 (`feat_planning_driver_python_cutover`).** The paragraph above names the retired bash driver: GraphScene's `clear_set` now clears every pass of a set against the host's `FileRunSignals` and `FileDispatchCounter` (`devscene-flow-host/src/devscene_flow_host/host/run_control.py`), and the halt messages, with `REENTRY_COMMAND`, are `devscene-flow-host/src/devscene_flow_host/host/run_exits.py`'s (`## 5. The two drivers` → `### The driver walks in-process, in GraphScene's run mode`).
+
 ### Item 6 — the walker and graph ship into `scriptsDir`, and the graph is found beside the walker
 
 **Decision.** `flow-walker.sh` and `flows/task_plan_writing.v4.graph.json` ship from `cli/templates/scripts/` into the adopter's `scriptsDir`, with the flow host's packages under `<scriptsDir>/python/` (`cli/src/flowHost/layout.ts`). The walker's row in `cli/src/generators/outerLoopScripts.ts` → `OUTER_LOOP_SCRIPTS` is `agentInvocable: true`, so the autonomous profile grants it. The graph is found **beside the walker** by flow id: the hand-off passes its own `flows/` directory as `--flows` on `start`, `next` and `current`, and the command reads `<flows>/<flow>.v4.graph.json` (`flow-walker.sh` → `HAND-OFF` step 4); the caller passes no path. The format-3 graph `flows/task_plan_writing.graph.json` still ships, because `lib/planning-node-lib.sh` and `lib/planning-driver-lib.sh` read its node list; no walker reads it, and its retirement is #459's (`OUTER_LOOP_SCRIPTS` → that row's comment; `ROADMAP.md` → the GraphScene row, *"the format-3 readers moving to format 4"*).
@@ -96,6 +98,8 @@ Each one restates an outcome the tasks that built it settled, with its reason an
 **Changed 2026-11-25 (#419).** `lib/flow-walker-gates.sh` no longer ships: its checks are the flow host's (`### Item 9`). Until this branch the bash walker read the format-3 graph beside itself, at `<this script's dir>/flows/<flow>.graph.json`, and `init` never wrote the format-4 source.
 
 **Changed 2026-11-25 (#459).** The format-4 graph now ships as `flows/task_plan_writing.graph.json`, the one graph under `flows/`, which `lib/planning-node-lib.sh` and `lib/planning-driver-lib.sh` read for its node list as well. The command reads `<flows>/<flow>.graph.json` (`devscene-flow-host/src/devscene_flow_host/commands/flow_walker.py` → `GRAPH_SUFFIX`).
+
+**Changed 2026-11-27 (`feat_planning_driver_python_cutover`).** No bash reader of the graph remains: `lib/planning-node-lib.sh` and `lib/planning-driver-lib.sh` are retired, and the planning driver loads `<flows>/task_plan_writing.graph.json` itself (`devscene-flow-host/src/devscene_flow_host/commands/planning_driver.py` → `FLOW`, `GRAPH_SUFFIX`).
 
 **Reason.** Every invocation stays one plain literal command, which the permission profile can grant and the script-allowlist guard does not withhold. And the orchestrator never has to resolve the plugin root, which `docs/development.md` → `## 2. The one authoring rule that follows` records a real orchestrator doing by hand, with `find`, after its own `${CLAUDE_PLUGIN_ROOT}` citations were refused.
 
@@ -157,6 +161,8 @@ npx devscene@latest init --upgrade
 
 **Changed 2026-11-26 (`feat_graphscene_node_hooks`).** The format is 5 (`"formatVersion": 5`), because the schema's `formatVersion` says *"A change to the key set raises it"* and four keys were added: `vocabulary.hooks`, which declares every hook name a node's `before` or `after` may name; `promptSource` on a dispatch node, naming where the host reads its agent prompt from; `before` and `after` on a dispatch node and a round node; and `before` on a terminal node. Hooks are run mode's, run through the `HookHost` a caller passes to `start_run` / `continue_run` as `hooks`; `Walker` runs none, and where each hook fires is `graphscene/README.md` → `## What it is`. The planning graph declares each dispatch node's core heading in `plugin/instructions/task_plan_writing_instructions_core.md` as its `promptSource`, `plan_round`'s `after` hooks `commit_plan_round` and `flip_ledger`, and `convergence`'s `before` hooks `flip_ledger` and `commit_convergence`, run by the flow host's `PlanningHooks` (`devscene-flow-host/README.md` → `## The planning hooks`). Until the run-mode cutover (#424) nothing in production runs them: the bash planning driver still makes those commits and flips itself, and still cuts its prompts from `PNL_CORE_BLOCKS` (`cli/templates/scripts/lib/planning-node-lib.sh`). Meanwhile `cli/test/planning-node-lib.test.mjs` holds each dispatch node's `promptSource` to one `PNL_CORE_BLOCKS` row, and core-agreement check 10 `prompt-source-in-core` (`devscene-flow-host/tests/core_agreement.py` → `core_agreement_violations`) holds it to a heading of the core carrying as many fenced blocks as the node's `prompts`, so the two prompt declarations stay aligned.
 
+**Changed 2026-11-27 (`feat_planning_driver_python_cutover`).** The run-mode cutover has landed, and no bash reader of the graph remains. The planning driver runs the hooks through `PlanningHooks` and cuts every prompt from its node's `promptSource` through `CorePromptBuilder` (`devscene-flow-host/src/devscene_flow_host/host/agent_prompts.py`). `PNL_CORE_BLOCKS`, `lib/planning-node-lib.sh` and `cli/test/planning-node-lib.test.mjs` are retired, so `promptSource` is the one prompt declaration, held by check 10 alone (`devscene-flow-host/tests/test_core_agreement.py`).
+
 ### The runtime — bash 3.2 and `jq` 1.5
 
 **Decision.** The walker and its gate library are bash with a 3.2 floor and `jq` 1.5 (`flow-walker.sh` → `BASH 3.2 AND JQ 1.5 ARE THE FLOORS`).
@@ -164,6 +170,8 @@ npx devscene@latest init --upgrade
 **Reason.** That is what an adopter's unattended run already has: `doctor`'s `jq` check fails a `jq` older than 1.5 (`cli/src/doctor/checks.ts` → `JQ_CHECK`), and the shared library every outer-loop script sources already holds the same bash floor (`cli/templates/scripts/lib/harness-run-lib.sh` → `BASH 3.2 IS THE FLOOR`). So the walker needs no new `doctor` check.
 
 **Superseded 2026-11-25 (#419).** The walker is Python — `devscene-flow-host`'s `devscene-flow-walker`, run through `uv` from `<scriptsDir>/python/` (`### Item 6`) — and the bash and `jq` floors above no longer bound it. The hand-off, `flow-walker.sh`, stays bash-3.2-safe and needs `jq` only through `lib/harness-run-lib.sh`'s `stateDir` read, `hr_state_dir`, which it runs to find a leftover flat state file (`flow-walker.sh` → `HAND-OFF` steps 1 and 2). A host without `uv` is refused by the hand-off with exit 2 (`HAND-OFF` step 3), failed by `doctor`'s `uv` check (`cli/src/doctor/checks.ts` → `UV_CHECK`), and fails a run copy's bootstrap at `setup-worktree.sh` step 6. A run's planning driver runs the main checkout's walker, not the run copy's, because the driver runs outside the sandbox and anything that does must not be writable from inside it (`cli/templates/scripts/lib/planning-driver-lib.sh` → `THE WALKER IS THE MAIN CHECKOUT'S`).
+
+**Changed 2026-11-27 (`feat_planning_driver_python_cutover`).** That library is retired. The planning driver is `devscene-planning-driver`, which the watcher runs through `hr_flow_host_exec` from the main checkout's `<scriptsDir>/python/`, and it walks in-process rather than calling a walker (`cli/templates/scripts/autonomous-watcher.sh` → the header's `THE SEQUENCE`; `## 5. The two drivers` → `### The driver walks in-process, in GraphScene's run mode`).
 
 ### Per-call startup cost
 
@@ -210,7 +218,7 @@ A proposal to the maintainer, not scheduled work. Every other orchestrated loop 
 
 ## 5. The two drivers
 
-The walker has two drivers: the orchestrating session, which reads the core, and the watcher's planning driver, which is the second driver `### Item 8` → **What a second driver must do.** describes. Each subsection below is a decision, its reason and its cost, as in §2. The watcher's side — the switch, the launch sequence and the exit mapping — is `docs/watcher.md` → `### Script-driven planning (opt-in pilot)`.
+The walker has two drivers: the orchestrating session, which reads the core, and the watcher's planning driver, which is the second driver `### Item 8` → **What a second driver must do.** describes. Since 2026-11-27 (`feat_planning_driver_python_cutover`) that driver is `devscene-flow-host`'s `devscene-planning-driver` (`devscene-flow-host/src/devscene_flow_host/commands/planning_driver.py`), run in GraphScene's run mode. The bash driver it replaced is retired, and the entries below that describe it are marked **Superseded** and point to their replacement. Each subsection below is a decision, its reason and its cost, as in §2. The watcher's side — the switch, the launch sequence and the exit mapping — is `docs/watcher.md` → `### Script-driven planning (opt-in pilot)`.
 
 ### Which runs when
 
@@ -220,6 +228,69 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 
 **Cost.** A launch that is not ready logs one `planning driver off for '<branch>': <reason>` line and takes the orchestrated path, so a key that is not a boolean, or a runtime root that does not resolve, costs the pilot's data, not the run.
 
+**Changed 2026-11-27 (`feat_planning_driver_python_cutover`).** *"The three libraries readable"* is replaced by the flow host's environment being able to run `devscene-planning-driver`. `planning_driver_ready` asks `hr_flow_host_missing` for this, and when the environment cannot run it the off reason names `flow-host-provision.sh` (`cli/templates/scripts/autonomous-watcher.sh` → `planning_driver_ready`).
+
+### The driver walks in-process, in GraphScene's run mode
+
+**Decision.** `devscene-planning-driver` loads `<flows>/task_plan_writing.graph.json` and walks it in its own process with GraphScene's `start_run` / `continue_run` (`devscene-flow-host/src/devscene_flow_host/host/planning_run.py` → `run_planning`). It runs no `flow-walker.sh` and no `devscene-flow-walker`. Its parts:
+
+- **The walk.** The walker is the host's `open_walker`, and where the walk enters is decided by `decide_planning_entry` (`host/planning_entry.py`).
+- **The nodes.** Each node runs through `ClaudeExecutor`, wrapped in `PlanningExecutor`. Its prompt is built by `CorePromptBuilder`.
+- **Commits and ledger flips.** Every round commit and ledger flip runs through `PlanningHooks`.
+- **The limits.** They are `host/run_control.py` → `planning_limits`: `ExecutionLimits(max_concurrent_dispatches=MAX_CONCURRENT_DISPATCHES, max_attempts=MAX_ATTEMPTS, backoff_seconds=backoff_seconds(), dispatch_cap=…)`. The values are 5, 3 and 60.0; the backoff takes a lower `PD_BACKOFF_SECS`, a test-only override capped at 60 that a real run never sets, and the cap is the core's `MAX_TOTAL_DISPATCHES` line, read by `records/core_limits.py` → `read_max_total_dispatches`.
+- **After the walk stops.** What the driver does then — the hand-off narration, the pause files, the parks and the partial commit before an escalation park — is `host/run_exits.py` → `act_on_exit`'s.
+- **Its answer to the watcher.** `0` with a `consumed:` line, `3` with `stopped: <kind>`, `2` on a fault (`commands/planning_driver.py` → the module docstring).
+
+**Reason.** The execution rules the bash driver kept beside the walker — the per-set STOP, PAUSE and cap checks, the infrastructure retry, the undelivered breaker — are now GraphScene's run mode (`.claude/context/graphscene.md` → *"The execution rules … are the engine's"*). The host supplies only the harness's records, executor and hooks, and wherever a rule is left to the host, a host module reads as the retired bash function it names in its docstring.
+
+**Cost.** The driver needs the flow host's environment: a launch whose `<scriptsDir>/python/` environment cannot run it takes the orchestrated path (`### Which runs when`, above). GraphScene's `FileStateStore` is POSIX-only, so the driver is too (`host/session_process.py` → *"Deliberately not covered"*).
+
+### The launch vector keeps one producer
+
+**Decision.** The watcher's `planning_driver_run` launches the driver through `hr_flow_host_exec`, and passes the agent CLI and the shared session vector after `--`. That vector is `session_exec`'s, without `-p`, `--output-format` and `--verbose` (`cli/templates/scripts/autonomous-watcher.sh` → the header's `THE DRIVER'S ARGV`). Per session, the driver adds only these:
+
+- `host/agent_flags.py` → `session_args` appends `--add-dir <plugin_dir>` unless `--plugin-dir-added` says the vector carries it.
+- `agent_args` adds the per-agent MCP flags.
+- `ClaudeExecutor` adds its own `EXECUTOR_FLAGS`, and refuses a shared flag that is one of them.
+- `session_env` drops the variables the flow host's `uv` launch added.
+
+**Reason.** The rule the superseded `### Why the driver is three watcher-sourced libraries` → **One producer of the launch vector:** stated still holds: every node session gets the run's per-run settings, permission mode, model, effort, added directories and main-checkout anchor from the one array the engine session is launched from.
+
+**Cost.** The argument vector is a contract written in two places: the watcher header's `THE DRIVER'S ARGV` and `commands/planning_driver.py`'s module docstring. It is pinned from the watcher's side by `cli/test/watcher-planning-driver.test.mjs` and from the command's side by `devscene-flow-host/tests/test_planning_driver_command.py`.
+
+### At most five dispatches at once
+
+**Decision.** At most 5 dispatches of a set run at once: `host/run_control.py` → `MAX_CONCURRENT_DISPATCHES`, passed as `ExecutionLimits.max_concurrent_dispatches`. It is a flow-host constant, not a `devscene.config.json` key.
+
+**Reason.** The flow host is the harness's own implementation of its flows, so the limit is the harness's to set. GraphScene's default of 10 is for hosts that set none (`host/run_control.py` → its module docstring). The planning graph's widest set is a round's three gates, so the limit does not bind today.
+
+**Cost.** Changing it is a code change shipped with a release, never a configuration edit. A set wider than five queues: its next dispatch starts as soon as a running one finishes (`graphscene/src/graphscene/engine/set_execution.py` → `execute_set`).
+
+### The walk stays in the file store
+
+**Decision.** The walk stays in GraphScene's `FileStateStore`, at `<stateDir>/.flow_walker_state/<percent-encoded branch>.json` (`host/store.py` → `walk_store`), with no ledger-backed store.
+
+- **A pause, a stop or a crash** leaves the walk in place.
+- **The next drive** continues a usable saved step. When the saved walk is unusable or absent, `decide_planning_entry` rebuilds the entry from the ledger, the answered pairs and the drafts and round files on disk.
+- **A remote job** carries the directory across job boundaries as `flow_walker_state/` in its `harness-state` bundle (`cli/templates/scripts/lib/harness-run-lib.sh` → `THE REMOTE STATE BUNDLE`, `HR_REMOTE_STATE_ARTIFACT`, `HR_REMOTE_WALKER_FILE`).
+
+**Reason.** It is the store the walker command and the orchestrated path already keep (`### Item 3a`), so neither driver needs a second record of the walk. The flow-progress ledger stays the one durable record and wins over a saved walk (`### Item 3a` → **Which record wins.**), and `decide_planning_entry`'s unusable-step rules apply that rule.
+
+**Cost.** A walk lost or unusable is rebuilt rather than continued. A round whose evidence on disk cannot be read is dispatched whole again (`host/resume.py` → `round_resume`).
+
+### A refused round file is an infrastructure failure
+
+**Decision.** `PlanningExecutor` turns two kinds of round-gate verdict into infrastructure failures (`host/planning_executor.py`):
+
+- a `PASS` or `FAIL` whose round file `round_file_problem` refuses becomes `Failed("infra", "the round file was refused: <problem>")`;
+- a verdict whose `findings_file` is blank becomes `Failed("infra", "<outcome> carries no findings_file")`.
+
+GraphScene's `AttemptBook` retries that gate alone after `BACKOFF_SECONDS`, its siblings keeping their outcomes, and records its third attempt (`MAX_ATTEMPTS`) as `error`. The join then escalates it like any held outcome.
+
+**Reason.** Run mode records each outcome through `Walker.next`, never through `record_outcome`, so the walker command's `refused:` path and its `RefusalStore` count (`### Item 9`) do not run. Folding the refusal into the infrastructure retry keeps what Item 9 decided: three attempts per gate, and the reviewer as the one sent back.
+
+**Cost.** A refused file now waits the 60 s backoff before its re-dispatch. Its attempts are also the node's infrastructure attempts, shared with every other infrastructure failure of that gate.
+
 ### How each runs a parallel round
 
 **Decision.** The orchestrator runs a printed set as one message of foreground `Agent` calls (`plugin/instructions/task_plan_writing_instructions_core.md` → `## Safety contract — applies before EVERY Agent dispatch` → **A set.**). The driver runs one headless session per block, all launched at once once the set's safety contract has passed (`### Item 4` → **On the script-driven path.**), and records each with `flow-walker.sh next --node <node>` as its session ends, in finish order (`planning-driver-lib.sh` → `pd_run_set`, `pd_reap_one`). An `action: wait` is nothing to do. A held `error` or `blocker` comes back as one binding after the last outcome, printed by the walker's join. A sibling is never cancelled: an `error`, a `blocker` or a stall kill ends that one session. The driver splits `error` by class, which `pnl_reap` prints as `class=infra` or `class=agent` on every `kind=error` so the driver never parses a reason (`planning-node-lib.sh` → `pnl_reap`, `PNL_REAP_JQ`). **An infrastructure failure** — a session the driver killed as stalled, a missing `init` event, a session that ended not `success` or with `is_error`, a return that carries no return block or fails its agent's schema file, `schemas/<agent>.return.json`, a `FAIL` or a round gate's `PASS` whose `findings_file` is blank — is held unrecorded, and after `PD_BACKOFF_SECS` its node alone is dispatched again from the blocks `flow-walker.sh current` re-prints, its siblings keeping their recorded outcomes; only attempt `PD_MAX_ATTEMPTS` (3) is recorded as `error`, and a node's count restarts at 1 once it records an outcome. **Every other `error`** — an `init` event carrying a tool the agent does not declare, or a schema-valid outcome the node does not declare — is recorded at once, as is an agent's `blocker` outcome (`planning-driver-lib.sh` → `pd_reap_one`, `pd_run_set`'s `retry` result).
@@ -227,6 +298,8 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 **Reason.** That is the contract `### Item 8` → **What a second driver must do.** wrote, followed as written, so the walker needed no change for a second driver: the join, the held binding and the refusal of a second outcome are the walker's (`flow-walker.sh` → `ROUNDS`; `devscene-flow-host/README.md` → `## What it reads, answers and keeps` → **Recording a gate.**).
 
 **Cost.** The driver polls the set once a second with `kill -0`, because bash 3.2 has no `wait -n` (`planning-driver-lib.sh` → `BASH 3.2 AND JQ 1.5 ARE THE FLOORS`). A session that delivered nothing — no `result` event, or an API overload error — is not recorded but dispatched again, and a third consecutive undelivered set pauses planning, resumed by hand (`pd_undelivered`); that re-dispatch consumes no infrastructure attempt, and in a set holding both, the undelivered path takes the set and the held node goes out with its re-dispatch. An infrastructure retry is a dispatch like any other: it passes the set's safety contract again and counts against `MAX_TOTAL_DISPATCHES`, but neither against the undelivered strikes nor as a recovery through `current`. While attempts remain it raises no park, pause or notification — one `[plan-drive]` line and one observation per retry. When they run out the run parks once, after the siblings have finished, and the question's detail for that node carries `- agent:` and an `- attempts:` list of how each attempt ended (`pd_session_detail`). The observations file's session table is `seq node agent attempt result duration cost`, one row per launched session, retries included, `attempt` written `k/3`.
+
+**Superseded 2026-11-27 (`feat_planning_driver_python_cutover`).** The decision's mechanics — `pd_run_set`, `pd_reap_one`, `pnl_reap`'s `class=` line, `PD_BACKOFF_SECS` and `PD_MAX_ATTEMPTS` — and the cost's `kill -0` poll belong to the retired bash driver. The same rules now run as GraphScene's `execute_set` and `AttemptBook` over the host's `Failed("infra")` and `Failed("agent")` results, with `host/run_control.py` → `MAX_ATTEMPTS` and `BACKOFF_SECONDS`, and nothing polls (`### The driver walks in-process, in GraphScene's run mode`, above). One rule moved: a schema-valid outcome the node does not declare is no longer an agent `error`, but a step the walk refuses (`host/session_stream.py` → *"Departures from `PNL_REAP_JQ`"*).
 
 ### A resume after an escalation park
 
@@ -241,6 +314,12 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 
 **Cost.** The commit is the driver's, not the autonomous fork's. `plugin/instructions/task_plan_writing_instructions_autonomous.md` makes a `Plan round <n> partial` commit only for `## Override 5 — pause/resume + flow-progress ledger (planning half)`'s PAUSE and the API-overload self-pause, and `## Override 6 — commit each plan-review round` commits a round only on a `round:` line; the library's module header records the divergence. The orchestrated path makes no such commit, so its held round stays uncommitted and, by the same `plan: unknown` reading, its resume re-runs every gate. That is inferred from the walker's rule, not driven. A UI-loop escalation resuming at `ui_writer` is not covered: the suite's fixture runs `phases.qa` `false` and hands off without entering the UI loop.
 
+**Superseded 2026-11-27 (`feat_planning_driver_python_cutover`).** `pd_escalate_park`, `pd_partial`, `planning-driver-lib.sh`'s module header and `cli/test/planning-driver-control.test.mjs` are retired. The rule stands, and is now held by the Python driver:
+
+- **The partial commit before the park** is `host/run_exits.py` → `act_on_exit`'s: a `Stop` holding gates commits `plan-round-partial` before its park.
+- **Path (a)** is pinned by `devscene-flow-host/tests/test_planning_driver_control.py` → `test_an_escalation_park_commits_its_partial_round_first_and_a_resume_revises_first`.
+- **The entry with no answered pair** is decided under `devscene-flow-host/tests/test_planning_entry.py`.
+
 ### Why the driver is three watcher-sourced libraries
 
 **Decision.** The driver is `lib/planning-node-lib.sh` (one node session), `lib/planning-record-lib.sh` (every durable write) and `lib/planning-driver-lib.sh` (the walk), each sourced by the watcher inside the run's launch subshell (`autonomous-watcher.sh` → `planning_driver_run`), never executed, shipped without an executable bit and with `agentInvocable: false` (`cli/src/generators/outerLoopScripts.ts` → `OUTER_LOOP_SCRIPTS`). It is not a script of its own.
@@ -248,6 +327,8 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 **Reason.** Three properties follow from running inside the watcher. **One producer of the launch vector:** every node session is launched through the watcher's `session_exec`, the same function the engine session goes through, so a node gets the run's per-run settings, permission mode, model, effort, added directories, environment scrub and main-checkout anchor, with only the per-node flags appended (`autonomous-watcher.sh` → `session_exec`; `planning-node-lib.sh` → `pnl_agent_flags`). **No new agent reach:** nothing an agent can invoke starts the driver — a library run rather than sourced only defines functions, and none carries a profile entry (`docs/watcher.md` → `## 2. The scripts`). **The full environment for the wrappers:** the driver's `commit-on-branch.sh` and `push-branch.sh` calls run in the launch subshell, which keeps the watcher's environment; only a session's own launch pipe head is scrubbed (`docs/watcher.md` → `### The session's environment`).
 
 **Cost.** The driver cannot be run on its own; a reproduction by hand sources the libraries into a shell against a throwaway fixture (each library's `REPRO` block). A checkout `init` wrote before the libraries shipped lacks them until `init --force` rewrites the family, and until then every launch with the key on logs the driver off.
+
+**Superseded 2026-11-27 (`feat_planning_driver_python_cutover`).** The three libraries are retired, and the driver is `devscene-flow-host`'s `devscene-planning-driver` (`### The driver walks in-process, in GraphScene's run mode` and `### The launch vector keeps one producer`, above).
 
 ### Why the prompts come from the pinned plugin's core
 
@@ -257,6 +338,12 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 
 **Cost.** Renaming one of those headings, or changing a fence count under one, faults the driver at `pnl_init` with exit 2, and the run ends `failed`. `cli/test/planning-node-lib.test.mjs` builds its fixture plugin's core from this repository's, so a change of that kind fails the suite.
 
+**Superseded 2026-11-27 (`feat_planning_driver_python_cutover`).** `pnl_init`, `pnl_prompt`, `PNL_CORE_BLOCKS` and their suite are retired. The rule this entry records still holds: the prompts still come from the pinned plugin's core, which stays the one owner of every dispatch block. The mechanics changed:
+
+- **The prompts.** `CorePromptBuilder` cuts each from the heading its node's `promptSource` names (`host/agent_prompts.py`), held by core-agreement check 10 in `devscene-flow-host/tests/test_core_agreement.py`.
+- **The cap.** It is read by `records/core_limits.py` → `read_max_total_dispatches`.
+- **A drifted heading or fence count** now faults the driver when `CorePromptBuilder` is constructed, before any session.
+
 ### The return schema, the graph's outcomes, and the `init` check
 
 **Decision.** A node session is launched with no `--json-schema`; its outcome is read from the return block that ends its `result` text, validated against its agent's schema file, which `pnl_init` loads from the pinned plugin's `schemas/<agent>.return.json` for every dispatch node (`planning-node-lib.sh` → `pnl_load_schemas`). The mechanism — the block, the schema, and why the flag was dropped — is `docs/structured-agent-returns.md`'s. `pnl_reap` decides a node's result from its stream alone, in one fixed order (`PNL_REAP_JQ`): no `system`/`init` event is an infrastructure `error`, retried (`### How each runs a parallel round`, above), and an `init` whose tools carry one the agent file's `tools:` line does not name is an agent `error`, recorded at once; then a missing `result` event or an overload is undelivered; then a session that ended not `success` or with `is_error` is an infrastructure `error`; then a `result` text with no return block, a block that is not one JSON object, or an object that fails the schema is an infrastructure `error`; then a schema-valid outcome the graph does not declare for the node is an agent `error`; then a `FAIL`, or a round gate's `PASS`, whose `findings_file` is blank is an infrastructure `error`. The validated object is the only source of a field the driver reads afterwards (`planning-driver-lib.sh` → `pd_ret_field`, `pd_ask_park`). A declared tool the `init` lacks is not refused: `pnl_reap` prints it on `withheld=`, and the driver logs one `[plan-drive] #<seq> <node> (<agent>): the init event lacks declared tools [<tools>] (a lacking tool is never refused)` line for the session (`planning-driver-lib.sh` → `pd_reap_one`).
@@ -265,15 +352,25 @@ The walker has two drivers: the orchestrating session, which reads the core, and
 
 **Cost.** A return that fails its schema every time costs three sessions before the node records `error`. A dispatch node whose agent has no readable `schemas/<agent>.return.json` — or one that is not one JSON object, or has no top-level `oneOf` — faults the driver at `pnl_init`, before any session is launched. A shadowing agent definition is now caught only when its `tools:` line names a tool the pinned one does not; a narrower one passes. The driver ties its refusal to nothing a Claude Code version withholds, so a change in what is withheld shows in `<branch>.log`, not as a park: the log line is the deliberate surface, and no observation is written for it.
 
+**Superseded 2026-11-27 (`feat_planning_driver_python_cutover`).** The functions this entry names — `pnl_init`, `pnl_load_schemas`, `pnl_reap`, `PNL_REAP_JQ`, `pnl_agent_flags`, `pd_ret_field`, `pd_ask_park` and `pd_reap_one` — are retired. Their replacements:
+
+- **The schema and `tools:` reads** are `records/plugin_contracts.py` → `read_agent_contract`.
+- **The stream judgement** is `host/session_stream.py` → `judge_session`, which keeps the order above with two departures its docstring names.
+- **The MCP flags** are `host/agent_flags.py` → `agent_args`.
+- **The withheld-tools log line** is `host/node_sessions.py`'s.
+- **The return-field reads** are `host/run_exits.py` → `RETURN_FIELD_READS`.
+
 ### The cost
 
 - **A setup session per launch.** A launch the driver takes runs a setup session first — the engine command through its steps 1–4 and its step 4a, then nothing else — and, on the driver's hand-off, a second engine session for the rest of the run (`plugin/commands/branch-start-plan-autonomous.md` → step 4a). The orchestrated path is one engine session.
-- **Node streams reach the run stream one node late.** Each node's stream is written to its own file and appended to the run's `<branch>.stream.jsonl` only when that node is reaped (`planning-node-lib.sh` → `pnl_reap`), so the usage gate and run analytics, which read the run stream, see a node's events only after it has ended.
+- **Node streams reach the run stream one node late.** Each node's stream is written to its own file and appended to the run's `<branch>.stream.jsonl` only when that node is reaped (`planning-node-lib.sh` → `pnl_reap`), so the usage gate and run analytics, which read the run stream, see a node's events only after it has ended. **Superseded 2026-11-27 (`feat_planning_driver_python_cutover`)** in its citation: `pnl_reap` is retired, and `host/node_sessions.py` → `NodeSessions` now appends a node's stream when its session ends, so the cost stands.
 - **No `context_notes:` on this path.** A node's prompt is its dispatch block filled with the walker's values, plus a resumed writer's answered pairs and nothing else, so the orchestrator's one sanctioned addition has no equivalent here.
 
 ### What the follow-up measures
 
 `ROADMAP.md` → the `Script-driven planning pilot` row ([#159](https://github.com/firu-daniel/devscene/issues/159)) owns the follow-up: the pilot ends with a cost comparison against the orchestrated path, which decides whether the unit loop follows. The suites that drive the driver (`cli/test/planning-driver-walk.test.mjs`, `cli/test/planning-driver-control.test.mjs`, `cli/test/watcher-planning-driver.test.mjs`) run a stub agent CLI; they are evidence of the driver's behaviour, and no figure taken under them is evidence of a saving.
+
+**Changed 2026-11-27 (`feat_planning_driver_python_cutover`).** The two driver suites under `cli/test/` are retired. Their rules are now held against the Python driver by `devscene-flow-host/tests/test_planning_driver_walk.py` and `test_planning_driver_control.py`, with a fake agent (`devscene-flow-host/tests/fake_planning_agent.py`), and `cli/test/watcher-planning-driver.test.mjs` stays. The same reading holds: no figure taken under them is evidence of a saving.
 
 ### Not yet measured, and the hand step that measures it
 
@@ -291,7 +388,7 @@ One fact the driver once depended on was measured on a plain session, outside th
   {"subtype":"success","is_error":false,"structured_output":{"outcome":"PASS","return":"probe ok"},"result":"{\"outcome\":\"PASS\",\"return\":\"probe ok\"}"}
   ```
 
-  Both of the sources `pnl_reap` then read carried the decision: `structured_output` as an object, and `result` as the same object in JSON text.
+  Both of the sources `pnl_reap`, the retired bash driver's reader, then read carried the decision: `structured_output` as an object, and `result` as the same object in JSON text.
 
   **Corrected 2026-11-16, Claude Code 2.1.325:** under `--agent`, `--json-schema` is not applied and the `result` event carries no `structured_output`. A session launched `--plugin-dir <main checkout>/plugin --agent devscene:prompt-injection-reviewer` and asked to reply with outcome `PASS` carried no `structured_output` key, and its `result` was prose: `probe ok` followed by the agent declining to return `PASS` because its own contract emits only `verdict: SAFE` or `verdict: UNSAFE`. The first real script-driven node, `--agent devscene:task-plan-writer` with the driver's schema (run `fix_run_commit_trailer_amend`), carried no `structured_output` key either, and its `result` was the writer's prose return ending in its fenced `story_file:` / `task_files_dir:` / `tasks_count:` / `story_points_total:` block. Both rows are `harness-runs/task_prompts/feat_structured_planning_agent_outputs_task_prompt.md` → `## Measured, 2026-11-16, Claude Code 2.1.325`'s, with the same `--json-schema` as the command above, and `docs/structured-agent-returns.md` → `## 3. Measured, and not yet measured` carries that table whole. So the plain-session entry is not a fact a node session can rely on. **Re-measured 2026-11-26 on Claude Code 2.1.332:** unchanged, even with the agent's own return schema as `--json-schema`; `docs/structured-agent-returns.md` → `## 3. Measured, and not yet measured` carries the rows.
 
