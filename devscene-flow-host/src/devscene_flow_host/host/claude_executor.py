@@ -61,9 +61,10 @@ from devscene_flow_host.host.session_process import run_session
 from devscene_flow_host.host.session_stream import judge_session
 from devscene_flow_host.records.plugin_contracts import AgentContract
 
-# The pilot's effective `PD_NODE_STALL_SECS`: `cli/templates/scripts/autonomous-watcher.sh` →
-# `planning_driver_run` computes it as `STALL_KILL_SECS` (2700) minus `POLL_INTERVAL_SECS` (15).
-# The flow host's value, not a `devscene.config.json` key and not GraphScene's.
+# The watcher's stall kill, `STALL_KILL_SECS` (2700), minus its poll interval,
+# `POLL_INTERVAL_SECS` (15) (`cli/templates/scripts/autonomous-watcher.sh`), so a silent node is
+# killed here before the watcher kills the run. The flow host's value, not a
+# `devscene.config.json` key and not GraphScene's.
 NODE_INACTIVITY_LIMIT_SECONDS: Final = 2685.0
 KILL_GRACE_SECONDS: Final = 5.0
 EXECUTOR_FLAGS: Final = (
